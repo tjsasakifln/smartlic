@@ -3420,7 +3420,7 @@ export interface paths {
         };
         /**
          * Get Org
-         * @description Get organization details (must be a member).
+         * @description Get organization details (any accepted member).
          */
         get: operations["get_org_v1_organizations__org_id__get"];
         put?: never;
@@ -3443,8 +3443,33 @@ export interface paths {
         /**
          * Accept Org Invite
          * @description Accept a pending organization invite.
+         *
+         *     NB: invitee may not yet be a member (`accepted_at IS NULL`), so we
+         *     cannot use `require_org_role` here — the dependency would 404.
+         *     Authorization is by holding a valid pending invite row, validated
+         *     inside `accept_invite`.
          */
         post: operations["accept_org_invite_v1_organizations__org_id__accept_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/organizations/{org_id}/audit-log": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Org Audit Log
+         * @description Paginated audit log for the organization (owner only).
+         */
+        get: operations["get_org_audit_log_v1_organizations__org_id__audit_log_get"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -3460,7 +3485,7 @@ export interface paths {
         };
         /**
          * Get Org Dashboard Endpoint
-         * @description Get consolidated dashboard for organization (owner/admin only).
+         * @description Get consolidated dashboard for organization (member+ — viewers see nothing).
          */
         get: operations["get_org_dashboard_endpoint_v1_organizations__org_id__dashboard_get"];
         put?: never;
@@ -3482,7 +3507,7 @@ export interface paths {
         put?: never;
         /**
          * Invite Org Member
-         * @description Invite a member to the organization (owner/admin only).
+         * @description Invite a member to the organization (owner only).
          */
         post: operations["invite_org_member_v1_organizations__org_id__invite_post"];
         delete?: never;
@@ -3501,7 +3526,7 @@ export interface paths {
         get?: never;
         /**
          * Upload Org Logo
-         * @description Update organization logo URL (owner/admin only).
+         * @description Update organization logo URL (owner only).
          *
          *     Note: Actual file upload to Supabase Storage is handled client-side.
          *     This endpoint receives the public storage URL after the client-side upload.
@@ -3526,9 +3551,60 @@ export interface paths {
         post?: never;
         /**
          * Remove Org Member
-         * @description Remove a member from the organization (owner/admin only).
+         * @description Remove a member from the organization.
+         *
+         *     - Owner: may remove any member, but cannot remove the last owner
+         *       (enforced inside `remove_member`).
+         *     - Member / viewer: may ONLY remove themselves (self-leave). Attempts
+         *       to remove someone else 403.
          */
         delete: operations["remove_org_member_v1_organizations__org_id__members__target_user_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/organizations/{org_id}/members/{target_user_id}/role": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Update Org Member Role
+         * @description Promote/demote a member's role (owner only).
+         *
+         *     Rejects demotion of the last remaining owner (preserves the
+         *     "≥1 owner per org" invariant — story AC7).
+         */
+        patch: operations["update_org_member_role_v1_organizations__org_id__members__target_user_id__role_patch"];
+        trace?: never;
+    };
+    "/v1/organizations/{org_id}/transfer-ownership": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Transfer Org Ownership
+         * @description Transfer ownership atomically. Current owner becomes member; target
+         *     must already be a member; target becomes new owner.
+         *
+         *     Two-step UI confirmation enforced by `body.confirm` flag (AC11 frontend).
+         */
+        post: operations["transfer_org_ownership_v1_organizations__org_id__transfer_ownership_post"];
+        delete?: never;
         options?: never;
         head?: never;
         patch?: never;
@@ -7718,6 +7794,54 @@ export interface components {
             /** Last Search At */
             last_search_at?: string | null;
         };
+        /**
+         * OrgRole
+         * @description Organization role enum.
+         *
+         *     Stored as TEXT in `organization_members.role` with CHECK constraint
+         *     enforcing one of these three values.
+         * @enum {string}
+         */
+        OrgRole: "viewer" | "member" | "owner";
+        /**
+         * OrganizationAuditLogEntry
+         * @description A single row from `organization_audit_log`.
+         */
+        OrganizationAuditLogEntry: {
+            /** Action */
+            action: string;
+            /** Actor User Id */
+            actor_user_id: string;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Id */
+            id: string;
+            /** New Value */
+            new_value?: string | null;
+            /** Old Value */
+            old_value?: string | null;
+            /** Org Id */
+            org_id: string;
+            /** Target User Id */
+            target_user_id?: string | null;
+        };
+        /**
+         * OrganizationAuditLogResponse
+         * @description GET /v1/organizations/{org_id}/audit-log response.
+         */
+        OrganizationAuditLogResponse: {
+            /** Entries */
+            entries: components["schemas"]["OrganizationAuditLogEntry"][];
+            /** Limit */
+            limit: number;
+            /** Offset */
+            offset: number;
+            /** Total */
+            total: number;
+        };
         /** OrgaoContratosStatsResponse */
         OrgaoContratosStatsResponse: {
             /** Avg Value */
@@ -9347,6 +9471,23 @@ export interface components {
              */
             tour_id: string;
         };
+        /**
+         * TransferOwnershipRequest
+         * @description POST /v1/organizations/{org_id}/transfer-ownership body.
+         */
+        TransferOwnershipRequest: {
+            /**
+             * Confirm
+             * @description Must be true; UI 2-step confirmation
+             * @default false
+             */
+            confirm: boolean;
+            /**
+             * Target User Id
+             * @description The member to promote to owner
+             */
+            target_user_id: string;
+        };
         /** TrendingSector */
         TrendingSector: {
             /** Count This Week */
@@ -9508,6 +9649,13 @@ export interface components {
         UpdateLogoRequest: {
             /** Logo Url */
             logo_url: string;
+        };
+        /**
+         * UpdateMemberRoleRequest
+         * @description PATCH /v1/organizations/{org_id}/members/{user_id}/role body.
+         */
+        UpdateMemberRoleRequest: {
+            role: components["schemas"]["OrgRole"];
         };
         /** UpdateUserRequest */
         UpdateUserRequest: {
@@ -14355,6 +14503,40 @@ export interface operations {
             };
         };
     };
+    get_org_audit_log_v1_organizations__org_id__audit_log_get: {
+        parameters: {
+            query?: {
+                limit?: number;
+                offset?: number;
+            };
+            header?: never;
+            path: {
+                org_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OrganizationAuditLogResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     get_org_dashboard_endpoint_v1_organizations__org_id__dashboard_get: {
         parameters: {
             query?: never;
@@ -14467,6 +14649,77 @@ export interface operations {
             cookie?: never;
         };
         requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_org_member_role_v1_organizations__org_id__members__target_user_id__role_patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                org_id: string;
+                target_user_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateMemberRoleRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    transfer_org_ownership_v1_organizations__org_id__transfer_ownership_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                org_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TransferOwnershipRequest"];
+            };
+        };
         responses: {
             /** @description Successful Response */
             200: {
