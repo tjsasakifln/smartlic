@@ -43,7 +43,9 @@ from schemas.organization import (
     OrganizationMember,
     OrgRole,
     TransferOwnershipRequest,
+    TransferOwnershipResponse,
     UpdateMemberRoleRequest,
+    UpdateMemberRoleResponse,
 )
 from services.organization_audit import fetch_audit_log, log_org_event
 from services.organization_service import (
@@ -373,7 +375,10 @@ async def upload_org_logo(
 
 
 # AC7: PATCH /v1/organizations/{org_id}/members/{target_user_id}/role — promote/demote
-@router.patch("/organizations/{org_id}/members/{target_user_id}/role")
+@router.patch(
+    "/organizations/{org_id}/members/{target_user_id}/role",
+    response_model=UpdateMemberRoleResponse,
+)
 async def update_org_member_role(
     org_id: str,
     target_user_id: str,
@@ -431,7 +436,10 @@ async def update_org_member_role(
 
 
 # AC6: POST /v1/organizations/{org_id}/transfer-ownership
-@router.post("/organizations/{org_id}/transfer-ownership")
+@router.post(
+    "/organizations/{org_id}/transfer-ownership",
+    response_model=TransferOwnershipResponse,
+)
 async def transfer_org_ownership(
     org_id: str,
     body: TransferOwnershipRequest,

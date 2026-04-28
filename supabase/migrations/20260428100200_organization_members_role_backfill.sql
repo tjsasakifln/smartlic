@@ -29,7 +29,8 @@
 -- writes a CSV of every (org_id, user_id, computed_role) for human
 -- review BEFORE this migration runs. See ADR §"Backfill validation".
 
-BEGIN;
+-- Supabase CLI runs each migration file in its own transaction; no explicit
+-- BEGIN/COMMIT needed (matches majority repo convention).
 
 -- ---------------------------------------------------------------------------
 -- 1. Drop the old CHECK constraint (will be replaced after we normalize data)
@@ -183,5 +184,3 @@ BEGIN
   RAISE NOTICE 'RBAC-ORG-001 backfill complete: total=%, owner=%, member=%, viewer=%',
     total_count, owner_count, member_count, viewer_count;
 END $$;
-
-COMMIT;

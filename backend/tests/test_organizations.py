@@ -476,7 +476,11 @@ class TestRemoveMember:
 
     @pytest.mark.asyncio
     async def test_remove_owner_fails(self, mock_user):
-        """Attempting to remove the org owner returns 403."""
+        """RBAC-ORG-001: removing an owner is blocked when only ONE owner
+        remains (last-owner invariant). Updated from STORY-322 — used to
+        block ANY owner removal; now only blocks the last-owner case so
+        owner self-leave + ownership-handoff flows work.
+        """
         app.dependency_overrides[require_auth] = lambda: mock_user
         try:
             mock_sb, mock_table, _ = _mock_supabase()
@@ -486,12 +490,21 @@ class TestRemoveMember:
             def execute_side():
                 call_count[0] += 1
                 r = MagicMock()
+                # mock_user.id == "user-001" tries to remove "user-002" (NOT
+                # self) — so remover-role check runs, then target lookup,
+                # then _count_owners.
                 if call_count[0] == 1:
                     # remover is owner
                     r.data = [{"role": "owner"}]
                 elif call_count[0] == 2:
-                    # target is also owner — cannot be removed
+                    # target is also owner
                     r.data = [{"id": "mem-001", "role": "owner"}]
+                elif call_count[0] == 3:
+                    # _count_owners returns 1 (last owner)
+                    r.data = [{"id": "mem-001"}]
+                    r.count = 1
+                else:
+                    r.data = []
                 return r
 
             mock_table.execute.side_effect = execute_side
@@ -500,7 +513,7 @@ class TestRemoveMember:
                 transport = ASGITransport(app=app)
                 async with AsyncClient(transport=transport, base_url="http://test") as client:
                     response = await client.delete(
-                        "/v1/organizations/org-abc/members/user-001"
+                        "/v1/organizations/org-abc/members/user-002"
                     )
 
             assert response.status_code == 403

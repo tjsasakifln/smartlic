@@ -9,7 +9,8 @@
 -- if you genuinely need to recover the pre-migration mapping, restore
 -- from a database snapshot taken before 2026-04-28.
 
-BEGIN;
+-- Supabase CLI runs each migration file in its own transaction; no explicit
+-- BEGIN/COMMIT needed.
 
 -- ---------------------------------------------------------------------------
 -- 1. Drop the new CHECK constraint
@@ -102,5 +103,3 @@ CREATE POLICY "Org owner/admin can delete members"
     OR
     auth.uid() = user_id
   );
-
-COMMIT;

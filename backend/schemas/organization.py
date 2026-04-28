@@ -112,3 +112,21 @@ class OrganizationAuditLogResponse(BaseModel):
     total: int
     limit: int
     offset: int
+
+
+class UpdateMemberRoleResponse(BaseModel):
+    """PATCH /v1/organizations/{org_id}/members/{user_id}/role response."""
+
+    updated: bool
+    target_user_id: str
+    old_role: str
+    new_role: str
+    reason: Optional[str] = None
+
+
+class TransferOwnershipResponse(BaseModel):
+    """POST /v1/organizations/{org_id}/transfer-ownership response."""
+
+    transferred: bool
+    from_user_id: str
+    to_user_id: str

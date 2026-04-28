@@ -196,23 +196,34 @@ async def accept_invite(org_id: str, user_id: str) -> dict:
 async def remove_member(org_id: str, remover_id: str, target_user_id: str) -> dict:
     """Remove a member from the organization.
 
-    Remover must be owner/admin. Cannot remove the owner.
+    Authorization (RBAC-ORG-001 update):
+      - Remover MUST be owner OR removing themselves (self-leave).
+        The route layer's `require_org_role(VIEWER)` + per-handler
+        owner-or-self check enforces this; this function defends against
+        misuse if called from elsewhere.
+      - Removing an owner is only allowed when at least one other owner
+        remains (preserves "≥1 owner per org" invariant). This applies
+        to both owner-self-leave AND owner-removed-by-another-owner.
     """
     sb = get_supabase()
 
-    # Check remover role
-    remover = (
-        sb.table("organization_members")
-        .select("role")
-        .eq("org_id", org_id)
-        .eq("user_id", remover_id)
-        .limit(1)
-        .execute()
-    )
-    if not remover.data or remover.data[0]["role"] not in ("owner", "admin"):
-        raise PermissionError("Apenas owner ou admin podem remover membros")
+    is_self = remover_id == target_user_id
 
-    # Check target role (cannot remove owner)
+    # Check remover role (skip when self-leave; the route already verified
+    # the user has SOME accepted membership via require_org_role(VIEWER))
+    if not is_self:
+        remover = (
+            sb.table("organization_members")
+            .select("role")
+            .eq("org_id", org_id)
+            .eq("user_id", remover_id)
+            .limit(1)
+            .execute()
+        )
+        if not remover.data or remover.data[0]["role"] not in _OWNER_ROLES:
+            raise PermissionError("Apenas owner pode remover outros membros")
+
+    # Find target row
     target = (
         sb.table("organization_members")
         .select("id, role")
@@ -223,13 +234,20 @@ async def remove_member(org_id: str, remover_id: str, target_user_id: str) -> di
     )
     if not target.data:
         raise ValueError("Membro nao encontrado")
+
+    # Last-owner invariant: removing an owner requires ≥2 owners total.
     if target.data[0]["role"] == "owner":
-        raise PermissionError("Nao e possivel remover o owner da organizacao")
+        owner_count = _count_owners(sb, org_id)
+        if owner_count <= 1:
+            raise PermissionError(
+                "Não é possível remover o último owner. Transfira a "
+                "propriedade primeiro ou exclua a organização."
+            )
 
     # Delete
     sb.table("organization_members").delete().eq("id", target.data[0]["id"]).execute()
 
-    logger.info(f"Member removed: org_id={org_id}, target_user_id={target_user_id[:8]}***")
+    logger.info(f"Member removed: org_id={org_id}, target_user_id={target_user_id[:8]}***, self={is_self}")
     return {"removed": True}
 
 

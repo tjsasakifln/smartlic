@@ -9488,6 +9488,18 @@ export interface components {
              */
             target_user_id: string;
         };
+        /**
+         * TransferOwnershipResponse
+         * @description POST /v1/organizations/{org_id}/transfer-ownership response.
+         */
+        TransferOwnershipResponse: {
+            /** From User Id */
+            from_user_id: string;
+            /** To User Id */
+            to_user_id: string;
+            /** Transferred */
+            transferred: boolean;
+        };
         /** TrendingSector */
         TrendingSector: {
             /** Count This Week */
@@ -9656,6 +9668,22 @@ export interface components {
          */
         UpdateMemberRoleRequest: {
             role: components["schemas"]["OrgRole"];
+        };
+        /**
+         * UpdateMemberRoleResponse
+         * @description PATCH /v1/organizations/{org_id}/members/{user_id}/role response.
+         */
+        UpdateMemberRoleResponse: {
+            /** New Role */
+            new_role: string;
+            /** Old Role */
+            old_role: string;
+            /** Reason */
+            reason?: string | null;
+            /** Target User Id */
+            target_user_id: string;
+            /** Updated */
+            updated: boolean;
         };
         /** UpdateUserRequest */
         UpdateUserRequest: {
@@ -14692,7 +14720,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": unknown;
+                    "application/json": components["schemas"]["UpdateMemberRoleResponse"];
                 };
             };
             /** @description Validation Error */
@@ -14727,7 +14755,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": unknown;
+                    "application/json": components["schemas"]["TransferOwnershipResponse"];
                 };
             };
             /** @description Validation Error */

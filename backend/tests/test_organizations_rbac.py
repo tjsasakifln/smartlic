@@ -131,8 +131,8 @@ async def test_rbac_matrix(endpoint, actor_role):
              patch("routes.organizations.get_organization", new_callable=AsyncMock, return_value={"id": "org-abc", "name": "x"}), \
              patch("routes.organizations.get_org_dashboard", new_callable=AsyncMock, return_value={"member_count": 1}), \
              patch("routes.organizations.update_org_logo", new_callable=AsyncMock, return_value={"updated": True}), \
-             patch("routes.organizations.update_member_role", new_callable=AsyncMock, return_value={"updated": True, "old_role": "member", "new_role": "viewer"}), \
-             patch("routes.organizations.transfer_ownership", new_callable=AsyncMock, return_value={"transferred": True}), \
+             patch("routes.organizations.update_member_role", new_callable=AsyncMock, return_value={"updated": True, "target_user_id": "user-002", "old_role": "member", "new_role": "viewer"}), \
+             patch("routes.organizations.transfer_ownership", new_callable=AsyncMock, return_value={"transferred": True, "from_user_id": "user-001", "to_user_id": "user-002"}), \
              patch("routes.organizations.fetch_audit_log", new_callable=AsyncMock, return_value=([], 0)):
 
             transport = ASGITransport(app=app)
@@ -202,7 +202,11 @@ async def test_non_member_404(endpoint):
 @pytest.mark.asyncio
 @pytest.mark.parametrize("role", [OrgRole.VIEWER, OrgRole.MEMBER, OrgRole.OWNER])
 async def test_delete_member_self_leave_allowed(role):
-    """Any role may remove themselves (self-leave)."""
+    """Any role may remove themselves (self-leave). For OWNER, the
+    last-owner invariant in `services.organization_service.remove_member`
+    still applies — but with the route mocked here we just confirm the
+    RBAC gate (route-level) doesn't 403 the request.
+    """
     actor_id = "user-001"
     app.dependency_overrides[require_auth] = lambda: _user(actor_id)
     try:
@@ -214,6 +218,88 @@ async def test_delete_member_self_leave_allowed(role):
         assert resp.status_code == 200, resp.text
     finally:
         app.dependency_overrides.clear()
+
+
+@pytest.mark.asyncio
+async def test_owner_self_leave_blocked_when_last_owner():
+    """Service-layer last-owner invariant: owner cannot leave if they
+    are the only owner. Tests the unmocked service path.
+    """
+    from services.organization_service import remove_member
+
+    table_calls = []
+
+    class _Result:
+        def __init__(self, data, count=None):
+            self.data = data
+            self.count = count
+
+    class _Chain:
+        def select(self, *a, **kw):
+            return self
+        def eq(self, *a, **kw):
+            return self
+        def limit(self, *a, **kw):
+            return self
+        def execute(self):
+            # Self-leave: skip remover check; first execute is target
+            # lookup → owner role; second is _count_owners → 1.
+            table_calls.append("c")
+            if len(table_calls) == 1:
+                return _Result([{"id": "mem-1", "role": "owner"}])
+            return _Result([{"id": "mem-1"}], count=1)
+
+    sb_mock = type("SB", (), {"table": lambda self, *a, **kw: _Chain()})()
+    with patch("services.organization_service.get_supabase", return_value=sb_mock):
+        with pytest.raises(PermissionError) as exc:
+            await remove_member(
+                org_id="org-abc",
+                remover_id="user-1",
+                target_user_id="user-1",  # self-leave
+            )
+    assert "último owner" in str(exc.value).lower() or "last owner" in str(exc.value).lower()
+
+
+@pytest.mark.asyncio
+async def test_owner_self_leave_allowed_when_other_owner_exists():
+    """Owner CAN self-leave when another owner remains."""
+    from services.organization_service import remove_member
+
+    table_calls = []
+
+    class _Result:
+        def __init__(self, data, count=None):
+            self.data = data
+            self.count = count
+
+    class _Chain:
+        def select(self, *a, **kw):
+            return self
+        def eq(self, *a, **kw):
+            return self
+        def limit(self, *a, **kw):
+            return self
+        def delete(self, *a, **kw):
+            return self
+        def execute(self):
+            table_calls.append("c")
+            if len(table_calls) == 1:
+                # target lookup
+                return _Result([{"id": "mem-1", "role": "owner"}])
+            if len(table_calls) == 2:
+                # _count_owners → 2 (≥2 owners)
+                return _Result([{}, {}], count=2)
+            # delete
+            return _Result([{}])
+
+    sb_mock = type("SB", (), {"table": lambda self, *a, **kw: _Chain()})()
+    with patch("services.organization_service.get_supabase", return_value=sb_mock):
+        result = await remove_member(
+            org_id="org-abc",
+            remover_id="user-1",
+            target_user_id="user-1",
+        )
+    assert result["removed"] is True
 
 
 @pytest.mark.asyncio

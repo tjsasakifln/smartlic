@@ -6,8 +6,9 @@
 --
 -- Story: docs/stories/2026-04/RBAC-ORG-001-enforce-org-role-dependency.story.md
 -- ADR:   docs/adr/ADR-RBAC-ORG-001-enterprise-standard.md
-
-BEGIN;
+--
+-- Supabase CLI runs each migration file in its own transaction; no explicit
+-- BEGIN/COMMIT needed (matches majority repo convention).
 
 -- ---------------------------------------------------------------------------
 -- Table
@@ -105,5 +106,3 @@ DO $$
 BEGIN
   RAISE NOTICE 'RBAC-ORG-001 AC8: organization_audit_log table created';
 END $$;
-
-COMMIT;
