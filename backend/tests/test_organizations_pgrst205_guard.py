@@ -3,7 +3,14 @@
 All 7 organization endpoints must return HTTP 503 "Feature not yet available"
 when the underlying Supabase query raises a PGRST205 schema cache error,
 instead of propagating as HTTP 500.
+
+RBAC-ORG-001: routes are now gated by `require_org_role(...)` which
+itself queries Supabase. The autouse fixture below stubs
+`_fetch_membership` so the dependency resolves to OWNER, then the
+service-layer call fails with PGRST205 as the test intends.
 """
+
+from datetime import datetime, timezone
 
 import pytest
 from unittest.mock import patch
@@ -11,8 +18,34 @@ from httpx import AsyncClient, ASGITransport
 
 from main import app
 from auth import require_auth
+from schemas.organization import OrganizationMember, OrgRole
 
 _ORG_SVC_GET_SUPABASE = "services.organization_service.get_supabase"
+
+
+@pytest.fixture(autouse=True)
+def _stub_org_membership_and_audit():
+    """RBAC-ORG-001: bypass `_fetch_membership` and audit logger so the
+    test reaches the service-layer Supabase call where PGRST205 is meant
+    to surface.
+    """
+    async def _ok(org_id=None, user_id=None, **_kw):
+        return OrganizationMember(
+            org_id=org_id or "org-abc",
+            user_id=user_id or "user-001",
+            role=OrgRole.OWNER,
+            invited_at=None,
+            accepted_at=datetime.now(timezone.utc),
+        )
+
+    async def _noop_audit(**kwargs):
+        return None
+
+    with (
+        patch("dependencies.org_auth._fetch_membership", side_effect=_ok),
+        patch("routes.organizations.log_org_event", side_effect=_noop_audit),
+    ):
+        yield
 
 
 def _pgrst205_error():

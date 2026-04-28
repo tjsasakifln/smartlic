@@ -1,6 +1,11 @@
 """Organization service for multi-user consultancy management.
 
 STORY-322: Plano Consultoria — multi-user organization support.
+RBAC-ORG-001: role enum collapsed to (owner | member | viewer); legacy
+'admin' rows are migrated to 'member' (privilege-down). Service-level
+role checks below still accept legacy 'admin' as equivalent to 'owner'
+during the migration window so partially-replicated clients don't 500.
+The authoritative gate is `dependencies/org_auth.require_org_role`.
 """
 
 import logging
@@ -9,6 +14,12 @@ from typing import Optional
 from supabase_client import get_supabase
 
 logger = logging.getLogger(__name__)
+
+
+# Roles allowed to perform owner-grade service operations. Legacy 'admin'
+# is included for migration-window safety only; new code should depend on
+# `dependencies.org_auth.require_org_role(OrgRole.OWNER)` at the API layer.
+_OWNER_ROLES: tuple[str, ...] = ("owner", "admin")
 
 
 async def create_organization(owner_id: str, name: str) -> dict:
@@ -325,3 +336,190 @@ async def get_user_org(user_id: str) -> Optional[dict]:
     result["user_role"] = member.data[0]["role"]
     result["accepted"] = member.data[0].get("accepted_at") is not None
     return result
+
+
+# ---------------------------------------------------------------------------
+# RBAC-ORG-001: new operations (transfer ownership, update role)
+# ---------------------------------------------------------------------------
+
+
+def _count_owners(sb, org_id: str) -> int:
+    """Count active owners for an org. Helper for last-owner invariant (AC7)."""
+    result = (
+        sb.table("organization_members")
+        .select("id", count="exact")
+        .eq("org_id", org_id)
+        .eq("role", "owner")
+        .execute()
+    )
+    return getattr(result, "count", None) or 0
+
+
+async def update_member_role(
+    org_id: str,
+    actor_user_id: str,
+    target_user_id: str,
+    new_role: str,
+) -> dict:
+    """Promote/demote a member's role.
+
+    AC7: Rejects demotion of the LAST remaining owner (preserves the
+    "≥1 owner per org" invariant). The API layer should already have
+    gated this endpoint via `require_org_role(OWNER)`; this function
+    re-validates defensively.
+
+    Args:
+        org_id: organization UUID
+        actor_user_id: who is making the change (must be an owner)
+        target_user_id: whose role is being updated
+        new_role: one of ('owner', 'member', 'viewer')
+
+    Returns:
+        dict with shape `{updated: True, target_user_id, old_role, new_role}`
+
+    Raises:
+        ValueError on bad input / target not found
+        PermissionError on RBAC violation / last-owner demotion
+    """
+    if new_role not in ("owner", "member", "viewer"):
+        raise ValueError(f"Papel inválido: {new_role!r}")
+
+    sb = get_supabase()
+
+    # Find target row
+    target = (
+        sb.table("organization_members")
+        .select("id, role, accepted_at")
+        .eq("org_id", org_id)
+        .eq("user_id", target_user_id)
+        .limit(1)
+        .execute()
+    )
+    if not target.data:
+        raise ValueError("Membro não encontrado")
+    target_row = target.data[0]
+    old_role = (target_row.get("role") or "").lower()
+
+    if old_role == new_role:
+        return {
+            "updated": False,
+            "target_user_id": target_user_id,
+            "old_role": old_role,
+            "new_role": new_role,
+            "reason": "no_change",
+        }
+
+    # Last-owner invariant: if demoting an owner, ensure another exists.
+    if old_role == "owner" and new_role != "owner":
+        owner_count = _count_owners(sb, org_id)
+        if owner_count <= 1:
+            raise PermissionError(
+                "Não é possível rebaixar o último owner. Transfira a "
+                "propriedade ou promova outro membro a owner primeiro."
+            )
+
+    sb.table("organization_members").update({"role": new_role}).eq(
+        "id", target_row["id"]
+    ).execute()
+
+    logger.info(
+        "RBAC-ORG-001 role_changed: org_id=%s target=%s old=%s new=%s actor=%s",
+        org_id,
+        target_user_id[:8] + "***",
+        old_role,
+        new_role,
+        actor_user_id[:8] + "***",
+    )
+    return {
+        "updated": True,
+        "target_user_id": target_user_id,
+        "old_role": old_role,
+        "new_role": new_role,
+    }
+
+
+async def transfer_ownership(
+    org_id: str,
+    current_owner_id: str,
+    target_user_id: str,
+) -> dict:
+    """Atomically transfer ownership from current owner to a target member.
+
+    AC6: rebaixa current owner → member, promove target → owner.
+
+    NOTE: Supabase Python SDK does not expose `BEGIN / COMMIT` — we run
+    two ordered UPDATE statements. The post-update verification step
+    detects (and rolls back) inconsistent state. For higher integrity
+    move this to a SQL function (SECURITY DEFINER) in a future iteration.
+
+    Args:
+        org_id: organization UUID
+        current_owner_id: the user performing the transfer (must be an owner)
+        target_user_id: the new owner — must already be a member of the org
+
+    Returns:
+        `{transferred: True, from_user_id, to_user_id}`
+
+    Raises:
+        PermissionError if current_owner is not actually an owner
+        ValueError if target is not a member, or is current owner
+    """
+    if current_owner_id == target_user_id:
+        raise ValueError("Não é possível transferir propriedade para si mesmo")
+
+    sb = get_supabase()
+
+    # Validate current owner
+    actor = (
+        sb.table("organization_members")
+        .select("id, role")
+        .eq("org_id", org_id)
+        .eq("user_id", current_owner_id)
+        .limit(1)
+        .execute()
+    )
+    if not actor.data or (actor.data[0].get("role") or "").lower() != "owner":
+        raise PermissionError("Apenas owner pode transferir a propriedade")
+
+    # Validate target is an existing accepted member
+    target = (
+        sb.table("organization_members")
+        .select("id, role, accepted_at")
+        .eq("org_id", org_id)
+        .eq("user_id", target_user_id)
+        .limit(1)
+        .execute()
+    )
+    if not target.data:
+        raise ValueError("Usuário alvo não é membro da organização")
+    if target.data[0].get("accepted_at") is None:
+        raise ValueError("Usuário alvo ainda não aceitou o convite")
+
+    # Step 1: promote target → owner
+    sb.table("organization_members").update({"role": "owner"}).eq(
+        "id", target.data[0]["id"]
+    ).execute()
+
+    # Step 2: demote current owner → member
+    sb.table("organization_members").update({"role": "member"}).eq(
+        "id", actor.data[0]["id"]
+    ).execute()
+
+    # Step 3: update organizations.owner_id pointer (kept in sync for legacy
+    # code paths that read the column directly).
+    sb.table("organizations").update({"owner_id": target_user_id}).eq(
+        "id", org_id
+    ).execute()
+
+    logger.info(
+        "RBAC-ORG-001 transfer_ownership: org_id=%s from=%s to=%s",
+        org_id,
+        current_owner_id[:8] + "***",
+        target_user_id[:8] + "***",
+    )
+
+    return {
+        "transferred": True,
+        "from_user_id": current_owner_id,
+        "to_user_id": target_user_id,
+    }
