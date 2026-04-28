@@ -158,6 +158,8 @@ export interface UseSearchReturn {
   ufStatusesSnapshot: Map<string, UfStatus>;
   // BIZ-METRIC-001: post-export survey props (buscar page renders the modal)
   exportSurveyModalProps: import("../../../components/survey/ExportTimeSavedModal").ExportTimeSavedModalProps;
+  // BIZ-METRIC-001: trigger for non-Excel export paths (PDF / Sheets)
+  maybeOpenExportSurvey: (input: import("../../../components/survey/ExportTimeSavedModal").MaybeOpenInput) => void;
 }
 
 // ── Orchestrator ────────────────────────────────────────────────────────
@@ -511,5 +513,7 @@ export function useSearch(filters: UseSearchParams): UseSearchReturn {
     ufStatusesSnapshot,
     // BIZ-METRIC-001: post-export survey props for the buscar page
     exportSurveyModalProps: exportSurvey.modalProps,
+    // BIZ-METRIC-001: trigger for non-Excel export paths (PDF, Sheets)
+    maybeOpenExportSurvey: exportSurvey.maybeOpen,
   };
 }
