@@ -27,6 +27,7 @@ from __future__ import annotations
 
 import logging
 import statistics
+from datetime import datetime, timedelta, timezone
 from typing import Any, Optional
 
 from fastapi import APIRouter, Body, Depends, HTTPException, Query
@@ -265,16 +266,19 @@ def _fetch_recent_surveys(range_days: int) -> list[dict[str, Any]]:
 
     Returns an empty list on DB error (admin endpoint never raises 5xx
     purely because the table is unavailable — operator can retry).
+
+    Note on the cutoff: PostgREST does NOT evaluate SQL expressions in
+    filter values; passing ``"now() - interval '90 days'"`` would be
+    sent as a URL literal and silently match nothing. We compute the
+    ISO-8601 cutoff in Python instead.
     """
+    cutoff = (datetime.now(timezone.utc) - timedelta(days=int(range_days))).isoformat()
     sb = get_supabase()
     try:
         result = (
             sb.table("export_time_saved_survey")
             .select("estimated_manual_hours, bid_count, submitted_at, export_type")
-            .gte(
-                "submitted_at",
-                f"now() - interval '{int(range_days)} days'",
-            )
+            .gte("submitted_at", cutoff)
             .order("submitted_at", desc=True)
             .limit(10_000)
             .execute()

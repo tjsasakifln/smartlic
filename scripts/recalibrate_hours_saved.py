@@ -59,13 +59,19 @@ from utils.app_config import (  # noqa: E402
 
 
 def _fetch_rows(range_days: int) -> list[dict[str, Any]]:
+    from datetime import timedelta
+
     from supabase_client import get_supabase
+
+    # PostgREST sends filter values as URL literals — cannot use SQL
+    # ``now() - interval '...'`` here. Compute the ISO cutoff in Python.
+    cutoff = (datetime.now(timezone.utc) - timedelta(days=int(range_days))).isoformat()
 
     sb = get_supabase()
     result = (
         sb.table("export_time_saved_survey")
         .select("estimated_manual_hours, bid_count, submitted_at, export_type")
-        .gte("submitted_at", f"now() - interval '{int(range_days)} days'")
+        .gte("submitted_at", cutoff)
         .order("submitted_at", desc=True)
         .limit(50_000)
         .execute()

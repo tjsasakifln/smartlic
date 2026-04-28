@@ -158,6 +158,42 @@ class TestSurveyAggregate:
         assert isinstance(body["histogram"], list)
         assert len(body["histogram"]) == len(HISTOGRAM_BUCKETS) + 1
 
+    def test_aggregate_passes_iso_cutoff_to_postgrest(self, client):
+        """PostgREST cannot evaluate SQL in filter values — we must
+        send a literal ISO-8601 timestamp, not ``now() - interval ...``.
+        Defends against regression of advisor-flagged production bug.
+        """
+        sb = MagicMock()
+        captured: dict[str, str] = {}
+        chain = MagicMock()
+        chain.select.return_value = chain
+        chain.order.return_value = chain
+        chain.limit.return_value = chain
+
+        def gte(column: str, value: str):
+            captured["column"] = column
+            captured["value"] = value
+            return chain
+
+        chain.gte.side_effect = gte
+        result = MagicMock()
+        result.data = []
+        chain.execute.return_value = result
+        sb.table.return_value = chain
+
+        with patch("routes.admin_calibration.get_supabase", return_value=sb), \
+                patch("routes.admin_calibration.get_hours_saved_per_search", return_value=2.0):
+            resp = client.get("/v1/admin/survey/export-time-saved?range_days=90")
+
+        assert resp.status_code == 200
+        assert captured["column"] == "submitted_at"
+        # No SQL fragments leaking through
+        assert "now()" not in captured["value"]
+        assert "interval" not in captured["value"]
+        # Looks like an ISO-8601 timestamp
+        assert "T" in captured["value"]
+        assert captured["value"].count("-") >= 2
+
     def test_aggregate_handles_db_error_gracefully(self, client):
         sb = MagicMock()
         chain = MagicMock()
