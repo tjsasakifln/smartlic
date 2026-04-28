@@ -123,4 +123,62 @@ describe('FoundingForm', () => {
     const alert = await screen.findByRole('alert');
     expect(alert.textContent).toMatch(/falha de rede/i);
   });
+
+  // BIZ-FOUND-002: availability prop drives CTA disable + reason message.
+  describe('availability prop (BIZ-FOUND-002)', () => {
+    const FULL_SNAPSHOT = {
+      available: false,
+      seats_total: 50,
+      seats_remaining: 0,
+      seats_taken: 50,
+      deadline_at: '2026-05-30T23:59:59-03:00',
+      paused: false,
+      reason: 'founding_cap_reached',
+      coupon_code: 'FOUNDING_LIFETIME',
+      discount_pct: 50,
+    };
+
+    it('disables submit button and shows cap message when availability says full', () => {
+      render(<FoundingForm availability={FULL_SNAPSHOT} />);
+      const btn = screen.getByTestId('founding-form-submit') as HTMLButtonElement;
+      expect(btn).toBeDisabled();
+      expect(btn.textContent).toMatch(/programa fechado/i);
+      expect(screen.getByTestId('founding-form-unavailable').textContent).toMatch(/50 vagas/i);
+    });
+
+    it('surfaces deadline message when reason=founding_deadline_passed', () => {
+      render(
+        <FoundingForm availability={{ ...FULL_SNAPSHOT, reason: 'founding_deadline_passed' }} />,
+      );
+      expect(screen.getByTestId('founding-form-unavailable').textContent).toMatch(/30\/05\/2026/);
+    });
+
+    it('surfaces structured 410 detail.message when backend returns object', async () => {
+      (global.fetch as jest.Mock).mockResolvedValueOnce({
+        ok: false,
+        status: 410,
+        json: async () => ({
+          detail: {
+            message: 'As 50 vagas founding já foram preenchidas.',
+            error_code: 'founding_cap_reached',
+            seats_total: 50,
+            seats_remaining: 0,
+          },
+        }),
+      });
+      render(<FoundingForm />);
+      fillValidForm();
+      fireEvent.submit(screen.getByRole('button', { name: /Quero ser um founding partner/i }).closest('form')!);
+      const alert = await screen.findByRole('alert');
+      expect(alert.textContent).toMatch(/já foram preenchidas/i);
+    });
+
+    it('keeps button enabled when availability.available=true', () => {
+      const open = { ...FULL_SNAPSHOT, available: true, seats_remaining: 25, seats_taken: 25, reason: 'available' };
+      render(<FoundingForm availability={open} />);
+      const btn = screen.getByTestId('founding-form-submit') as HTMLButtonElement;
+      expect(btn).not.toBeDisabled();
+      expect(btn.textContent).toMatch(/quero ser um founding partner/i);
+    });
+  });
 });
