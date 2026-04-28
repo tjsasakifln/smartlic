@@ -112,7 +112,14 @@ export default function FoundingForm({ availability }: Props = {}) {
         let msg = 'Nao foi possivel iniciar seu checkout. Tente novamente em instantes.';
         try {
           const data = await res.json();
-          if (typeof data?.detail === 'string') msg = data.detail;
+          if (typeof data?.detail === 'string') {
+            msg = data.detail;
+          } else if (data?.detail && typeof data.detail === 'object') {
+            // BIZ-FOUND-002: 410 Gone responses use structured detail
+            // ({message, error_code, seats_total, seats_remaining}). Surface
+            // the user-friendly message when present.
+            if (typeof data.detail.message === 'string') msg = data.detail.message;
+          }
         } catch {
           // ignore JSON parse errors — keep default message
         }
