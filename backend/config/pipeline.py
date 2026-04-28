@@ -55,12 +55,6 @@ DEFAULT_UF_PRIORITY: list[str] = [
 CACHE_LEGACY_KEY_FALLBACK: bool = str_to_bool(os.getenv("CACHE_LEGACY_KEY_FALLBACK", "true"))
 SHOW_CACHE_FALLBACK_BANNER: bool = str_to_bool(os.getenv("SHOW_CACHE_FALLBACK_BANNER", "true"))
 
-# STORY-271 / DEBT-009: Nil UUID reserved for legacy warming jobs. Kept as a
-# defensive guard in cache save paths to short-circuit any accidental write
-# by this identity. The owning account is permanently banned via
-# migration supabase/migrations/20260308330000_debt009_ban_cache_warmer.sql.
-WARMING_USER_ID: str = "00000000-0000-0000-0000-000000000000"
-
 # ============================================
 # CRIT-081: Serve expired cache on total outage
 # ============================================

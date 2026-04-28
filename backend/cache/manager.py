@@ -71,33 +71,24 @@ async def save_to_cache(
     params_hash = compute_search_hash(params)
     start = time.monotonic()
 
-    from config import WARMING_USER_ID
-    skip_supabase = (user_id == WARMING_USER_ID)
-
     # Level 1: Supabase
-    if skip_supabase:
-        logger.debug(
-            f"Cache SAVE skipping L1/supabase for warming user "
-            f"(key={params_hash[:12]}, n={len(results)})"
+    try:
+        await _supa._save_to_supabase(
+            user_id, params_hash, params, results, sources,
+            fetch_duration_ms=fetch_duration_ms, coverage=coverage,
         )
-    else:
-        try:
-            await _supa._save_to_supabase(
-                user_id, params_hash, params, results, sources,
-                fetch_duration_ms=fetch_duration_ms, coverage=coverage,
-            )
-            elapsed = (time.monotonic() - start) * 1000
-            logger.info(
-                f"Cache SAVE L1/supabase: {len(results)} results "
-                f"for hash {params_hash[:12]}... ({elapsed:.0f}ms, sources: {sources})"
-            )
-            _track_cache_operation("save", True, CacheLevel.SUPABASE, len(results), elapsed)
-            return {"level": CacheLevel.SUPABASE, "success": True}
-        except Exception as e:
-            report_error(
-                e, f"Supabase cache save failed (key={params_hash[:12]}, n={len(results)})",
-                expected=True, tags={"cache_operation": "save", "cache_level": "supabase"}, log=logger,
-            )
+        elapsed = (time.monotonic() - start) * 1000
+        logger.info(
+            f"Cache SAVE L1/supabase: {len(results)} results "
+            f"for hash {params_hash[:12]}... ({elapsed:.0f}ms, sources: {sources})"
+        )
+        _track_cache_operation("save", True, CacheLevel.SUPABASE, len(results), elapsed)
+        return {"level": CacheLevel.SUPABASE, "success": True}
+    except Exception as e:
+        report_error(
+            e, f"Supabase cache save failed (key={params_hash[:12]}, n={len(results)})",
+            expected=True, tags={"cache_operation": "save", "cache_level": "supabase"}, log=logger,
+        )
 
     # Level 2: Redis/InMemory
     try:
