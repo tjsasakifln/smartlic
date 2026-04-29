@@ -18,17 +18,18 @@ Recuperar API smartlic.tech wedged (UPTIME-CRITICAL: caminho de pagamento bloque
 
 ## Pendente (dono + prazo)
 
+- [ ] **Confirmar frontend deploy `3abbe14e` SUCCESS** + probe `https://smartlic.tech/alertas-publicos/mobiliario/SP` — pré-requisito para "ship ≥1 mitigation" cumprido. @user/próxima sessão.
 - [ ] **Soak monitor 24h** — @qa — observar Sentry `slow_request` + `/health/live` p99 em prod
 - [ ] **RES-BE-002 sweep** ~20 rotas SEO programmatic com sync `.execute()` — @architect → @sm story breakdown — Sprint atual
 - [ ] **Investigar WC=1 → 2** com soak — memory `feedback_web_concurrency_4_amplifier` warn — @data-engineer/@architect — Sprint próximo
-- [ ] **Adicionar UA ao backend log middleware** — discriminator empírico bot vs human — @dev — backlog (cheap 5min)
+- [ ] **Adicionar UA ao backend log middleware** — discriminator empírico bot vs human (gap nesta sessão: discriminação por anomalia ISR 1h vs 24h, NÃO empírica via UA) — @dev — backlog (cheap 5min)
 - [ ] **Frontend builds cascata fail** — backend wedge → 4 frontend builds FAILED em sequência. Stale Dockerfile build sem retry/circuit breaker em fetch BACKEND_URL durante SSG — @dev — backlog
 - [ ] **Stash WIP docs** `session-keen-neumann unrelated docs WIP` (`git stash list`) — content de sessões prévias não-commited; @user revisar próxima sessão se merge
 
 ## Riscos vivos
 
 - **WC=1 + qualquer query lenta = wedge garantido próxima wave** — pattern PR #529/#533/#535 aplicado mas insuficiente isolado. Severidade ALTA. Tempo para virar incidente: 6-48h dependendo de tráfego/Googlebot crawl.
-- **Frontend deploy `3abbe14e` BUILDING** — se FAILED novamente, frontend prod permanece em deploy de 14:14 ontem (28-04). Severidade BAIXA (frontend prod funciona, só não tem fix novo).
+- **Frontend deploy `3abbe14e` BUILDING** — se FAILED novamente, fix ISR 1h→24h NÃO entra em prod e objetivo "ship ≥1 mitigation" é parcialmente cumprido (recovery sim, prevention não). Severidade MÉDIA. Mitigação esperada pois cascade fail anterior era causada por backend wedge (resolvido).
 - **Bug Railway rootDirectory recidiva** — silent twin FAILED espera recorrer. Workaround documentado em memory; fix permanente requer dashboard Railway intervention pelo user.
 
 ## Memory updates
