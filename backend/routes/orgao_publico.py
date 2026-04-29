@@ -5,6 +5,7 @@ from the local pncp_raw_bids datalake. Queries only local DB — no
 external API calls. Public (no auth). Cache: InMemory 24h TTL per CNPJ.
 """
 
+import asyncio
 import logging
 import re
 import time
@@ -14,6 +15,8 @@ from typing import Optional
 
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
+
+from pipeline.budget import _run_with_budget
 
 logger = logging.getLogger(__name__)
 router = APIRouter(tags=["orgao-publico"])
@@ -207,24 +210,30 @@ async def _build_orgao_stats(cnpj: str) -> dict:
         from supabase_client import get_supabase
 
         sb = get_supabase()
-        resp = (
-            sb.table("pncp_raw_bids")
-            .select(
-                "orgao_razao_social,"
-                "esfera_id,"
-                "uf,"
-                "municipio,"
-                "modalidade_nome,"
-                "objeto_compra,"
-                "valor_total_estimado,"
-                "data_publicacao"
-            )
-            .eq("orgao_cnpj", cnpj)
-            .eq("is_active", True)
-            .limit(5000)
-            .execute()
+        # RES-BE-002b: wrap em _run_with_budget para drenar early sob saturação WC=2
+        resp = await _run_with_budget(
+            asyncio.to_thread(
+                lambda: sb.table("pncp_raw_bids")
+                .select(
+                    "orgao_razao_social,"
+                    "esfera_id,"
+                    "uf,"
+                    "municipio,"
+                    "modalidade_nome,"
+                    "objeto_compra,"
+                    "valor_total_estimado,"
+                    "data_publicacao"
+                )
+                .eq("orgao_cnpj", cnpj)
+                .eq("is_active", True)
+                .limit(5000)
+                .execute()
+            ),
+            budget=5.0,
+            phase="route",
+            source="orgao.stats",
         )
-    except Exception as e:
+    except (asyncio.TimeoutError, Exception) as e:
         logger.error("orgao_stats DB query failed for %s: %s", cnpj, e)
         raise HTTPException(status_code=502, detail="Erro ao consultar o datalake")
 
@@ -367,13 +376,19 @@ async def _fetch_contracts_data(orgao_cnpj: str, limit: int = 10) -> dict:
         # Aggregate by supplier CNPJ — Supabase doesn't support GROUP BY directly,
         # so we fetch up to 2000 rows and aggregate in Python (table grows large post-backfill;
         # a proper RPC would be ideal but this is zero-infra and works for cache=24h).
-        resp = (
-            sb.table("pncp_supplier_contracts")
-            .select("ni_fornecedor,nome_fornecedor,valor_global")
-            .eq("orgao_cnpj", orgao_cnpj)
-            .eq("is_active", True)
-            .limit(2000)
-            .execute()
+        # RES-BE-002b: wrap em _run_with_budget para drenar early sob saturação WC=2
+        resp = await _run_with_budget(
+            asyncio.to_thread(
+                lambda: sb.table("pncp_supplier_contracts")
+                .select("ni_fornecedor,nome_fornecedor,valor_global")
+                .eq("orgao_cnpj", orgao_cnpj)
+                .eq("is_active", True)
+                .limit(2000)
+                .execute()
+            ),
+            budget=5.0,
+            phase="route",
+            source="orgao.contracts_aggregate",
         )
 
         rows = resp.data or []
@@ -418,7 +433,7 @@ async def _fetch_contracts_data(orgao_cnpj: str, limit: int = 10) -> dict:
             if t["valor"] > 0
         ]
 
-    except Exception as exc:
+    except (asyncio.TimeoutError, Exception) as exc:
         logger.warning("contracts_data query failed for %s: %s", orgao_cnpj, exc)
 
     return result

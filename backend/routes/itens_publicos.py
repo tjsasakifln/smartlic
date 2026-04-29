@@ -11,6 +11,7 @@ Endpoints:
   GET /v1/sitemap/itens           — lista de codigos CATMAT para sitemap.xml
 """
 
+import asyncio
 import logging
 import re
 import statistics
@@ -23,6 +24,8 @@ from fastapi import APIRouter, HTTPException, Response
 
 from routes._sitemap_cache_headers import SITEMAP_CACHE_HEADERS
 from pydantic import BaseModel
+
+from pipeline.budget import _run_with_budget
 
 from metrics import record_sitemap_count
 
@@ -431,16 +434,22 @@ async def _fetch_price_data(nome_item: str) -> tuple[list[float], list[dict]]:
 
     try:
         # Busca por primeira palavra-chave (PostgREST ilike)
-        resp = (
-            sb.table("pncp_supplier_contracts")
-            .select(
-                "valor_global,objeto_contrato,orgao_nome,data_assinatura,uf"
-            )
-            .ilike("objeto_contrato", f"%{palavras[0]}%")
-            .eq("is_active", True)
-            .order("data_assinatura", desc=True)
-            .limit(1000)
-            .execute()
+        # RES-BE-002b: wrap em _run_with_budget para drenar early sob saturação WC=2
+        resp = await _run_with_budget(
+            asyncio.to_thread(
+                lambda: sb.table("pncp_supplier_contracts")
+                .select(
+                    "valor_global,objeto_contrato,orgao_nome,data_assinatura,uf"
+                )
+                .ilike("objeto_contrato", f"%{palavras[0]}%")
+                .eq("is_active", True)
+                .order("data_assinatura", desc=True)
+                .limit(1000)
+                .execute()
+            ),
+            budget=5.0,
+            phase="route",
+            source="itens.profile",
         )
         rows = resp.data or []
 
@@ -465,7 +474,7 @@ async def _fetch_price_data(nome_item: str) -> tuple[list[float], list[dict]]:
                         "uf": (row.get("uf") or "").strip().upper(),
                     })
 
-    except Exception as e:
+    except (asyncio.TimeoutError, Exception) as e:
         logger.error("[Itens] price_data query falhou para '%s': %s", nome_item, e)
 
     return valores, contratos_ref

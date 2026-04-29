@@ -13,6 +13,7 @@ Endpoint:
   GET /v1/compliance/{cnpj}/profile  — perfil de due diligence B2G
 """
 
+import asyncio
 import logging
 import re
 import time
@@ -22,6 +23,8 @@ from typing import Optional
 import httpx
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
+
+from pipeline.budget import _run_with_budget
 
 logger = logging.getLogger(__name__)
 router = APIRouter(tags=["compliance-publicos"])
@@ -165,23 +168,29 @@ async def compliance_profile(cnpj: str):
 async def _fetch_razao_social(cnpj: str) -> str:
     """Tenta obter a razao social de enriched_entities (Supabase) ou BrasilAPI."""
     # 1. enriched_entities
+    # RES-BE-002b: wrap em _run_with_budget para drenar early sob saturação WC=2
     try:
         from supabase_client import get_supabase
         sb = get_supabase()
-        resp = (
-            sb.table("enriched_entities")
-            .select("data")
-            .eq("entity_type", "fornecedor")
-            .eq("entity_id", cnpj)
-            .limit(1)
-            .execute()
+        resp = await _run_with_budget(
+            asyncio.to_thread(
+                lambda: sb.table("enriched_entities")
+                .select("data")
+                .eq("entity_type", "fornecedor")
+                .eq("entity_id", cnpj)
+                .limit(1)
+                .execute()
+            ),
+            budget=3.0,
+            phase="route",
+            source="compliance.razao_social_lookup",
         )
         if resp.data:
             data = resp.data[0].get("data") or {}
             nome = data.get("razao_social") or ""
             if nome:
                 return nome
-    except Exception as e:
+    except (asyncio.TimeoutError, Exception) as e:
         logger.debug("[Compliance] enriched_entities lookup falhou para %s: %s", cnpj, e)
 
     # 2. BrasilAPI (fallback)

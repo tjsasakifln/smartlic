@@ -18,6 +18,7 @@ from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
 from sectors import SECTORS
+from pipeline.budget import _run_with_budget
 from utils.cnae_mapping import map_cnae_to_setor, get_setor_name
 
 logger = logging.getLogger(__name__)
@@ -566,10 +567,19 @@ async def _build_perfil(cnpj: str) -> dict:
     # flag in the response. The rest of the profile (contracts + open
     # bids) is still valuable even without company metadata, and the
     # frontend can render a degraded card instead of crashing with 502.
+    # RES-BE-002b: wrap per-helper em _run_with_budget para drenar early sob
+    # saturação WC=2 (memory feedback_pool_leak_caller_timeout_vs_sql_timeout).
+    # Total handler budget = 30s (asyncio.wait_for em perfil_b2g linha 169);
+    # cada helper sub-budget garante early drain se saturated.
     brasilapi_status = "ok"
     try:
-        bapi = await _fetch_brasilapi(cnpj)
-    except BrasilAPIUnavailable as e:
+        bapi = await _run_with_budget(
+            _fetch_brasilapi(cnpj),
+            budget=8.0,
+            phase="route",
+            source="empresa.perfil_b2g.brasilapi",
+        )
+    except (BrasilAPIUnavailable, asyncio.TimeoutError) as e:
         logger.warning("STORY-417: BrasilAPI unavailable for %s: %s", cnpj, e)
         bapi = {}
         brasilapi_status = "unavailable"
@@ -586,7 +596,18 @@ async def _build_perfil(cnpj: str) -> dict:
     setor_nome = get_setor_name(setor_id)
 
     # 3. Contracts — Local Supabase index (primary), PT API fallback (federal only)
-    contratos_all, fonte = await _fetch_contratos_local(cnpj)
+    # RES-BE-002b: budget 8s drena early se Supabase saturated.
+    # `fonte` é descartado intencionalmente (linha original também o ignora downstream).
+    try:
+        contratos_all, _fonte = await _run_with_budget(
+            _fetch_contratos_local(cnpj),
+            budget=8.0,
+            phase="route",
+            source="empresa.perfil_b2g.contratos_local",
+        )
+    except asyncio.TimeoutError:
+        logger.warning("perfil_b2g.contratos_local budget exceeded for %s", cnpj)
+        contratos_all = []
 
     ufs_set: set[str] = set()
     valor_total = 0.0
@@ -623,8 +644,18 @@ async def _build_perfil(cnpj: str) -> dict:
         score = "SEM_HISTORICO"
 
     # 5. Open bids in detected sector
+    # RES-BE-002b: budget 8s drena early se DataLake saturated
     if uf:
-        editais_count, editais_raw = await _fetch_editais_abertos(setor_id, uf)
+        try:
+            editais_count, editais_raw = await _run_with_budget(
+                _fetch_editais_abertos(setor_id, uf),
+                budget=8.0,
+                phase="route",
+                source="empresa.perfil_b2g.editais_abertos",
+            )
+        except asyncio.TimeoutError:
+            logger.warning("perfil_b2g.editais_abertos budget exceeded for %s/%s", setor_id, uf)
+            editais_count, editais_raw = 0, []
     else:
         editais_count, editais_raw = 0, []
 

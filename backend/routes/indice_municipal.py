@@ -7,6 +7,7 @@ Público. Cache: InMemory 1h TTL.
 CORS: Access-Control-Allow-Origin: * (link bait embeddável).
 """
 
+import asyncio
 import logging
 import re
 import time
@@ -15,6 +16,8 @@ from typing import Optional
 
 from fastapi import APIRouter, HTTPException, Query, Response
 from pydantic import BaseModel
+
+from pipeline.budget import _run_with_budget
 
 logger = logging.getLogger(__name__)
 router = APIRouter(tags=["indice-municipal"])
@@ -255,18 +258,24 @@ async def get_municipio(
     try:
         from supabase_client import get_supabase
         sb = get_supabase()
-        resp = (
-            sb.table("indice_municipal")
-            .select("*")
-            .eq("uf", uf)
-            .eq("periodo", periodo)
-            .ilike("municipio_nome", f"%{municipio_part.replace('-', '%')}%")
-            .order("score_total", desc=True)
-            .limit(1)
-            .execute()
+        # RES-BE-002b: wrap em _run_with_budget para drenar early sob saturação WC=2
+        resp = await _run_with_budget(
+            asyncio.to_thread(
+                lambda: sb.table("indice_municipal")
+                .select("*")
+                .eq("uf", uf)
+                .eq("periodo", periodo)
+                .ilike("municipio_nome", f"%{municipio_part.replace('-', '%')}%")
+                .order("score_total", desc=True)
+                .limit(1)
+                .execute()
+            ),
+            budget=5.0,
+            phase="route",
+            source="indice_municipal.lookup",
         )
         rows = resp.data or []
-    except Exception as e:
+    except (asyncio.TimeoutError, Exception) as e:
         logger.warning("indice_municipal: lookup failed for %s: %s", municipio_slug, e)
         rows = []
 

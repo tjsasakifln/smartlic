@@ -9,6 +9,7 @@ Endpoints:
 Cache: InMemory 1h TTL.
 """
 
+import asyncio
 import logging
 import time
 from datetime import datetime, timezone, timedelta
@@ -18,6 +19,7 @@ from fastapi import APIRouter, HTTPException, Query
 from pydantic import BaseModel
 
 from supabase_client import get_supabase
+from pipeline.budget import _run_with_budget
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/comparador", tags=["comparador"])
@@ -160,11 +162,19 @@ async def get_bids_by_ids(
         return ComparadorBidsResponse(**cached)
 
     # Query supabase directly for exact pncp_id matches
+    # RES-BE-002b: wrap em _run_with_budget para drenar early sob saturação WC=2
     try:
         sb = get_supabase()
-        result = sb.table("pncp_raw_bids").select("*").in_("pncp_id", id_list).execute()
+        result = await _run_with_budget(
+            asyncio.to_thread(
+                lambda: sb.table("pncp_raw_bids").select("*").in_("pncp_id", id_list).execute()
+            ),
+            budget=5.0,
+            phase="route",
+            source="comparador.fetch_bids",
+        )
         rows = result.data or []
-    except Exception as e:
+    except (asyncio.TimeoutError, Exception) as e:
         logger.warning("Failed to query pncp_raw_bids for ids=%s: %s", id_list, e)
         rows = []
 

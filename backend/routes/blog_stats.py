@@ -25,6 +25,7 @@ from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
 from sectors import SECTORS, SectorConfig
+from pipeline.budget import _run_with_budget
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/blog/stats", tags=["blog-stats"])
@@ -963,13 +964,16 @@ async def _compute_contratos_stats(
     don't keep hitting the slow query path.
     """
     try:
-        rows = await asyncio.wait_for(
+        # RES-BE-002b: replace bare wait_for por _run_with_budget para Prometheus instrumentation
+        rows = await _run_with_budget(
             asyncio.to_thread(
                 _query_contratos_sync,
                 uf=uf,
                 municipio_pattern=municipio_pattern,
             ),
-            timeout=_CONTRATOS_QUERY_BUDGET_S,
+            budget=_CONTRATOS_QUERY_BUDGET_S,
+            phase="route",
+            source="blog_stats.contratos_query",
         )
     except asyncio.TimeoutError:
         logger.warning(

@@ -23,6 +23,7 @@ from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
 from sectors import SECTORS
+from pipeline.budget import _run_with_budget
 
 logger = logging.getLogger(__name__)
 router = APIRouter(tags=["contratos-publicos"])
@@ -171,19 +172,25 @@ async def _fetch_sector_contracts(sector_id_clean: str, uf_upper: str) -> list[d
         from supabase_client import get_supabase
         sb = get_supabase()
 
-        resp = (
-            sb.table("pncp_supplier_contracts")
-            .select(
-                "ni_fornecedor,nome_fornecedor,orgao_cnpj,orgao_nome,"
-                "valor_global,data_assinatura,objeto_contrato"
-            )
-            .eq("uf", uf_upper)
-            .eq("is_active", True)
-            .order("data_assinatura", desc=True)
-            .limit(5000)
-            .execute()
+        # RES-BE-002b: wrap em _run_with_budget para drenar early sob saturação WC=2
+        resp = await _run_with_budget(
+            asyncio.to_thread(
+                lambda: sb.table("pncp_supplier_contracts")
+                .select(
+                    "ni_fornecedor,nome_fornecedor,orgao_cnpj,orgao_nome,"
+                    "valor_global,data_assinatura,objeto_contrato"
+                )
+                .eq("uf", uf_upper)
+                .eq("is_active", True)
+                .order("data_assinatura", desc=True)
+                .limit(5000)
+                .execute()
+            ),
+            budget=5.0,
+            phase="route",
+            source="contratos.fornecedores_setor_uf_stats",
         )
-    except Exception as e:
+    except (asyncio.TimeoutError, Exception) as e:
         logger.error("contratos_publicos DB query failed for %s/%s: %s", sector_id_clean, uf_upper, e)
         raise HTTPException(status_code=502, detail="Erro ao consultar o datalake de contratos")
 
@@ -223,19 +230,25 @@ async def orgao_contratos_stats(cnpj: str):
         from supabase_client import get_supabase
         sb = get_supabase()
 
-        resp = (
-            sb.table("pncp_supplier_contracts")
-            .select(
-                "ni_fornecedor,nome_fornecedor,orgao_cnpj,orgao_nome,"
-                "valor_global,data_assinatura,objeto_contrato"
-            )
-            .eq("orgao_cnpj", cnpj_clean)
-            .eq("is_active", True)
-            .order("data_assinatura", desc=True)
-            .limit(5000)
-            .execute()
+        # RES-BE-002b: wrap em _run_with_budget para drenar early sob saturação WC=2
+        resp = await _run_with_budget(
+            asyncio.to_thread(
+                lambda: sb.table("pncp_supplier_contracts")
+                .select(
+                    "ni_fornecedor,nome_fornecedor,orgao_cnpj,orgao_nome,"
+                    "valor_global,data_assinatura,objeto_contrato"
+                )
+                .eq("orgao_cnpj", cnpj_clean)
+                .eq("is_active", True)
+                .order("data_assinatura", desc=True)
+                .limit(5000)
+                .execute()
+            ),
+            budget=5.0,
+            phase="route",
+            source="contratos.orgao_stats",
         )
-    except Exception as e:
+    except (asyncio.TimeoutError, Exception) as e:
         logger.error("orgao_contratos DB query failed for %s: %s", cnpj_clean, e)
         raise HTTPException(status_code=502, detail="Erro ao consultar o datalake de contratos")
 
