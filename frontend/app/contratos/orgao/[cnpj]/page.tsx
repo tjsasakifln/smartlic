@@ -3,6 +3,7 @@ import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import { buildCanonical } from '@/lib/seo';
 import { LeadCapture } from '@/components/LeadCapture';
+import { TrackingLink } from '@/components/TrackingLink';
 import LandingNavbar from '@/app/components/landing/LandingNavbar';
 import Footer from '@/app/components/Footer';
 
@@ -167,6 +168,24 @@ export default async function OrgaoContratosPage({ params }: Props) {
               CNPJ: {stats.orgao_cnpj.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})$/, '$1.$2.$3/$4-$5')}
               {' · '}Atualizado em {new Date(stats.last_updated).toLocaleDateString('pt-BR')}
             </p>
+
+            {/* Hero CTA — CONV-CTA-001 */}
+            <section aria-labelledby="hero-cta-heading" className="mt-6 bg-blue-50 rounded-lg p-6 text-center">
+              <h2 id="hero-cta-heading" className="text-lg font-semibold text-blue-900 mb-2">
+                Monitore licitacoes deste orgao em tempo real
+              </h2>
+              <p className="text-sm text-blue-700 mb-4">
+                Descubra oportunidades antes da concorrencia. Teste gratis por 14 dias, sem cartao.
+              </p>
+              <TrackingLink
+                href={`/signup?utm_source=programmatic&utm_medium=cta&utm_campaign=conv-cta-001&utm_content=contratos-orgao&page_cnpj=${cnpj}`}
+                eventName="cta_clicked"
+                eventProps={{ cta_name: 'contratos_orgao_hero', page_cnpj: cnpj, placement: 'hero' }}
+                className="inline-block min-h-[44px] px-6 py-3 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition-colors"
+              >
+                Teste gratis por 14 dias
+              </TrackingLink>
+            </section>
           </div>
         </div>
 
@@ -277,7 +296,25 @@ export default async function OrgaoContratosPage({ params }: Props) {
           {/* Aviso Legal */}
           <p className="text-xs text-ink-secondary italic">{stats.aviso_legal}</p>
 
-          {/* Lead Capture */}
+          {/* Footer CTA — CONV-CTA-001 */}
+          <section aria-labelledby="footer-cta-heading" className="bg-blue-50 rounded-lg p-6 text-center">
+            <h2 id="footer-cta-heading" className="text-xl font-bold text-blue-900 mb-2">
+              Encontre oportunidades com {stats.orgao_nome}
+            </h2>
+            <p className="text-sm text-blue-700 mb-4">
+              Acesse licitacoes abertas, analise viabilidade e monitore contratos. 14 dias gratis, sem cartao.
+            </p>
+            <TrackingLink
+              href={`/signup?utm_source=programmatic&utm_medium=cta&utm_campaign=conv-cta-001&utm_content=contratos-orgao&page_cnpj=${cnpj}`}
+              eventName="cta_clicked"
+              eventProps={{ cta_name: 'contratos_orgao_footer', page_cnpj: cnpj, placement: 'footer' }}
+              className="inline-block min-h-[44px] px-6 py-3 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition-colors"
+            >
+              Comecar teste gratis
+            </TrackingLink>
+          </section>
+
+          {/* Lead Capture (secondary) */}
           <LeadCapture
             source="contratos-orgao"
             heading="Monitore contratos deste orgao"
