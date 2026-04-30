@@ -161,7 +161,7 @@ async def check_rate_limit_tiered(
     """
     # Local import keeps the bot-detection dependency optional / decoupled
     # from import-time side effects.
-    from middleware.bot_detection import classify_tier
+    from bot_detection import classify_tier
 
     tier = classify_tier(user_agent)
     max_per_min = (

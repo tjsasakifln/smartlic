@@ -14,7 +14,7 @@ from unittest.mock import AsyncMock, patch
 
 import pytest
 
-from middleware.bot_detection import classify_tier, is_bot
+from bot_detection import classify_tier, is_bot
 
 
 class TestBotDetection:
