@@ -58,6 +58,28 @@ jobs:
           cd frontend
           npx tsc --noEmit --pretty
 
+      # SEO-PROG-008 AC5: gate against incomplete BACKEND_URL fallback chains.
+      # Antipattern: `process.env.BACKEND_URL || 'http://localhost:8000'` (sem
+      # NEXT_PUBLIC_BACKEND_URL fallback). All call sites must use the helper
+      # `getBackendUrl()` from `frontend/lib/backend-url.ts` or include the full
+      # 3-way chain. Memory ref: feedback_build_hammers_backend_cascade.
+      - name: Lint BACKEND_URL fallback chain (SEO-PROG-008)
+        run: |
+          cd frontend
+          # Find files with `process.env.BACKEND_URL || 'http://localhost` that
+          # do NOT also reference NEXT_PUBLIC_BACKEND_URL (incomplete chain).
+          # Excludes lib/backend-url.ts itself which is the canonical helper.
+          violations=$(grep -rEln "process\.env\.BACKEND_URL\s*\|\|\s*'http://localhost" \
+            app lib --include="*.ts" --include="*.tsx" 2>/dev/null \
+            | grep -v "^lib/backend-url.ts$" \
+            | xargs grep -L "NEXT_PUBLIC_BACKEND_URL" 2>/dev/null || true)
+          if [ -n "$violations" ]; then
+            echo "ERROR: incomplete BACKEND_URL fallback chain detected. Use getBackendUrl() from lib/backend-url.ts:"
+            echo "$violations"
+            exit 1
+          fi
+          echo "✅ BACKEND_URL chain audit clean"
+
       - name: Run tests (exit code 0 required)
         run: |
           cd frontend

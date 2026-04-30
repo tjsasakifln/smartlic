@@ -3,8 +3,9 @@ import { notFound } from 'next/navigation';
 import ContentPageLayout from '../../components/ContentPageLayout';
 import CnpjPerfilClient from './CnpjPerfilClient';
 import { LeadCapture } from '@/components/LeadCapture';
+import { getBackendUrl } from '@/lib/backend-url';
 
-const BACKEND_URL = process.env.BACKEND_URL || 'http://localhost:8000';
+const BACKEND_URL = getBackendUrl();
 
 interface EditaisAmostra {
   orgao: string;

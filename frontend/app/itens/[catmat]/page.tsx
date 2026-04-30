@@ -2,6 +2,7 @@ import { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { buildCanonical, getFreshnessLabel } from '@/lib/seo';
+import { getBackendUrl } from '@/lib/backend-url';
 import LandingNavbar from '@/app/components/landing/LandingNavbar';
 import Footer from '@/app/components/Footer';
 
@@ -44,7 +45,7 @@ interface ItemProfile {
 }
 
 async function fetchProfile(catmat: string): Promise<ItemProfile | null> {
-  const backendUrl = process.env.BACKEND_URL || 'http://localhost:8000';
+  const backendUrl = getBackendUrl();
   try {
     const res = await fetch(`${backendUrl}/v1/itens/${catmat}/profile`, {
       next: { revalidate: 86400 },
@@ -59,7 +60,7 @@ async function fetchProfile(catmat: string): Promise<ItemProfile | null> {
 }
 
 export async function generateStaticParams() {
-  const backendUrl = process.env.BACKEND_URL || 'http://localhost:8000';
+  const backendUrl = getBackendUrl();
   try {
     const res = await fetch(`${backendUrl}/v1/sitemap/itens`, {
       cache: 'no-store',
