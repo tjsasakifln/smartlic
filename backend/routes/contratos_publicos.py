@@ -169,20 +169,34 @@ async def _fetch_sector_contracts(sector_id_clean: str, uf_upper: str) -> list[d
 
     try:
         from supabase_client import get_supabase
+        from pipeline.budget import _run_with_budget
         sb = get_supabase()
 
-        resp = (
-            sb.table("pncp_supplier_contracts")
-            .select(
-                "ni_fornecedor,nome_fornecedor,orgao_cnpj,orgao_nome,"
-                "valor_global,data_assinatura,objeto_contrato"
+        # RES-BE-002c sweep: wrap sync .execute() em asyncio.to_thread + budget
+        # para evitar Stage 4-7 wedge pattern (memory feedback_pool_leak_caller_timeout_vs_sql_timeout).
+        def _query():
+            return (
+                sb.table("pncp_supplier_contracts")
+                .select(
+                    "ni_fornecedor,nome_fornecedor,orgao_cnpj,orgao_nome,"
+                    "valor_global,data_assinatura,objeto_contrato"
+                )
+                .eq("uf", uf_upper)
+                .eq("is_active", True)
+                .order("data_assinatura", desc=True)
+                .limit(5000)
+                .execute()
             )
-            .eq("uf", uf_upper)
-            .eq("is_active", True)
-            .order("data_assinatura", desc=True)
-            .limit(5000)
-            .execute()
+
+        resp = await _run_with_budget(
+            asyncio.to_thread(_query),
+            budget=10.0,
+            phase="public_route",
+            source="contratos_publicos.sector",
         )
+    except asyncio.TimeoutError:
+        logger.warning("contratos_publicos sector budget exceeded for %s/%s", sector_id_clean, uf_upper)
+        raise HTTPException(status_code=503, detail="Datalake temporariamente indisponivel")
     except Exception as e:
         logger.error("contratos_publicos DB query failed for %s/%s: %s", sector_id_clean, uf_upper, e)
         raise HTTPException(status_code=502, detail="Erro ao consultar o datalake de contratos")
@@ -221,20 +235,36 @@ async def orgao_contratos_stats(cnpj: str):
 
     try:
         from supabase_client import get_supabase
+        from pipeline.budget import _run_with_budget
         sb = get_supabase()
 
-        resp = (
-            sb.table("pncp_supplier_contracts")
-            .select(
-                "ni_fornecedor,nome_fornecedor,orgao_cnpj,orgao_nome,"
-                "valor_global,data_assinatura,objeto_contrato"
+        # RES-BE-002c sweep: wrap sync .execute() em asyncio.to_thread + budget
+        # (Stage 5 P0 — memory project_backend_outage_2026_04_29_stage5).
+        def _query():
+            return (
+                sb.table("pncp_supplier_contracts")
+                .select(
+                    "ni_fornecedor,nome_fornecedor,orgao_cnpj,orgao_nome,"
+                    "valor_global,data_assinatura,objeto_contrato"
+                )
+                .eq("orgao_cnpj", cnpj_clean)
+                .eq("is_active", True)
+                .order("data_assinatura", desc=True)
+                .limit(5000)
+                .execute()
             )
-            .eq("orgao_cnpj", cnpj_clean)
-            .eq("is_active", True)
-            .order("data_assinatura", desc=True)
-            .limit(5000)
-            .execute()
+
+        resp = await _run_with_budget(
+            asyncio.to_thread(_query),
+            budget=10.0,
+            phase="public_route",
+            source="contratos_publicos.orgao",
         )
+    except asyncio.TimeoutError:
+        logger.warning("orgao_contratos budget exceeded for %s", cnpj_clean)
+        # Negative cache to prevent retry storm (memory feedback_build_hammers_backend_cascade)
+        _set_cached(_orgao_contratos_cache, cache_key, {"_negcache": True}, ttl=_NEGATIVE_CACHE_TTL_SECONDS)
+        raise HTTPException(status_code=503, detail="Datalake temporariamente indisponivel")
     except Exception as e:
         logger.error("orgao_contratos DB query failed for %s: %s", cnpj_clean, e)
         raise HTTPException(status_code=502, detail="Erro ao consultar o datalake de contratos")

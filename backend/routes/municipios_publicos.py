@@ -367,21 +367,33 @@ async def municipio_profile(slug: str):
     sb = get_supabase()
 
     # Dados enriquecidos do IBGE (enriched_entities)
+    # RES-BE-002c sweep: wrap sync .execute() em asyncio.to_thread + budget
+    # (route bot-thrashable — programmatic SEO 5500 municipios).
     pib_per_capita: Optional[float] = None
     try:
-        enrich_resp = (
-            sb.table("enriched_entities")
-            .select("data")
-            .eq("entity_type", "municipio")
-            .eq("entity_id", ibge_code)
-            .limit(1)
-            .execute()
+        from pipeline.budget import _run_with_budget
+
+        def _query_enrich():
+            return (
+                sb.table("enriched_entities")
+                .select("data")
+                .eq("entity_type", "municipio")
+                .eq("entity_id", ibge_code)
+                .limit(1)
+                .execute()
+            )
+
+        enrich_resp = await _run_with_budget(
+            asyncio.to_thread(_query_enrich),
+            budget=5.0,
+            phase="public_route",
+            source="municipios_publicos.enrich",
         )
         if enrich_resp.data:
             enrich_data = enrich_resp.data[0].get("data") or {}
             pib_per_capita = enrich_data.get("pib_per_capita")
             populacao = enrich_data.get("populacao") or populacao
-    except Exception as e:
+    except (asyncio.TimeoutError, Exception) as e:
         logger.warning(
             "[Municipios] enriched_entities falhou para %s (continuando sem enrichment): %s",
             ibge_code, e,
