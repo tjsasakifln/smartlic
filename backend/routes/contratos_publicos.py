@@ -273,14 +273,17 @@ async def orgao_contratos_stats(cnpj: str):
 
     now = datetime.now(timezone.utc)
     trend = []
-    for i in range(12):
-        d = now - timedelta(days=30 * i)
-        month_key = d.strftime("%Y-%m")
+    year, month = now.year, now.month
+    for _ in range(12):
+        month_key = f"{year:04d}-{month:02d}"
         trend.append({
             "month": month_key,
             "count": monthly.get(month_key, 0),
             "value": round(monthly_values.get(month_key, 0.0), 2),
         })
+        month -= 1
+        if month == 0:
+            month, year = 12, year - 1
     trend.reverse()
 
     sample_contracts = []
@@ -384,12 +387,12 @@ async def contratos_stats(setor: str, uf: str):
     # Top 10 fornecedores by value
     top_fornecedores = sorted(forn_agg.values(), key=lambda x: x["valor"], reverse=True)[:10]
 
-    # Monthly trend (last 12 months)
+    # Monthly trend (last 12 calendar months — see blog_stats.py for context)
     now = datetime.now(timezone.utc)
     trend = []
-    for i in range(12):
-        d = now - timedelta(days=30 * i)
-        month_key = d.strftime("%Y-%m")
+    year, month = now.year, now.month
+    for _ in range(12):
+        month_key = f"{year:04d}-{month:02d}"
         cnt = monthly.get(month_key, 0)
         # Sum values for that month
         month_val = sum(
@@ -398,6 +401,9 @@ async def contratos_stats(setor: str, uf: str):
             if (r.get("data_assinatura") or "")[:7] == month_key
         )
         trend.append({"month": month_key, "count": cnt, "value": round(month_val, 2)})
+        month -= 1
+        if month == 0:
+            month, year = 12, year - 1
     trend.reverse()
 
     # Sample contracts (10 most recent)
