@@ -1106,6 +1106,95 @@ async def get_at_risk_trials(
     }
 
 
+# =====================================================================
+# SEN-BE-010 AC0: Memory snapshot endpoint (admin-only)
+# Returns tracemalloc top-25 + RSS + asyncio task count for post-Stage-4-7
+# memory leak root cause investigation. tracemalloc must be enabled via
+# env var TRACEMALLOC_ENABLED=true (lifespan.py:tracemalloc.start). Without
+# it, tracemalloc fields return empty. RSS gauge `WORKER_MEMORY_BYTES` is
+# sampled every 30s in lifespan loop (CRIT-083) regardless of this endpoint.
+#
+# Memory references:
+#   - feedback_pool_leak_caller_timeout_vs_sql_timeout (5.5GB sustained Stage 4-7)
+#   - feedback_chief_warm_stage5plus_no_pivot (warm continuation 7× failed; pivot mandatory)
+#   - ADR docs/adr/MEMORY-BUDGET.md (3-tier threshold + Combined restart policy)
+# =====================================================================
+@router.get("/memory-snapshot")
+async def memory_snapshot(admin: dict = Depends(require_admin)) -> dict:
+    """
+    Return current process memory snapshot for leak investigation.
+
+    Master/admin only. Snapshots are NOT persisted (PII risk + size).
+    Caller is responsible for capturing 10× over 24h to build baseline.
+    """
+    import asyncio as _asyncio
+    import gc
+
+    snapshot: dict = {
+        "rss_bytes": None,
+        "rss_mb": None,
+        "tracemalloc_enabled": False,
+        "tracemalloc_top_25": [],
+        "asyncio_tasks_pending": 0,
+        "gc_objects_count": 0,
+        "redis_pool_size": None,
+    }
+
+    # RSS via psutil (already in deps for health.py)
+    try:
+        import psutil
+        proc = psutil.Process()
+        rss = proc.memory_info().rss
+        snapshot["rss_bytes"] = rss
+        snapshot["rss_mb"] = round(rss / (1024 * 1024), 1)
+    except Exception as e:
+        logger.warning(f"SEN-BE-010 memory-snapshot: psutil RSS read failed: {e}")
+
+    # tracemalloc top-25 (only if env-enabled at startup)
+    try:
+        import tracemalloc
+        if tracemalloc.is_tracing():
+            snapshot["tracemalloc_enabled"] = True
+            stats = tracemalloc.take_snapshot().statistics("lineno")[:25]
+            snapshot["tracemalloc_top_25"] = [
+                {
+                    "filename": s.traceback[0].filename if s.traceback else "<unknown>",
+                    "lineno": s.traceback[0].lineno if s.traceback else 0,
+                    "size_kb": round(s.size / 1024, 1),
+                    "count": s.count,
+                }
+                for s in stats
+            ]
+    except Exception as e:
+        logger.warning(f"SEN-BE-010 memory-snapshot: tracemalloc read failed: {e}")
+
+    # asyncio task count
+    try:
+        loop = _asyncio.get_running_loop()
+        tasks = [t for t in _asyncio.all_tasks(loop) if not t.done()]
+        snapshot["asyncio_tasks_pending"] = len(tasks)
+    except Exception:
+        pass
+
+    # gc object count (cheap proxy for total Python objects alive)
+    try:
+        snapshot["gc_objects_count"] = len(gc.get_objects())
+    except Exception:
+        pass
+
+    # Redis pool size (best-effort — depends on pool implementation)
+    try:
+        from redis_pool import _redis_pool  # type: ignore
+        if _redis_pool is not None:
+            pool = getattr(_redis_pool, "connection_pool", None)
+            if pool is not None:
+                snapshot["redis_pool_size"] = getattr(pool, "_created_connections", None) or len(getattr(pool, "_in_use_connections", []))
+    except Exception:
+        pass
+
+    return snapshot
+
+
 def _assign_plan(sb, user_id: str, plan_id: str):
     """Internal: assign plan creating subscription record.
 
