@@ -906,9 +906,9 @@ export const BLOG_ARTICLES: BlogArticleMeta[] = [
   // GUIA-S1
   {
     slug: 'licitacoes-engenharia-2026',
-    title: 'Licitações de Engenharia e Construção 2026 — Guia Completo',
+    title: 'Licitações de Engenharia 2026: 8 Passos para Habilitação',
     description:
-      'Guia definitivo sobre licitações de engenharia e construção civil em 2026: modalidades, faixas de valor, UFs com maior volume, habilitação técnica e como analisar viabilidade.',
+      'Vença licitações de obras em 2026 — modalidades, faixas de valor, UFs com maior volume e os 5 documentos técnicos que eliminam empresas na habilitação.',
     category: 'Guias',
     tags: ['engenharia', 'construção civil', 'licitações 2026', 'guia setorial'],
     publishDate: '2026-04-04',
@@ -937,9 +937,9 @@ export const BLOG_ARTICLES: BlogArticleMeta[] = [
   // GUIA-S2
   {
     slug: 'licitacoes-ti-software-2026',
-    title: 'Licitações de TI e Software 2026 — Guia Completo',
+    title: 'Licitações de TI e Software 2026: 7 Estratégias para Vencer',
     description:
-      'Tudo sobre licitações de tecnologia da informação e software em 2026: pregão eletrônico, atas de registro de preço, exigências técnicas e estratégias de participação.',
+      'Aprenda a vencer licitações de TI em 2026 — pregão, atas de registro de preço, exigências técnicas e os 4 erros que eliminam empresas na habilitação.',
     category: 'Guias',
     tags: ['tecnologia', 'software', 'TI', 'licitações 2026', 'guia setorial'],
     publishDate: '2026-04-04',
@@ -968,9 +968,9 @@ export const BLOG_ARTICLES: BlogArticleMeta[] = [
   // GUIA-S3
   {
     slug: 'licitacoes-saude-2026',
-    title: 'Licitações de Saúde 2026 — Guia Completo',
+    title: 'Licitações de Saúde 2026: 6 Exigências da Habilitação',
     description:
-      'Guia completo sobre licitações de saúde em 2026: medicamentos, equipamentos médicos, insumos hospitalares, registros na Anvisa e estratégias de participação.',
+      'Venda para hospitais públicos em 2026 — Anvisa, registros obrigatórios para medicamentos e equipamentos e as 3 causas de inabilitação mais comuns no setor.',
     category: 'Guias',
     tags: ['saúde', 'medicamentos', 'equipamentos médicos', 'licitações 2026', 'guia setorial'],
     publishDate: '2026-04-04',
@@ -999,9 +999,9 @@ export const BLOG_ARTICLES: BlogArticleMeta[] = [
   // GUIA-S4
   {
     slug: 'licitacoes-limpeza-facilities-2026',
-    title: 'Licitações de Limpeza e Facilities 2026 — Guia Completo',
+    title: 'Licitações de Limpeza 2026: Custos e 5 Requisitos Essenciais',
     description:
-      'Guia definitivo sobre licitações de limpeza, conservação e facilities management em 2026: planilha de custos, convenção coletiva, BDI e requisitos de habilitação.',
+      'Monte proposta de limpeza predial para licitações em 2026 — convenção coletiva, BDI, encargos sociais e os 5 requisitos que eliminam empresas iniciantes.',
     category: 'Guias',
     tags: ['limpeza', 'facilities', 'serviços prediais', 'licitações 2026', 'guia setorial'],
     publishDate: '2026-04-04',
@@ -1029,9 +1029,9 @@ export const BLOG_ARTICLES: BlogArticleMeta[] = [
   // GUIA-S5
   {
     slug: 'licitacoes-alimentacao-2026',
-    title: 'Licitações de Alimentação 2026 — Guia Completo',
+    title: 'Licitações de Alimentação 2026: PNAE e 4 Modalidades-Chave',
     description:
-      'Guia completo sobre licitações de alimentação em 2026: merenda escolar, refeições hospitalares, PNAE, atas de registro de preço e logística de distribuição.',
+      'Conquiste contratos de merenda escolar e refeições hospitalares em 2026 — PNAE, atas de registro de preço e logística que define competitividade na sua UF.',
     category: 'Guias',
     tags: ['alimentação', 'merenda escolar', 'PNAE', 'licitações 2026', 'guia setorial'],
     publishDate: '2026-04-04',
@@ -1064,9 +1064,9 @@ export const BLOG_ARTICLES: BlogArticleMeta[] = [
   // GUIA-T1
   {
     slug: 'como-participar-primeira-licitacao-2026',
-    title: 'Como Participar da 1ª Licitação em 2026 — Passo a Passo',
+    title: 'Primeira Licitação 2026: 12 Passos do SICAF ao 1º Contrato',
     description:
-      '12 passos para entrar no mercado de licitações: cadastro no SICAF, documentação exigida, pregão eletrônico e os erros que eliminam propostas na abertura.',
+      'Entre no mercado B2G com 12 passos — cadastro SICAF, documentação obrigatória, pregão e os 4 erros que eliminam propostas antes da abertura em 2026.',
     category: 'Guias',
     tags: ['primeira licitação', 'guia iniciante', 'passo a passo', 'cadastro'],
     publishDate: '2026-04-04',
@@ -1095,9 +1095,9 @@ export const BLOG_ARTICLES: BlogArticleMeta[] = [
   // GUIA-T2
   {
     slug: 'lei-14133-guia-fornecedores',
-    title: 'Lei 14.133/2021: O que Mudou para Fornecedores — Guia Prático',
+    title: 'Lei 14.133 para Fornecedores 2026: 9 Mudanças que Importam',
     description:
-      'Guia prático da Nova Lei de Licitações (14.133/2021) para fornecedores: novas modalidades, prazos, sanções, diálogo competitivo e o que muda na prática.',
+      'Entenda as 9 mudanças que afetam fornecedores — novas modalidades, prazos, sanções e diálogo competitivo da Lei 14.133/2021 com exemplos práticos.',
     category: 'Guias',
     tags: ['Lei 14.133', 'nova lei de licitações', 'fornecedores', 'guia prático'],
     publishDate: '2026-04-04',
@@ -1125,9 +1125,9 @@ export const BLOG_ARTICLES: BlogArticleMeta[] = [
   // GUIA-T3
   {
     slug: 'pncp-guia-completo-empresas',
-    title: 'Como Usar o PNCP para Encontrar Licitações em 2026',
+    title: 'PNCP 2026: 5 Passos para Encontrar Licitações do Seu Setor',
     description:
-      'Guia passo a passo para buscar editais no PNCP por setor e estado. Filtre oportunidades reais, entenda as modalidades e descubra como automatizar o monitoramento.',
+      'Descubra como filtrar editais no PNCP por setor, estado e modalidade em 10 min. Automatize o monitoramento e evite 3 armadilhas que iniciantes ignoram.',
     category: 'Guias',
     tags: ['PNCP', 'portal de contratações', 'busca de editais', 'monitoramento'],
     publishDate: '2026-04-04',
@@ -1155,9 +1155,9 @@ export const BLOG_ARTICLES: BlogArticleMeta[] = [
   // GUIA-T4
   {
     slug: 'inteligencia-artificial-licitacoes-como-funciona',
-    title: 'Inteligência Artificial em Licitações: Como Funciona na Prática',
+    title: 'IA em Licitações 2026: 3 Funções que Economizam 40h/mês',
     description:
-      'Como a inteligência artificial está transformando a análise de editais: classificação automática, análise de viabilidade, e o futuro da participação em licitações.',
+      'Descubra como a IA classifica editais, analisa viabilidade e monitora o PNCP automaticamente — e qual o impacto real em empresas B2G que já adotaram.',
     category: 'Guias',
     tags: ['inteligência artificial', 'IA', 'automação', 'análise de editais'],
     publishDate: '2026-04-04',
@@ -1185,9 +1185,9 @@ export const BLOG_ARTICLES: BlogArticleMeta[] = [
   // GUIA-T5
   {
     slug: 'analise-viabilidade-editais-guia',
-    title: 'Análise de Viabilidade de Editais: O que Considerar antes de Participar',
+    title: 'Viabilidade de Editais 2026: 4 Fatores para Decidir em 5 min',
     description:
-      'Os 4 fatores objetivos para avaliar a viabilidade de um edital antes de investir recursos: modalidade, prazo, valor estimado e localização geográfica.',
+      'Avalie qualquer edital em 5 min com 4 critérios — modalidade, prazo, valor e UF. Evite comprometer equipe com licitações que não valem o esforço.',
     category: 'Guias',
     tags: ['viabilidade', 'análise de editais', 'go/no-go', 'decisão de participação'],
     publishDate: '2026-04-04',
@@ -1219,9 +1219,9 @@ export const BLOG_ARTICLES: BlogArticleMeta[] = [
   // P7-01
   {
     slug: 'checklist-habilitacao-licitacao-2026',
-    title: 'Checklist Completo de Habilitação para Licitação em 2026 (Lei 14.133)',
+    title: 'Checklist de Habilitação 2026: 47 Documentos pela Lei 14.133',
     description:
-      'Lista completa dos documentos de habilitação exigidos na Lei 14.133/2021: jurídica, fiscal, técnica, econômico-financeira e trabalhista — com prazos e armadilhas.',
+      'Use o checklist com 47 documentos de habilitação da Lei 14.133/2021 — jurídica, fiscal, técnica e econômico-financeira — com prazos e 6 armadilhas comuns.',
     category: 'Guias',
     tags: ['habilitação', 'documentos', 'Lei 14.133', 'checklist', 'compliance'],
     publishDate: '2026-04-07',
@@ -1249,9 +1249,9 @@ export const BLOG_ARTICLES: BlogArticleMeta[] = [
   // P7-02
   {
     slug: 'pregao-eletronico-guia-passo-a-passo',
-    title: 'Pregão Eletrônico: Guia Passo a Passo para Primeira Participação',
+    title: 'Pregão Eletrônico 2026: 10 Passos do Cadastro ao 1º Lance',
     description:
-      'Do cadastro à disputa de lances: guia prático com os 10 passos para participar do primeiro pregão eletrônico em 2026 — tempos, portais e erros fatais.',
+      'Participe do primeiro pregão em 2026 com 10 passos — cadastro, habilitação, lance e os 5 erros fatais que eliminam propostas antes da sessão pública.',
     category: 'Guias',
     tags: ['pregão eletrônico', 'passo a passo', 'ComprasNet', 'disputa de lances'],
     publishDate: '2026-04-09',
@@ -1309,9 +1309,9 @@ export const BLOG_ARTICLES: BlogArticleMeta[] = [
   // P7-04
   {
     slug: 'mei-microempresa-vantagens-licitacoes',
-    title: 'MEI e Microempresa: Vantagens e Limites para Participar de Licitações',
+    title: 'MEI e ME em Licitações 2026: 5 Vantagens Legais Pouco Usadas',
     description:
-      'Guia completo das vantagens legais de ME, EPP e MEI em licitações: empate ficto, exclusividade até R$80k, regularização tardia e limites práticos.',
+      'Ative as 5 vantagens da LC 123 para MEI, ME e EPP — empate ficto, exclusividade até R$80k, regularização tardia de certidões e como aplicar cada benefício.',
     category: 'Guias',
     tags: ['MEI', 'microempresa', 'EPP', 'vantagens', 'LC 123'],
     publishDate: '2026-04-13',
@@ -1339,9 +1339,9 @@ export const BLOG_ARTICLES: BlogArticleMeta[] = [
   // P7-05
   {
     slug: 'sicaf-como-cadastrar-manter-ativo-2026',
-    title: 'SICAF: Como se Cadastrar e Manter Ativo em 2026',
+    title: 'SICAF 2026: Cadastro em 6 Passos e Como Evitar Bloqueios',
     description:
-      'Passo a passo do cadastro no SICAF em 2026: níveis, documentos, prazos de validade, renovação e como resolver pendências que bloqueiam sua habilitação.',
+      'Cadastre-se no SICAF em 2026 com 6 passos — documentos por nível, prazos de validade e como resolver as 4 pendências que bloqueiam a habilitação.',
     category: 'Guias',
     tags: ['SICAF', 'cadastro', 'renovação', 'habilitação', 'gov.br'],
     publishDate: '2026-04-15',
@@ -1369,9 +1369,9 @@ export const BLOG_ARTICLES: BlogArticleMeta[] = [
   // P7-06
   {
     slug: 'erros-desclassificam-propostas-licitacao',
-    title: 'Principais Erros que Desclassificam Propostas — e Como Evitá-los',
+    title: '12 Erros que Desclassificam Propostas em Licitações 2026',
     description:
-      'Os 12 erros mais frequentes que causam desclassificação em licitações: documentação, preço, prazo, assinatura digital e os que parecem bobos mas eliminam.',
+      'Evite os 12 erros de desclassificação — documentação incorreta, preço mal calculado, assinatura inválida e os que parecem bobos mas eliminam propostas.',
     category: 'Guias',
     tags: ['desclassificação', 'erros em licitação', 'proposta', 'compliance'],
     publishDate: '2026-04-17',
@@ -1429,9 +1429,9 @@ export const BLOG_ARTICLES: BlogArticleMeta[] = [
   // P7-08
   {
     slug: 'ata-registro-precos-estrategia-licitacao',
-    title: 'Ata de Registro de Preços: Estratégia de Licitação sem Comprar',
+    title: 'Ata de Registro de Preços 2026: 4 Vantagens do Fornecedor',
     description:
-      'Como usar o Sistema de Registro de Preços (SRP) como estratégia: vantagens para fornecedor, carona, vigência, riscos e quando é melhor que licitação convencional.',
+      'Aproveite o SRP para vender sem licitação individual — carona, vigência de 12 meses, riscos de revisão de preço e quando a ata supera a licitação comum.',
     category: 'Guias',
     tags: ['ata de registro de preços', 'SRP', 'carona', 'estratégia', 'fornecedor'],
     publishDate: '2026-04-21',
@@ -1463,9 +1463,9 @@ export const BLOG_ARTICLES: BlogArticleMeta[] = [
   // BOFU-01
   {
     slug: 'smartlic-vs-planilha-excel-quando-automatizar',
-    title: 'SmartLic vs Planilha Excel: Quando Automatizar Licitações Vale a Pena',
+    title: 'Planilha Excel vs Plataforma: 3 Números que Definem a Virada',
     description:
-      'Comparação detalhada entre gerenciar licitações em planilha Excel e usar uma plataforma como o SmartLic. Números reais de tempo, custo e ROI para decidir quando automatizar.',
+      'Calcule quando uma plataforma de licitação supera a planilha Excel — tempo economizado, custo por edital analisado e ROI real com dados de jan-mar 2026.',
     category: 'Guias',
     tags: ['comparação', 'planilha excel', 'automação', 'ROI', 'SmartLic'],
     publishDate: '2026-04-07',
@@ -1495,9 +1495,9 @@ export const BLOG_ARTICLES: BlogArticleMeta[] = [
   // BOFU-02
   {
     slug: 'melhores-plataformas-licitacao-2026-ranking',
-    title: 'Melhores Plataformas de Licitação 2026: Ranking Completo e Honesto',
+    title: 'Plataformas de Licitação 2026: Top 5 com Veredito Honesto',
     description:
-      'Ranking das principais plataformas de licitação em 2026: SmartLic, Effecti, Licitanet, LicitaWeb e PCP. Comparação por IA, cobertura, preço e fase do processo atendida.',
+      'Compare SmartLic, Effecti, Licitanet, LicitaWeb e PCP em 2026 — IA, cobertura, preço e qual fase cada uma atende. Veredito por perfil de empresa.',
     category: 'Guias',
     tags: ['ranking', 'plataformas de licitação', 'comparação', '2026', 'SmartLic'],
     publishDate: '2026-04-07',
@@ -1528,9 +1528,9 @@ export const BLOG_ARTICLES: BlogArticleMeta[] = [
   // BOFU-03
   {
     slug: 'smartlic-vs-effecti-comparacao-2026',
-    title: 'SmartLic vs Effecti: Comparação Completa 2026 — Qual Escolher',
+    title: 'SmartLic vs Effecti 2026: 8 Critérios para Escolher Certo',
     description:
-      'Comparação detalhada entre SmartLic e Effecti: IA vs automação documental, preço, cobertura, pontos fortes e fracos de cada plataforma. Veredito honesto por perfil de empresa.',
+      'Compare SmartLic e Effecti em 8 critérios — IA vs automação documental, preço, cobertura e pontos fracos. Descubra qual plataforma serve ao seu perfil.',
     category: 'Guias',
     tags: ['comparação', 'Effecti', 'SmartLic', 'plataformas de licitação', '2026'],
     publishDate: '2026-04-07',
@@ -1851,9 +1851,9 @@ export const BLOG_ARTICLES: BlogArticleMeta[] = [
   // SEO-12.3.3 Art-01: como consultar contratos públicos PNCP
   {
     slug: 'como-consultar-contratos-publicos-pncp',
-    title: 'Como Consultar Contratos Públicos no PNCP: Guia Completo',
+    title: 'Contratos Públicos no PNCP 2026: Consulte em 4 Passos',
     description:
-      'Aprenda a buscar, filtrar e interpretar contratos públicos no PNCP por CNPJ, órgão e setor. Guia completo com filtros de valor, UF, vigência e como o SmartLic automatiza esse processo.',
+      'Encontre contratos por CNPJ ou setor no PNCP com 6 filtros. Interprete valor, UF e vigência para prospectar clientes e analisar a concorrência.',
     category: 'Guias',
     tags: ['contratos públicos', 'PNCP', 'consultar contratos', 'fornecedores', 'inteligência de mercado'],
     publishDate: '2026-04-08',
