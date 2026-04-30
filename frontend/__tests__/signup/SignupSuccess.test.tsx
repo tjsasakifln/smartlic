@@ -13,7 +13,7 @@ import { render, screen, act } from "@testing-library/react";
 // ── Mocks ────────────────────────────────────────────────────────────────────
 
 const mockTrackEvent = jest.fn();
-jest.mock("../../../hooks/useAnalytics", () => ({
+jest.mock("../../hooks/useAnalytics", () => ({
   useAnalytics: () => ({ trackEvent: mockTrackEvent }),
 }));
 
@@ -27,7 +27,7 @@ jest.mock("next/link", () => {
 });
 
 // EmailDeadEndModal: stub so we don't need to test its internals here
-jest.mock("../../../app/signup/components/EmailDeadEndModal", () => ({
+jest.mock("../../app/signup/components/EmailDeadEndModal", () => ({
   EmailDeadEndModal: ({ onClose }: { onClose: () => void }) => (
     <div data-testid="email-dead-end-modal">
       <button onClick={onClose}>Close</button>

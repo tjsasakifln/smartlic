@@ -16,7 +16,7 @@ import userEvent from "@testing-library/user-event";
 // ── Mocks ────────────────────────────────────────────────────────────────────
 
 const mockTrackEvent = jest.fn();
-jest.mock("../../../hooks/useAnalytics", () => ({
+jest.mock("../../hooks/useAnalytics", () => ({
   useAnalytics: () => ({ trackEvent: mockTrackEvent }),
 }));
 
