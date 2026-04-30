@@ -14,6 +14,7 @@ Falls back to an empty list (fail-open) if Supabase is unreachable.
 
 from __future__ import annotations
 
+import asyncio
 import logging
 import re
 import time
@@ -137,7 +138,7 @@ async def query_datalake(
         return _cached
 
     try:
-        from supabase_client import get_supabase
+        from supabase_client import get_supabase, sb_execute
         sb = get_supabase()
     except Exception as e:
         logger.warning(f"[DatalakeQuery] Supabase unavailable: {e}")
@@ -181,7 +182,7 @@ async def query_datalake(
     for uf in ufs:
         uf_params = {**rpc_params, "p_ufs": [uf]}
         try:
-            result = sb.rpc("search_datalake", uf_params).execute()
+            result = await sb_execute(sb.rpc("search_datalake", uf_params), category="rpc")
             uf_rows = result.data or []
             # Detecta possível truncamento silencioso do PostgREST (limite 1000 linhas/chamada)
             if len(uf_rows) == _POSTGREST_ROW_CAP:
@@ -204,7 +205,7 @@ async def query_datalake(
         if TRIGRAM_FALLBACK_ENABLED and (tsquery or websearch_text):
             trigram_term = _build_trigram_term(keywords, custom_terms)
             if trigram_term:
-                rows = _query_trigram_fallback(sb, trigram_term, ufs, limit)
+                rows = await asyncio.to_thread(_query_trigram_fallback, sb, trigram_term, ufs, limit)
                 if rows:
                     normalized = [_row_to_normalized(row) for row in rows]
                     for r in normalized:
