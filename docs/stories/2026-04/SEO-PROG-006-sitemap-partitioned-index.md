@@ -7,7 +7,7 @@
 **Epic:** [EPIC-SEO-PROG-2026-Q2](EPIC-SEO-PROG-2026-Q2.md)
 **Sprint:** Sprint 2-3 (06–19/mai)
 **Sprint Window:** 2026-05-06 → 2026-05-19
-**Bloqueado por:** RES-BE-002 (rotas backend sitemap com budget)
+**Bloqueado por:** ~~RES-BE-002~~ ✅ DESBLOQUEADO (PR #549 merged 2026-04-29 — RES-BE-002b sweep 9 callsites)
 
 ---
 
@@ -362,3 +362,6 @@ Nenhum — observações são operacionais (resolver decisão @architect durante
 |---|---|---|---|
 | 2026-04-27 | 1.0 | Story criada — refator estrutural multi-shard com 45k cap | @sm (River) |
 | 2026-04-27 | 1.1 | PO validation: GO conditional (8/10). AC3 tem decisão @architect pendente (Redis vs in-memory) com recomendação default — formalizar antes de iniciar dev. Status Draft→Ready. | @po (Pax) |
+| 2026-04-29 | 1.2 | **Stage 7 wedge ground + sm-briefing-100pct refresh**. **Trigger:** sm-briefing-100pct.md §3.3.3. **Ground:** PR #549 merged ✅ desbloqueia RES-BE-002 dependency. Stage 7 sitemap-4 wedge cycle confirma necessidade Redis cache 1h shared cross-replica vs current module-level `let` (multi-worker scenario). **Cross-ref:** SEN-BE-009 (MV layer — independência confirmada cache≠data); independência SEN-FE-003 (SSG decouple). Sprint Window mantém 2026-05-06→2026-05-19. | @sm (River) |
+| 2026-04-29 | 1.3 | v1.2 refresh validation: GO (8/10 mantido conditional). Bloqueador RES-BE-002 ✅ resolvido (PR #549). Stage 7 ground reinforce Redis recommendation (in-memory cache estimated insufficient sob multi-worker). AC3 decisão @architect ainda blocking gate como original. Status mantém Ready. | @po (Pax) |
+| 2026-04-29 | 1.4 | **Defer integral — zany-kurzweil session (multi-frente P0).** Trigger: 20h ROI-priorizado window, 6 stories P0 sequenciais. SEO-PROG-006 effort L (5-7d) + migration window 14d coexistência GSC = sprint dedicado mandatório (memory `feedback_chief_warm_stage5plus_no_pivot` discipline contra meio-PR órfão). Sprint Window mantém 2026-05-06 → 2026-05-19. **AC3 architect decision PRE-RESOLVED** (não-bloqueante quando implementação iniciar): **in-memory only** enquanto Railway = 1 worker hobby (DataLake p95 <100ms + memory `feedback_web_concurrency_4_amplifier` mantém WC=1). Interface plugável preserved p/ Redis L2 future quando upgrade Pro tier. Justificativa: 1 worker = 1 process Node.js → cache compartilhado natural; ISR 1h crawler concurrency cai no mesmo processo; Redis Upstash adiciona ~100ms latência + cold start sem ROI quando Hobby tier 1 worker. Estado parcial pré-existing: `frontend/app/sitemap.xml/route.ts` (SEO-476) já é manual sitemap_index com 5 shards (id:0-4); migração propôs 10 shards `sitemap-{id}.xml/route.ts` + 45k cap por shard + alert proativo >40k. Status mantém Ready (não rebaixar — sprint 2026-05-06 herda decisão @architect documentada). | @sm (River) |
