@@ -14,7 +14,7 @@
 ### Funcionalidades Principais
 
 - **Busca multi-fonte** — Agrega PNCP + PCP v2 + ComprasGov v3 com deduplicacao inteligente
-- **15 setores** — Vestuario, alimentos, informatica, engenharia, saude, vigilancia, transporte, e 8 outros
+- **20 setores** — Vestuario, alimentos, informatica, engenharia, saude, vigilancia, transporte, e 13 outros
 - **Classificacao IA** — GPT-4.1-nano classifica relevancia setorial (keyword + zero-match)
 - **Analise de viabilidade** — 4 fatores: modalidade (30%), timeline (25%), valor (25%), geografia (20%)
 - **Pipeline de oportunidades** — Kanban com drag-and-drop para gerenciar editais
@@ -157,7 +157,7 @@ pncp-poc/
 │   ├── job_queue.py           # ARQ background jobs
 │   ├── metrics.py             # Prometheus exporter
 │   ├── telemetry.py           # OpenTelemetry tracing
-│   ├── sectors_data.yaml      # 15 setores (keywords, exclusoes)
+│   ├── sectors_data.yaml      # 20 setores (keywords, exclusoes)
 │   ├── routes/                # 19 route modules (49 endpoints)
 │   ├── clients/               # PCP, ComprasGov, etc.
 │   ├── services/              # Billing, sanctions

@@ -47,7 +47,7 @@ Auditoria compreensiva do sistema inteiro (sem filtro de PRD). Cobertura:
 - **Background Jobs**: `backend/job_queue.py` (ARQ WorkerSettings), `backend/cron_jobs.py`
 - **Billing**: `backend/services/billing.py`, `backend/webhooks/stripe.py`
 - **Observability**: `backend/metrics.py` (Prometheus), `backend/telemetry.py` (OpenTelemetry), Sentry initialized in `main.py`
-- **Sectors**: `backend/sectors.py` + `backend/sectors_data.yaml` (15 setores com keywords + exclusões)
+- **Sectors**: `backend/sectors.py` + `backend/sectors_data.yaml` (20 setores com keywords + exclusões)
 
 ### Key Algorithms
 
@@ -165,7 +165,7 @@ PNCP-poc/
 │   ├── email_service.py       # Resend wrapper
 │   ├── feedback_analyzer.py   # Bi-gram pattern analysis
 │   ├── excel.py, google_sheets.py, report_generator.py
-│   ├── sectors.py, sectors_data.yaml # 15 setores
+│   ├── sectors.py, sectors_data.yaml # 20 setores
 │   ├── log_sanitizer.py       # PII redaction
 │   ├── templates/emails/      # HTML email templates
 │   ├── migrations/            # Python-based migrations (7+)
