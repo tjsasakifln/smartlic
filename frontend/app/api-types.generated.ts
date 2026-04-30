@@ -483,6 +483,29 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/admin/memory-snapshot": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Memory Snapshot
+         * @description Return current process memory snapshot for leak investigation.
+         *
+         *     Master/admin only. Snapshots are NOT persisted (PII risk + size).
+         *     Caller is responsible for capturing 10× over 24h to build baseline.
+         */
+        get: operations["memory_snapshot_v1_admin_memory_snapshot_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/admin/partners": {
         parameters: {
             query?: never;
@@ -10084,6 +10107,28 @@ export interface operations {
         };
     };
     admin_llm_cost_v1_admin_llm_cost_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+        };
+    };
+    memory_snapshot_v1_admin_memory_snapshot_get: {
         parameters: {
             query?: never;
             header?: never;
