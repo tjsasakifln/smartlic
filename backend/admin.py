@@ -1107,7 +1107,19 @@ async def get_at_risk_trials(
 
 
 def _assign_plan(sb, user_id: str, plan_id: str):
-    """Internal: assign plan creating subscription record."""
+    """Internal: assign plan creating subscription record.
+
+    Writes ONLY to ``user_subscriptions`` — the canonical source-of-truth read
+    by ``quota.plan_enforcement.check_quota``.
+
+    DATA-DRIFT-001: ``profiles.trial_expires_at`` is the read-only mirror,
+    kept in sync by the Postgres trigger ``trg_sync_trial_expires_at``
+    (migration ``20260429230000_data_drift_001_trigger_sync.sql``). Do NOT
+    add a parallel write to ``profiles.trial_expires_at`` here — that would
+    re-introduce the dual source-of-truth drift documented in
+    ``docs/adr/SCHEMA-DRIFT.md`` (Option A canonical + mirror).
+    Memory: ``project_paulo_paywall_bypass_root_cause_2026_04_29``.
+    """
     from datetime import datetime, timezone, timedelta
 
     plan = sb.table("plans").select("*").eq("id", plan_id).single().execute()
@@ -1122,7 +1134,8 @@ def _assign_plan(sb, user_id: str, plan_id: str):
     # Deactivate previous
     sb.table("user_subscriptions").update({"is_active": False}).eq("user_id", user_id).eq("is_active", True).execute()
 
-    # Create new
+    # Create new — canonical write only. Trigger trg_sync_trial_expires_at
+    # mirrors expires_at -> profiles.trial_expires_at automatically.
     sb.table("user_subscriptions").insert({
         "user_id": user_id,
         "plan_id": plan_id,

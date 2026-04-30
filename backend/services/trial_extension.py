@@ -137,6 +137,14 @@ async def extend_trial(user_id: str, condition: str) -> dict:
     """Extend a user's trial by completing a condition.
 
     Returns dict with extension result or raises ValueError/RuntimeError.
+
+    DATA-DRIFT-001: the underlying ``extend_trial_atomic`` RPC writes the
+    canonical ``user_subscriptions.expires_at`` first (the trigger
+    ``trg_sync_trial_expires_at`` then mirrors to ``profiles.trial_expires_at``).
+    The eligibility pre-check below still reads ``profiles.trial_expires_at`` —
+    that is safe because the mirror is now guaranteed in sync after the fix
+    in migration ``20260429230000_data_drift_001_trigger_sync.sql``.
+    Memory: ``project_paulo_paywall_bypass_root_cause_2026_04_29``.
     """
     from config.features import (
         TRIAL_EXTENSION_ENABLED,
