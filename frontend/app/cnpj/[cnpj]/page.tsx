@@ -4,6 +4,7 @@ import ContentPageLayout from '../../components/ContentPageLayout';
 import CnpjPerfilClient from './CnpjPerfilClient';
 import { LeadCapture } from '@/components/LeadCapture';
 import { getBackendUrl } from '@/lib/backend-url';
+import { fetchWithBudget } from '@/lib/safe-fetch';
 
 const BACKEND_URL = getBackendUrl();
 
@@ -52,16 +53,12 @@ export function generateStaticParams() {
 }
 
 async function fetchPerfil(cnpj: string): Promise<PerfilB2G | null> {
-  try {
-    const resp = await fetch(`${BACKEND_URL}/v1/empresa/${cnpj}/perfil-b2g`, {
-      next: { revalidate: 86400 },
-      signal: AbortSignal.timeout(10000),
-    });
-    if (!resp.ok) return null;
-    return await resp.json();
-  } catch {
-    return null;
-  }
+  return fetchWithBudget<PerfilB2G>(`${BACKEND_URL}/v1/empresa/${cnpj}/perfil-b2g`, {
+    timeout: 10000,
+    retries: 1,
+    revalidate: 86400,
+    label: 'cnpj-perfil',
+  });
 }
 
 export async function generateMetadata({
