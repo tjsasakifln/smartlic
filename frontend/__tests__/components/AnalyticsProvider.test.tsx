@@ -8,6 +8,7 @@ import { render, screen, waitFor } from '@testing-library/react';
 import { AnalyticsProvider } from '@/app/components/AnalyticsProvider';
 import mixpanel from 'mixpanel-browser';
 import * as Sentry from '@sentry/nextjs';
+import { usePathname } from 'next/navigation';
 
 // Mock dependencies
 jest.mock('mixpanel-browser');
@@ -72,6 +73,9 @@ describe('AnalyticsProvider Component', () => {
     // Default: no UTM params stored, direct traffic
     getStoredUTMParams.mockReturnValue({});
     deriveTrafficSource.mockReturnValue('direct');
+
+    // Restore usePathname implementation (reset by resetMocks:true in jest.config.js)
+    (usePathname as jest.Mock).mockReturnValue('/test-page');
   });
 
   afterEach(() => {
