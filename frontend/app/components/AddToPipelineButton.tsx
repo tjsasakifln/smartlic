@@ -46,9 +46,10 @@ export function AddToPipelineButton({ licitacao, className = "" }: AddToPipeline
       if (raw.includes("já está no")) {
         setStatus("saved");
       } else if (isPipelineLimit) {
-        // STORY-356 AC4: Pipeline limit exceeded — show upgrade state
-        setStatus("limit");
-        setErrorMsg(raw);
+        // STORY-356 AC4: Pipeline limit exceeded — capture intent, redirect to upgrade
+        trackEvent("pipeline_limit_upgrade_cta_clicked", { pncp_id: licitacao.pncp_id });
+        window.location.href = "/planos?utm_source=pipeline_cap&utm_campaign=trial_activation";
+        return;
       } else if (raw.includes("plano") || raw.includes("disponível")) {
         setStatus("upgrade");
         setErrorMsg(getUserFriendlyError(err));
