@@ -342,21 +342,37 @@ async def _query_pncp_for_sector(
     ufs: list[str],
     days: int = 30,
 ) -> list[dict]:
-    """Query datalake for sector-relevant results across given UFs."""
+    """Query datalake for sector-relevant results across given UFs.
+
+    RES-BE-015b: wrapped in _run_with_budget(5s) to prevent setor/* routes from
+    wedging under Googlebot fan-out (same pattern as contratos routes, PR#579).
+    """
     from datalake_query import query_datalake
+    from pipeline.budget import _run_with_budget
 
     now = datetime.now(timezone.utc)
     data_final = now.strftime("%Y-%m-%d")
     data_inicial = (now - timedelta(days=days)).strftime("%Y-%m-%d")
 
     try:
-        return await query_datalake(
-            ufs=ufs,
-            data_inicial=data_inicial,
-            data_final=data_final,
-            keywords=list(sector.keywords),
-            limit=2000,
+        return await _run_with_budget(
+            query_datalake(
+                ufs=ufs,
+                data_inicial=data_inicial,
+                data_final=data_final,
+                keywords=list(sector.keywords),
+                limit=2000,
+            ),
+            budget=5.0,
+            phase="route",
+            source="blog_stats.sector_query",
         )
+    except asyncio.TimeoutError:
+        logger.warning(
+            "RES-BE-015b: datalake timeout blog_stats sector=%s ufs=%s",
+            sector.id, ufs[:3],
+        )
+        return []
     except Exception as e:
         logger.warning("Datalake query failed for blog stats sector=%s: %s", sector.id, e)
         return []
