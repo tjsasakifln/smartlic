@@ -100,19 +100,18 @@ jest.mock('../../app/onboarding/components/OnboardingStep3', () => ({
   OnboardingStep3: () => <div data-testid="step3" />,
 }));
 
-// Mock fetch for profile-context load + first-analysis
-global.fetch = jest.fn().mockImplementation((url: string) => {
-  if (url === '/api/profile-context') {
-    return Promise.resolve({ ok: true, json: () => Promise.resolve({ context_data: {} }) });
-  }
-  return Promise.resolve({ ok: false, status: 500, json: () => Promise.resolve({}) });
-});
-
 // ── Tests ───────────────────────────────────────────────────────────────────
 
 describe('CONV-INST-005: onboarding step Clarity tagging', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    // resetMocks:true in jest.config resets implementations — re-set per test
+    global.fetch = jest.fn().mockImplementation((url: string) => {
+      if (url === '/api/profile-context') {
+        return Promise.resolve({ ok: true, json: () => Promise.resolve({ context_data: {} }) });
+      }
+      return Promise.resolve({ ok: false, status: 500, json: () => Promise.resolve({}) });
+    });
   });
 
   it('claritySet onboarding_step=1/3 fires on step 0→1 transition', async () => {

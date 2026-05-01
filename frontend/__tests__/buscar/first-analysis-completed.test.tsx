@@ -16,28 +16,13 @@ import { renderHook, act } from '@testing-library/react';
 const mockTrackEvent = jest.fn();
 const mockRefreshQuota = jest.fn().mockResolvedValue(undefined);
 
-jest.mock('../../../hooks/useAnalytics', () => ({
+jest.mock('../../hooks/useAnalytics', () => ({
   useAnalytics: () => ({ trackEvent: mockTrackEvent }),
 }));
 
-jest.mock('../../../hooks/useQuota', () => ({
+jest.mock('../../hooks/useQuota', () => ({
   useQuota: () => ({ refresh: mockRefreshQuota }),
 }));
-
-// Mock fetch for /api/buscar-results
-global.fetch = jest.fn().mockImplementation((url: string) => {
-  if (url.includes('buscar-results')) {
-    return Promise.resolve({
-      ok: true,
-      json: () => Promise.resolve({
-        licitacoes: [{ pncp_id: 'bid-1', viability_score: 0.8 }],
-        total_filtrado: 1,
-        total_raw: 5,
-      }),
-    });
-  }
-  return Promise.resolve({ ok: false });
-});
 
 // ── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -101,7 +86,19 @@ function makeErrorEvent() {
 describe('CONV-INST-005: first_analysis_completed event (AC4)', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    (global.fetch as jest.Mock).mockClear();
+    global.fetch = jest.fn().mockImplementation((url: string) => {
+      if (url.includes('buscar-results')) {
+        return Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve({
+            licitacoes: [{ pncp_id: 'bid-1', viability_score: 0.8 }],
+            total_filtrado: 1,
+            total_raw: 5,
+          }),
+        });
+      }
+      return Promise.resolve({ ok: false });
+    });
   });
 
   it('fires first_analysis_completed when isAutoAnalysis=true + search_complete with results', async () => {
