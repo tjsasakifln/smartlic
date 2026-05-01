@@ -138,7 +138,8 @@ def _is_period_historical(mes: int, ano: int) -> bool:
     200+is_empty_period (historical empty).
     """
     try:
-        return (date.today() - date(ano, mes, 1)).days > 30
+        _, last_day = calendar.monthrange(ano, mes)
+        return date.today() > date(ano, mes, last_day)
     except ValueError:
         return False
 
@@ -361,9 +362,9 @@ async def _generate_relatorio(mes: int, ano: int) -> dict:
     prev_inicial = f"{prev_ano:04d}-{prev_mes:02d}-01"
     prev_final = f"{prev_ano:04d}-{prev_mes:02d}-{prev_last:02d}"
 
-    # Detect if month is historical (>30 days ago — data may be soft-deleted)
+    # Detect if month is historical (last day of month is in the past)
     today = date.today()
-    is_historical = (today - date(ano, mes, 1)).days > 30
+    is_historical = today > date(ano, mes, last_day)
 
     # Query current month
     results: list[dict] = []
@@ -431,7 +432,7 @@ async def _generate_relatorio(mes: int, ano: int) -> dict:
 
     # Previous month: best-effort under the same budget. A failure here only
     # degrades the "setores em alta" comparison — not a fatal error.
-    prev_is_historical = (today - date(prev_ano, prev_mes, 1)).days > 30
+    prev_is_historical = today > date(prev_ano, prev_mes, prev_last)
     if prev_is_historical:
         try:
             prev_results = await _run_with_budget(
