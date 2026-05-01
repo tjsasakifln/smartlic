@@ -154,8 +154,8 @@ describe("TrialProgressBar", () => {
     ).not.toBeInTheDocument();
   });
 
-  // AC3: Green color for day 1-7
-  it("renders with green classes for trial day 5 (9 days remaining)", () => {
+  // AC3: Blue color for day 1-7 (engagement window — not calming green)
+  it("renders with blue classes for trial day 6 (9 days remaining)", () => {
     // 9 days left → day = 14 - 9 + 1 = 6
     setPlanInfo({
       trial_expires_at: new Date(
@@ -165,8 +165,8 @@ describe("TrialProgressBar", () => {
     render(<TrialProgressBar />);
     const bar = screen.getByTestId("trial-progress-bar");
     expect(bar).toBeInTheDocument();
-    expect(bar.className).toContain("bg-green-50");
-    expect(bar.className).toContain("text-green-800");
+    expect(bar.className).toContain("bg-blue-50");
+    expect(bar.className).toContain("text-blue-800");
   });
 
   // AC3: Yellow color for day 8-11
@@ -208,12 +208,37 @@ describe("TrialProgressBar", () => {
     ).toBeInTheDocument();
   });
 
-  // AC4: CTA link points to /planos
-  it("CTA link points to /planos", () => {
+  // AC4: CTA link points to /planos, text varies by urgency
+  it("CTA link points to /planos with 'Ver Planos →' for day 8-11", () => {
+    // Default mock = day 8 (yellow range)
     render(<TrialProgressBar />);
     const cta = screen.getByTestId("trial-progress-bar-cta");
     expect(cta).toHaveAttribute("href", "/planos");
     expect(cta).toHaveTextContent("Ver Planos →");
+  });
+
+  it("CTA shows 'Conhecer Pro →' for day 1-7 (engagement window)", () => {
+    // 11 days left → day = 14 - 11 + 1 = 4
+    setPlanInfo({
+      trial_expires_at: new Date(
+        Date.now() + 11 * 24 * 60 * 60 * 1000
+      ).toISOString(),
+    });
+    render(<TrialProgressBar />);
+    const cta = screen.getByTestId("trial-progress-bar-cta");
+    expect(cta).toHaveTextContent("Conhecer Pro →");
+  });
+
+  it("CTA shows 'Assinar agora →' for day 12-14 (urgency)", () => {
+    // 2 days left → day = 14 - 2 + 1 = 13
+    setPlanInfo({
+      trial_expires_at: new Date(
+        Date.now() + 2 * 24 * 60 * 60 * 1000
+      ).toISOString(),
+    });
+    render(<TrialProgressBar />);
+    const cta = screen.getByTestId("trial-progress-bar-cta");
+    expect(cta).toHaveTextContent("Assinar agora →");
   });
 
   // Renders on authenticated page (/buscar)
