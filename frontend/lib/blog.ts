@@ -1125,13 +1125,13 @@ export const BLOG_ARTICLES: BlogArticleMeta[] = [
   // GUIA-T3
   {
     slug: 'pncp-guia-completo-empresas',
-    title: 'PNCP 2026: Como Consultar Licitações e Editais Grátis',
+    title: 'PNCP em 2026: Encontre Editais do seu Setor em 5 Passos',
     description:
-      'Como consultar licitações no PNCP em 2026, baixar editais grátis, usar a API e automatizar o monitoramento. Passo a passo prático para empresas.',
+      'Aprenda a filtrar licitações reais por setor, UF e valor no PNCP — sem perder tempo em editais fora do perfil. Atualizado para 2026.',
     category: 'Guias',
     tags: ['PNCP', 'portal de contratações', 'busca de editais', 'monitoramento'],
     publishDate: '2026-04-04',
-    lastModified: '2026-04-24',
+    lastModified: '2026-04-30',
     readingTime: calculateReadingTime(3400),
     wordCount: 3400,
     keywords: [
