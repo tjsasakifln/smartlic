@@ -1,4 +1,4 @@
-"""UX-428: Tests for error sanitization in SSE progress events.
+"""Tests for error sanitization in SSE progress events.
 
 Ensures that technical error strings (HTTP status codes, env var names,
 authentication details) are never exposed to the end user via SSE events
@@ -19,56 +19,56 @@ class TestSanitizeSourceError:
     """AC3: Backend sanitization maps technical errors → friendly messages."""
 
     def test_401_http_status_returns_unavailable(self):
-        result = _sanitize_source_error("HTTP 401: Authentication failed", "LICITAJA")
-        assert result == "LICITAJA indisponível"
+        result = _sanitize_source_error("HTTP 401: Authentication failed", "COMPRAS_GOV")
+        assert result == "COMPRAS_GOV indisponível"
 
     def test_env_var_name_in_error_returns_unavailable(self):
-        result = _sanitize_source_error("check LICITAJA_API_KEY env var", "LICITAJA")
-        assert result == "LICITAJA indisponível"
+        result = _sanitize_source_error("check COMPRAS_GOV_API_KEY env var", "COMPRAS_GOV")
+        assert result == "COMPRAS_GOV indisponível"
 
     def test_source_auth_error_with_brackets_returns_unavailable(self):
-        result = _sanitize_source_error("[LICITAJA] HTTP 401: SourceAuthError", "LICITAJA")
-        assert result == "LICITAJA indisponível"
+        result = _sanitize_source_error("[COMPRAS_GOV] HTTP 401: SourceAuthError", "COMPRAS_GOV")
+        assert result == "COMPRAS_GOV indisponível"
 
     def test_authentication_word_case_insensitive_returns_unavailable(self):
-        result = _sanitize_source_error("Authentication Required", "LICITAJA")
-        assert result == "LICITAJA indisponível"
+        result = _sanitize_source_error("Authentication Required", "COMPRAS_GOV")
+        assert result == "COMPRAS_GOV indisponível"
 
     def test_403_forbidden_returns_unavailable(self):
-        result = _sanitize_source_error("HTTP 403: Forbidden", "LICITAJA")
-        assert result == "LICITAJA indisponível"
+        result = _sanitize_source_error("HTTP 403: Forbidden", "COMPRAS_GOV")
+        assert result == "COMPRAS_GOV indisponível"
 
     def test_forbidden_word_returns_unavailable(self):
-        result = _sanitize_source_error("Access Forbidden for this resource", "LICITAJA")
-        assert result == "LICITAJA indisponível"
+        result = _sanitize_source_error("Access Forbidden for this resource", "COMPRAS_GOV")
+        assert result == "COMPRAS_GOV indisponível"
 
     def test_429_rate_limit_returns_overloaded(self):
-        result = _sanitize_source_error("Rate limit exceeded: 429", "LICITAJA")
-        assert result == "LICITAJA sobrecarregado"
+        result = _sanitize_source_error("Rate limit exceeded: 429", "COMPRAS_GOV")
+        assert result == "COMPRAS_GOV sobrecarregado"
 
     def test_rate_limit_string_returns_overloaded(self):
-        result = _sanitize_source_error("rate limit exceeded, retry after 60s", "LICITAJA")
-        assert result == "LICITAJA sobrecarregado"
+        result = _sanitize_source_error("rate limit exceeded, retry after 60s", "COMPRAS_GOV")
+        assert result == "COMPRAS_GOV sobrecarregado"
 
     def test_timeout_error_returns_timeout_message(self):
-        result = _sanitize_source_error("timeout after 30s", "LICITAJA")
-        assert result == "LICITAJA não respondeu a tempo"
+        result = _sanitize_source_error("timeout after 30s", "COMPRAS_GOV")
+        assert result == "COMPRAS_GOV não respondeu a tempo"
 
     def test_timeout_uppercase_returns_timeout_message(self):
-        result = _sanitize_source_error("Timeout connecting to API endpoint", "LICITAJA")
-        assert result == "LICITAJA não respondeu a tempo"
+        result = _sanitize_source_error("Timeout connecting to API endpoint", "COMPRAS_GOV")
+        assert result == "COMPRAS_GOV não respondeu a tempo"
 
     def test_connection_refused_returns_generic(self):
-        result = _sanitize_source_error("Connection refused", "LICITAJA")
-        assert result == "LICITAJA: erro temporário"
+        result = _sanitize_source_error("Connection refused", "COMPRAS_GOV")
+        assert result == "COMPRAS_GOV: erro temporário"
 
     def test_generic_http_500_returns_generic(self):
-        result = _sanitize_source_error("HTTP 500: Internal Server Error", "LICITAJA")
-        assert result == "LICITAJA: erro temporário"
+        result = _sanitize_source_error("HTTP 500: Internal Server Error", "COMPRAS_GOV")
+        assert result == "COMPRAS_GOV: erro temporário"
 
     def test_empty_error_returns_generic(self):
-        result = _sanitize_source_error("", "LICITAJA")
-        assert result == "LICITAJA: erro temporário"
+        result = _sanitize_source_error("", "COMPRAS_GOV")
+        assert result == "COMPRAS_GOV: erro temporário"
 
     def test_source_name_in_result(self):
         """Source name must always appear in the returned string."""
@@ -102,8 +102,8 @@ async def test_emit_source_error_sanitizes_detail():
     tracker._emit_event = AsyncMock()
 
     await tracker.emit_source_error(
-        source="LICITAJA",
-        error="HTTP 401: Authentication failed — check LICITAJA_API_KEY",
+        source="COMPRAS_GOV",
+        error="HTTP 401: Authentication failed — check COMPRAS_GOV_API_KEY",
         duration_ms=1234,
     )
 
@@ -112,12 +112,12 @@ async def test_emit_source_error_sanitizes_detail():
     detail = emitted_event.detail
 
     assert "401" not in detail["error"], "Raw HTTP status exposed in detail"
-    assert "LICITAJA_API_KEY" not in detail["error"], "Env var name exposed in detail"
-    assert "LICITAJA" in detail["error"]
-    assert detail["source"] == "LICITAJA"
+    assert "COMPRAS_GOV_API_KEY" not in detail["error"], "Env var name exposed in detail"
+    assert "COMPRAS_GOV" in detail["error"]
+    assert detail["source"] == "COMPRAS_GOV"
     assert detail["duration_ms"] == 1234
     assert "401" not in emitted_event.message
-    assert "LICITAJA_API_KEY" not in emitted_event.message
+    assert "COMPRAS_GOV_API_KEY" not in emitted_event.message
 
 
 @pytest.mark.asyncio
