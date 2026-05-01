@@ -1,7 +1,8 @@
 /**
  * Tests for STORY-356 — Pipeline limit enforcement frontend handling.
  *
- * AC4: Frontend shows "Limite" state when backend returns 403 PIPELINE_LIMIT_EXCEEDED.
+ * AC4 (updated): When backend returns 403 PIPELINE_LIMIT_EXCEEDED, frontend
+ * redirects to upgrade page instead of showing "Limite" badge.
  */
 
 import React from 'react';
@@ -26,6 +27,12 @@ jest.mock('../../hooks/usePipeline', () => ({
   }),
 }));
 
+// Mock useAnalytics hook
+const mockTrackEvent = jest.fn();
+jest.mock('../../hooks/useAnalytics', () => ({
+  useAnalytics: () => ({ trackEvent: mockTrackEvent }),
+}));
+
 describe('STORY-356: Pipeline limit enforcement', () => {
   const mockLicitacao: LicitacaoItem = {
     pncp_id: "12345678-1-000001/2026",
@@ -45,57 +52,12 @@ describe('STORY-356: Pipeline limit enforcement', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+    // Replace window.location so href assignment can be observed
+    delete (window as any).location;
+    (window as any).location = { href: '' };
   });
 
-  it('shows "Limite" when pipeline limit exceeded (AC4)', async () => {
-    const limitError = new Error("Limite de 5 itens no pipeline atingido.");
-    (limitError as any).isPipelineLimitExceeded = true;
-    (limitError as any).limit = 5;
-    (limitError as any).current = 5;
-    mockAddItem.mockRejectedValue(limitError);
-
-    render(<AddToPipelineButton licitacao={mockLicitacao} />);
-    fireEvent.click(screen.getByRole('button'));
-
-    await waitFor(() => {
-      expect(screen.getByText('Limite')).toBeInTheDocument();
-    });
-  });
-
-  it('shows orange styling for limit state', async () => {
-    const limitError = new Error("Limite de 5 itens no pipeline atingido.");
-    (limitError as any).isPipelineLimitExceeded = true;
-    (limitError as any).limit = 5;
-    (limitError as any).current = 5;
-    mockAddItem.mockRejectedValue(limitError);
-
-    render(<AddToPipelineButton licitacao={mockLicitacao} />);
-    fireEvent.click(screen.getByRole('button'));
-
-    await waitFor(() => {
-      const button = screen.getByRole('button');
-      expect(button.className).toContain('bg-orange-100');
-    });
-  });
-
-  it('shows limit message in title attribute', async () => {
-    const limitError = new Error("Limite de 5 itens no pipeline atingido.");
-    (limitError as any).isPipelineLimitExceeded = true;
-    (limitError as any).limit = 5;
-    (limitError as any).current = 5;
-    mockAddItem.mockRejectedValue(limitError);
-
-    render(<AddToPipelineButton licitacao={mockLicitacao} />);
-    fireEvent.click(screen.getByRole('button'));
-
-    await waitFor(() => {
-      const button = screen.getByRole('button');
-      expect(button).toHaveAttribute('title', 'Limite de 5 itens no pipeline atingido.');
-    });
-  });
-
-  it('resets to idle after 4 seconds', async () => {
-    jest.useFakeTimers();
+  it('redirects to upgrade page when pipeline limit exceeded (AC4)', async () => {
     const limitError = new Error("Limite de 5 itens no pipeline atingido.");
     (limitError as any).isPipelineLimitExceeded = true;
     mockAddItem.mockRejectedValue(limitError);
@@ -104,16 +66,26 @@ describe('STORY-356: Pipeline limit enforcement', () => {
     fireEvent.click(screen.getByRole('button'));
 
     await waitFor(() => {
-      expect(screen.getByText('Limite')).toBeInTheDocument();
+      expect(window.location.href).toBe(
+        '/planos?utm_source=pipeline_cap&utm_campaign=trial_activation'
+      );
     });
+  });
 
-    jest.advanceTimersByTime(4000);
+  it('tracks pipeline_limit_upgrade_cta_clicked when limit exceeded', async () => {
+    const limitError = new Error("Limite de 5 itens no pipeline atingido.");
+    (limitError as any).isPipelineLimitExceeded = true;
+    mockAddItem.mockRejectedValue(limitError);
+
+    render(<AddToPipelineButton licitacao={mockLicitacao} />);
+    fireEvent.click(screen.getByRole('button'));
 
     await waitFor(() => {
-      expect(screen.getByText('Pipeline')).toBeInTheDocument();
+      expect(mockTrackEvent).toHaveBeenCalledWith(
+        'pipeline_limit_upgrade_cta_clicked',
+        expect.objectContaining({ pncp_id: mockLicitacao.pncp_id })
+      );
     });
-
-    jest.useRealTimers();
   });
 
   it('distinguishes limit error from upgrade error', async () => {

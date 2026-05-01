@@ -24,6 +24,11 @@ jest.mock('../../hooks/usePipeline', () => ({
   }),
 }));
 
+const mockTrackEvent = jest.fn();
+jest.mock('../../hooks/useAnalytics', () => ({
+  useAnalytics: () => ({ trackEvent: mockTrackEvent }),
+}));
+
 describe('AddToPipelineButton', () => {
   const mockLicitacao: LicitacaoItem = {
     pncp_id: "12345678-1-000001/2026",
@@ -315,6 +320,52 @@ describe('AddToPipelineButton', () => {
       });
 
       jest.useRealTimers();
+    });
+  });
+
+  describe('Pipeline limit exceeded', () => {
+    it('redirects to /planos with UTM when pipeline limit is hit', async () => {
+      const originalLocation = window.location;
+      Object.defineProperty(window, 'location', {
+        writable: true,
+        value: { ...originalLocation, href: '' },
+      });
+
+      const limitError = new Error('Você atingiu o limite de 5 oportunidades no pipeline durante o período de teste.');
+      (limitError as any).isPipelineLimitExceeded = true;
+      mockAddItem.mockRejectedValue(limitError);
+
+      render(<AddToPipelineButton licitacao={mockLicitacao} />);
+      const button = screen.getByRole('button');
+      fireEvent.click(button);
+
+      await waitFor(() => {
+        expect(window.location.href).toContain('/planos');
+        expect(window.location.href).toContain('pipeline_cap');
+      });
+
+      Object.defineProperty(window, 'location', { writable: true, value: originalLocation });
+    });
+
+    it('tracks pipeline_limit_upgrade_cta_clicked event on redirect', async () => {
+      Object.defineProperty(window, 'location', {
+        writable: true,
+        value: { href: '' },
+      });
+
+      const limitError = new Error('Limite atingido');
+      (limitError as any).isPipelineLimitExceeded = true;
+      mockAddItem.mockRejectedValue(limitError);
+
+      render(<AddToPipelineButton licitacao={mockLicitacao} />);
+      fireEvent.click(screen.getByRole('button'));
+
+      await waitFor(() => {
+        expect(mockTrackEvent).toHaveBeenCalledWith(
+          'pipeline_limit_upgrade_cta_clicked',
+          expect.objectContaining({ pncp_id: mockLicitacao.pncp_id })
+        );
+      });
     });
   });
 
