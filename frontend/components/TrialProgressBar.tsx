@@ -83,18 +83,31 @@ export function TrialProgressBar() {
   if (isExcluded || !isTrial || trialDay === null) return null;
 
   // AC3: Colors by urgency
+  // Day 1-7: blue/brand (engagement — peak conversion window, not "relax" green)
+  // Day 8-11: yellow (building awareness)
+  // Day 12-14: red (urgent)
   const urgencyClass =
     trialDay <= 7
-      ? "bg-green-50 text-green-800 border-green-200"
+      ? "bg-blue-50 text-blue-800 border-blue-200"
       : trialDay <= 11
       ? "bg-yellow-50 text-yellow-800 border-yellow-200"
       : "bg-red-50 text-red-800 border-red-200";
 
   // AC2: Text with fallback if analytics data unavailable
-  const mainText =
-    data != null
-      ? `Dia ${trialDay} de 14 — Você já fez ${data.total_searches} buscas e encontrou ${data.total_opportunities} editais.`
-      : `Dia ${trialDay} de 14 — Veja os planos antes que expire`;
+  // Day 1-7: anchor value found (not just a status update)
+  // Day 8-14: time-based urgency
+  let mainText: string;
+  if (trialDay <= 7) {
+    mainText =
+      data != null
+        ? `Trial ativo · Dia ${trialDay}/14 — ${data.total_opportunities > 0 ? `${data.total_opportunities} oportunidades encontradas` : "explore suas oportunidades"}`
+        : `Trial ativo · Dia ${trialDay}/14 — explore suas oportunidades`;
+  } else {
+    mainText =
+      data != null
+        ? `Dia ${trialDay} de 14 — Você já fez ${data.total_searches} buscas e encontrou ${data.total_opportunities} editais.`
+        : `Dia ${trialDay} de 14 — Veja os planos antes que expire`;
+  }
 
   // AC7: Mixpanel tracking on CTA click
   const handleCtaClick = () => {
@@ -114,7 +127,7 @@ export function TrialProgressBar() {
         className="font-semibold underline underline-offset-2 hover:no-underline whitespace-nowrap"
         data-testid="trial-progress-bar-cta"
       >
-        Ver Planos →
+        {trialDay >= 12 ? "Assinar agora →" : trialDay <= 7 ? "Conhecer Pro →" : "Ver Planos →"}
       </Link>
     </div>
   );
