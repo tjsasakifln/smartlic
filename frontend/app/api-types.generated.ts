@@ -2690,7 +2690,7 @@ export interface paths {
          * @description Agrega historico de contratos do PNCP + dados cadastrais (BrasilAPI via
          *     enriched_entities) para a pagina /fornecedores/{cnpj}.
          *
-         *     Publico, sem auth. Cache: 24h TTL em memoria.
+         *     Publico, sem auth. Cache: 24h TTL em memoria (5min em fallback partial).
          */
         get: operations["fornecedor_profile_v1_fornecedores__cnpj__profile_get"];
         put?: never;
@@ -4194,7 +4194,7 @@ export interface paths {
          *
          *     Usado pelo frontend para gerar /fornecedores/{cnpj} no sitemap.xml.
          *     Limite: 5.000 CNPJs por volume de contratos (mais contratos = maior valor SEO).
-         *     Cache: 24h em memoria.
+         *     Cache: 24h em memoria sucesso, 5min em falha (negative cache PR #529 pattern).
          */
         get: operations["sitemap_fornecedores_cnpj_v1_sitemap_fornecedores_cnpj_get"];
         put?: never;
@@ -4441,13 +4441,20 @@ export interface paths {
          * Resend Webhook
          * @description Handle Resend webhook events for email tracking.
          *
+         *     Security: Svix HMAC-SHA256 signature verified against `RESEND_WEBHOOK_SECRET`.
+         *     Replay protection: timestamp must be within 5 minutes of now.
+         *     Fail-closed — missing secret or invalid signature returns 401.
+         *
          *     Accepts the full delivery lifecycle (sent → delivered → opened → clicked)
          *     plus failure paths (bounced, complained, delivery_delayed, failed) so the
          *     admin funnel dashboard can distinguish "email never arrived" from "email
          *     arrived but wasn't engaged". Service handler
          *     (`services.trial_email_sequence.handle_resend_webhook`) populates the
          *     columns added in migration 20260424180000_trial_email_delivery_tracking.
-         *     Always returns 200 so Resend doesn't retry on transient server errors.
+         *
+         *     Returns 200 for processed/ignored/skipped so Resend doesn't retry; 401 on
+         *     signature failure (Resend will retry — desired so legitimate events aren't
+         *     lost during transient secret rotation).
          */
         post: operations["resend_webhook_v1_trial_emails_webhook_post"];
         delete?: never;
@@ -8131,6 +8138,11 @@ export interface components {
             fonte: string;
             /** Gerado Em */
             gerado_em: string;
+            /**
+             * Is Empty Period
+             * @default false
+             */
+            is_empty_period: boolean;
             /** License */
             license: string;
             /** Mes */
@@ -15245,7 +15257,11 @@ export interface operations {
     resend_webhook_v1_trial_emails_webhook_post: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                "svix-id"?: string | null;
+                "svix-timestamp"?: string | null;
+                "svix-signature"?: string | null;
+            };
             path?: never;
             cookie?: never;
         };
@@ -15258,6 +15274,15 @@ export interface operations {
                 };
                 content: {
                     "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };
