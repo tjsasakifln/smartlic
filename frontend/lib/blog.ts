@@ -45,9 +45,9 @@ export const BLOG_ARTICLES: BlogArticleMeta[] = [
   // B2G-01
   {
     slug: 'como-aumentar-taxa-vitoria-licitacoes',
-    title: 'Como Aumentar sua Taxa de Vitória em Licitações sem Contratar mais Analistas',
+    title: 'Taxa de Vitória em Licitações: Como Passar de 8% para 25%',
     description:
-      'Descubra como empresas B2G aumentam de 8% para 25% a taxa de adjudicação em pregões usando análise de viabilidade e triagem inteligente de editais.',
+      'Descubra como empresas B2G triplicam adjudicações usando análise de viabilidade — sem ampliar o time. Dados reais de clientes SmartLic.',
     category: 'Empresas B2G',
     tags: ['taxa de vitória', 'triagem inteligente', 'viabilidade', 'estratégia'],
     publishDate: '2026-02-24',
@@ -906,9 +906,9 @@ export const BLOG_ARTICLES: BlogArticleMeta[] = [
   // GUIA-S1
   {
     slug: 'licitacoes-engenharia-2026',
-    title: 'Licitações de Engenharia e Construção 2026 — Guia Completo',
+    title: 'Licitações de Engenharia 2026: Quais Editais Valem a Pena',
     description:
-      'Guia definitivo sobre licitações de engenharia e construção civil em 2026: modalidades, faixas de valor, UFs com maior volume, habilitação técnica e como analisar viabilidade.',
+      'Modalidades, faixas de valor e UFs com mais contratos de obras em 2026. Evite editais inviáveis antes de montar proposta — habilitação técnica incluída.',
     category: 'Guias',
     tags: ['engenharia', 'construção civil', 'licitações 2026', 'guia setorial'],
     publishDate: '2026-04-04',
@@ -937,9 +937,9 @@ export const BLOG_ARTICLES: BlogArticleMeta[] = [
   // GUIA-S2
   {
     slug: 'licitacoes-ti-software-2026',
-    title: 'Licitações de TI e Software 2026 — Guia Completo',
+    title: 'Licitações de TI em 2026: 5 Critérios para Vencer Pregões',
     description:
-      'Tudo sobre licitações de tecnologia da informação e software em 2026: pregão eletrônico, atas de registro de preço, exigências técnicas e estratégias de participação.',
+      'Descubra pregão eletrônico, ATA de registro de preço e exigências técnicas — o que empresas de TI precisam para ganhar contratos do governo em 2026.',
     category: 'Guias',
     tags: ['tecnologia', 'software', 'TI', 'licitações 2026', 'guia setorial'],
     publishDate: '2026-04-04',
@@ -968,9 +968,9 @@ export const BLOG_ARTICLES: BlogArticleMeta[] = [
   // GUIA-S3
   {
     slug: 'licitacoes-saude-2026',
-    title: 'Licitações de Saúde 2026 — Guia Completo',
+    title: 'Licitações de Saúde em 2026: 4 Setores com mais Editais',
     description:
-      'Guia completo sobre licitações de saúde em 2026: medicamentos, equipamentos médicos, insumos hospitalares, registros na Anvisa e estratégias de participação.',
+      'Medicamentos, equipamentos médicos e insumos hospitalares: quais modalidades dominam e o que exigem das empresas fornecedoras em 2026.',
     category: 'Guias',
     tags: ['saúde', 'medicamentos', 'equipamentos médicos', 'licitações 2026', 'guia setorial'],
     publishDate: '2026-04-04',
@@ -1064,9 +1064,9 @@ export const BLOG_ARTICLES: BlogArticleMeta[] = [
   // GUIA-T1
   {
     slug: 'como-participar-primeira-licitacao-2026',
-    title: 'Como Participar da 1ª Licitação em 2026 — Passo a Passo',
+    title: '1ª Licitação em 2026: 12 Passos para Não Errar na Abertura',
     description:
-      '12 passos para entrar no mercado de licitações: cadastro no SICAF, documentação exigida, pregão eletrônico e os erros que eliminam propostas na abertura.',
+      'Evite os 3 erros que eliminam propostas antes mesmo da análise. Do SICAF à entrega da proposta — roteiro completo para quem está começando.',
     category: 'Guias',
     tags: ['primeira licitação', 'guia iniciante', 'passo a passo', 'cadastro'],
     publishDate: '2026-04-04',
@@ -1125,13 +1125,13 @@ export const BLOG_ARTICLES: BlogArticleMeta[] = [
   // GUIA-T3
   {
     slug: 'pncp-guia-completo-empresas',
-    title: 'PNCP 2026: Como Consultar Licitações e Editais Grátis',
+    title: 'PNCP em 2026: Encontre Editais do seu Setor em 5 Passos',
     description:
-      'Como consultar licitações no PNCP em 2026, baixar editais grátis, usar a API e automatizar o monitoramento. Passo a passo prático para empresas.',
+      'Aprenda a filtrar licitações reais por setor, UF e valor no PNCP — sem perder tempo em editais fora do perfil. Atualizado para 2026.',
     category: 'Guias',
     tags: ['PNCP', 'portal de contratações', 'busca de editais', 'monitoramento'],
     publishDate: '2026-04-04',
-    lastModified: '2026-04-24',
+    lastModified: '2026-04-30',
     readingTime: calculateReadingTime(3400),
     wordCount: 3400,
     keywords: [
@@ -1469,9 +1469,9 @@ export const BLOG_ARTICLES: BlogArticleMeta[] = [
   // BOFU-01
   {
     slug: 'smartlic-vs-planilha-excel-quando-automatizar',
-    title: 'SmartLic vs Planilha Excel: Quando Automatizar Licitações Vale a Pena',
+    title: 'Planilha vs Plataforma: Quando Automatizar Suas Licitações',
     description:
-      'Comparação detalhada entre gerenciar licitações em planilha Excel e usar uma plataforma como o SmartLic. Números reais de tempo, custo e ROI para decidir quando automatizar.',
+      'Números reais de tempo, custo e ROI. Descubra em qual volume de editais a automação começa a pagar — e o que esperar de cada solução.',
     category: 'Guias',
     tags: ['comparação', 'planilha excel', 'automação', 'ROI', 'SmartLic'],
     publishDate: '2026-04-07',
@@ -1857,9 +1857,9 @@ export const BLOG_ARTICLES: BlogArticleMeta[] = [
   // SEO-12.3.3 Art-01: como consultar contratos públicos PNCP
   {
     slug: 'como-consultar-contratos-publicos-pncp',
-    title: 'Como Consultar Contratos Públicos no PNCP: Guia Completo',
+    title: 'Contratos Públicos no PNCP: Busque por CNPJ em 3 Cliques',
     description:
-      'Aprenda a buscar, filtrar e interpretar contratos públicos no PNCP por CNPJ, órgão e setor. Guia completo com filtros de valor, UF, vigência e como o SmartLic automatiza esse processo.',
+      'Filtre contratos por CNPJ, órgão, setor e UF. Descubra quem fornece o quê para o governo — e use esses dados para prospectar clientes B2G.',
     category: 'Guias',
     tags: ['contratos públicos', 'PNCP', 'consultar contratos', 'fornecedores', 'inteligência de mercado'],
     publishDate: '2026-04-08',
@@ -1890,9 +1890,9 @@ export const BLOG_ARTICLES: BlogArticleMeta[] = [
   // SEO-12.3.3 Art-02: contratos públicos por estado
   {
     slug: 'contratos-publicos-por-estado-ranking-gastos',
-    title: 'Contratos Públicos por Estado: Ranking de Gastos do Governo Brasileiro',
+    title: 'Ranking: Quais Estados Mais Gastam em Contratos Públicos',
     description:
-      'Veja o ranking dos estados que mais gastam em contratos públicos no Brasil, análise por macro-região, setores dominantes e como usar esses dados para prospectar com inteligência.',
+      'SP, RJ, MG ou DF? Veja gastos por estado, setores dominantes e onde há mais oportunidade para fornecedores B2G que querem expandir região.',
     category: 'Guias',
     tags: ['contratos públicos', 'gastos do governo', 'ranking estados', 'PNCP', 'inteligência de mercado'],
     publishDate: '2026-04-08',
@@ -1988,9 +1988,9 @@ export const BLOG_ARTICLES: BlogArticleMeta[] = [
   // SEO-12.3.3 Art-05: maiores contratos públicos 2026
   {
     slug: 'maiores-contratos-publicos-2026-ranking-setor',
-    title: 'Maiores Contratos Públicos de 2026: Ranking por Setor',
+    title: 'Ranking: Os 10 Setores com Mais Contratos Públicos em 2026',
     description:
-      'Ranking dos maiores contratos públicos de 2026 por setor: saúde, TI, engenharia, defesa e educação. Análise por modalidade, região e oportunidades para fornecedores.',
+      'Saúde, TI e engenharia dominam os maiores contratos. Veja valores por setor, região e oportunidades para fornecedores que ainda não disputam esses editais.',
     category: 'Guias',
     tags: ['maiores contratos', 'ranking 2026', 'contratos públicos', 'gastos governo', 'setores'],
     publishDate: '2026-04-08',
@@ -2021,9 +2021,9 @@ export const BLOG_ARTICLES: BlogArticleMeta[] = [
   // SEO-12.3.3 Art-06: aditivos contratuais
   {
     slug: 'aditivos-contratuais-o-que-sao-como-monitorar',
-    title: 'Aditivos Contratuais: O que São e Como Monitorar',
+    title: 'Aditivos Contratuais: Quando Ultrapassar 25% é Red Flag',
     description:
-      'Guia completo sobre aditivos contratuais em licitações: tipos, limites legais (25%/50%), red flags, fiscalização do TCU e como monitorar aditivos no PNCP.',
+      'Limites legais, tipos de aditivo e o que o TCU monitora. Identifique contratos com indícios de irregularidade antes de fechar parceria comercial.',
     category: 'Guias',
     tags: ['aditivos contratuais', 'contratos públicos', 'Lei 14.133', 'TCU', 'compliance'],
     publishDate: '2026-04-08',
@@ -2053,9 +2053,9 @@ export const BLOG_ARTICLES: BlogArticleMeta[] = [
   // SEO-12.3.3 Art-07: Subcontratação em licitações — contratos cluster
   {
     slug: 'subcontratacao-licitacoes-regras-lei-14133',
-    title: 'Subcontratação em Licitações: Regras da Lei 14.133/2021',
+    title: 'Subcontratação em Editais: O que a Lei 14.133 Exige em 2026',
     description:
-      'Guia completo sobre subcontratação em contratos públicos: Art. 122 da Lei 14.133/2021, limites percentuais, requisitos da subcontratada, responsabilidade solidária e roteiro prático para PMEs se tornarem subcontratadas em grandes contratos.',
+      'Art. 122 define limites percentuais, documentação e responsabilidade solidária. Roteiro para PMEs entrarem como subcontratadas em contratos de grande porte.',
     category: 'Guias',
     tags: [
       'subcontratação',
@@ -2096,9 +2096,9 @@ export const BLOG_ARTICLES: BlogArticleMeta[] = [
   // SEO-12.3.3 Art-08: prazo vigência contratos
   {
     slug: 'prazo-vigencia-contratos-publicos-guia',
-    title: 'Prazo de Vigência de Contratos Públicos: Guia Prático',
+    title: 'Contratos Públicos: Prazos de Vigência e Como Prorrogar',
     description:
-      'Guia prático sobre prazos de vigência de contratos públicos: limites da Lei 14.133/2021, prorrogação, renovação, serviços continuados e como monitorar vencimentos.',
+      'Lei 14.133 define limites por tipo de contrato. Saiba quando prorrogar, renovar e o que monitorar para não perder vencimentos importantes.',
     category: 'Guias',
     tags: ['vigência contratos', 'prorrogação', 'Lei 14.133', 'contratos públicos', 'renovação'],
     publishDate: '2026-04-08',
@@ -2162,9 +2162,9 @@ export const BLOG_ARTICLES: BlogArticleMeta[] = [
   // SEO-12.3.3 Art-10: transparência compras públicas Lei 14.133
   {
     slug: 'transparencia-compras-publicas-lei-14133',
-    title: 'Transparência em Compras Públicas: Como a Lei 14.133 Mudou Tudo',
+    title: 'Lei 14.133 e o PNCP: O que Mudou na Transparência em 2026',
     description:
-      'Como a Lei 14.133/2021 revolucionou a transparência em compras públicas: PNCP como fonte oficial, dados abertos, fiscalização cidadã e inteligência competitiva a partir de dados públicos.',
+      'Dados abertos, PNCP como fonte oficial e fiscalização cidadã. Aprenda a transformar transparência em inteligência competitiva para o seu negócio B2G.',
     category: 'Guias',
     tags: ['transparência', 'compras públicas', 'Lei 14.133', 'PNCP', 'dados abertos'],
     publishDate: '2026-04-08',
