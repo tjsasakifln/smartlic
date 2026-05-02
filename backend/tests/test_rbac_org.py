@@ -19,9 +19,10 @@ Expected status per role × requirement:
 """
 
 import pytest
+from collections.abc import Generator
 from unittest.mock import MagicMock, patch
 
-from httpx import AsyncClient, ASGITransport
+from httpx import AsyncClient, ASGITransport, Response
 
 from main import app
 from auth import require_auth
@@ -44,12 +45,12 @@ _ROLE_USERS = {
 
 
 @pytest.fixture(autouse=True)
-def _enable_organizations():
+def _enable_organizations() -> Generator[None, None, None]:
     with patch("routes.organizations.ORGANIZATIONS_ENABLED", True):
         yield
 
 
-def _mock_auth_sb(role: str | None):
+def _mock_auth_sb(role: str | None) -> MagicMock:
     """Supabase mock for the require_org_role dependency query."""
     sb = MagicMock()
     tbl = MagicMock()
@@ -57,13 +58,14 @@ def _mock_auth_sb(role: str | None):
     res.data = [{"role": role}] if role else []
     tbl.select.return_value = tbl
     tbl.eq.return_value = tbl
+    tbl.not_.is_.return_value = tbl  # .not_.is_("accepted_at", "null")
     tbl.limit.return_value = tbl
     tbl.execute.return_value = res
     sb.table.return_value = tbl
     return sb
 
 
-def _mock_svc_sb_success():
+def _mock_svc_sb_success() -> MagicMock:
     """Minimal service supabase mock returning sensible success data."""
     sb = MagicMock()
     tbl = MagicMock()
@@ -91,7 +93,7 @@ def _mock_svc_sb_success():
 _NO_DEP_MOCK = object()  # sentinel: "don't patch the org-auth dep supabase"
 
 
-async def _call(method: str, path: str, role_user: dict, dep_role=_NO_DEP_MOCK, **kwargs):
+async def _call(method: str, path: str, role_user: dict, dep_role: object = _NO_DEP_MOCK, **kwargs) -> Response:
     """Execute one HTTP request with auth + optional org-role dep mock.
 
     dep_role=_NO_DEP_MOCK — don't mock (auth-only endpoints, no require_org_role)
@@ -160,8 +162,7 @@ class TestRbacCreateOrg:
         with patch(_ORG_SVC_GET_SUPABASE, return_value=svc_sb):
             resp = await _call("post", "/v1/organizations", _ROLE_USERS[role], json={"name": "Test Org"})
 
-        # Auth passes → service runs → 201 (not 401/403 auth error)
-        assert resp.status_code in (201, 400, 500)  # not 401/403
+        assert resp.status_code == 201
 
 
 # ── Endpoint 3: GET /organizations/{id} — min_role=MEMBER ────────────────────
@@ -305,8 +306,7 @@ class TestRbacAcceptInvite:
         with patch(_ORG_SVC_GET_SUPABASE, return_value=svc_sb):
             resp = await _call("post", f"/v1/organizations/{ORG_ID}/accept", _ROLE_USERS[role])
 
-        # Auth passes → service runs (200 or 400 depending on invite state)
-        assert resp.status_code in (200, 400)
+        assert resp.status_code == 200
 
 
 # ── Endpoint 6: DELETE /organizations/{id}/members/{uid} — min_role=OWNER ────

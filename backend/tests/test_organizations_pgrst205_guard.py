@@ -16,13 +16,14 @@ _ORG_SVC_GET_SUPABASE = "services.organization_service.get_supabase"
 _ORG_AUTH_GET_SUPABASE = "dependencies.org_auth.get_supabase"
 
 
-def _org_auth_owner_mock():
+def _org_auth_owner_mock() -> MagicMock:
     """Return a Supabase mock that satisfies require_org_role (owner)."""
     result = MagicMock()
     result.data = [{"role": "owner"}]
     tbl = MagicMock()
     tbl.select.return_value = tbl
     tbl.eq.return_value = tbl
+    tbl.not_.is_.return_value = tbl  # .not_.is_("accepted_at", "null")
     tbl.limit.return_value = tbl
     tbl.execute.return_value = result
     sb = MagicMock()

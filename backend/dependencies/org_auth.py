@@ -1,6 +1,7 @@
 """RBAC-ORG-001: FastAPI dependency for organization role enforcement."""
 
 import asyncio
+from collections.abc import Awaitable, Callable
 from enum import Enum
 
 from fastapi import Depends, HTTPException
@@ -23,11 +24,12 @@ _ROLE_RANK: dict[str, int] = {
 }
 
 
-def require_org_role(min_role: OrgRole):
+def require_org_role(min_role: OrgRole) -> Callable[..., Awaitable[OrgRole]]:
     """Factory: returns a FastAPI dependency that enforces org role.
 
     Injects ``org_id`` from the path parameter automatically.
-    Raises HTTP 403 if the caller is not a member or rank < min_role.
+    Raises HTTP 403 if the caller is not an accepted member or rank < min_role.
+    Raises HTTP 503 if the DB check times out.
     """
 
     async def dependency(
@@ -43,16 +45,23 @@ def require_org_role(min_role: OrgRole):
                 .select("role")
                 .eq("org_id", org_id)
                 .eq("user_id", user_id)
+                .not_.is_("accepted_at", "null")
                 .limit(1)
                 .execute()
             )
 
-        result = await _run_with_budget(
-            asyncio.to_thread(_query),
-            budget=10.0,
-            phase="route",
-            source="org_auth.require_org_role",
-        )
+        try:
+            result = await _run_with_budget(
+                asyncio.to_thread(_query),
+                budget=10.0,
+                phase="route",
+                source="org_auth.require_org_role",
+            )
+        except asyncio.TimeoutError:
+            raise HTTPException(
+                status_code=503,
+                detail="Verificacao de permissao indisponivel — tente novamente",
+            )
 
         if not result.data:
             raise HTTPException(

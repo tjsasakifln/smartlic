@@ -1,5 +1,9 @@
 -- RBAC-ORG-001 rollback: restore 'admin' role and original RLS policies.
 
+-- Convert 'viewer' rows to 'member' before re-adding old constraint
+-- (old constraint does not allow 'viewer').
+UPDATE public.organization_members SET role = 'member' WHERE role = 'viewer';
+
 ALTER TABLE public.organization_members
   DROP CONSTRAINT IF EXISTS organization_members_role_check;
 

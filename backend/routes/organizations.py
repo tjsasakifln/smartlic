@@ -12,7 +12,7 @@ from pydantic import BaseModel
 from auth import require_auth
 from config import ORGANIZATIONS_ENABLED
 from dependencies.org_auth import OrgRole, require_org_role
-from log_sanitizer import mask_user_id
+from log_sanitizer import mask_email, mask_user_id
 from services.organization_service import (
     accept_invite,
     create_organization,
@@ -131,10 +131,10 @@ async def invite_org_member(
         raise HTTPException(status_code=404, detail="Feature not available")
     user_id = user["id"]
     logger.info(
-        "invite_org_member org_id=%s inviter=%s email=%r",
+        "invite_org_member org_id=%s inviter=%s email=%s",
         org_id,
         mask_user_id(user_id),
-        body.email,
+        mask_email(body.email),
     )
     try:
         result = await invite_member(org_id=org_id, inviter_id=user_id, email=body.email)

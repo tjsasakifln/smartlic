@@ -1,10 +1,12 @@
 -- RBAC-ORG-001: Replace 'admin' role with 'viewer' in organization_members.
 -- Hierarchy: owner (3) > member (2) > viewer (1).
--- Table was empty at migration time (no admin rows to migrate).
 
 -- ============================================================================
 -- 1. CHECK constraint: swap 'admin' for 'viewer'
 -- ============================================================================
+
+-- Convert any legacy 'admin' rows before tightening constraint.
+UPDATE public.organization_members SET role = 'viewer' WHERE role = 'admin';
 
 ALTER TABLE public.organization_members
   DROP CONSTRAINT IF EXISTS organization_members_role_check;
@@ -58,19 +60,14 @@ CREATE POLICY "Org owner can insert members"
   ON public.organization_members
   FOR INSERT
   WITH CHECK (
-    EXISTS (
+    -- Callers may only insert non-owner roles (backend service_role handles owner bootstrap)
+    public.organization_members.role <> 'owner'
+    AND EXISTS (
       SELECT 1 FROM public.organization_members om
       WHERE om.org_id  = public.organization_members.org_id
         AND om.user_id = auth.uid()
         AND om.role    = 'owner'
         AND om.accepted_at IS NOT NULL
-    )
-    OR
-    -- Allow owner to add the first member row (bootstrap: owner adds themselves)
-    EXISTS (
-      SELECT 1 FROM public.organizations o
-      WHERE o.id       = public.organization_members.org_id
-        AND o.owner_id = auth.uid()
     )
   );
 

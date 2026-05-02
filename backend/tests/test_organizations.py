@@ -20,7 +20,7 @@ _ORG_SVC_GET_SUPABASE = "services.organization_service.get_supabase"
 _ORG_AUTH_GET_SUPABASE = "dependencies.org_auth.get_supabase"
 
 
-def _mock_org_auth_sb(role: str | None):
+def _mock_org_auth_sb(role: str | None) -> MagicMock:
     """Mock for dependencies.org_auth.get_supabase — role query returns given role or empty."""
     mock_sb = MagicMock()
     mock_table = MagicMock()
@@ -28,6 +28,7 @@ def _mock_org_auth_sb(role: str | None):
     mock_result.data = [{"role": role}] if role else []
     mock_table.select.return_value = mock_table
     mock_table.eq.return_value = mock_table
+    mock_table.not_.is_.return_value = mock_table  # .not_.is_("accepted_at", "null")
     mock_table.limit.return_value = mock_table
     mock_table.execute.return_value = mock_result
     mock_sb.table.return_value = mock_table
