@@ -191,10 +191,28 @@ class TestObservatorioBudgetAndEmptyPeriod:
         return today.month, today.year
 
     def _historical_month_year(self):
-        """Pick a (mes, ano) > 30 days in the past so AC11 routes it as historical."""
+        """Pick a (mes, ano) whose last day is in the past (historical)."""
         from datetime import date, timedelta
         ref = date.today() - timedelta(days=60)
         return ref.month, ref.year
+
+    def test_is_period_historical_boundary(self):
+        """DEBT-OBS-001: last day of month is the correct historical boundary.
+
+        Regression guard: days-from-month-start > 30 caused April to be treated
+        as current on May 1 (delta = 30, not > 30). Last-day comparison fixes it.
+        """
+        import calendar
+        from datetime import date
+        from unittest.mock import patch
+        from routes.observatorio import _is_period_historical
+
+        # May 1 → April 30 is in the past → historical
+        with patch("routes.observatorio.date") as mock_date:
+            mock_date.today.return_value = date(2026, 5, 1)
+            mock_date.side_effect = lambda *a, **k: date(*a, **k)
+            assert _is_period_historical(4, 2026) is True, "April 2026 must be historical on May 1"
+            assert _is_period_historical(5, 2026) is False, "May 2026 must be current on May 1"
 
     def test_empty_current_month_returns_404(self, mock_datalake_empty, client):
         """AC11: current month with zero data → 404 + X-Robots-Tag noindex,nofollow.
