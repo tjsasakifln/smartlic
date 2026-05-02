@@ -237,10 +237,10 @@ class TestScoreCalculation:
         rows = [
             {
                 "modalidade_id": 6,
-                "data_publicacao_pncp": "2026-01-15",
-                "data_encerramento_proposta": "2026-01-20",  # 5 dias → ≤8 → 20pts eficiência
+                "data_publicacao": "2026-01-15",
+                "data_encerramento": "2026-01-20",  # 5 dias → ≤8 → 20pts eficiência
                 "valor_estimado": 100_000,
-                "cnpj_contratado": f"cnpj{i:014d}",
+                "orgao_cnpj": f"cnpj{i:014d}",
             }
             for i in range(10)
         ]
@@ -253,10 +253,10 @@ class TestScoreCalculation:
         rows = [
             {
                 "modalidade_id": 8,  # Dispensa
-                "data_publicacao_pncp": "2026-01-15",
-                "data_encerramento_proposta": "2026-02-15",  # 31 dias → score_et=0
+                "data_publicacao": "2026-01-15",
+                "data_encerramento": "2026-02-15",  # 31 dias → score_et=0
                 "valor_estimado": 50_000,
-                "cnpj_contratado": f"{i:014d}",  # todos únicos
+                "orgao_cnpj": f"{i:014d}",  # todos únicos
             }
             for i in range(10)
         ]
@@ -272,10 +272,10 @@ class TestScoreCalculation:
         rows = [
             {
                 "modalidade_id": 6,
-                "data_publicacao_pncp": f"2026-0{(i % 3) + 1}-01",
-                "data_encerramento_proposta": f"2026-0{(i % 3) + 1}-10",
+                "data_publicacao": f"2026-0{(i % 3) + 1}-01",
+                "data_encerramento": f"2026-0{(i % 3) + 1}-10",
                 "valor_estimado": 100_000 * (i + 1),
-                "cnpj_contratado": f"{i:014d}",
+                "orgao_cnpj": f"{i:014d}",
             }
             for i in range(15)
         ]
@@ -318,10 +318,10 @@ class TestScoreCalculation:
             {
                 "id": f"row-{i}",
                 "modalidade_id": 6,
-                "data_publicacao_pncp": "2026-01-15",
-                "data_encerramento_proposta": "2026-01-20",
+                "data_publicacao": "2026-01-15",
+                "data_encerramento": "2026-01-20",
                 "valor_estimado": 100_000,
-                "cnpj_contratado": f"{i:014d}",
+                "orgao_cnpj": f"{i:014d}",
                 "municipio": "São Paulo",
                 "uf": "SP",
             }

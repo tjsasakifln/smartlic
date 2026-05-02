@@ -11,13 +11,11 @@ logger = logging.getLogger(__name__)
 INDICE_MUNICIPAL_INTERVAL = 90 * 24 * 60 * 60  # segundos
 
 
-def _prev_quarter_label() -> str:
-    """Retorna o rótulo do trimestre anterior: ex 'YYYY-QN'."""
+def _current_quarter_label() -> str:
+    """Retorna o rótulo do trimestre corrente: ex '2026-Q2'."""
     now = datetime.now(timezone.utc)
     q = (now.month - 1) // 3 + 1
-    if q == 1:
-        return f"{now.year - 1}-Q4"
-    return f"{now.year}-Q{q - 1}"
+    return f"{now.year}-Q{q}"
 
 
 async def run_indice_municipal_recalc() -> dict:
@@ -29,7 +27,7 @@ async def run_indice_municipal_recalc() -> dict:
     try:
         from services.indice_municipal import recalcular_municipios_existentes
 
-        periodo = _prev_quarter_label()
+        periodo = _current_quarter_label()
         logger.info("STORY-435: iniciando recálculo indice_municipal para período %s", periodo)
         result = await recalcular_municipios_existentes(periodo)
         logger.info("STORY-435: recálculo indice_municipal concluído — %s", result)
@@ -62,8 +60,7 @@ async def run_indice_municipal_recalc() -> dict:
 
 
 async def _indice_municipal_loop() -> None:
-    """Loop de background: aguarda 90 dias, recalcula, repete."""
-    await asyncio.sleep(INDICE_MUNICIPAL_INTERVAL)
+    """Loop de background: roda imediatamente no startup, depois a cada 90 dias."""
     while True:
         try:
             await run_indice_municipal_recalc()

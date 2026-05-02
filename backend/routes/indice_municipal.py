@@ -38,7 +38,7 @@ UF_NAMES: dict[str, str] = {
 VALID_UFS = set(UF_NAMES.keys())
 
 # Período corrente padrão (atualizar trimestralmente)
-PERIODO_CORRENTE = "2026-Q1"
+PERIODO_CORRENTE = "2026-Q2"
 
 
 # ---------------------------------------------------------------------------

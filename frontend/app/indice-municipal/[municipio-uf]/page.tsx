@@ -47,7 +47,7 @@ async function fetchMunicipio(slug: string, periodo: string) {
 
 export async function generateMetadata({ params, searchParams }: PageProps): Promise<Metadata> {
   const { 'municipio-uf': slug } = await params;
-  const { periodo = '2026-Q1' } = await searchParams;
+  const { periodo = '2026-Q2' } = await searchParams;
 
   const uf = extractUF(slug);
   const municipioSlug = extractMunicipioSlug(slug);
@@ -85,7 +85,7 @@ export async function generateMetadata({ params, searchParams }: PageProps): Pro
 
 export default async function MunicipioPage({ params, searchParams }: PageProps) {
   const { 'municipio-uf': slug } = await params;
-  const { periodo = '2026-Q1' } = await searchParams;
+  const { periodo = '2026-Q2' } = await searchParams;
 
   const uf = extractUF(slug);
   const municipioSlug = extractMunicipioSlug(slug);
