@@ -106,7 +106,8 @@ jobs:
             const okBody = `${marker}
             ## Audit \`.execute()\` without \`_run_with_budget\` — PASS
 
-            Zero violations across all routes. The Stage 2-8 antipattern
+            Zero violations across all \`backend/routes/*.py\` files
+            (\`--all-routes\` scope). The Stage 2-8 antipattern
             (\`asyncio.wait_for(asyncio.to_thread(...))\` and bare sync
             \`.execute()\` in async routes) is not present.
 
