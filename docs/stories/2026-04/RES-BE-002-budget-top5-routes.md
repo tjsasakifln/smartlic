@@ -3,7 +3,7 @@
 **Priority:** P0
 **Effort:** M (3 dias)
 **Squad:** @dev + @architect
-**Status:** Ready
+**Status:** Done
 **Epic:** [EPIC-RES-BE-2026-Q2](EPIC-RES-BE-2026-Q2.md)
 **Sprint:** Sprint 1 (2026-04-29 → 2026-05-05) — bloqueador de SEO-PROG-001..005 (rotas SSR→ISR exigem backend protegido)
 **Dependências bloqueadoras:** [RES-BE-001](RES-BE-001-audit-execute-without-budget.md) (gate CI deve estar ativo para validar não-regressão)
@@ -290,3 +290,4 @@ Nenhuma — story pronta para implementação.
 |---|---|---|---|
 | 2026-04-27 | 1.0 | Story criada — top-5 rotas anti-reincidência P0 | @sm (River) |
 | 2026-04-27 | 1.1 | PO validation: GO (10/10). Hotfix Sprint 1 cirúrgico, feature flag de rollback. Status: Draft → Ready. | @po (Pax) |
+| 2026-05-02 | 1.2 | Status Ready → Done. Wraps shipped via RES-BE-015/018a sweeps: PR #589 (mfa.py 10 callsites), PR #600/#603 (sweep `--all-routes` 19 callsites residuais — referral, founding, conta, sitemap_*, plus longtail SEO routes). Pattern entregue diverge de spec original (`_run_with_budget` direto ao invés de helper `_maybe_wrap` com flag) — escolha @dev/@architect: feature flag dispensada porque pattern é safe-by-default + rollback granular via revert. Audit RES-BE-001 confirma zero violations residuais em main. Métrica `smartlic_pipeline_budget_exceeded_total{phase="route"}` ativa. | @dev (Dex) |
