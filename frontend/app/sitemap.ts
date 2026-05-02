@@ -2,7 +2,7 @@ import { MetadataRoute } from 'next';
 import * as Sentry from '@sentry/nextjs';
 import { getAllSlugs, getArticleBySlug } from '@/lib/blog';
 import { SECTORS } from '@/lib/sectors';
-import { generateSectorParams, generateLicitacoesParams, generateSectorUfParams } from '@/lib/programmatic';
+import { generateSectorParams, generateLicitacoesParams, generateSectorUfParams, backendIdToFrontendSlug } from '@/lib/programmatic';
 import { getAllCaseSlugs } from '@/lib/cases';
 import { CITIES } from '@/lib/cities';
 import { GLOSSARY_TERMS } from '@/lib/glossary-terms';
@@ -632,21 +632,43 @@ export default async function sitemap(props: { id: Promise<string> }): Promise<M
       // Contratos e fornecedores setor×UF usam todas as 405 combos (generateSectorUfParams).
       const indexableCombos = await fetchLicitacoesIndexable();
 
-      // STORY-430 AC4 / SEO-440: filtrar por combos com >= MIN_ACTIVE_BIDS_FOR_INDEX editais
-      const licitacoesUfRoutes: MetadataRoute.Sitemap = indexableCombos.map(({ setor, uf }) => ({
-        url: `${baseUrl}/blog/licitacoes/${setor}/${uf}`,
-        lastModified: today,
-        changeFrequency: 'daily' as const,
-        priority: 0.8,
-      }));
+      // SEO-643: normalise backend sector IDs to frontend slugs and dedup.
+      // /v1/sitemap/licitacoes-indexable returns backend IDs (e.g. software_desenvolvimento,
+      // manutencao_predial) which 404 on the frontend.  Multiple backend IDs can map to the
+      // same slug (software_desenvolvimento + software_licencas → software), so we dedup
+      // by the normalised slug×UF key before building URLs.
+      const licitacoesSeenKeys = new Set<string>();
+      const licitacoesUfRoutes: MetadataRoute.Sitemap = indexableCombos
+        .map(({ setor, uf }) => ({ slug: backendIdToFrontendSlug(setor), uf }))
+        .filter(({ slug, uf }) => {
+          const key = `${slug}/${uf}`;
+          if (licitacoesSeenKeys.has(key)) return false;
+          licitacoesSeenKeys.add(key);
+          return true;
+        })
+        .map(({ slug, uf }) => ({
+          url: `${baseUrl}/blog/licitacoes/${slug}/${uf}`,
+          lastModified: today,
+          changeFrequency: 'daily' as const,
+          priority: 0.8,
+        }));
 
-      // S3: Alertas Publicos — reutiliza indexableCombos (já filtrados)
-      const alertasRoutes: MetadataRoute.Sitemap = indexableCombos.map(({ setor, uf }) => ({
-        url: `${baseUrl}/alertas-publicos/${setor}/${uf}`,
-        lastModified: today,
-        changeFrequency: 'hourly' as const,
-        priority: 0.8,
-      }));
+      // S3: Alertas Publicos — same normalisation + dedup as licitacoes above.
+      const alertasSeenKeys = new Set<string>();
+      const alertasRoutes: MetadataRoute.Sitemap = indexableCombos
+        .map(({ setor, uf }) => ({ slug: backendIdToFrontendSlug(setor), uf }))
+        .filter(({ slug, uf }) => {
+          const key = `${slug}/${uf}`;
+          if (alertasSeenKeys.has(key)) return false;
+          alertasSeenKeys.add(key);
+          return true;
+        })
+        .map(({ slug, uf }) => ({
+          url: `${baseUrl}/alertas-publicos/${slug}/${uf}`,
+          lastModified: today,
+          changeFrequency: 'hourly' as const,
+          priority: 0.8,
+        }));
 
       // SEO Wave 2 (12.2.1): Contratos setor×UF (405 combos — sem filtro de dados)
       // SEO-CAC-ZERO A1: modalidadeRoutes removidas do sitemap (ISSUE-SEO-002)

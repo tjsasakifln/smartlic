@@ -75,14 +75,14 @@ async def calcular_indice_municipio(
         resp = (
             sb.table("pncp_raw_bids")
             .select(
-                "id, modalidade_id, data_publicacao_pncp, data_encerramento_proposta, "
-                "valor_estimado, cnpj_contratado, municipio, uf"
+                "id, modalidade_id, data_publicacao, data_encerramento, "
+                "orgao_cnpj, municipio, uf"
             )
             .eq("municipio", municipio_nome)
             .eq("uf", uf)
             .eq("is_active", True)
-            .gte("data_publicacao_pncp", data_inicial)
-            .lte("data_publicacao_pncp", data_final)
+            .gte("data_publicacao", data_inicial)
+            .lte("data_publicacao", data_final)
             .limit(5000)
             .execute()
         )
@@ -151,8 +151,8 @@ def _compute_scores(rows: list[dict], periodo: str) -> dict[str, float]:
     # Ideal: ≤ 8 dias = 20pts. 30+ dias = 0pts. Linear entre 8 e 30.
     deltas = []
     for r in rows:
-        pub = r.get("data_publicacao_pncp")
-        enc = r.get("data_encerramento_proposta")
+        pub = r.get("data_publicacao")
+        enc = r.get("data_encerramento")
         if pub and enc:
             try:
                 d_pub = datetime.fromisoformat(str(pub)).date()
@@ -176,7 +176,7 @@ def _compute_scores(rows: list[dict], periodo: str) -> dict[str, float]:
 
     # 3. Score Diversidade de Mercado (0-20): fornecedores únicos / total editais
     # Razão 1.0 (1 fornecedor/edital) = 5pts, razão >= 0.5 = 20pts proporcional
-    cnpjs = [r.get("cnpj_contratado") for r in rows if r.get("cnpj_contratado")]
+    cnpjs = [r.get("orgao_cnpj") for r in rows if r.get("orgao_cnpj")]
     unique_cnpjs = len(set(cnpjs))
     ratio = unique_cnpjs / total if total else 0
     score_dm = round(min(20.0, ratio * 20.0), 2)
@@ -189,7 +189,7 @@ def _compute_scores(rows: list[dict], periodo: str) -> dict[str, float]:
     # Período de 3 meses (trimestre): 3/3 = 20pts, 2/3 = 13pts, 1/3 = 7pts
     meses_com_edital: set[str] = set()
     for r in rows:
-        pub = r.get("data_publicacao_pncp")
+        pub = r.get("data_publicacao")
         if pub:
             try:
                 d = datetime.fromisoformat(str(pub))
@@ -293,6 +293,90 @@ async def persist_indice_municipio(result: dict) -> bool:
         return False
 
 
+async def calcular_todos_municipios_de_pncp(periodo: str) -> dict:
+    """Seed: calcula índice para todos municípios com dados em pncp_raw_bids no período.
+
+    Usado quando indice_municipal está vazio (primeira execução).
+    Idempotente — seguro rodar múltiplas vezes.
+    """
+    import time as _time
+    start = _time.monotonic()
+    calculated = persisted = errors = skipped = 0
+
+    try:
+        data_inicial, data_final = _periodo_to_dates(periodo)
+    except ValueError as e:
+        return {"periodo": periodo, "calculated": 0, "persisted": 0,
+                "errors": 1, "skipped": 0, "duration_s": 0.0, "error": str(e)}
+
+    from supabase_client import get_supabase
+    sb = get_supabase()
+
+    # Página por página para coletar pares (municipio, uf) distintos
+    municipios_vistos: set[tuple[str, str]] = set()
+    page_size = 1000
+    offset = 0
+
+    while True:
+        try:
+            resp = (
+                sb.table("pncp_raw_bids")
+                .select("municipio,uf")
+                .eq("is_active", True)
+                .gte("data_publicacao", data_inicial)
+                .lte("data_publicacao", data_final)
+                .not_.is_("municipio", "null")
+                .not_.is_("uf", "null")
+                .limit(page_size)
+                .offset(offset)
+                .execute()
+            )
+        except Exception as e:
+            logger.error("indice_municipal seed: falha query offset=%d: %s", offset, e)
+            break
+
+        rows = resp.data or []
+        for row in rows:
+            m = (row.get("municipio") or "").strip()
+            u = (row.get("uf") or "").strip().upper()
+            if m and u:
+                municipios_vistos.add((m, u))
+
+        if len(rows) < page_size:
+            break
+        offset += page_size
+        await asyncio.sleep(0)
+
+    logger.info(
+        "indice_municipal seed: %d municípios distintos para período %s",
+        len(municipios_vistos), periodo,
+    )
+
+    for municipio_nome, uf in sorted(municipios_vistos):
+        try:
+            result = await calcular_indice_municipio(municipio_nome, uf, periodo)
+            if result is None:
+                skipped += 1  # < MIN_EDITAIS
+                continue
+            calculated += 1
+            if await persist_indice_municipio(result):
+                persisted += 1
+        except Exception as e:
+            logger.warning("indice_municipal seed: erro em %s/%s: %s", municipio_nome, uf, e)
+            errors += 1
+        await asyncio.sleep(0)
+
+    duration = round(_time.monotonic() - start, 2)
+    logger.info(
+        "indice_municipal seed: concluído — calculated=%d persisted=%d skipped=%d errors=%d %.2fs",
+        calculated, persisted, skipped, errors, duration,
+    )
+    return {
+        "periodo": periodo, "calculated": calculated, "persisted": persisted,
+        "skipped": skipped, "errors": errors, "duration_s": duration,
+    }
+
+
 async def recalcular_municipios_existentes(periodo: str) -> dict:
     """STORY-435 AC7: Re-calcula todos os municípios existentes no período dado.
 
@@ -323,6 +407,11 @@ async def recalcular_municipios_existentes(periodo: str) -> dict:
             "periodo": periodo, "calculated": 0,
             "persisted": 0, "errors": 1, "duration_s": 0.0,
         }
+
+    # Tabela vazia — sem dados para recalcular; delegar ao seed
+    if not municipios:
+        logger.info("indice_municipal recalcular: tabela vazia para %s — delegando ao seed", periodo)
+        return await calcular_todos_municipios_de_pncp(periodo)
 
     logger.info("indice_municipal recalcular: %d municípios para período %s", len(municipios), periodo)
 
