@@ -6,13 +6,28 @@ instead of propagating as HTTP 500.
 """
 
 import pytest
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 from httpx import AsyncClient, ASGITransport
 
 from main import app
 from auth import require_auth
 
 _ORG_SVC_GET_SUPABASE = "services.organization_service.get_supabase"
+_ORG_AUTH_GET_SUPABASE = "dependencies.org_auth.get_supabase"
+
+
+def _org_auth_owner_mock():
+    """Return a Supabase mock that satisfies require_org_role (owner)."""
+    result = MagicMock()
+    result.data = [{"role": "owner"}]
+    tbl = MagicMock()
+    tbl.select.return_value = tbl
+    tbl.eq.return_value = tbl
+    tbl.limit.return_value = tbl
+    tbl.execute.return_value = result
+    sb = MagicMock()
+    sb.table.return_value = tbl
+    return sb
 
 
 def _pgrst205_error():
@@ -83,7 +98,8 @@ class TestPGRST205Guard:
     @pytest.mark.asyncio
     async def test_get_org_pgrst205_returns_503(self):
         """GET /v1/organizations/{id} — PGRST205 → 503."""
-        with patch(_ORG_SVC_GET_SUPABASE) as mock_sb:
+        with patch(_ORG_AUTH_GET_SUPABASE, return_value=_org_auth_owner_mock()), \
+             patch(_ORG_SVC_GET_SUPABASE) as mock_sb:
             mock_sb.return_value.table.return_value.select.return_value.eq.return_value.eq.return_value.limit.return_value.execute.side_effect = _pgrst205_error()
             transport = ASGITransport(app=app)
             async with AsyncClient(transport=transport, base_url="http://test") as client:
@@ -95,7 +111,8 @@ class TestPGRST205Guard:
     @pytest.mark.asyncio
     async def test_invite_member_pgrst205_returns_503(self):
         """POST /v1/organizations/{id}/invite — PGRST205 → 503."""
-        with patch(_ORG_SVC_GET_SUPABASE) as mock_sb:
+        with patch(_ORG_AUTH_GET_SUPABASE, return_value=_org_auth_owner_mock()), \
+             patch(_ORG_SVC_GET_SUPABASE) as mock_sb:
             mock_sb.return_value.table.return_value.select.return_value.eq.return_value.eq.return_value.limit.return_value.execute.side_effect = _pgrst205_error()
             transport = ASGITransport(app=app)
             async with AsyncClient(transport=transport, base_url="http://test") as client:
@@ -122,7 +139,8 @@ class TestPGRST205Guard:
     @pytest.mark.asyncio
     async def test_remove_member_pgrst205_returns_503(self):
         """DELETE /v1/organizations/{id}/members/{user_id} — PGRST205 → 503."""
-        with patch(_ORG_SVC_GET_SUPABASE) as mock_sb:
+        with patch(_ORG_AUTH_GET_SUPABASE, return_value=_org_auth_owner_mock()), \
+             patch(_ORG_SVC_GET_SUPABASE) as mock_sb:
             mock_sb.return_value.table.return_value.select.return_value.eq.return_value.eq.return_value.limit.return_value.execute.side_effect = _pgrst205_error()
             transport = ASGITransport(app=app)
             async with AsyncClient(transport=transport, base_url="http://test") as client:
@@ -136,7 +154,8 @@ class TestPGRST205Guard:
     @pytest.mark.asyncio
     async def test_get_dashboard_pgrst205_returns_503(self):
         """GET /v1/organizations/{id}/dashboard — PGRST205 → 503."""
-        with patch(_ORG_SVC_GET_SUPABASE) as mock_sb:
+        with patch(_ORG_AUTH_GET_SUPABASE, return_value=_org_auth_owner_mock()), \
+             patch(_ORG_SVC_GET_SUPABASE) as mock_sb:
             mock_sb.return_value.table.return_value.select.return_value.eq.return_value.eq.return_value.limit.return_value.execute.side_effect = _pgrst205_error()
             transport = ASGITransport(app=app)
             async with AsyncClient(transport=transport, base_url="http://test") as client:
@@ -148,7 +167,8 @@ class TestPGRST205Guard:
     @pytest.mark.asyncio
     async def test_update_logo_pgrst205_returns_503(self):
         """PUT /v1/organizations/{id}/logo — PGRST205 → 503."""
-        with patch(_ORG_SVC_GET_SUPABASE) as mock_sb:
+        with patch(_ORG_AUTH_GET_SUPABASE, return_value=_org_auth_owner_mock()), \
+             patch(_ORG_SVC_GET_SUPABASE) as mock_sb:
             mock_sb.return_value.table.return_value.select.return_value.eq.return_value.eq.return_value.limit.return_value.execute.side_effect = _pgrst205_error()
             transport = ASGITransport(app=app)
             async with AsyncClient(transport=transport, base_url="http://test") as client:
