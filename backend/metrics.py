@@ -591,6 +591,14 @@ HTTP_RESPONSES_TOTAL = _create_counter(
     labelnames=["status_class", "method"],
 )
 
+# RES-BE-016 AC4: Route-level asyncio timeout counter
+# Alert threshold: >10/hr indicates routes not covered by _run_with_budget (RES-BE-015).
+ROUTE_TIMEOUT_TOTAL = _create_counter(
+    "smartlic_route_timeout_total",
+    "Requests returned 503 by route_timeout_middleware (exceeded ROUTE_TIMEOUT_S)",
+    labelnames=["route", "method"],
+)
+
 # CRIT-046 AC1: Supabase connection pool utilization
 SUPABASE_POOL_ACTIVE = _create_gauge(
     "smartlic_supabase_pool_active_connections",
@@ -1245,6 +1253,23 @@ FEEDBACK_NEGATIVE_TOTAL = _create_counter(
     "User negative feedback on search results (proxy for false positives)",
     labelnames=["setor"],
 )
+
+# ============================================================================
+# MON-FN-005: Mixpanel init + health check failure counters
+# ============================================================================
+
+MIXPANEL_INIT_FAILED = _create_counter(
+    "smartlic_mixpanel_init_failed_total",
+    "MON-FN-005: Mixpanel client init failures by reason",
+    labelnames=["reason"],  # missing_token | import_error | init_failed
+)
+
+HEALTH_CHECK_FAILURES = _create_counter(
+    "smartlic_health_check_failures_total",
+    "MON-FN-005: Readiness probe dependency failures by check name",
+    labelnames=["check"],  # redis | supabase | mixpanel
+)
+
 
 # ============================================================================
 # ASGI app factory for /metrics endpoint

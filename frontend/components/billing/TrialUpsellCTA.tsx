@@ -49,27 +49,27 @@ function getVariantCopy(variant: UpsellVariant, ctx: UpsellContextData) {
   switch (variant) {
     case "post-search":
       return {
-        message: `Voce encontrou ${ctx.opportunities ?? 0} oportunidades! Com o SmartLic Pro, analise ilimitada.`,
-        cta: "Ver planos",
+        message: `Você encontrou ${ctx.opportunities ?? 0} oportunidades! No trial, buscas são limitadas — no Pro, análise ilimitada.`,
+        cta: "Garantir acesso Pro",
       };
     case "post-download":
       return {
-        message: `Relatorio exportado! No plano Pro, exporte ate ${ctx.exportLimit ?? 1000} por mes.`,
-        cta: "Assinar SmartLic Pro",
+        message: `Relatório exportado! Após o trial, exporte até ${ctx.exportLimit ?? 1000} relatórios/mês com o Pro.`,
+        cta: "Manter acesso após trial",
       };
     case "post-pipeline":
       return {
-        message: `Pipeline ativo! Com o Pro, acompanhe ate ${ctx.pipelineLimit ?? 1000} oportunidades simultaneas.`,
-        cta: "Conhecer plano Pro",
+        message: `Pipeline ativo! No Pro, gerencie oportunidades sem limite — não perca o acesso quando o trial terminar.`,
+        cta: "Continuar com Pro",
       };
     case "dashboard":
       return {
-        message: `Voce ja analisou R$${ctx.valor ?? "0"} em oportunidades. Continue sem limites.`,
-        cta: "Assinar agora",
+        message: `Você já analisou R$${ctx.valor ?? "0"} em oportunidades. Não perca acesso quando o trial terminar.`,
+        cta: "Assinar antes do trial expirar",
       };
     case "quota":
       return {
-        message: `Voce usou ${ctx.usageLabel ?? "?/?"}  buscas. Atualize para continuar sem interrupcao.`,
+        message: `Você usou ${ctx.usageLabel ?? "?/?"} buscas. Atualize para continuar sem interrupção.`,
         cta: "Atualizar plano",
       };
   }
