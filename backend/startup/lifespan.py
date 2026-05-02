@@ -307,12 +307,22 @@ async def lifespan(app_instance: FastAPI):
 
     _log_registered_routes(app_instance)
 
-    # Supabase connectivity probe
+    # Supabase connectivity probe — wrapped in asyncio.wait_for to prevent uvicorn startup hang
+    # when Supabase is slow/overloaded. Degraded startup is preferable to Railway healthcheck rollback.
+    _probe_timeout = int(os.getenv("STARTUP_PROBE_TIMEOUT_S", "10"))
     try:
         from supabase_client import get_supabase
         db = get_supabase()
-        db.table("profiles").select("id").limit(1).execute()
+        await asyncio.wait_for(
+            asyncio.to_thread(db.table("profiles").select("id").limit(1).execute),
+            timeout=_probe_timeout,
+        )
         logger.info("STARTUP GATE: Supabase connectivity confirmed")
+    except asyncio.TimeoutError:
+        logger.critical(
+            "STARTUP GATE: Supabase probe timed out after %ds — SERVICE DEGRADED but staying alive.",
+            _probe_timeout,
+        )
     except Exception as e:
         logger.critical(f"STARTUP GATE: Supabase unreachable — {e}. SERVICE DEGRADED but staying alive.")
 
