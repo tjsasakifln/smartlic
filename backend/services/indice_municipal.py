@@ -93,10 +93,10 @@ async def calcular_indice_municipio(
                 "indice_municipal: schema mismatch em pncp_raw_bids (%s/%s) — abortando: %s",
                 municipio_nome, uf, e,
             )
-        else:
-            logger.warning(
-                "indice_municipal: supabase query failed for %s/%s: %s", municipio_nome, uf, e
-            )
+            raise
+        logger.warning(
+            "indice_municipal: supabase query failed for %s/%s: %s", municipio_nome, uf, e
+        )
         return None
 
     total_editais = len(rows)

@@ -39,8 +39,9 @@ CREATE POLICY "Org members can view organization"
 
 -- organization_members table — view policy
 DROP POLICY IF EXISTS "Org owner/admin can view all members" ON public.organization_members;
+DROP POLICY IF EXISTS "Org owner can view all members" ON public.organization_members;
 
-CREATE POLICY "Org owner can view all members"
+CREATE POLICY "Org members can view all members"
   ON public.organization_members
   FOR SELECT
   USING (
@@ -48,7 +49,6 @@ CREATE POLICY "Org owner can view all members"
       SELECT 1 FROM public.organization_members om
       WHERE om.org_id  = public.organization_members.org_id
         AND om.user_id = auth.uid()
-        AND om.role    = 'owner'
         AND om.accepted_at IS NOT NULL
     )
   );

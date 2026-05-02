@@ -17,6 +17,7 @@ COMMENT ON COLUMN public.organization_members.role
 -- Restore original RLS policies
 DROP POLICY IF EXISTS "Org members can view organization"     ON public.organizations;
 DROP POLICY IF EXISTS "Org owner can view all members"        ON public.organization_members;
+DROP POLICY IF EXISTS "Org members can view all members"      ON public.organization_members;
 DROP POLICY IF EXISTS "Org owner can insert members"          ON public.organization_members;
 DROP POLICY IF EXISTS "Org owner can delete members"          ON public.organization_members;
 

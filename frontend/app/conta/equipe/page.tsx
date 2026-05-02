@@ -245,7 +245,7 @@ export default function EquipePage() {
   const myMember = org.members.find(
     (m) => m.email.toLowerCase() === myEmail.toLowerCase(),
   );
-  const isOwnerOrAdmin = myMember?.role === "owner";
+  const isOwner = myMember?.role === "owner";
 
   return (
     <>
@@ -276,7 +276,7 @@ export default function EquipePage() {
             </div>
 
             {/* Invite button — only for owner/admin, only if slots available */}
-            {isOwnerOrAdmin && (
+            {isOwner && (
               <button
                 onClick={() => setShowInviteModal(true)}
                 disabled={!canInvite}
@@ -392,7 +392,7 @@ export default function EquipePage() {
                 </div>
 
                 {/* Remove controls — only owner/admin can remove, never remove owner, never remove self */}
-                {isOwnerOrAdmin && !isOwner && !isMe && (
+                {isOwner && !isOwner && !isMe && (
                   <div className="flex items-center gap-2 flex-shrink-0">
                     {isConfirmingRemove ? (
                       <>
