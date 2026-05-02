@@ -906,9 +906,9 @@ export const BLOG_ARTICLES: BlogArticleMeta[] = [
   // GUIA-S1
   {
     slug: 'licitacoes-engenharia-2026',
-    title: 'Licitações de Engenharia 2026: Quais Editais Valem a Pena',
+    title: 'Engenharia e Licitações 2026: 4 Critérios de Viabilidade',
     description:
-      'Modalidades, faixas de valor e UFs com mais contratos de obras em 2026. Evite editais inviáveis antes de montar proposta — habilitação técnica incluída.',
+      'Modalidades, habilitação técnica e faixas de valor para obras em 2026. Descubra quais editais de engenharia justificam o custo de proposta.',
     category: 'Guias',
     tags: ['engenharia', 'construção civil', 'licitações 2026', 'guia setorial'],
     publishDate: '2026-04-04',
@@ -937,9 +937,9 @@ export const BLOG_ARTICLES: BlogArticleMeta[] = [
   // GUIA-S2
   {
     slug: 'licitacoes-ti-software-2026',
-    title: 'Licitações de TI em 2026: 5 Critérios para Vencer Pregões',
+    title: 'TI e Licitações 2026: 5 Critérios para Ganhar do Governo',
     description:
-      'Descubra pregão eletrônico, ATA de registro de preço e exigências técnicas — o que empresas de TI precisam para ganhar contratos do governo em 2026.',
+      'Descubra o que ATA, pregão eletrônico e habilitação técnica exigem para sua empresa de TI ganhar contratos do governo em 2026.',
     category: 'Guias',
     tags: ['tecnologia', 'software', 'TI', 'licitações 2026', 'guia setorial'],
     publishDate: '2026-04-04',
@@ -1064,9 +1064,9 @@ export const BLOG_ARTICLES: BlogArticleMeta[] = [
   // GUIA-T1
   {
     slug: 'como-participar-primeira-licitacao-2026',
-    title: '1ª Licitação em 2026: 12 Passos para Não Errar na Abertura',
+    title: '1ª Licitação em 2026: 12 Passos do Cadastro ao Contrato',
     description:
-      'Evite os 3 erros que eliminam propostas antes mesmo da análise. Do SICAF à entrega da proposta — roteiro completo para quem está começando.',
+      'Do SICAF à entrega de proposta: roteiro com 12 passos validados para vencer na primeira tentativa — sem erros de documentação que desclassificam.',
     category: 'Guias',
     tags: ['primeira licitação', 'guia iniciante', 'passo a passo', 'cadastro'],
     publishDate: '2026-04-04',
@@ -1125,9 +1125,9 @@ export const BLOG_ARTICLES: BlogArticleMeta[] = [
   // GUIA-T3
   {
     slug: 'pncp-guia-completo-empresas',
-    title: 'PNCP em 2026: Encontre Editais do seu Setor em 5 Passos',
+    title: 'PNCP 2026: Ache Editais do Seu Setor em 5 Minutos',
     description:
-      'Aprenda a filtrar licitações reais por setor, UF e valor no PNCP — sem perder tempo em editais fora do perfil. Atualizado para 2026.',
+      'Filtre licitações por setor, estado e valor direto no PNCP — sem navegar em menus confusos. 5 passos para achar o que importa. Atualizado 2026.',
     category: 'Guias',
     tags: ['PNCP', 'portal de contratações', 'busca de editais', 'monitoramento'],
     publishDate: '2026-04-04',
@@ -1857,9 +1857,9 @@ export const BLOG_ARTICLES: BlogArticleMeta[] = [
   // SEO-12.3.3 Art-01: como consultar contratos públicos PNCP
   {
     slug: 'como-consultar-contratos-publicos-pncp',
-    title: 'Contratos Públicos no PNCP: Busque por CNPJ em 3 Cliques',
+    title: 'PNCP 2026: Consulte Contratos por CNPJ em 3 Cliques',
     description:
-      'Filtre contratos por CNPJ, órgão, setor e UF. Descubra quem fornece o quê para o governo — e use esses dados para prospectar clientes B2G.',
+      'Filtre contratos por empresa, órgão, setor e estado em 3 cliques diretos. Descubra fornecedores do governo — e prospecte clientes B2G com dados reais.',
     category: 'Guias',
     tags: ['contratos públicos', 'PNCP', 'consultar contratos', 'fornecedores', 'inteligência de mercado'],
     publishDate: '2026-04-08',
@@ -2053,9 +2053,9 @@ export const BLOG_ARTICLES: BlogArticleMeta[] = [
   // SEO-12.3.3 Art-07: Subcontratação em licitações — contratos cluster
   {
     slug: 'subcontratacao-licitacoes-regras-lei-14133',
-    title: 'Subcontratação em Editais: O que a Lei 14.133 Exige em 2026',
+    title: 'Subcontratação em Licitações 2026: As 3 Regras da Lei 14.133',
     description:
-      'Art. 122 define limites percentuais, documentação e responsabilidade solidária. Roteiro para PMEs entrarem como subcontratadas em contratos de grande porte.',
+      'Art. 122 da Lei 14.133 define limites percentuais e responsabilidade solidária. Veja como PMEs entram como subcontratadas legalmente em 2026.',
     category: 'Guias',
     tags: [
       'subcontratação',
