@@ -16291,7 +16291,7 @@
             "name": "periodo",
             "required": false,
             "schema": {
-              "default": "2026-Q1",
+              "default": "2026-Q2",
               "description": "Per\u00edodo trimestral (ex: 2026-Q1)",
               "pattern": "^\\d{4}-Q[1-4]$",
               "title": "Periodo",
@@ -16412,7 +16412,7 @@
             "name": "periodo",
             "required": false,
             "schema": {
-              "default": "2026-Q1",
+              "default": "2026-Q2",
               "description": "Per\u00edodo trimestral (ex: 2026-Q1)",
               "pattern": "^\\d{4}-Q[1-4]$",
               "title": "Periodo",
