@@ -164,7 +164,6 @@ from config.pipeline import (
     CACHE_LEGACY_KEY_FALLBACK,  # noqa: F401
     SHOW_CACHE_FALLBACK_BANNER,  # noqa: F401
     SERVE_EXPIRED_CACHE_ON_TOTAL_OUTAGE,  # noqa: F401
-    WARMING_USER_ID,  # noqa: F401 — legacy nil UUID, defensive guard (STORY-271/DEBT-009)
     DIGEST_ENABLED,  # noqa: F401
     DIGEST_HOUR_UTC,  # noqa: F401
     DIGEST_MAX_PER_EMAIL,  # noqa: F401

@@ -1,13 +1,16 @@
 """STORY-271: Resolve All 5 Sentry Unresolved Issues — unit tests.
 
 Tests cover:
-  AC1: WARMING_USER_ID defined in config + migration exists
   AC2: Pipeline timeout < GUNICORN_TIMEOUT (sufficient buffer)
+  AC3: AllSourcesFailedError fallback exists
   AC4: PNCP health canary uses correct params (date format, modalidade, status)
+
+Note: AC1 (WARMING_USER_ID config) removed — cache warming jobs deprecated
+2026-04-18 (STORY-CIG-BE-cache-warming-deprecate); WARMING_USER_ID guard
+removed as dead code 2026-04-28.
 
 Mock strategy:
   - health.py: patch httpx.AsyncClient to verify request params
-  - config: direct import to verify constants exist
   - consolidation: import class constants
 """
 
@@ -16,70 +19,6 @@ import re
 from unittest.mock import patch
 
 import pytest
-
-# ---------------------------------------------------------------------------
-# AC1: WARMING_USER_ID in config
-# ---------------------------------------------------------------------------
-
-
-class TestAC1WarmingUserConfig:
-    """AC1: Verify WARMING_USER_ID is defined and valid."""
-
-    def test_warming_user_id_defined(self):
-        """WARMING_USER_ID must be importable from config."""
-        from config import WARMING_USER_ID
-
-        assert WARMING_USER_ID is not None
-        assert isinstance(WARMING_USER_ID, str)
-
-    def test_warming_user_id_is_nil_uuid(self):
-        """Default WARMING_USER_ID is the nil UUID."""
-        from config import WARMING_USER_ID
-
-        assert WARMING_USER_ID == "00000000-0000-0000-0000-000000000000"
-
-    def test_warming_user_id_env_override(self):
-        """WARMING_USER_ID can be overridden via env var."""
-        custom = "11111111-1111-1111-1111-111111111111"
-        with patch.dict(os.environ, {"WARMING_USER_ID": custom}):
-            # Need to reimport to pick up env var
-            import config as _cfg
-
-            # Verify the env-var mechanism exists (module-level read)
-            assert _cfg.WARMING_USER_ID is not None
-            # Restore — don't use importlib.reload to avoid test pollution
-
-    def test_migration_file_exists(self):
-        """Migration SQL for warming user profile must exist."""
-        migration_path = os.path.join(
-            os.path.dirname(__file__),
-            "..",
-            "..",
-            "supabase",
-            "migrations",
-            "20260226110000_warming_user_profile.sql",
-        )
-        assert os.path.isfile(migration_path), (
-            f"Migration file not found: {migration_path}"
-        )
-
-    def test_migration_inserts_nil_uuid(self):
-        """Migration must INSERT the nil UUID into profiles."""
-        migration_path = os.path.join(
-            os.path.dirname(__file__),
-            "..",
-            "..",
-            "supabase",
-            "migrations",
-            "20260226110000_warming_user_profile.sql",
-        )
-        with open(migration_path, "r") as f:
-            sql = f.read()
-
-        assert "00000000-0000-0000-0000-000000000000" in sql
-        assert "profiles" in sql.lower()
-        assert "ON CONFLICT" in sql or "on conflict" in sql
-
 
 # ---------------------------------------------------------------------------
 # AC2: Worker timeout buffer
