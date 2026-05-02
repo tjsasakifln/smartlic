@@ -63,7 +63,7 @@ class PlansResponse(BaseModel):
 
 
 @router.get("/api/plans", response_model=PlansResponse)
-async def get_plans_with_capabilities(db=Depends(get_db)):
+async def get_plans_with_capabilities(db: Any = Depends(get_db)) -> PlansResponse:
     """Get all active plans with capabilities and pricing.
 
     STORY-203 CROSS-M01: Combines plan metadata from database with

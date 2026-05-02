@@ -176,7 +176,7 @@ async def get_referral_code(user: dict = Depends(require_auth)):
     had_code = bool(getattr(pre_existing, "data", None))
 
     try:
-        code = _get_or_create_code_for_user(sb, user_id)
+        code = await asyncio.to_thread(_get_or_create_code_for_user, sb, user_id)
     except HTTPException:
         raise
     except Exception:
@@ -201,7 +201,7 @@ async def get_referral_stats(user: dict = Depends(require_auth)):
     user_id = user["id"]
 
     try:
-        code = _get_or_create_code_for_user(sb, user_id)
+        code = await asyncio.to_thread(_get_or_create_code_for_user, sb, user_id)
     except HTTPException:
         raise
     except Exception:

@@ -150,7 +150,7 @@ async def founding_checkout(
 
     sb = get_supabase()
 
-    if _already_registered(sb, payload.email):
+    if await asyncio.to_thread(_already_registered, sb, payload.email):
         raise HTTPException(
             status_code=409,
             detail="Este email já possui conta SmartLic. Faça login para gerenciar sua assinatura.",
