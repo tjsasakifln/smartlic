@@ -52,6 +52,7 @@ async function importSitemapFresh() {
   }));
   jest.mock('@/lib/sectors', () => ({ SECTORS: [{ id: 'limpeza', name: 'Limpeza' }] }));
   jest.mock('@/lib/programmatic', () => ({
+    ...jest.requireActual('@/lib/programmatic'),
     generateSectorParams: () => [{ setor: 'limpeza' }],
     generateLicitacoesParams: () => [],
     generateSectorUfParams: () => [{ setor: 'limpeza', uf: 'SP' }],

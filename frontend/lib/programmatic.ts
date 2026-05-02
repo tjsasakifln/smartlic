@@ -16,6 +16,31 @@ export const SECTOR_SLUG_TO_BACKEND_ID: Record<string, string> = {
   transporte: 'transporte_servicos',
 };
 
+// SEO-643: Reverse mapping — backend sector ID → frontend slug.
+// Used by sitemap.ts to normalize setor IDs from /v1/sitemap/licitacoes-indexable
+// before building /blog/licitacoes/{slug}/{uf} and /alertas-publicos/{slug}/{uf} URLs.
+// IDs absent from this map follow the default rule: id.replace(/_/g, '-').
+export const BACKEND_ID_TO_FRONTEND_SLUG: Record<string, string> = {
+  software_desenvolvimento: 'software',
+  software_licencas: 'software',
+  servicos_prediais: 'facilities',
+  produtos_limpeza: 'facilities',
+  medicamentos: 'saude',
+  equipamentos_medicos: 'saude',
+  insumos_hospitalares: 'saude',
+  transporte_servicos: 'transporte',
+  frota_veicular: 'transporte',
+};
+
+/**
+ * SEO-643: Converts a backend sector ID to its frontend URL slug.
+ * Handles: explicit exceptions, underscore→hyphen (manutencao_predial → manutencao-predial),
+ * and identity (vestuario → vestuario).
+ */
+export function backendIdToFrontendSlug(backendId: string): string {
+  return BACKEND_ID_TO_FRONTEND_SLUG[backendId] ?? backendId.replace(/_/g, '-');
+}
+
 // All 27 Brazilian UFs
 export const ALL_UFS = [
   'AC', 'AL', 'AM', 'AP', 'BA', 'CE', 'DF', 'ES', 'GO', 'MA',
