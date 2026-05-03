@@ -18,9 +18,12 @@ Security hardened in Issue #168:
 - No sensitive data in plain text logs
 """
 
+import asyncio
+import gc
 import logging
 import os
 import re
+import tracemalloc
 from typing import Optional
 
 from fastapi import APIRouter, HTTPException, Depends, Query, Request, Path
@@ -30,7 +33,7 @@ from schemas import (
     validate_uuid, validate_plan_id, validate_password,
     AdminUsersListResponse, AdminCreateUserResponse, AdminDeleteUserResponse,
     AdminUpdateUserResponse, AdminResetPasswordResponse, AdminAssignPlanResponse,
-    AdminUpdateCreditsResponse,
+    AdminUpdateCreditsResponse, MemorySnapshot, TraceMallocEntry,
 )
 from log_sanitizer import sanitize_dict, log_admin_action
 from filter.stats import filter_stats_tracker
@@ -1119,50 +1122,45 @@ async def get_at_risk_trials(
 #   - feedback_chief_warm_stage5plus_no_pivot (warm continuation 7× failed; pivot mandatory)
 #   - ADR docs/adr/MEMORY-BUDGET.md (3-tier threshold + Combined restart policy)
 # =====================================================================
-@router.get("/memory-snapshot")
-async def memory_snapshot(admin: dict = Depends(require_admin)) -> dict:
+@router.get("/memory-snapshot", response_model=MemorySnapshot)
+async def memory_snapshot(admin: dict = Depends(require_admin)) -> MemorySnapshot:
     """
     Return current process memory snapshot for leak investigation.
 
     Master/admin only. Snapshots are NOT persisted (PII risk + size).
     Caller is responsible for capturing 10× over 24h to build baseline.
     """
-    import asyncio as _asyncio
-    import gc
+    import psutil
 
-    snapshot: dict = {
-        "rss_bytes": None,
-        "rss_mb": None,
-        "tracemalloc_enabled": False,
-        "tracemalloc_top_25": [],
-        "asyncio_tasks_pending": 0,
-        "gc_objects_count": 0,
-        "redis_pool_size": None,
-    }
+    rss_bytes: Optional[int] = None
+    rss_mb: Optional[float] = None
+    tracemalloc_enabled = False
+    tracemalloc_top_25: list[TraceMallocEntry] = []
+    asyncio_tasks_pending = 0
+    gc_objects_count = 0
+    redis_pool_size: Optional[int] = None
 
     # RSS via psutil (already in deps for health.py)
     try:
-        import psutil
         proc = psutil.Process()
         rss = proc.memory_info().rss
-        snapshot["rss_bytes"] = rss
-        snapshot["rss_mb"] = round(rss / (1024 * 1024), 1)
+        rss_bytes = rss
+        rss_mb = round(rss / (1024 * 1024), 1)
     except Exception as e:
         logger.warning(f"SEN-BE-010 memory-snapshot: psutil RSS read failed: {e}")
 
     # tracemalloc top-25 (only if env-enabled at startup)
     try:
-        import tracemalloc
         if tracemalloc.is_tracing():
-            snapshot["tracemalloc_enabled"] = True
+            tracemalloc_enabled = True
             stats = tracemalloc.take_snapshot().statistics("lineno")[:25]
-            snapshot["tracemalloc_top_25"] = [
-                {
-                    "filename": s.traceback[0].filename if s.traceback else "<unknown>",
-                    "lineno": s.traceback[0].lineno if s.traceback else 0,
-                    "size_kb": round(s.size / 1024, 1),
-                    "count": s.count,
-                }
+            tracemalloc_top_25 = [
+                TraceMallocEntry(
+                    filename=s.traceback[0].filename if s.traceback else "<unknown>",
+                    lineno=s.traceback[0].lineno if s.traceback else 0,
+                    size_kb=round(s.size / 1024, 1),
+                    count=s.count,
+                )
                 for s in stats
             ]
     except Exception as e:
@@ -1170,15 +1168,15 @@ async def memory_snapshot(admin: dict = Depends(require_admin)) -> dict:
 
     # asyncio task count
     try:
-        loop = _asyncio.get_running_loop()
-        tasks = [t for t in _asyncio.all_tasks(loop) if not t.done()]
-        snapshot["asyncio_tasks_pending"] = len(tasks)
+        loop = asyncio.get_running_loop()
+        tasks = [t for t in asyncio.all_tasks(loop) if not t.done()]
+        asyncio_tasks_pending = len(tasks)
     except Exception:
         pass
 
     # gc object count (cheap proxy for total Python objects alive)
     try:
-        snapshot["gc_objects_count"] = len(gc.get_objects())
+        gc_objects_count = len(gc.get_objects())
     except Exception:
         pass
 
@@ -1188,11 +1186,19 @@ async def memory_snapshot(admin: dict = Depends(require_admin)) -> dict:
         if _redis_pool is not None:
             pool = getattr(_redis_pool, "connection_pool", None)
             if pool is not None:
-                snapshot["redis_pool_size"] = getattr(pool, "_created_connections", None) or len(getattr(pool, "_in_use_connections", []))
+                redis_pool_size = getattr(pool, "_created_connections", None) or len(getattr(pool, "_in_use_connections", []))
     except Exception:
         pass
 
-    return snapshot
+    return MemorySnapshot(
+        rss_bytes=rss_bytes,
+        rss_mb=rss_mb,
+        tracemalloc_enabled=tracemalloc_enabled,
+        tracemalloc_top_25=tracemalloc_top_25,
+        asyncio_tasks_pending=asyncio_tasks_pending,
+        gc_objects_count=gc_objects_count,
+        redis_pool_size=redis_pool_size,
+    )
 
 
 def _assign_plan(sb, user_id: str, plan_id: str):

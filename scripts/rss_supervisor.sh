@@ -38,7 +38,8 @@ log() {
 
 while true; do
   # `ps` columns: pid, rss (in KB), command. We only flag matching processes.
-  ps -eo pid,rss,command | grep -E "$WORKER_PATTERN" | grep -v grep | while read -r pid rss_kb cmd; do
+  # Subshell `|| true` guards against grep exit 1 (no matches) under future pipefail.
+  ps -eo pid,rss,command | (grep -E "$WORKER_PATTERN" || true) | grep -v grep | while read -r pid rss_kb cmd; do
     rss_bytes=$((rss_kb * 1024))
     if [ "$rss_bytes" -gt "$RSS_CRITICAL_BYTES" ]; then
       rss_mb=$((rss_bytes / 1024 / 1024))
