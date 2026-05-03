@@ -167,6 +167,32 @@ export default function OrgaoPerfilClient({ stats }: { stats: OrgaoStats }) {
         </div>
       </div>
 
+      {/* Inline CTA mid-page */}
+      <div className="my-6 rounded-lg bg-blue-50 border border-blue-200 px-4 py-3 flex flex-col sm:flex-row items-center justify-between gap-3">
+        <p className="text-sm text-gray-700">
+          <strong>
+            {licitacoes_30d} {licitacoes_30d === 1 ? 'edital publicado' : 'editais publicados'}
+          </strong>{' '}
+          por este órgão nos últimos 30 dias.
+        </p>
+        <Link
+          href={`/signup?ref=orgao-mid&uf=${uf}`}
+          className="text-sm font-bold text-white bg-green-600 hover:bg-green-700 px-4 py-2 rounded-md whitespace-nowrap w-full sm:w-auto text-center"
+          onClick={() => {
+            if (typeof window !== 'undefined' && window.mixpanel) {
+              window.mixpanel.track('cta_inline_clicked', {
+                placement: 'mid',
+                page: 'orgao',
+                uf,
+                licitacoes_30d,
+              });
+            }
+          }}
+        >
+          Monitorar este órgão →
+        </Link>
+      </div>
+
       {/* Org info card */}
       <div className="bg-gray-50 rounded-xl p-6 mb-8">
         <h2 className="text-lg font-bold text-gray-800 mb-4">Dados do Órgão</h2>

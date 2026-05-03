@@ -312,6 +312,27 @@ export default async function ContratosSetorUfPage({ params }: Props) {
                     </section>
                   )}
 
+                  {/* Inline CTA mid-page — após tabela de fornecedores */}
+                  <div className="my-6 rounded-lg bg-blue-50 border border-blue-200 px-4 py-3 flex flex-col sm:flex-row items-center justify-between gap-3">
+                    <p className="text-sm text-gray-700">
+                      <strong>{totalContracts.toLocaleString('pt-BR')} contratos</strong> de{' '}
+                      {sector.name} em {ufName}
+                      {totalEditais > 0 && (
+                        <>
+                          {' '}
+                          — <strong>{totalEditais} editais abertos</strong> agora
+                        </>
+                      )}
+                      .
+                    </p>
+                    <Link
+                      href={`/signup?ref=contratos-mid&setor=${setor}&uf=${uf}`}
+                      className="text-sm font-bold text-white bg-green-600 hover:bg-green-700 px-4 py-2 rounded-md whitespace-nowrap w-full sm:w-auto text-center"
+                    >
+                      Ver editais agora →
+                    </Link>
+                  </div>
+
                   {/* Sample Contracts */}
                   {data.sample_contracts.length > 0 && (
                     <section className="mb-8">
