@@ -32,7 +32,7 @@ class LoginPage(BasePage):
         pwd_el.clear()
         pwd_el.send_keys(password)
 
-        self.driver.find_element(*self.SUBMIT_BUTTON).click()
+        self.js_click(self.driver.find_element(*self.SUBMIT_BUTTON))
 
         WebDriverWait(self.driver, timeout).until(
             lambda d: "/login" not in d.current_url
@@ -44,7 +44,7 @@ class LoginPage(BasePage):
         self.navigate_to()
         self.wait_for_clickable(*self.EMAIL_INPUT).send_keys(email)
         self.driver.find_element(*self.PASSWORD_INPUT).send_keys(password)
-        self.driver.find_element(*self.SUBMIT_BUTTON).click()
+        self.js_click(self.driver.find_element(*self.SUBMIT_BUTTON))
 
     def get_error_text(self, timeout: int = 10) -> str:
         try:

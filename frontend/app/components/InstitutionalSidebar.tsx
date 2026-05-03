@@ -208,7 +208,7 @@ export default function InstitutionalSidebar({ variant, className = "", scrollTa
   return (
     <div
       className={`
-        min-h-[50vh] md:min-h-0 md:h-auto
+        min-h-[25vh] md:min-h-0 md:h-auto
         bg-gradient-to-br from-[var(--brand-navy)] to-[var(--brand-blue)]
         flex items-center justify-center
         p-4 py-6 md:p-12 lg:p-16
