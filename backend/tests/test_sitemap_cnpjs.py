@@ -1,4 +1,4 @@
-"""Tests for GET /v1/sitemap/cnpjs endpoint."""
+"""Tests for GET /v1/sitemap/cnpjs and /v1/sitemap/fornecedores-cnpj endpoints."""
 
 from unittest.mock import MagicMock, patch
 
@@ -11,11 +11,13 @@ _NO_SEED = patch("routes.sitemap_cnpjs._SEED_SUPPLIER_CNPJS", [])
 
 @pytest.fixture(autouse=True)
 def _clear_cache():
-    """Clear sitemap cache before each test."""
-    from routes.sitemap_cnpjs import _sitemap_cache
+    """Clear sitemap caches before each test."""
+    from routes.sitemap_cnpjs import _sitemap_cache, _fornecedores_sitemap_cache
     _sitemap_cache.clear()
+    _fornecedores_sitemap_cache.clear()
     yield
     _sitemap_cache.clear()
+    _fornecedores_sitemap_cache.clear()
 
 
 @pytest.fixture
