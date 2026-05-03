@@ -21,8 +21,8 @@ const BASE_URL = process.env.NEXT_PUBLIC_CANONICAL_URL || 'https://smartlic.tech
 // Falls through to production rules if NEXT_PUBLIC_ENVIRONMENT is unset (safe default).
 // Wired in Railway via NEXT_PUBLIC_ENVIRONMENT=production|preview|staging|development.
 const ENV = process.env.NEXT_PUBLIC_ENVIRONMENT || 'production';
-// 'index' (default, post SEO-PROG-006) | 'legacy' (rollback flag)
-const SITEMAP_VARIANT = process.env.SITEMAP_USE_INDEX_VARIANT || 'index';
+// 'legacy' (default → /sitemap.xml) | 'index' (opt-in → /sitemap_index.xml, when that route ships)
+const SITEMAP_VARIANT = process.env.SITEMAP_USE_INDEX_VARIANT || 'legacy';
 
 const SITEMAP_URL =
   SITEMAP_VARIANT === 'legacy'
