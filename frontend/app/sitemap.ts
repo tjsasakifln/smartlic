@@ -588,14 +588,12 @@ export default async function sitemap(props: { id: Promise<string> }): Promise<M
     case 1: {
       const sectorRoutes: MetadataRoute.Sitemap = SECTORS.map((sector) => ({
         url: `${baseUrl}/licitacoes/${sector.slug}`,
-        lastModified: today,
         changeFrequency: 'daily' as const,
         priority: 0.8,
       }));
 
       const programmaticSectorRoutes: MetadataRoute.Sitemap = generateSectorParams().map(({ setor }) => ({
         url: `${baseUrl}/blog/programmatic/${setor}`,
-        lastModified: today,
         changeFrequency: 'daily' as const,
         priority: 0.8,
       }));
@@ -610,7 +608,6 @@ export default async function sitemap(props: { id: Promise<string> }): Promise<M
       // SEO Wave 3.1: /blog/contratos/{setor} pillar pages (15)
       const blogContratosRoutes: MetadataRoute.Sitemap = generateSectorParams().map(({ setor }) => ({
         url: `${baseUrl}/blog/contratos/${setor}`,
-        lastModified: today,
         changeFrequency: 'weekly' as const,
         priority: 0.8,
       }));
@@ -648,7 +645,6 @@ export default async function sitemap(props: { id: Promise<string> }): Promise<M
         })
         .map(({ slug, uf }) => ({
           url: `${baseUrl}/blog/licitacoes/${slug}/${uf}`,
-          lastModified: today,
           changeFrequency: 'daily' as const,
           priority: 0.8,
         }));
@@ -665,7 +661,6 @@ export default async function sitemap(props: { id: Promise<string> }): Promise<M
         })
         .map(({ slug, uf }) => ({
           url: `${baseUrl}/alertas-publicos/${slug}/${uf}`,
-          lastModified: today,
           changeFrequency: 'hourly' as const,
           priority: 0.8,
         }));
@@ -674,7 +669,6 @@ export default async function sitemap(props: { id: Promise<string> }): Promise<M
       // SEO-CAC-ZERO A1: modalidadeRoutes removidas do sitemap (ISSUE-SEO-002)
       const contratosUfRoutes: MetadataRoute.Sitemap = generateSectorUfParams().map(({ setor, uf }) => ({
         url: `${baseUrl}/contratos/${setor}/${uf}`,
-        lastModified: today,
         changeFrequency: 'daily' as const,
         priority: 0.6,
       }));
@@ -682,7 +676,6 @@ export default async function sitemap(props: { id: Promise<string> }): Promise<M
       // SEO Wave 2 (12.2.2): Fornecedores setor×UF (405 combos)
       const fornecedoresUfRoutes: MetadataRoute.Sitemap = generateSectorUfParams().map(({ setor, uf }) => ({
         url: `${baseUrl}/fornecedores/${setor}/${uf}`,
-        lastModified: today,
         changeFrequency: 'daily' as const,
         priority: 0.6,
       }));
