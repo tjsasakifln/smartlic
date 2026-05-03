@@ -176,6 +176,30 @@ export default function CnpjPerfilClient({ perfil }: { perfil: PerfilB2G }) {
         </div>
       </div>
 
+      {/* Inline CTA mid-page */}
+      <div className="my-6 rounded-lg bg-blue-50 border border-blue-200 px-4 py-3 flex flex-col sm:flex-row items-center justify-between gap-3">
+        <p className="text-sm text-gray-700">
+          <strong>{editais_abertos_setor} editais</strong> abertos no setor de {setor_nome} esta
+          semana.
+        </p>
+        <Link
+          href={`/signup?ref=cnpj-mid&setor=${perfil.setor_detectado}&uf=${empresa.uf}`}
+          className="text-sm font-bold text-white bg-green-600 hover:bg-green-700 px-4 py-2 rounded-md whitespace-nowrap w-full sm:w-auto text-center"
+          onClick={() => {
+            if (typeof window !== 'undefined' && window.mixpanel) {
+              window.mixpanel.track('cta_inline_clicked', {
+                placement: 'mid',
+                page: 'cnpj',
+                setor: perfil.setor_detectado,
+                uf: empresa.uf,
+              });
+            }
+          }}
+        >
+          Ver agora →
+        </Link>
+      </div>
+
       {/* UFs de atuação */}
       {ufs_atuacao.length > 0 && (
         <div className="mb-8">
