@@ -75,8 +75,8 @@ async def calcular_indice_municipio(
         resp = (
             sb.table("pncp_raw_bids")
             .select(
-                "id, modalidade_id, data_publicacao, data_encerramento, "
-                "orgao_cnpj, municipio, uf"
+                "pncp_id, modalidade_id, data_publicacao, data_encerramento, "
+                "valor_total_estimado, orgao_cnpj, municipio, uf"
             )
             .eq("municipio", municipio_nome)
             .eq("uf", uf)
@@ -88,6 +88,12 @@ async def calcular_indice_municipio(
         )
         rows = resp.data or []
     except Exception as e:
+        if "42703" in str(e):
+            logger.critical(
+                "indice_municipal: schema mismatch em pncp_raw_bids (%s/%s) — abortando: %s",
+                municipio_nome, uf, e,
+            )
+            raise
         logger.warning(
             "indice_municipal: supabase query failed for %s/%s: %s", municipio_nome, uf, e
         )

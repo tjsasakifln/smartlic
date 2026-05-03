@@ -11,7 +11,8 @@ from pydantic import BaseModel
 
 from auth import require_auth
 from config import ORGANIZATIONS_ENABLED
-from log_sanitizer import mask_user_id
+from dependencies.org_auth import OrgRole, require_org_role
+from log_sanitizer import mask_email, mask_user_id
 from services.organization_service import (
     accept_invite,
     create_organization,
@@ -94,11 +95,12 @@ async def create_org(
         raise HTTPException(status_code=500, detail="Erro ao criar organizacao")
 
 
-# AC12: GET /v1/organizations/{org_id} — org details
+# AC12: GET /v1/organizations/{org_id} — org details (member+)
 @router.get("/organizations/{org_id}")
 async def get_org(
     org_id: str,
     user: dict = Depends(require_auth),
+    _role: OrgRole = Depends(require_org_role(OrgRole.MEMBER)),
 ):
     """Get organization details (must be a member)."""
     if not ORGANIZATIONS_ENABLED:
@@ -116,22 +118,23 @@ async def get_org(
     return org
 
 
-# AC13: POST /v1/organizations/{org_id}/invite — invite member
+# AC13: POST /v1/organizations/{org_id}/invite — invite member (owner only)
 @router.post("/organizations/{org_id}/invite")
 async def invite_org_member(
     org_id: str,
     body: InviteMemberRequest,
     user: dict = Depends(require_auth),
+    _role: OrgRole = Depends(require_org_role(OrgRole.OWNER)),
 ):
     """Invite a member to the organization (owner/admin only)."""
     if not ORGANIZATIONS_ENABLED:
         raise HTTPException(status_code=404, detail="Feature not available")
     user_id = user["id"]
     logger.info(
-        "invite_org_member org_id=%s inviter=%s email=%r",
+        "invite_org_member org_id=%s inviter=%s email=%s",
         org_id,
         mask_user_id(user_id),
-        body.email,
+        mask_email(body.email),
     )
     try:
         result = await invite_member(org_id=org_id, inviter_id=user_id, email=body.email)
@@ -180,12 +183,13 @@ async def accept_org_invite(
         raise HTTPException(status_code=500, detail="Erro ao aceitar convite")
 
 
-# AC15: DELETE /v1/organizations/{org_id}/members/{target_user_id} — remove member
+# AC15: DELETE /v1/organizations/{org_id}/members/{target_user_id} — remove member (owner only)
 @router.delete("/organizations/{org_id}/members/{target_user_id}")
 async def remove_org_member(
     org_id: str,
     target_user_id: str,
     user: dict = Depends(require_auth),
+    _role: OrgRole = Depends(require_org_role(OrgRole.OWNER)),
 ):
     """Remove a member from the organization (owner/admin only)."""
     if not ORGANIZATIONS_ENABLED:
@@ -221,11 +225,12 @@ async def remove_org_member(
         raise HTTPException(status_code=500, detail="Erro ao remover membro")
 
 
-# AC16: GET /v1/organizations/{org_id}/dashboard — consolidated stats
+# AC16: GET /v1/organizations/{org_id}/dashboard — consolidated stats (owner only)
 @router.get("/organizations/{org_id}/dashboard")
 async def get_org_dashboard_endpoint(
     org_id: str,
     user: dict = Depends(require_auth),
+    _role: OrgRole = Depends(require_org_role(OrgRole.OWNER)),
 ):
     """Get consolidated dashboard for organization (owner/admin only)."""
     if not ORGANIZATIONS_ENABLED:
@@ -249,12 +254,13 @@ async def get_org_dashboard_endpoint(
         raise HTTPException(status_code=500, detail="Erro ao obter dashboard da organizacao")
 
 
-# AC17: PUT /v1/organizations/{org_id}/logo — update logo URL
+# AC17: PUT /v1/organizations/{org_id}/logo — update logo URL (owner only)
 @router.put("/organizations/{org_id}/logo")
 async def upload_org_logo(
     org_id: str,
     body: UpdateLogoRequest,
     user: dict = Depends(require_auth),
+    _role: OrgRole = Depends(require_org_role(OrgRole.OWNER)),
 ):
     """Update organization logo URL (owner/admin only).
 
