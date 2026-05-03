@@ -2,7 +2,7 @@
  * SEO-PROG-007 AC7: Unit tests for `app/robots.ts` route handler.
  *
  * Covers:
- *  - Default production: full Allow/Disallow + Google-Extended + 7 AI blocks + sitemap_index + host
+ *  - Default production: full Allow/Disallow + Google-Extended + 7 AI blocks + sitemap.xml (legacy default) + host
  *  - ENV=preview / ENV=staging: block-all (no sitemap, no host canonical mention)
  *  - SITEMAP_USE_INDEX_VARIANT toggle (legacy | index)
  *  - AC6 path-exact: /alertas-publicos/* allowed, /api/sitemap-* allowed, /admin/seo blocked
@@ -101,9 +101,9 @@ describe('app/robots.ts — production defaults', () => {
     expect(r.rules).toHaveLength(9);
   });
 
-  it('declares sitemap_index URL by default (SITEMAP_USE_INDEX_VARIANT unset)', () => {
+  it('declares /sitemap.xml by default (SITEMAP_USE_INDEX_VARIANT unset — #656 fix)', () => {
     const r = loadRobots();
-    expect(r.sitemap).toBe(`${CANONICAL}/sitemap_index.xml`);
+    expect(r.sitemap).toBe(`${CANONICAL}/sitemap.xml`);
   });
 
   it('declares host canonical', () => {
@@ -198,9 +198,9 @@ describe('app/robots.ts — SITEMAP_USE_INDEX_VARIANT flag (AC3)', () => {
     expect(r.sitemap).toBe(`${CANONICAL}/sitemap_index.xml`);
   });
 
-  it('unset (default) points to /sitemap_index.xml', () => {
+  it('unset (default) points to /sitemap.xml (#656: legacy is safe default until sitemap_index.xml ships)', () => {
     const r = loadRobots();
-    expect(r.sitemap).toBe(`${CANONICAL}/sitemap_index.xml`);
+    expect(r.sitemap).toBe(`${CANONICAL}/sitemap.xml`);
   });
 });
 
