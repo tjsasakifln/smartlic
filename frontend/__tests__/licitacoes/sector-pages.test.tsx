@@ -256,6 +256,31 @@ describe('JSON-LD schema (AC10)', () => {
     expect(jsonLd.url).toContain('/licitacoes/saude');
   });
 
+  it('Dataset schema creator must not have sameAs pointing to pncp.gov.br (#664)', () => {
+    const sector = getSectorBySlug('saude')!;
+    const creator = {
+      '@type': 'Organization',
+      name: 'SmartLic',
+      url: 'https://smartlic.tech',
+      // sameAs must NOT contain pncp.gov.br — SmartLic !== PNCP (semantic bug #664)
+    };
+    expect((creator as Record<string, unknown>).sameAs).toBeUndefined();
+    expect(creator.url).toBe('https://smartlic.tech');
+    // isBasedOn references PNCP correctly as data source
+    const isBasedOn = {
+      '@type': 'Dataset',
+      name: 'PNCP — Portal Nacional de Contratações Públicas',
+      url: 'https://pncp.gov.br',
+      publisher: { '@type': 'GovernmentOrganization', name: 'Governo Federal do Brasil' },
+    };
+    expect(isBasedOn['@type']).toBe('Dataset');
+    expect(isBasedOn.url).toBe('https://pncp.gov.br');
+    expect(isBasedOn.publisher['@type']).toBe('GovernmentOrganization');
+    // sector slug is part of dataset url
+    const datasetUrl = `https://smartlic.tech/licitacoes/${sector.slug}`;
+    expect(datasetUrl).toContain('/licitacoes/saude');
+  });
+
   it('FAQ schema has correct structure', () => {
     const faqs = getSectorFaqs('saude');
     const faqSchema = {
