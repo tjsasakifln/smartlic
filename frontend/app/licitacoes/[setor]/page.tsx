@@ -613,14 +613,20 @@ function buildDatasetJsonLd(
       "@type": "Organization",
       name: "SmartLic",
       url: "https://smartlic.tech",
-      sameAs: [
-        "https://pncp.gov.br",
-      ],
     },
     publisher: {
       "@type": "Organization",
       name: "SmartLic",
       url: "https://smartlic.tech",
+    },
+    isBasedOn: {
+      "@type": "Dataset",
+      name: "PNCP — Portal Nacional de Contratações Públicas",
+      url: "https://pncp.gov.br",
+      publisher: {
+        "@type": "GovernmentOrganization",
+        name: "Governo Federal do Brasil",
+      },
     },
     distribution: [
       {
