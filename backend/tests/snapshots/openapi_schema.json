@@ -5888,6 +5888,69 @@
         "title": "LicitacoesIndexableResponse",
         "type": "object"
       },
+      "MemorySnapshot": {
+        "description": "Response for GET /admin/memory-snapshot (SEN-BE-010 AC0).",
+        "properties": {
+          "asyncio_tasks_pending": {
+            "default": 0,
+            "title": "Asyncio Tasks Pending",
+            "type": "integer"
+          },
+          "gc_objects_count": {
+            "default": 0,
+            "title": "Gc Objects Count",
+            "type": "integer"
+          },
+          "redis_pool_size": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Redis Pool Size"
+          },
+          "rss_bytes": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rss Bytes"
+          },
+          "rss_mb": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rss Mb"
+          },
+          "tracemalloc_enabled": {
+            "default": false,
+            "title": "Tracemalloc Enabled",
+            "type": "boolean"
+          },
+          "tracemalloc_top_25": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/TraceMallocEntry"
+            },
+            "title": "Tracemalloc Top 25",
+            "type": "array"
+          }
+        },
+        "title": "MemorySnapshot",
+        "type": "object"
+      },
       "MessageResponse": {
         "description": "Single message in a conversation thread.",
         "properties": {
@@ -9748,6 +9811,35 @@
         "title": "TourEventRequest",
         "type": "object"
       },
+      "TraceMallocEntry": {
+        "description": "Single tracemalloc allocation entry.",
+        "properties": {
+          "count": {
+            "title": "Count",
+            "type": "integer"
+          },
+          "filename": {
+            "title": "Filename",
+            "type": "string"
+          },
+          "lineno": {
+            "title": "Lineno",
+            "type": "integer"
+          },
+          "size_kb": {
+            "title": "Size Kb",
+            "type": "number"
+          }
+        },
+        "required": [
+          "filename",
+          "lineno",
+          "size_kb",
+          "count"
+        ],
+        "title": "TraceMallocEntry",
+        "type": "object"
+      },
       "TrendingSector": {
         "properties": {
           "count_this_week": {
@@ -11662,7 +11754,9 @@
           "200": {
             "content": {
               "application/json": {
-                "schema": {}
+                "schema": {
+                  "$ref": "#/components/schemas/MemorySnapshot"
+                }
               }
             },
             "description": "Successful Response"

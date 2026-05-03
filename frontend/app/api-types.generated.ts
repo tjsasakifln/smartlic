@@ -7406,6 +7406,38 @@ export interface components {
             updated_at: string;
         };
         /**
+         * MemorySnapshot
+         * @description Response for GET /admin/memory-snapshot (SEN-BE-010 AC0).
+         */
+        MemorySnapshot: {
+            /**
+             * Asyncio Tasks Pending
+             * @default 0
+             */
+            asyncio_tasks_pending: number;
+            /**
+             * Gc Objects Count
+             * @default 0
+             */
+            gc_objects_count: number;
+            /** Redis Pool Size */
+            redis_pool_size?: number | null;
+            /** Rss Bytes */
+            rss_bytes?: number | null;
+            /** Rss Mb */
+            rss_mb?: number | null;
+            /**
+             * Tracemalloc Enabled
+             * @default false
+             */
+            tracemalloc_enabled: boolean;
+            /**
+             * Tracemalloc Top 25
+             * @default []
+             */
+            tracemalloc_top_25: components["schemas"]["TraceMallocEntry"][];
+        };
+        /**
          * MessageResponse
          * @description Single message in a conversation thread.
          */
@@ -9134,6 +9166,20 @@ export interface components {
              */
             tour_id: string;
         };
+        /**
+         * TraceMallocEntry
+         * @description Single tracemalloc allocation entry.
+         */
+        TraceMallocEntry: {
+            /** Count */
+            count: number;
+            /** Filename */
+            filename: string;
+            /** Lineno */
+            lineno: number;
+            /** Size Kb */
+            size_kb: number;
+        };
         /** TrendingSector */
         TrendingSector: {
             /** Count This Week */
@@ -10143,9 +10189,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["MemorySnapshot"];
                 };
             };
         };
