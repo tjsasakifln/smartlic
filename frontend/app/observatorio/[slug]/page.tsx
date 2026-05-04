@@ -164,6 +164,9 @@ export default async function RelatorioPage({
       }
     : null;
 
+  // Escape `<` to prevent early script-tag termination if backend strings contain `</script>`.
+  const toSafeJsonLd = (value: unknown) => JSON.stringify(value).replace(/</g, '\\u003c');
+
   // Issue #658: BreadcrumbList JSON-LD + visual nav breadcrumb.
   // Pattern: contratos/[setor]/[uf]/page.tsx (JSON-LD) + alertas-publicos/[setor]/[uf]/page.tsx (visual).
   const breadcrumbs = [
@@ -188,12 +191,12 @@ export default async function RelatorioPage({
       {datasetSchema && (
         <script
           type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(datasetSchema) }}
+          dangerouslySetInnerHTML={{ __html: toSafeJsonLd(datasetSchema) }}
         />
       )}
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbSchema) }}
+        dangerouslySetInnerHTML={{ __html: toSafeJsonLd(breadcrumbSchema) }}
       />
       {/* Issue #658: visual breadcrumb (matches alertas-publicos pattern). */}
       <nav aria-label="Breadcrumb" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 text-sm text-gray-500">
