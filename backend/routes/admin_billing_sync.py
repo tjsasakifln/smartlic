@@ -19,6 +19,7 @@ Reverse sync semantics:
 
 from __future__ import annotations
 
+import asyncio
 import logging
 from datetime import datetime, timezone, timedelta
 from typing import Any, Optional
@@ -27,6 +28,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, ConfigDict, Field
 
 from admin import require_admin
+from pipeline.budget import _run_with_budget
 from supabase_client import get_supabase
 
 logger = logging.getLogger(__name__)
@@ -34,6 +36,10 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/v1/admin/plans", tags=["admin", "billing"])
 
 
+# RES-BE-001 / RES-BE-015: per-query budget for admin billing sync routes.
+# Admin endpoints called rarely; 5s is well below the 8s service-role
+# statement_timeout and leaves headroom for response serialization.
+_QUERY_BUDGET_S: float = 5.0
 REVERSE_SYNC_RACE_GUARD = timedelta(hours=24)
 
 
@@ -200,17 +206,37 @@ async def list_billing_sync_rows(
 ) -> BillingSyncListResponse:
     """Return every plan_billing_periods row enriched with drift_status."""
     sb = get_supabase()
-    result = (
-        sb.table("plan_billing_periods")
-        .select(
-            "id, plan_id, billing_period, price_cents, discount_percent, "
-            "stripe_price_id, stripe_product_id, "
-            "last_forward_synced_at, last_reverse_synced_at, is_archived"
+
+    def _sync_query():
+        return (
+            sb.table("plan_billing_periods")
+            .select(
+                "id, plan_id, billing_period, price_cents, discount_percent, "
+                "stripe_price_id, stripe_product_id, "
+                "last_forward_synced_at, last_reverse_synced_at, is_archived"
+            )
+            .order("plan_id")
+            .order("billing_period")
+            .execute()
         )
-        .order("plan_id")
-        .order("billing_period")
-        .execute()
-    )
+
+    try:
+        result = await _run_with_budget(
+            asyncio.to_thread(_sync_query),
+            budget=_QUERY_BUDGET_S,
+            phase="route",
+            source="admin_billing_sync.list_billing_sync_rows",
+        )
+    except asyncio.TimeoutError:
+        logger.warning(
+            "BILL-SYNC-001: list_billing_sync_rows exceeded %.1fs budget",
+            _QUERY_BUDGET_S,
+        )
+        raise HTTPException(status_code=503, detail="billing sync query timed out")
+    except Exception as e:
+        logger.error("BILL-SYNC-001: list_billing_sync_rows DB error: %s", e, exc_info=True)
+        raise HTTPException(status_code=500, detail="failed to load billing sync rows")
+
     items = []
     for row in result.data or []:
         row["drift_status"] = _classify_drift_status(row)
@@ -227,16 +253,38 @@ async def list_reconciliation_runs(
     limit: int = Query(default=30, ge=1, le=200),
 ) -> ReconciliationRunsResponse:
     sb = get_supabase()
-    result = (
-        sb.table("billing_reconciliation_runs")
-        .select(
-            "id, started_at, finished_at, status, dry_run, rows_checked, "
-            "drifts_detected, drifts_fixed, drifts_manual, drift_report, error_message"
+
+    def _sync_query():
+        return (
+            sb.table("billing_reconciliation_runs")
+            .select(
+                "id, started_at, finished_at, status, dry_run, rows_checked, "
+                "drifts_detected, drifts_fixed, drifts_manual, drift_report, error_message"
+            )
+            .order("started_at", desc=True)
+            .limit(limit)
+            .execute()
         )
-        .order("started_at", desc=True)
-        .limit(limit)
-        .execute()
-    )
+
+    try:
+        result = await _run_with_budget(
+            asyncio.to_thread(_sync_query),
+            budget=_QUERY_BUDGET_S,
+            phase="route",
+            source="admin_billing_sync.list_reconciliation_runs",
+        )
+    except asyncio.TimeoutError:
+        logger.warning(
+            "BILL-SYNC-001: list_reconciliation_runs exceeded %.1fs budget",
+            _QUERY_BUDGET_S,
+        )
+        raise HTTPException(status_code=503, detail="reconciliation runs query timed out")
+    except Exception as e:
+        logger.error(
+            "BILL-SYNC-001: list_reconciliation_runs DB error: %s", e, exc_info=True
+        )
+        raise HTTPException(status_code=500, detail="failed to load reconciliation runs")
+
     items = [ReconciliationRun.model_validate(r) for r in (result.data or [])]
     return ReconciliationRunsResponse(items=items)
 
@@ -265,17 +313,38 @@ async def sync_to_stripe(
     actor_email = admin.get("email")
 
     # Load row.
-    row_result = (
-        sb.table("plan_billing_periods")
-        .select(
-            "id, plan_id, billing_period, price_cents, "
-            "stripe_price_id, stripe_product_id, "
-            "last_forward_synced_at, last_reverse_synced_at, is_archived"
+    def _sync_load_row():
+        return (
+            sb.table("plan_billing_periods")
+            .select(
+                "id, plan_id, billing_period, price_cents, "
+                "stripe_price_id, stripe_product_id, "
+                "last_forward_synced_at, last_reverse_synced_at, is_archived"
+            )
+            .eq("id", plan_billing_period_id)
+            .limit(1)
+            .execute()
         )
-        .eq("id", plan_billing_period_id)
-        .limit(1)
-        .execute()
-    )
+
+    try:
+        row_result = await _run_with_budget(
+            asyncio.to_thread(_sync_load_row),
+            budget=_QUERY_BUDGET_S,
+            phase="route",
+            source="admin_billing_sync.sync_to_stripe.load_row",
+        )
+    except asyncio.TimeoutError:
+        logger.warning(
+            "BILL-SYNC-001: sync_to_stripe load_row exceeded %.1fs budget",
+            _QUERY_BUDGET_S,
+        )
+        raise HTTPException(status_code=503, detail="plan_billing_period load timed out")
+    except Exception as e:
+        logger.error(
+            "BILL-SYNC-001: sync_to_stripe load_row DB error: %s", e, exc_info=True
+        )
+        raise HTTPException(status_code=500, detail="failed to load plan_billing_period")
+
     rows = row_result.data or []
     if not rows:
         raise HTTPException(status_code=404, detail="plan_billing_period not found")
@@ -401,14 +470,46 @@ async def sync_to_stripe(
 
     # Update DB pointer + last_reverse_synced_at.
     now_iso = datetime.now(timezone.utc).isoformat()
-    sb.table("plan_billing_periods").update(
-        {
-            "stripe_price_id": new_price_id,
-            "stripe_product_id": product_id,
-            "last_reverse_synced_at": now_iso,
-            "is_archived": False,
-        }
-    ).eq("id", plan_billing_period_id).execute()
+
+    def _sync_update_pointer():
+        return (
+            sb.table("plan_billing_periods")
+            .update(
+                {
+                    "stripe_price_id": new_price_id,
+                    "stripe_product_id": product_id,
+                    "last_reverse_synced_at": now_iso,
+                    "is_archived": False,
+                }
+            )
+            .eq("id", plan_billing_period_id)
+            .execute()
+        )
+
+    try:
+        await _run_with_budget(
+            asyncio.to_thread(_sync_update_pointer),
+            budget=_QUERY_BUDGET_S,
+            phase="route",
+            source="admin_billing_sync.sync_to_stripe.update_pointer",
+        )
+    except asyncio.TimeoutError:
+        logger.warning(
+            "BILL-SYNC-001: sync_to_stripe update_pointer exceeded %.1fs budget — "
+            "Stripe price was created but DB pointer NOT updated; reconciliation cron will detect drift",
+        )
+        raise HTTPException(
+            status_code=503,
+            detail="DB update timed out after Stripe price create; reconciliation cron will fix drift",
+        )
+    except Exception as e:
+        logger.error(
+            "BILL-SYNC-001: sync_to_stripe update_pointer DB error: %s", e, exc_info=True
+        )
+        raise HTTPException(
+            status_code=500,
+            detail="DB update failed after Stripe price create; manual reconciliation required",
+        )
 
     audit_id = _audit_log(
         sb,

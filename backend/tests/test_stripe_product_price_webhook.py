@@ -395,15 +395,40 @@ class TestSignatureVerificationPreserved:
     @pytest.mark.asyncio
     @patch("webhooks.stripe.STRIPE_WEBHOOK_SECRET", "whsec_test")
     async def test_invalid_signature_blocks_new_handlers(self, mock_request):
-        """Tampered payload must reject before any handler runs."""
+        """Tampered payload must reject before any handler runs.
+
+        BTS-011 (isolation): A previous test in the suite may have replaced
+        ``sys.modules['stripe']`` with a ``MagicMock`` / ``SimpleNamespace`` that
+        does not expose ``stripe.error.SignatureVerificationError``. We resolve
+        the exception via the production module's own attribute chain (which
+        is what the ``except`` clause checks against); if even that is missing,
+        we install a minimal fallback class so both ``raise`` and ``except``
+        reference the same identity.
+        """
         from fastapi import HTTPException
-        import stripe as stripe_mod
+        import webhooks.stripe as wh_stripe_mod
         from webhooks.stripe import stripe_webhook
 
+        try:
+            SigErr = wh_stripe_mod.stripe.error.SignatureVerificationError
+            sig_args: tuple = ("bad sig", "sig_header")
+        except AttributeError:
+            class SigErr(Exception):  # type: ignore[no-redef]
+                def __init__(self, message, sig_header=""):
+                    super().__init__(message)
+                    self.sig_header = sig_header
+
+            # Ensure both production code (`raise`) and the test (`except`) see
+            # the same class — install it on the imported module's stripe.error
+            # namespace so the production handler's except clause matches.
+            if not hasattr(wh_stripe_mod.stripe, "error"):
+                from types import SimpleNamespace
+                wh_stripe_mod.stripe.error = SimpleNamespace()
+            wh_stripe_mod.stripe.error.SignatureVerificationError = SigErr
+            sig_args = ("bad sig",)
+
         with patch("webhooks.stripe.stripe.Webhook.construct_event") as mock_construct:
-            mock_construct.side_effect = stripe_mod.error.SignatureVerificationError(
-                "bad sig", "sig_header"
-            )
+            mock_construct.side_effect = SigErr(*sig_args)
             with pytest.raises(HTTPException) as exc:
                 await stripe_webhook(mock_request)
             assert exc.value.status_code == 400
