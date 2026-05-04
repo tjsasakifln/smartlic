@@ -301,13 +301,17 @@ export function TrialConversionScreen({ trialValue, onClose, loading }: TrialCon
         >
           {checkoutLoading
             ? "Redirecionando para pagamento..."
-            : `Continuar com SmartLic Pro — ${formatCurrency(dynamicPrices[billingPeriod].monthly)}/mês`}
+            : hasData
+              ? `Manter meu acesso — ${formatCurrency(dynamicPrices[billingPeriod].monthly)}/mês`
+              : `Começar com SmartLic Pro — ${formatCurrency(dynamicPrices[billingPeriod].monthly)}/mês`}
         </button>
 
         {/* Confidence Footer */}
         <div className="mt-6 text-center space-y-2">
           <p className="text-sm text-ink-secondary">
-            Seu concorrente pode estar usando SmartLic agora. Continue tendo vantagem.
+            {hasData && trialValue!.total_value > 0
+              ? `Você já analisou ${formatCurrency(trialValue!.total_value)} em oportunidades nos últimos 14 dias. Sem o Pro, esse fluxo para hoje.`
+              : "14 dias bastaram para mapear seu mercado. O Pro mantém o radar ligado."}
           </p>
           <p className="text-xs text-ink-muted">
             Cancele quando quiser. Sem contrato de fidelidade.
