@@ -15,6 +15,7 @@ import asyncio
 import logging
 import secrets
 from datetime import datetime, timezone, timedelta
+from typing import Literal
 
 import bcrypt
 from fastapi import APIRouter, Depends, HTTPException, Request
@@ -421,29 +422,55 @@ async def _persist_backup_codes(user_id: str) -> list[str]:
     return plaintext_codes
 
 
+# Closed-set log reasons. CodeQL's `py/clear-text-logging-sensitive-data`
+# taint tracker will not allow a sensitive variable (e.g. the TOTP `secret`
+# returned by Supabase enrol) to flow into a Literal-typed parameter, which
+# is why we expose only this allowlist instead of a free-form ``extra: str``.
+LogReason = Literal[
+    "missing_token",
+    "supabase_error",
+    "incomplete_response",
+    "no_factor",
+    "challenge_failed",
+    "verify_failed",
+    "ok",
+]
+
+
 def _log_mfa_event(
     user_id: str,
     event: str,
     success: bool,
     ip: str,
-    extra: str = "",
+    reason: LogReason | None = None,
+    error_type: str | None = None,
 ) -> None:
     """Structured log for MFA enroll/verify attempts (Issue #639 AC).
 
     PII is masked via log_sanitizer (mask_user_id, mask_ip_address). All
     user-derived values are additionally passed through ``_safe_log_value``
-    to strip CRLF/control chars and prevent log-injection
-    (CodeQL py/log-injection / py/clear-text-logging-sensitive-data).
+    to strip CRLF/control chars.
+
+    Parameters are deliberately allowlisted to a closed set so that CodeQL's
+    `py/clear-text-logging-sensitive-data` taint tracker cannot reach this
+    log sink from any sensitive source (TOTP secret, recovery codes, raw
+    exception messages, etc.). ``error_type`` is only ever fed
+    ``type(e).__name__`` — a bounded class identifier — never a message or
+    traceback. Free-form ``extra`` is intentionally NOT supported.
     """
-    safe_extra = _safe_log_value(extra)
-    logger.info(
-        "mfa_event user_id=%s event=%s success=%s ip=%s%s",
-        _safe_log_value(mask_user_id(user_id)),
-        _safe_log_value(event),
-        success,
-        _safe_log_value(mask_ip_address(ip)),
-        f" {safe_extra}" if safe_extra else "",
-    )
+    parts = [
+        f"user_id={_safe_log_value(mask_user_id(user_id))}",
+        f"event={_safe_log_value(event)}",
+        f"success={success}",
+        f"ip={_safe_log_value(mask_ip_address(ip))}",
+    ]
+    if reason:
+        # ``reason`` is constrained by ``LogReason`` Literal — no taint flow possible.
+        parts.append(f"reason={reason}")
+    if error_type:
+        # ``type(e).__name__`` is a bounded class identifier; defensive truncate anyway.
+        parts.append(f"error_type={_safe_log_value(error_type)}")
+    logger.info("mfa_event %s", " ".join(parts))
 
 
 @router.post("/enroll", response_model=MFAEnrollResponse)
@@ -464,7 +491,7 @@ async def enroll_totp(
     access_token = _get_user_access_token(request)
 
     if not access_token:
-        _log_mfa_event(user_id, "mfa_enroll", success=False, ip=ip, extra="reason=missing_token")
+        _log_mfa_event(user_id, "mfa_enroll", success=False, ip=ip, reason="missing_token")
         raise HTTPException(status_code=401, detail="Token de autenticação ausente.")
 
     try:
@@ -478,7 +505,7 @@ async def enroll_totp(
     except Exception as e:  # noqa: BLE001 — Supabase SDK raises various types
         _log_mfa_event(
             user_id, "mfa_enroll", success=False, ip=ip,
-            extra=f"reason=supabase_error type={type(e).__name__}",
+            reason="supabase_error", error_type=type(e).__name__,
         )
         logger.warning(
             "MFA enrol failed for user %s: %s",
@@ -493,7 +520,7 @@ async def enroll_totp(
     factor_id, qr_uri, secret = _extract_totp_payload(enroll_resp)
     if not factor_id or not qr_uri or not secret:
         _log_mfa_event(
-            user_id, "mfa_enroll", success=False, ip=ip, extra="reason=incomplete_response",
+            user_id, "mfa_enroll", success=False, ip=ip, reason="incomplete_response",
         )
         raise HTTPException(
             status_code=502,
@@ -512,7 +539,10 @@ async def enroll_totp(
         # Non-fatal: enrolment can proceed; user can call /v1/mfa/recovery-codes later.
         backup_codes = []
 
-    _log_mfa_event(user_id, "mfa_enroll", success=True, ip=ip, extra=f"factor_id={factor_id[:8]}")
+    # NOTE: factor_id deliberately excluded from log payload — success=True is the audit
+    # signal; including factor_id would require relaxing the LogReason allowlist and
+    # widen the CodeQL py/clear-text-logging-sensitive-data attack surface.
+    _log_mfa_event(user_id, "mfa_enroll", success=True, ip=ip, reason="ok")
 
     return MFAEnrollResponse(
         factor_id=factor_id,
@@ -546,7 +576,7 @@ async def verify_totp(
     access_token = _get_user_access_token(request)
 
     if not access_token:
-        _log_mfa_event(user_id, "mfa_verify", success=False, ip=ip, extra="reason=missing_token")
+        _log_mfa_event(user_id, "mfa_verify", success=False, ip=ip, reason="missing_token")
         raise HTTPException(status_code=401, detail="Token de autenticação ausente.")
 
     # Find the user's most recent unverified factor (the one they just enrolled).
@@ -575,7 +605,7 @@ async def verify_totp(
 
     if not target:
         _log_mfa_event(
-            user_id, "mfa_verify", success=False, ip=ip, extra="reason=no_factor",
+            user_id, "mfa_verify", success=False, ip=ip, reason="no_factor",
         )
         raise HTTPException(
             status_code=400,
@@ -606,7 +636,8 @@ async def verify_totp(
             "mfa_verify",
             success=False,
             ip=ip,
-            extra=f"reason=verify_failed type={type(e).__name__}",
+            reason="verify_failed",
+            error_type=type(e).__name__,
         )
         logger.warning(
             "MFA verify failed for user %s: %s",
@@ -618,7 +649,8 @@ async def verify_totp(
             detail="Código TOTP inválido ou expirado. Verifique o relógio do dispositivo e tente novamente.",
         )
 
-    _log_mfa_event(user_id, "mfa_verify", success=True, ip=ip, extra=f"factor_id={factor_id[:8]}")
+    # factor_id deliberately excluded — see enroll branch.
+    _log_mfa_event(user_id, "mfa_verify", success=True, ip=ip, reason="ok")
 
     return MFAVerifyResponse(
         success=True,
