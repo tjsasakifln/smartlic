@@ -10,6 +10,7 @@
  */
 
 import { Metadata } from 'next';
+import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import * as Sentry from '@sentry/nextjs';
 import ObservatorioRelatorioClient from './ObservatorioRelatorioClient';
@@ -72,11 +73,13 @@ export async function generateMetadata({
 
   // STORY-431 AC13: missing or empty payload → noindex metadata so an
   // accidentally-cached blank page never lands in Google's index.
+  // Issue #658: explicit canonical to own URL (não herdar root do layout.tsx).
   if (!relatorio || !relatorio.total_editais) {
     return {
       title: `Raio-X das Licitações — ${mesDisplay} ${ano}`,
       description: `Análise mensal das licitações públicas brasileiras em ${mesDisplay.toLowerCase()} de ${ano}.`,
-      robots: { index: false, follow: false },
+      alternates: { canonical: `https://smartlic.tech/observatorio/${slug}` },
+      robots: { index: false, follow: true },
     };
   }
 
@@ -161,6 +164,25 @@ export default async function RelatorioPage({
       }
     : null;
 
+  // Issue #658: BreadcrumbList JSON-LD + visual nav breadcrumb.
+  // Pattern: contratos/[setor]/[uf]/page.tsx (JSON-LD) + alertas-publicos/[setor]/[uf]/page.tsx (visual).
+  const breadcrumbs = [
+    { name: 'Home', url: '/' },
+    { name: 'Observatório', url: '/observatorio' },
+    { name: `Raio-X — ${mesDisplay} ${ano}`, url: `/observatorio/${slug}` },
+  ];
+
+  const breadcrumbSchema = {
+    '@context': 'https://schema.org',
+    '@type': 'BreadcrumbList',
+    itemListElement: breadcrumbs.map((item, i) => ({
+      '@type': 'ListItem',
+      position: i + 1,
+      name: item.name,
+      item: `https://smartlic.tech${item.url}`,
+    })),
+  };
+
   return (
     <>
       {datasetSchema && (
@@ -169,6 +191,25 @@ export default async function RelatorioPage({
           dangerouslySetInnerHTML={{ __html: JSON.stringify(datasetSchema) }}
         />
       )}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbSchema) }}
+      />
+      {/* Issue #658: visual breadcrumb (matches alertas-publicos pattern). */}
+      <nav aria-label="Breadcrumb" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 text-sm text-gray-500">
+        <ol className="flex flex-wrap items-center gap-1">
+          {breadcrumbs.map((item, i) => (
+            <li key={item.url + i} className="flex items-center gap-1">
+              {i > 0 && <span className="text-gray-400">/</span>}
+              {i < breadcrumbs.length - 1 ? (
+                <Link href={item.url} className="hover:text-blue-600">{item.name}</Link>
+              ) : (
+                <span aria-current="page" className="text-gray-900 font-medium">{item.name}</span>
+              )}
+            </li>
+          ))}
+        </ol>
+      </nav>
       <ObservatorioRelatorioClient
         relatorio={relatorio}
         slug={slug}
