@@ -30,7 +30,7 @@ import os
 from pipeline.budget import _run_with_budget
 from typing import Any
 
-from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi import APIRouter, Depends, HTTPException, Request, Response
 from pydantic import BaseModel, Field, field_validator
 
 from rate_limiter import require_rate_limit
@@ -225,7 +225,7 @@ def _user_message_for_reason(reason: str) -> str:
 
 
 @router.get("/availability", response_model=FoundingAvailabilityResponse)
-async def founding_availability() -> Any:
+async def founding_availability(response: Response) -> Any:
     """Public seat counter + countdown feed.
 
     No auth — the landing page calls this anonymously to render the
@@ -233,7 +233,15 @@ async def founding_availability() -> Any:
     on transient DB error so the CTA is disabled rather than over-selling.
     """
     sb = get_supabase()
-    snapshot = _check_availability(sb)
+    snapshot = await _run_with_budget(
+        asyncio.to_thread(_check_availability, sb),
+        budget=3.0,
+        phase="route",
+        source="founding.availability",
+    )
+    # Cache-Control for Googlebot fanout — short-lived public cache so the
+    # seat counter stays accurate but bursty crawls don't hammer the RPC.
+    response.headers["Cache-Control"] = "public, s-maxage=30"
 
     seats_total = snapshot["seats_total"]
     seats_remaining = snapshot["seats_remaining"]
@@ -288,7 +296,12 @@ async def founding_checkout(
     sb = get_supabase()
 
     # BIZ-FOUND-002 gate — atomic cap + deadline + paused check.
-    snapshot = _check_availability(sb)
+    snapshot = await _run_with_budget(
+        asyncio.to_thread(_check_availability, sb),
+        budget=3.0,
+        phase="route",
+        source="founding.checkout_gate",
+    )
     if not snapshot["available"]:
         reason = snapshot["reason"]
         logger.info(
@@ -306,7 +319,7 @@ async def founding_checkout(
             },
         )
 
-    if _already_registered(sb, payload.email):
+    if await asyncio.to_thread(_already_registered, sb, payload.email):
         raise HTTPException(
             status_code=409,
             detail="Este email já possui conta SmartLic. Faça login para gerenciar sua assinatura.",
