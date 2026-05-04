@@ -15,6 +15,7 @@ Admin endpoints (list/aggregate) live in
 
 from __future__ import annotations
 
+import asyncio
 import logging
 from typing import Optional
 
@@ -22,6 +23,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from auth import require_auth
+from pipeline.budget import _run_with_budget
 from supabase_client import get_supabase
 
 logger = logging.getLogger(__name__)
@@ -134,11 +136,29 @@ async def submit_export_time_saved_survey(
     }
 
     sb = get_supabase()
-    try:
-        result = (
+
+    def _sync_insert():
+        return (
             sb.table("export_time_saved_survey")
             .insert(payload)
             .execute()
+        )
+
+    try:
+        result = await _run_with_budget(
+            asyncio.to_thread(_sync_insert),
+            budget=3.0,
+            phase="route",
+            source="survey.submit_export_time_saved_survey",
+        )
+    except asyncio.TimeoutError:
+        logger.warning(
+            "BIZ-METRIC-001: export_time_saved_survey insert exceeded 3s budget for user=%s",
+            user_id,
+        )
+        raise HTTPException(
+            status_code=503,
+            detail="Não foi possível registrar a resposta. Tente novamente.",
         )
     except Exception as exc:
         logger.warning(

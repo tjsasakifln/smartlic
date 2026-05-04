@@ -25,6 +25,7 @@ sync — same input → same output.
 
 from __future__ import annotations
 
+import asyncio
 import logging
 import statistics
 from datetime import datetime, timedelta, timezone
@@ -34,6 +35,7 @@ from fastapi import APIRouter, Body, Depends, HTTPException, Query
 from pydantic import BaseModel, ConfigDict, Field
 
 from admin import require_admin
+from pipeline.budget import _run_with_budget
 from supabase_client import get_supabase
 from utils.app_config import (
     DEFAULT_HOURS_SAVED_PER_SEARCH,
@@ -261,21 +263,27 @@ def build_histogram(values: list[float]) -> list[HistogramBucket]:
 # DB helpers
 # ---------------------------------------------------------------------------
 
-def _fetch_recent_surveys(range_days: int) -> list[dict[str, Any]]:
+async def _fetch_recent_surveys(range_days: int) -> list[dict[str, Any]]:
     """Fetch surveys submitted in the last *range_days* days via service role.
 
-    Returns an empty list on DB error (admin endpoint never raises 5xx
-    purely because the table is unavailable — operator can retry).
+    Returns an empty list on DB error or budget exceeded (admin endpoint
+    never raises 5xx purely because the table is unavailable — operator
+    can retry).
 
     Note on the cutoff: PostgREST does NOT evaluate SQL expressions in
     filter values; passing ``"now() - interval '90 days'"`` would be
     sent as a URL literal and silently match nothing. We compute the
     ISO-8601 cutoff in Python instead.
+
+    Wrapped in ``_run_with_budget`` (RES-BE-001/015) so the sync
+    Supabase ``.execute()`` does not block the async event loop and
+    the call respects the 5s read budget.
     """
     cutoff = (datetime.now(timezone.utc) - timedelta(days=int(range_days))).isoformat()
     sb = get_supabase()
-    try:
-        result = (
+
+    def _sync_query():
+        return (
             sb.table("export_time_saved_survey")
             .select("estimated_manual_hours, bid_count, submitted_at, export_type")
             .gte("submitted_at", cutoff)
@@ -283,6 +291,20 @@ def _fetch_recent_surveys(range_days: int) -> list[dict[str, Any]]:
             .limit(10_000)
             .execute()
         )
+
+    try:
+        result = await _run_with_budget(
+            asyncio.to_thread(_sync_query),
+            budget=5.0,
+            phase="route",
+            source="admin_calibration.fetch_recent_surveys",
+        )
+    except asyncio.TimeoutError:
+        logger.warning(
+            "admin_calibration: survey fetch exceeded 5s budget (range_days=%s)",
+            range_days,
+        )
+        return []
     except Exception as exc:
         logger.warning("admin_calibration: survey fetch failed: %s", exc)
         return []
@@ -302,7 +324,7 @@ async def list_export_surveys_aggregate(
     admin: dict = Depends(require_admin),
 ) -> SurveyAggregateResponse:
     """Aggregated histogram + summary stats for the calibration dashboard."""
-    rows = _fetch_recent_surveys(range_days)
+    rows = await _fetch_recent_surveys(range_days)
     metrics = compute_calibration(rows)
 
     abs_hours: list[float] = []
@@ -364,13 +386,26 @@ async def patch_app_config(
     if body.description is not None:
         update_payload["description"] = body.description
 
-    try:
-        result = (
+    def _sync_patch():
+        return (
             sb.table("app_config")
             .update(update_payload)
             .eq("key", key)
             .execute()
         )
+
+    try:
+        result = await _run_with_budget(
+            asyncio.to_thread(_sync_patch),
+            budget=3.0,
+            phase="route",
+            source="admin_calibration.patch_app_config",
+        )
+    except asyncio.TimeoutError:
+        logger.warning(
+            "admin_calibration: app_config PATCH exceeded 3s budget for %s", key,
+        )
+        raise HTTPException(status_code=503, detail="Database unavailable")
     except Exception as exc:
         logger.warning("admin_calibration: app_config PATCH failed for %s: %s", key, exc)
         raise HTTPException(status_code=503, detail="Database unavailable")
@@ -408,7 +443,7 @@ async def recalibrate(
     When ``apply=true`` and eligible, persists the new value via
     ``app_config`` and drops the cache.
     """
-    rows = _fetch_recent_surveys(body.range_days)
+    rows = await _fetch_recent_surveys(body.range_days)
     metrics = compute_calibration(rows)
     new_value = metrics["median_hours"]
     after = metrics["after_outlier_removal"]
@@ -436,20 +471,39 @@ async def recalibrate(
     applied = False
     if eligible and body.apply and new_value is not None:
         sb = get_supabase()
+
+        update_payload = {
+            "value": new_value,
+            "updated_by": admin.get("id"),
+            "description": (
+                "BIZ-METRIC-001: empirically calibrated via "
+                f"scripts/recalibrate_hours_saved.py "
+                f"(n={after}, range={body.range_days}d, median={new_value:.2f}h)"
+            ),
+        }
+
+        def _sync_persist():
+            return (
+                sb.table("app_config")
+                .update(update_payload)
+                .eq("key", "hours_saved_per_search")
+                .execute()
+            )
+
         try:
-            sb.table("app_config").update(
-                {
-                    "value": new_value,
-                    "updated_by": admin.get("id"),
-                    "description": (
-                        "BIZ-METRIC-001: empirically calibrated via "
-                        f"scripts/recalibrate_hours_saved.py "
-                        f"(n={after}, range={body.range_days}d, median={new_value:.2f}h)"
-                    ),
-                }
-            ).eq("key", "hours_saved_per_search").execute()
+            await _run_with_budget(
+                asyncio.to_thread(_sync_persist),
+                budget=3.0,
+                phase="route",
+                source="admin_calibration.recalibrate",
+            )
             invalidate_app_config("hours_saved_per_search")
             applied = True
+        except asyncio.TimeoutError:
+            logger.warning(
+                "admin_calibration: persist new value exceeded 3s budget",
+            )
+            raise HTTPException(status_code=503, detail="Database unavailable")
         except Exception as exc:
             logger.warning(
                 "admin_calibration: persist new value failed: %s",
