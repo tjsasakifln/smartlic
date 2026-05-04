@@ -361,3 +361,65 @@ class SignupResponse(BaseModel):
         default=True,
         description="Whether Supabase requires email confirmation before login",
     )
+
+
+# ─── MFA Schemas (Issue #639 — TOTP enroll + verify) ──────────────────────────
+
+class MFAEnrollResponse(BaseModel):
+    """Response body for POST /v1/mfa/enroll (Issue #639).
+
+    Contains the data needed for the user to add the TOTP factor to an
+    authenticator app (Google Authenticator, Authy, 1Password, etc.) and
+    one-time backup codes for recovery if the device is lost.
+    """
+
+    factor_id: str = Field(..., description="Supabase mfa_factors.id (UUID)")
+    qr_code_uri: str = Field(
+        ...,
+        description=(
+            "otpauth:// URI per RFC 6238. Encode as QR code on the client. "
+            "Most TOTP apps support pasting the URI directly."
+        ),
+    )
+    secret: str = Field(
+        ...,
+        description=(
+            "Base32-encoded TOTP shared secret. Provided so the user can "
+            "manually enter it when the QR code cannot be scanned."
+        ),
+    )
+    backup_codes: List[str] = Field(
+        default_factory=list,
+        description=(
+            "10 one-time recovery codes (XXXX-XXXX format). Shown ONCE — "
+            "user must save them. Used as MFA bypass via /v1/mfa/verify-recovery."
+        ),
+    )
+
+
+class MFAVerifyRequest(BaseModel):
+    """Request body for POST /v1/mfa/verify-totp (Issue #639)."""
+
+    totp_code: str = Field(
+        ...,
+        min_length=6,
+        max_length=10,
+        description="6-digit TOTP code from authenticator app (RFC 6238)",
+    )
+
+    @field_validator("totp_code")
+    @classmethod
+    def _strip_and_validate_digits(cls, v: str) -> str:
+        cleaned = v.strip().replace(" ", "").replace("-", "")
+        if not cleaned.isdigit():
+            raise ValueError("totp_code must contain only digits")
+        return cleaned
+
+
+class MFAVerifyResponse(BaseModel):
+    """Response body for POST /v1/mfa/verify-totp (Issue #639)."""
+
+    success: bool = Field(..., description="True when the code matched and AAL was elevated to aal2")
+    aal_level: str = Field(default="aal2", description="Authenticator Assurance Level after verification")
+    factor_id: str = Field(..., description="ID of the verified factor")
+    message: str = Field(default="", description="Human-readable status message")
