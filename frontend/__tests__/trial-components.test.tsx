@@ -115,7 +115,7 @@ describe('TrialConversionScreen', () => {
 
     render(<TrialConversionScreen trialValue={mockTrialValue} onClose={jest.fn()} />);
 
-    const ctaButton = screen.getByRole('button', { name: /Continuar com SmartLic Pro/i });
+    const ctaButton = screen.getByRole('button', { name: /Manter meu acesso/i });
     fireEvent.click(ctaButton);
 
     // Should attempt fetch then fallback to router.push
