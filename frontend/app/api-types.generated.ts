@@ -256,6 +256,33 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/admin/calibration/recalibrate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Recalibrate
+         * @description Compute new ``hours_saved_per_search`` from survey distribution.
+         *
+         *     Eligibility rules (mirrors AC6 + risk R3):
+         *         * After IQR outlier removal there must be >= MIN_SAMPLE_SIZE rows.
+         *         * The new median must be in (0, 50].
+         *
+         *     When ``apply=true`` and eligible, persists the new value via
+         *     ``app_config`` and drops the cache.
+         */
+        post: operations["recalibrate_v1_admin_calibration_recalibrate_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/admin/cb/reset": {
         parameters: {
             query?: never;
@@ -302,6 +329,30 @@ export interface paths {
         options?: never;
         head?: never;
         patch?: never;
+        trace?: never;
+    };
+    "/v1/admin/config/{key}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Patch App Config
+         * @description Update one row in ``app_config``. Whitelist enforced.
+         *
+         *     On success the in-process TTL cache for *key* is invalidated so
+         *     the new value becomes visible in this worker on the next read
+         *     (other workers see it after their TTL expires).
+         */
+        patch: operations["patch_app_config_v1_admin_config__key__patch"];
         trace?: never;
     };
     "/v1/admin/cron-status": {
@@ -570,6 +621,80 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/admin/plans/billing-sync": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Billing Sync Rows
+         * @description Return every plan_billing_periods row enriched with drift_status.
+         */
+        get: operations["list_billing_sync_rows_v1_admin_plans_billing_sync_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/admin/plans/reconcile-now": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Reconcile Now */
+        post: operations["reconcile_now_v1_admin_plans_reconcile_now_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/admin/plans/reconciliation-runs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Reconciliation Runs */
+        get: operations["list_reconciliation_runs_v1_admin_plans_reconciliation_runs_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/admin/plans/{plan_billing_period_id}/sync-to-stripe": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Sync To Stripe
+         * @description AC8/AC9: Push DB price -> Stripe by creating a new Price + archiving old.
+         */
+        post: operations["sync_to_stripe_v1_admin_plans__plan_billing_period_id__sync_to_stripe_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/admin/reconciliation/history": {
         parameters: {
             query?: never;
@@ -786,6 +911,26 @@ export interface paths {
          *         breached_count: Number of conversations exceeding 20 business hours
          */
         get: operations["get_support_sla_v1_admin_support_sla_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/admin/survey/export-time-saved": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Export Surveys Aggregate
+         * @description Aggregated histogram + summary stats for the calibration dashboard.
+         */
+        get: operations["list_export_surveys_aggregate_v1_admin_survey_export_time_saved_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -3160,6 +3305,32 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/mfa/enroll": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Enroll Totp
+         * @description Issue #639 AC1: Enrol a TOTP MFA factor for the current user.
+         *
+         *     Returns the QR code URI (otpauth://...), the base32 secret, and 10 fresh
+         *     one-time backup codes. The user adds the URI/secret to an authenticator
+         *     app and then calls /verify-totp with a generated code to complete enrolment.
+         *
+         *     Backup codes are returned ONCE — the client must persist them.
+         */
+        post: operations["enroll_totp_v1_mfa_enroll_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/mfa/recovery-codes": {
         parameters: {
             query?: never;
@@ -3246,6 +3417,33 @@ export interface paths {
          *     On success: marks code as used, returns remaining count.
          */
         post: operations["verify_recovery_code_v1_mfa_verify_recovery_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/mfa/verify-totp": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Verify Totp
+         * @description Issue #639 AC2: Verify a TOTP code to complete enrolment + elevate to aal2.
+         *
+         *     Looks up the user's most recent unverified factor, creates a Supabase
+         *     challenge, then verifies the supplied code. On success the Supabase
+         *     session is elevated to aal2 (subsequent requests carry that claim in
+         *     the JWT, gating /admin and other sensitive routes).
+         *
+         *     Rate limit: 5 attempts / 15 min via require_rate_limit (token bucket).
+         */
+        post: operations["verify_totp_v1_mfa_verify_totp_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -4489,6 +4687,30 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/survey/export-time-saved": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Submit Export Time Saved Survey
+         * @description Persist one row in ``export_time_saved_survey``.
+         *
+         *     Auth required. The row is owned by ``user.id`` (RLS: users only ever
+         *     see their own submissions). Returns 503 if the database is
+         *     unavailable so the frontend can retry on next export.
+         */
+        post: operations["submit_export_time_saved_survey_v1_survey_export_time_saved_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/trial-emails/unsubscribe": {
         parameters: {
             query?: never;
@@ -4987,6 +5209,35 @@ export interface components {
             /** Uf */
             uf: string;
         };
+        /**
+         * AppConfigPatchRequest
+         * @description PATCH /v1/admin/config/{key} body.
+         */
+        AppConfigPatchRequest: {
+            /**
+             * Description
+             * @description Optional updated description
+             */
+            description?: string | null;
+            /**
+             * Value
+             * @description New JSONB value (scalar/array/object)
+             */
+            value: unknown;
+        };
+        /** AppConfigRow */
+        AppConfigRow: {
+            /** Description */
+            description?: string | null;
+            /** Key */
+            key: string;
+            /** Updated At */
+            updated_at?: string | null;
+            /** Updated By */
+            updated_by?: string | null;
+            /** Value */
+            value: unknown;
+        };
         /** AuthStatusResponse */
         AuthStatusResponse: {
             /** Confirmed */
@@ -5003,6 +5254,46 @@ export interface components {
             plans: {
                 [key: string]: unknown;
             }[];
+        };
+        /** BillingSyncListResponse */
+        BillingSyncListResponse: {
+            /** Items */
+            items: components["schemas"]["BillingSyncRow"][];
+        };
+        /** BillingSyncRow */
+        BillingSyncRow: {
+            /** Billing Period */
+            billing_period: string;
+            /**
+             * Discount Percent
+             * @default 0
+             */
+            discount_percent: number;
+            /**
+             * Drift Status
+             * @description in_sync | drift_recent | drift_stale | unknown
+             * @default unknown
+             */
+            drift_status: string;
+            /** Id */
+            id: string;
+            /**
+             * Is Archived
+             * @default false
+             */
+            is_archived: boolean;
+            /** Last Forward Synced At */
+            last_forward_synced_at?: string | null;
+            /** Last Reverse Synced At */
+            last_reverse_synced_at?: string | null;
+            /** Plan Id */
+            plan_id: string;
+            /** Price Cents */
+            price_cents: number;
+            /** Stripe Price Id */
+            stripe_price_id?: string | null;
+            /** Stripe Product Id */
+            stripe_product_id?: string | null;
         };
         /**
          * BuscaRequest
@@ -6534,6 +6825,52 @@ export interface components {
          * @enum {string}
          */
         ExperienciaLicitacoes: "PRIMEIRA_VEZ" | "INICIANTE" | "INTERMEDIARIO" | "EXPERIENTE";
+        /**
+         * ExportTimeSavedSurveyRequest
+         * @description Body for POST /v1/survey/export-time-saved.
+         */
+        ExportTimeSavedSurveyRequest: {
+            /**
+             * Bid Count
+             * @description Number of bids included in the export
+             */
+            bid_count?: number | null;
+            /**
+             * Estimated Manual Hours
+             * @description User-reported manual-equivalent hours (range [0.1, 50])
+             */
+            estimated_manual_hours: number;
+            /**
+             * Export Id
+             * @description Export job/download identifier
+             */
+            export_id?: string | null;
+            /**
+             * Export Type
+             * @description excel | pdf | sheets
+             */
+            export_type: string;
+            /**
+             * Free Text
+             * @description Optional free-text answer ('how would you have done this before?')
+             */
+            free_text?: string | null;
+            /**
+             * Search Id
+             * @description Search session id this export came from
+             */
+            search_id?: string | null;
+        };
+        /**
+         * ExportTimeSavedSurveyResponse
+         * @description Body for POST /v1/survey/export-time-saved (201).
+         */
+        ExportTimeSavedSurveyResponse: {
+            /** Id */
+            id: string;
+            /** Submitted At */
+            submitted_at: string;
+        };
         /** ExtendRequest */
         ExtendRequest: {
             /**
@@ -7259,6 +7596,13 @@ export interface components {
             /** Detail */
             detail?: components["schemas"]["ValidationError"][];
         };
+        /** HistogramBucket */
+        HistogramBucket: {
+            /** Count */
+            count: number;
+            /** Range Label */
+            range_label: string;
+        };
         /** IndiceResult */
         IndiceResult: {
             /** Calculado Em */
@@ -7551,6 +7895,75 @@ export interface components {
              * @default true
              */
             ok: boolean;
+        };
+        /**
+         * MFAEnrollResponse
+         * @description Response body for POST /v1/mfa/enroll (Issue #639).
+         *
+         *     Contains the data needed for the user to add the TOTP factor to an
+         *     authenticator app (Google Authenticator, Authy, 1Password, etc.) and
+         *     one-time backup codes for recovery if the device is lost.
+         */
+        MFAEnrollResponse: {
+            /**
+             * Backup Codes
+             * @description 10 one-time recovery codes (XXXX-XXXX format). Shown ONCE — user must save them. Used as MFA bypass via /v1/mfa/verify-recovery.
+             */
+            backup_codes?: string[];
+            /**
+             * Factor Id
+             * @description Supabase mfa_factors.id (UUID)
+             */
+            factor_id: string;
+            /**
+             * Qr Code Uri
+             * @description otpauth:// URI per RFC 6238. Encode as QR code on the client. Most TOTP apps support pasting the URI directly.
+             */
+            qr_code_uri: string;
+            /**
+             * Secret
+             * @description Base32-encoded TOTP shared secret. Provided so the user can manually enter it when the QR code cannot be scanned.
+             */
+            secret: string;
+        };
+        /**
+         * MFAVerifyRequest
+         * @description Request body for POST /v1/mfa/verify-totp (Issue #639).
+         */
+        MFAVerifyRequest: {
+            /**
+             * Totp Code
+             * @description 6-digit TOTP code from authenticator app (RFC 6238)
+             */
+            totp_code: string;
+        };
+        /**
+         * MFAVerifyResponse
+         * @description Response body for POST /v1/mfa/verify-totp (Issue #639).
+         */
+        MFAVerifyResponse: {
+            /**
+             * Aal Level
+             * @description Authenticator Assurance Level after verification
+             * @default aal2
+             */
+            aal_level: string;
+            /**
+             * Factor Id
+             * @description ID of the verified factor
+             */
+            factor_id: string;
+            /**
+             * Message
+             * @description Human-readable status message
+             * @default
+             */
+            message: string;
+            /**
+             * Success
+             * @description True when the code matched and AAL was elevated to aal2
+             */
+            success: boolean;
         };
         /**
          * MemorySnapshot
@@ -8215,6 +8628,48 @@ export interface components {
             /** Total */
             total: number;
         };
+        /**
+         * RecalibrateRequest
+         * @description POST /v1/admin/calibration/recalibrate body.
+         */
+        RecalibrateRequest: {
+            /**
+             * Apply
+             * @description When true, writes the new median to app_config.
+             * @default false
+             */
+            apply: boolean;
+            /**
+             * Range Days
+             * @default 90
+             */
+            range_days: number;
+        };
+        /** RecalibrateResponse */
+        RecalibrateResponse: {
+            /** After Outlier Removal */
+            after_outlier_removal: number;
+            /** Applied */
+            applied: boolean;
+            /** Diff Pct */
+            diff_pct?: number | null;
+            /** Eligible */
+            eligible: boolean;
+            /** Median Bid Count */
+            median_bid_count?: number | null;
+            /** Median Per Bid */
+            median_per_bid?: number | null;
+            /** New Value */
+            new_value?: number | null;
+            /** Old Value */
+            old_value: number;
+            /** Range Days */
+            range_days: number;
+            /** Reason */
+            reason?: string | null;
+            /** Sample Size */
+            sample_size: number;
+        };
         /** RecentContract */
         RecentContract: {
             /** Data Assinatura */
@@ -8272,6 +8727,78 @@ export interface components {
             plan_key: string;
             /** Reason */
             reason: string;
+        };
+        /** ReconcileNowResponse */
+        ReconcileNowResponse: {
+            /**
+             * Drifts Detected
+             * @default 0
+             */
+            drifts_detected: number;
+            /**
+             * Drifts Fixed
+             * @default 0
+             */
+            drifts_fixed: number;
+            /**
+             * Drifts Manual
+             * @default 0
+             */
+            drifts_manual: number;
+            /** Dry Run */
+            dry_run: boolean;
+            /** Run Id */
+            run_id?: string | null;
+            /** Status */
+            status: string;
+        };
+        /** ReconciliationRun */
+        ReconciliationRun: {
+            /** Drift Report */
+            drift_report?: unknown;
+            /**
+             * Drifts Detected
+             * @default 0
+             */
+            drifts_detected: number;
+            /**
+             * Drifts Fixed
+             * @default 0
+             */
+            drifts_fixed: number;
+            /**
+             * Drifts Manual
+             * @default 0
+             */
+            drifts_manual: number;
+            /**
+             * Dry Run
+             * @default false
+             */
+            dry_run: boolean;
+            /** Error Message */
+            error_message?: string | null;
+            /** Finished At */
+            finished_at?: string | null;
+            /** Id */
+            id: string;
+            /**
+             * Rows Checked
+             * @default 0
+             */
+            rows_checked: number;
+            /**
+             * Started At
+             * Format: date-time
+             */
+            started_at: string;
+            /** Status */
+            status: string;
+        };
+        /** ReconciliationRunsResponse */
+        ReconciliationRunsResponse: {
+            /** Items */
+            items: components["schemas"]["ReconciliationRun"][];
         };
         /** RecoveryCodesResponse */
         RecoveryCodesResponse: {
@@ -8608,6 +9135,32 @@ export interface components {
              * @description Total value of all opportunities in BRL
              */
             valor_total: number;
+        };
+        /** ReverseSyncRequest */
+        ReverseSyncRequest: {
+            /**
+             * I Understand This Modifies Stripe
+             * @description Admin must explicitly confirm intent to mutate Stripe.
+             * @default false
+             */
+            i_understand_this_modifies_stripe: boolean;
+            /** Note */
+            note?: string | null;
+        };
+        /** ReverseSyncResponse */
+        ReverseSyncResponse: {
+            /** Audit Log Id */
+            audit_log_id?: string | null;
+            /** New Stripe Price Id */
+            new_stripe_price_id?: string | null;
+            /** Old Stripe Price Id */
+            old_stripe_price_id?: string | null;
+            /** Plan Billing Period Id */
+            plan_billing_period_id: string;
+            /** Skipped Reason */
+            skipped_reason?: string | null;
+            /** Status */
+            status: string;
         };
         /**
          * RevokeResponse
@@ -9240,6 +9793,38 @@ export interface components {
             total_contratos: number;
             /** Valor Total */
             valor_total: number;
+        };
+        /**
+         * SurveyAggregateResponse
+         * @description GET /v1/admin/survey/export-time-saved response.
+         */
+        SurveyAggregateResponse: {
+            /** After Outlier Removal */
+            after_outlier_removal: number;
+            /** Current Constant */
+            current_constant: number;
+            /** Histogram */
+            histogram: components["schemas"]["HistogramBucket"][];
+            /** Iqr Lower Bound */
+            iqr_lower_bound?: number | null;
+            /** Iqr Q1 */
+            iqr_q1?: number | null;
+            /** Iqr Q3 */
+            iqr_q3?: number | null;
+            /** Iqr Upper Bound */
+            iqr_upper_bound?: number | null;
+            /** Mean Hours */
+            mean_hours?: number | null;
+            /** Median Bid Count */
+            median_bid_count?: number | null;
+            /** Median Hours */
+            median_hours?: number | null;
+            /** Median Per Bid */
+            median_per_bid?: number | null;
+            /** Range Days */
+            range_days: number;
+            /** Sample Size */
+            sample_size: number;
         };
         /** TimeSeriesDataPoint */
         TimeSeriesDataPoint: {
@@ -10129,6 +10714,39 @@ export interface operations {
             };
         };
     };
+    recalibrate_v1_admin_calibration_recalibrate_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["RecalibrateRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RecalibrateResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     reset_circuit_breakers_v1_admin_cb_reset_post: {
         parameters: {
             query?: never;
@@ -10169,6 +10787,41 @@ export interface operations {
                     "application/json": {
                         [key: string]: unknown;
                     };
+                };
+            };
+        };
+    };
+    patch_app_config_v1_admin_config__key__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                key: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AppConfigPatchRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AppConfigRow"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };
@@ -10479,6 +11132,123 @@ export interface operations {
             };
         };
     };
+    list_billing_sync_rows_v1_admin_plans_billing_sync_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BillingSyncListResponse"];
+                };
+            };
+        };
+    };
+    reconcile_now_v1_admin_plans_reconcile_now_post: {
+        parameters: {
+            query?: {
+                dry_run?: boolean;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReconcileNowResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_reconciliation_runs_v1_admin_plans_reconciliation_runs_get: {
+        parameters: {
+            query?: {
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReconciliationRunsResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    sync_to_stripe_v1_admin_plans__plan_billing_period_id__sync_to_stripe_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                plan_billing_period_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReverseSyncRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReverseSyncResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     get_reconciliation_history_v1_admin_reconciliation_history_get: {
         parameters: {
             query?: {
@@ -10727,6 +11497,37 @@ export interface operations {
                 };
                 content: {
                     "application/json": unknown;
+                };
+            };
+        };
+    };
+    list_export_surveys_aggregate_v1_admin_survey_export_time_saved_get: {
+        parameters: {
+            query?: {
+                range_days?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SurveyAggregateResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };
@@ -13815,6 +14616,26 @@ export interface operations {
             };
         };
     };
+    enroll_totp_v1_mfa_enroll_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MFAEnrollResponse"];
+                };
+            };
+        };
+    };
     generate_recovery_codes_v1_mfa_recovery_codes_post: {
         parameters: {
             query?: never;
@@ -13895,6 +14716,39 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["VerifyRecoveryResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    verify_totp_v1_mfa_verify_totp_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MFAVerifyRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MFAVerifyResponse"];
                 };
             };
             /** @description Validation Error */
@@ -15524,6 +16378,39 @@ export interface operations {
                 };
                 content: {
                     "application/json": unknown;
+                };
+            };
+        };
+    };
+    submit_export_time_saved_survey_v1_survey_export_time_saved_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ExportTimeSavedSurveyRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ExportTimeSavedSurveyResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };
