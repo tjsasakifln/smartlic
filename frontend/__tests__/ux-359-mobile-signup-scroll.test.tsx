@@ -2,7 +2,7 @@
  * UX-359 — Mobile Signup Scroll Discoverability
  *
  * Tests:
- * AC1: Sidebar uses min-h-[50vh] on mobile, not min-h-screen
+ * AC1: Sidebar uses min-h-[25vh] on mobile, not min-h-screen
  * AC2: Chevron scroll indicator renders on mobile
  * AC3: Auto-scroll via ?scroll=form URL param
  * AC4: Responsive layout optimizations (padding, flex-wrap)
@@ -102,12 +102,12 @@ afterEach(() => {
 
 // ─── AC1: Sidebar height tests ─────────────────────────────────────────────────
 describe("AC1 — Sidebar with reduced mobile height", () => {
-  it("uses min-h-[50vh] class instead of min-h-screen", () => {
+  it("uses min-h-[25vh] class instead of min-h-screen", () => {
     const { container } = render(
       <InstitutionalSidebar variant="signup" />
     );
     const sidebar = container.firstChild as HTMLElement;
-    expect(sidebar.className).toContain("min-h-[50vh]");
+    expect(sidebar.className).toContain("min-h-[25vh]");
     expect(sidebar.className).not.toContain("min-h-screen");
   });
 
@@ -297,7 +297,7 @@ describe("AC6 — Desktop layout preserved (no regressions)", () => {
   it("sidebar has w-full md:w-1/2 classes", () => {
     const { container } = render(<SignupPage />);
     // The sidebar should have w-full md:w-1/2
-    const sidebar = container.querySelector('[class*="min-h-[50vh]"]');
+    const sidebar = container.querySelector('[class*="min-h-[25vh]"]');
     expect(sidebar?.className).toContain("w-full");
     expect(sidebar?.className).toContain("md:w-1/2");
   });

@@ -19,7 +19,23 @@ class BasePage:
         WebDriverWait(self.driver, 30).until(
             lambda d: d.execute_script("return document.readyState") == "complete"
         )
+        self._dismiss_cookie_banner()
         return time.time() - t0
+
+    def _dismiss_cookie_banner(self):
+        """Aceita cookie consent via localStorage para evitar que o banner bloqueie cliques."""
+        self.driver.execute_script(
+            """
+            const consent = JSON.stringify({analytics: true, timestamp: new Date().toISOString()});
+            try { localStorage.setItem('smartlic_cookie_consent', consent); } catch(e) {}
+            const banner = document.querySelector('[class*="fixed bottom-0"]');
+            if (banner) banner.remove();
+            """
+        )
+
+    def js_click(self, element):
+        """Clica via JavaScript — contorna overlays e elementos fora do viewport."""
+        self.driver.execute_script("arguments[0].scrollIntoView({block: 'center'}); arguments[0].click();", element)
 
     def wait_for_element(self, by: By, selector: str, timeout: int = 15):
         return WebDriverWait(self.driver, timeout).until(

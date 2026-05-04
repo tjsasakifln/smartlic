@@ -165,11 +165,11 @@ describe('InstitutionalSidebar', () => {
       expect(sidebar.className).toContain('md:');
     });
 
-    it('has min-h-[50vh] on mobile (UX-359: reduced from min-h-screen)', () => {
+    it('has min-h-[25vh] on mobile (UX-359: reduced from min-h-screen)', () => {
       const { container } = render(<InstitutionalSidebar variant="login" />);
 
       const sidebar = container.firstChild as HTMLElement;
-      expect(sidebar.className).toContain('min-h-[50vh]');
+      expect(sidebar.className).toContain('min-h-[25vh]');
     });
   });
 
