@@ -1,0 +1,137 @@
+name: "SECDEF search_path Guard"
+
+# Issue: #698 (SEC-SECDEF-002) — analógico ao .github/workflows/handle-new-user-guard.yml
+# mas com escopo genérico: bloqueia PR introduzindo qualquer SECURITY DEFINER sem
+# `SET search_path = public, pg_temp` em supabase/migrations/.
+# Previne re-introdução do pattern que causou wedge handle_new_user (PR #696).
+
+on:
+  pull_request:
+    paths:
+      - 'supabase/migrations/**.sql'
+
+permissions:
+  contents: read
+  pull-requests: write
+
+concurrency:
+  group: secdef-guard-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Detect SECDEF without SET search_path in PR diff
+        id: scan
+        run: |
+          set -euo pipefail
+
+          # Get changed migration files (excluding .down.sql rollbacks)
+          CHANGED=$(git diff --name-only "origin/${{ github.base_ref }}...HEAD" -- 'supabase/migrations/*.sql' | grep -v '\.down\.sql$' || true)
+
+          if [ -z "$CHANGED" ]; then
+            echo "found=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          echo "Scanning files:" >&2
+          echo "$CHANGED" >&2
+
+          # AWK scanner: per-function detection of SECDEF presence + SET search_path absence.
+          # Function block detected from `CREATE [OR REPLACE] FUNCTION` until `$$ LANGUAGE...`
+          # or `LANGUAGE ... $$;` terminator.
+          VIOLATIONS=$(echo "$CHANGED" | xargs awk '
+            /CREATE OR REPLACE FUNCTION|CREATE FUNCTION/ {
+              in_func=1; func_name=$0; secdef=0; setpath=0; func_start=NR
+            }
+            in_func && /SECURITY DEFINER/ { secdef=1 }
+            in_func && /SET search_path/ { setpath=1 }
+            in_func && /^[[:space:]]*\$\$[[:space:]]*;[[:space:]]*$|LANGUAGE[[:space:]]+plpgsql[[:space:]]*;[[:space:]]*$/ {
+              if (secdef && !setpath) {
+                gsub(/^[[:space:]]+|[[:space:]]+$/, "", func_name)
+                print FILENAME ":" func_start " | " func_name
+              }
+              in_func=0
+            }
+          ')
+
+          # Allow-list: pre-existing legacy functions documented in repo.
+          # Decremental baseline pattern (per .github/workflows/audit-execute-without-budget.yml RES-BE-001).
+          if [ -f .github/secdef-allowlist.txt ]; then
+            VIOLATIONS=$(echo "$VIOLATIONS" | grep -v -F -f .github/secdef-allowlist.txt || true)
+          fi
+
+          if [ -n "$VIOLATIONS" ]; then
+            echo "found=true" >> "$GITHUB_OUTPUT"
+            # Multiline-safe heredoc per feedback_github_output_multiline_heredoc memory.
+            # Plain `key=$VAR` quebra com newline em listagens multi-arquivo.
+            {
+              echo "violations<<VIOLATIONS_EOF"
+              echo "$VIOLATIONS"
+              echo "VIOLATIONS_EOF"
+            } >> "$GITHUB_OUTPUT"
+            echo "::error::SECDEF guard failed — see PR comment for details"
+            exit 1
+          else
+            echo "found=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Post failure comment on PR
+        if: failure() && steps.scan.outputs.found == 'true'
+        uses: actions/github-script@v9
+        with:
+          script: |
+            const violations = process.env.VIOLATIONS || 'unknown';
+            const body = [
+              '🚨 **SECDEF search_path Guard (SEC-SECDEF-002)**',
+              '',
+              'Este PR introduz `SECURITY DEFINER` sem `SET search_path = public, pg_temp`.',
+              '',
+              '**Por que isso bloqueia o PR:**',
+              'Funções SECURITY DEFINER sem `SET search_path` herdam o `search_path` do caller.',
+              'Quando o caller é `supabase_auth_admin` (search_path=auth) ou outro role com',
+              'schema-on-front diferente, referências UNQUALIFIED a tabelas em `public` resolvem',
+              'para o schema errado → 42P01 → aborta INSERT pai. Foi essa exata causa do wedge',
+              'de signup que ficou ativo 24 dias (PR #696, fix `handle_new_user`).',
+              '',
+              '**Funções violando o gate:**',
+              '```',
+              violations,
+              '```',
+              '',
+              '**Como corrigir:**',
+              'Adicione no header da função:',
+              '```sql',
+              'CREATE OR REPLACE FUNCTION ...',
+              'RETURNS ...',
+              'LANGUAGE plpgsql',
+              'SECURITY DEFINER',
+              'SET search_path = public, pg_temp  -- <<< adicione esta linha',
+              'AS $$',
+              '...',
+              '$$;',
+              '```',
+              '',
+              'Para funções legacy não migradas ainda, adicione o nome em `.github/secdef-allowlist.txt`',
+              '(decremental baseline — só shrinking permitido).',
+              '',
+              'Referências:',
+              '- Issue: #697 (SEC-SECDEF-001 — audit + fix batch)',
+              '- Issue: #698 (SEC-SECDEF-002 — este guard)',
+              '- Audit: `_reversa_sdd/audit-2026-05-04.md`',
+              '- PR original do pattern: #696',
+            ].join('\n');
+
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              body
+            });
+        env:
+          VIOLATIONS: ${{ steps.scan.outputs.violations }}
