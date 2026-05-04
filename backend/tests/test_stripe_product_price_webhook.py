@@ -407,7 +407,6 @@ class TestSignatureVerificationPreserved:
         """
         from fastapi import HTTPException
         import webhooks.stripe as wh_stripe_mod
-        from webhooks.stripe import stripe_webhook
 
         try:
             SigErr = wh_stripe_mod.stripe.error.SignatureVerificationError
@@ -430,7 +429,7 @@ class TestSignatureVerificationPreserved:
         with patch("webhooks.stripe.stripe.Webhook.construct_event") as mock_construct:
             mock_construct.side_effect = SigErr(*sig_args)
             with pytest.raises(HTTPException) as exc:
-                await stripe_webhook(mock_request)
+                await wh_stripe_mod.stripe_webhook(mock_request)
             assert exc.value.status_code == 400
 
 
