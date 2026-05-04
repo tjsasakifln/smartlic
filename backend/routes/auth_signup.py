@@ -328,26 +328,40 @@ class LoginAttemptResponse(BaseModel):
     force_mfa_triggered: bool = False
 
 
-def _resolve_user_id_by_email(sb, email: str) -> Optional[str]:
-    """Look up an auth.users row by email and return the id (or None).
+async def _resolve_user_id_by_email(sb, email: str) -> Optional[str]:
+    """Look up the user_id for an email via the indexed ``profiles.email`` column.
 
-    Uses the service-role admin SDK. Returns None on any error or miss
-    so the caller can no-op silently — never raises.
+    Returns None on any error or miss so the caller can no-op silently —
+    never raises (avoids user-existence oracle via timing).
+
+    Async-safe: uses ``sb_execute`` (asyncio.to_thread wrapper) to keep the
+    event loop free, matching the resilience pattern from the 2026-04-27
+    outage cycle (memory project_backend_outage_2026_04_27 — sync
+    ``.execute()`` inside async handlers wedged the worker).
+
+    Replaces the previous ``sb.auth.admin.list_users()`` call which:
+      * returned at most ``per_page=50`` users by default — silently
+        bypassing the bruteforce shield for any user not in the first 50;
+      * was synchronous and blocked the event loop on every login attempt.
+
+    Trade-off: queries ``profiles.email`` (mirrored from auth.users via
+    the ``handle_new_user`` trigger). Users whose trigger silently failed
+    (rare orphan auth.users rows — see PR #696 / memory
+    feedback_secdef_search_path_trap) will still no-op. This is a strictly
+    narrower miss than the previous >50-user silent-skip.
     """
     try:
-        # Supabase Python SDK exposes admin user listing; filter client-side
-        # because the email index is service-role visible but admin filter
-        # api varies between SDK versions.
-        result = sb.auth.admin.list_users()
-        users = getattr(result, "users", None)
-        if users is None and isinstance(result, dict):
-            users = result.get("users", [])
-        for u in users or []:
-            u_email = getattr(u, "email", None) or (
-                u.get("email") if isinstance(u, dict) else None
-            )
-            if u_email and u_email.lower() == email.lower():
-                return str(getattr(u, "id", None) or u["id"])
+        from supabase_client import sb_execute
+        result = await sb_execute(
+            sb.table("profiles")
+            .select("id")
+            .ilike("email", email)
+            .limit(1),
+            category="read",
+        )
+        rows = result.data or []
+        if rows:
+            return str(rows[0].get("id"))
     except Exception:
         # Don't leak via timing — silent failure is the contract.
         logger.debug("MFA-EXT-001: user lookup failed for login-attempt", exc_info=True)
@@ -436,7 +450,7 @@ async def record_login_attempt(
     email = body.email.lower().strip()
 
     sb = _get_supabase()
-    user_id = _resolve_user_id_by_email(sb, email)
+    user_id = await _resolve_user_id_by_email(sb, email)
     if not user_id:
         # Unknown email -> silent no-op. Same response as success path
         # so attackers can't enumerate the user base via timing.

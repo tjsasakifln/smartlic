@@ -41,46 +41,66 @@ def store() -> FakeAttemptStore:
 
 
 def _make_sb_for_attempts(store: FakeAttemptStore, *, user_id: str = "uid-1"):
-    """Build a Supabase admin client mock that:
+    """Build a Supabase admin client mock.
 
-    * resolves email->user_id via auth.admin.list_users
-    * routes auth_attempts read/upsert through the in-memory store
-    * routes profiles update writes through the in-memory store
+    Post-fix (PR #677 follow-up): email -> user_id resolution goes through
+    ``sb_execute(sb.table('profiles').select('id').ilike('email', ...))``
+    instead of the previous ``sb.auth.admin.list_users()`` (default
+    per_page=50, silently skipped users beyond the first page).
+    The ``sb_execute`` mock in ``_patch_sb_execute`` handles that read.
+
+    We retain a no-op ``sb.auth.admin.list_users`` stub so older code paths
+    in the suite that still touch it don't blow up while we transition.
     """
     sb = MagicMock()
 
-    # auth.admin.list_users returns [{id, email}]
+    # Legacy stub — the route no longer uses this, but keep it harmless
+    # so any cross-cutting code paths don't AttributeError.
     list_result = MagicMock()
-    list_result.users = [MagicMock(id=user_id, email="bf@example.com")]
-    list_result.users[0].__getitem__ = getattr
+    list_result.users = []
     sb.auth.admin.list_users.return_value = list_result
-
-    # The route uses sb_execute(query) — query is built via sb.table(...). We
-    # don't need the queries to be functional; sb_execute is mocked to read
-    # from the store.
 
     return sb
 
 
-def _patch_sb_execute(store: FakeAttemptStore, user_id: str = "uid-1"):
-    """Return an AsyncMock impl for sb_execute that drives the FakeAttemptStore.
+def _patch_sb_execute(
+    store: FakeAttemptStore,
+    user_id: str = "uid-1",
+    *,
+    known_email: str = "bf@example.com",
+):
+    """AsyncMock impl for ``sb_execute`` that drives the FakeAttemptStore.
 
-    We pattern-match on the type of query argument by inspecting the call's
-    repr — or, more robustly, use a bound MagicMock on the table that records
-    the operation type. For simplicity we infer from call ordering: read
-    first, then upsert.
+    Order of reads/writes the handler performs (after the fix):
+      1. read  -> profiles.select('id').ilike('email', ...)   [resolve]
+      2. read  -> auth_attempts.select(...).eq('user_id',...) [prior]
+      3. write -> auth_attempts.upsert(...)                   [counter]
+      4. write -> profiles.update(force_mfa_enrollment_until) [maybe]
+
+    We pattern-match on the query repr to dispatch correctly.
     """
 
-    state = {"read_count": 0}
+    state = {"resolved": False}
 
     async def fake_sb_execute(query, *, category="read"):
-        # The handler calls in this order:
-        #   1. read    -> select prior failures
-        #   2. write   -> upsert auth_attempts
-        #   3. (maybe) write -> profiles.update force_mfa
         result = MagicMock()
+        called_chain = repr(query)
+
         if category == "read":
-            state["read_count"] += 1
+            # First read in the handler is the email->user_id resolution
+            # (against profiles). Subsequent reads are prior-failures
+            # (against auth_attempts). Detect by table name in the repr,
+            # falling back to call ordering for opaque mocks.
+            is_profiles_read = "profiles" in called_chain or not state["resolved"]
+            if is_profiles_read and not state["resolved"]:
+                state["resolved"] = True
+                # Echo the user_id only if the email matches known_email.
+                # Tests that want "unknown email" just pass a different
+                # email or rely on store-empty fallback.
+                result.data = [{"id": user_id}]
+                return result
+
+            # auth_attempts read
             row = {
                 "consecutive_failures": store.counts.get(user_id, 0),
                 "last_failure_at": (
@@ -93,15 +113,7 @@ def _patch_sb_execute(store: FakeAttemptStore, user_id: str = "uid-1"):
             return result
 
         # write paths
-        # We can't introspect the query payload easily, but the handler
-        # calls upsert(...) then update(...).eq(...) for force window.
-        # Detect by attribute presence on the query mock.
-        called_chain = repr(query)
         if "upsert" in called_chain:
-            # auth_attempts upsert — payload was passed; we infer success
-            # vs failure by checking for last_success_at vs last_failure_at
-            # in the recorded args. Easier: just bump or set fields based
-            # on the success boolean we'll thread via store.upsert_calls.
             payload = store.upsert_calls.pop(0) if store.upsert_calls else {}
             if "last_success_at" in payload:
                 store.counts[user_id] = 0
@@ -146,17 +158,23 @@ def _post_attempt(client: TestClient, *, success: bool, email: str = "bf@example
 
 
 def test_unknown_email_returns_200_silent_noop():
-    """No-op silently for unknown email (no user-existence oracle)."""
+    """No-op silently for unknown email (no user-existence oracle).
+
+    Post-fix: resolution is via ``sb_execute`` against ``profiles.email``;
+    an unknown email yields ``result.data = []`` and the handler short-
+    circuits before touching auth_attempts.
+    """
     app = _make_test_app()
 
+    async def fake_exec_unknown(query, *, category="read"):
+        result = MagicMock()
+        result.data = []  # No profile row matches the email
+        return result
+
     with patch("routes.auth_signup._get_supabase") as mock_get_sb, \
+         patch("supabase_client.sb_execute", side_effect=fake_exec_unknown), \
          patch("config.get_feature_flag", return_value=False):
-        sb = MagicMock()
-        # list_users returns no users
-        list_result = MagicMock()
-        list_result.users = []
-        sb.auth.admin.list_users.return_value = list_result
-        mock_get_sb.return_value = sb
+        mock_get_sb.return_value = MagicMock()
 
         client = TestClient(app)
         resp = client.post(
@@ -219,8 +237,15 @@ def test_success_resets_counter(store):
 
     sb = _make_sb_for_attempts(store)
 
+    state = {"resolved": False}
+
     async def fake_exec(query, *, category="read"):
         result = MagicMock()
+        if category == "read" and not state["resolved"]:
+            # First read = profiles.email -> id resolution.
+            state["resolved"] = True
+            result.data = [{"id": "uid-1"}]
+            return result
         if category == "write":
             # upsert with last_success_at
             store.counts["uid-1"] = 0
@@ -248,10 +273,16 @@ def test_idle_24h_reset_counter(store):
     sb = _make_sb_for_attempts(store)
 
     captured = {"new_count": None}
+    state = {"resolved": False}
 
     async def fake_exec(query, *, category="read"):
         result = MagicMock()
         if category == "read":
+            if not state["resolved"]:
+                # First read = profiles.email -> id resolution.
+                state["resolved"] = True
+                result.data = [{"id": "uid-1"}]
+                return result
             row = {
                 "consecutive_failures": store.counts.get("uid-1", 0),
                 "last_failure_at": store.last_failure_at["uid-1"].isoformat(),
@@ -287,9 +318,16 @@ def test_threshold_does_not_re_fire_when_already_at_3(store):
 
     sb = _make_sb_for_attempts(store)
 
+    state = {"resolved": False}
+
     async def fake_exec(query, *, category="read"):
         result = MagicMock()
         if category == "read":
+            if not state["resolved"]:
+                # First read = profiles.email -> id resolution.
+                state["resolved"] = True
+                result.data = [{"id": "uid-1"}]
+                return result
             row = {
                 "consecutive_failures": 3,
                 "last_failure_at": store.last_failure_at["uid-1"].isoformat(),
@@ -312,3 +350,40 @@ def test_threshold_does_not_re_fire_when_already_at_3(store):
         # Email + Sentry must NOT fire on repeat (already past threshold).
         mock_email.assert_not_called()
         mock_sentry.assert_not_called()
+
+
+def test_resolution_handles_user_beyond_first_50_via_indexed_query(store):
+    """Regression for PR #677 follow-up: previously ``list_users()`` defaulted
+    to ``per_page=50``, silently skipping the bruteforce shield for users
+    whose email landed beyond page 1. After the fix the resolution is a
+    single indexed query against ``profiles.email`` — order/page-size are
+    irrelevant. We assert the flow proceeds (upsert recorded) when the
+    sb_execute mock returns a ``uid`` regardless of "position".
+    """
+    app = _make_test_app()
+
+    sb = _make_sb_for_attempts(store, user_id="uid-51")
+    fake_exec = _patch_sb_execute(store, user_id="uid-51")
+
+    with patch("routes.auth_signup._get_supabase", return_value=sb), \
+         patch("supabase_client.sb_execute", side_effect=fake_exec), \
+         patch("auth._user_has_verified_mfa", new=AsyncMock(return_value=False)), \
+         patch("routes.auth_signup._trigger_mfa_email"), \
+         patch("routes.auth_signup._emit_bruteforce_sentry"), \
+         patch("config.get_feature_flag", return_value=False):
+        client = TestClient(app)
+
+        # Single failure should be recorded — not silent-skipped as the
+        # pre-fix code did for any user beyond page 1 of list_users.
+        store.upsert_calls.append({"consecutive_failures": 1, "last_failure_at": "x"})
+        resp = _post_attempt(client, success=False, email="user51@example.com")
+        assert resp.status_code == 200
+        body = resp.json()
+        assert body["ok"] is True
+        # The handler reached the upsert path; counter incremented in the store.
+        assert store.counts.get("uid-51") == 1, (
+            "Pre-fix code returned None from _resolve_user_id_by_email "
+            "for users beyond list_users page 1, silently bypassing the "
+            "bruteforce shield. Post-fix the indexed profiles.email lookup "
+            "must always resolve regardless of position."
+        )
