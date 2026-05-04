@@ -256,33 +256,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/v1/admin/calibration/recalibrate": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Recalibrate
-         * @description Compute new ``hours_saved_per_search`` from survey distribution.
-         *
-         *     Eligibility rules (mirrors AC6 + risk R3):
-         *         * After IQR outlier removal there must be >= MIN_SAMPLE_SIZE rows.
-         *         * The new median must be in (0, 50].
-         *
-         *     When ``apply=true`` and eligible, persists the new value via
-         *     ``app_config`` and drops the cache.
-         */
-        post: operations["recalibrate_v1_admin_calibration_recalibrate_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/v1/admin/cb/reset": {
         parameters: {
             query?: never;
@@ -331,7 +304,31 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/v1/admin/config/{key}": {
+    "/v1/admin/cnae-mapping": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Cnae Mappings
+         * @description List CNAE mappings with pagination + filters.
+         */
+        get: operations["list_cnae_mappings_v1_admin_cnae_mapping_get"];
+        put?: never;
+        /**
+         * Create Cnae Mapping
+         * @description Create a new mapping row.  Admin-only.
+         */
+        post: operations["create_cnae_mapping_v1_admin_cnae_mapping_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/admin/cnae-mapping/bulk-import": {
         parameters: {
             query?: never;
             header?: never;
@@ -340,19 +337,67 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        post?: never;
+        /**
+         * Bulk Import
+         * @description CSV upload — preview-first then apply.
+         *
+         *     Default ``dry_run=true`` returns the diff without writing.  Pass
+         *     ``dry_run=false`` to commit the changes (each row gets its own
+         *     audit entry tagged ``action='bulk_import'``).
+         */
+        post: operations["bulk_import_v1_admin_cnae_mapping_bulk_import_post"];
         delete?: never;
         options?: never;
         head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/admin/cnae-mapping/{cnae_code}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
         /**
-         * Patch App Config
-         * @description Update one row in ``app_config``. Whitelist enforced.
-         *
-         *     On success the in-process TTL cache for *key* is invalidated so
-         *     the new value becomes visible in this worker on the next read
-         *     (other workers see it after their TTL expires).
+         * Get Cnae Mapping
+         * @description Detail view: row + last 50 audit entries.
          */
-        patch: operations["patch_app_config_v1_admin_config__key__patch"];
+        get: operations["get_cnae_mapping_v1_admin_cnae_mapping__cnae_code__get"];
+        put?: never;
+        post?: never;
+        /**
+         * Soft Delete Cnae Mapping
+         * @description Soft-delete: flips is_active to false but keeps the row.
+         */
+        delete: operations["soft_delete_cnae_mapping_v1_admin_cnae_mapping__cnae_code__delete"];
+        options?: never;
+        head?: never;
+        /**
+         * Update Cnae Mapping
+         * @description Update a mapping (partial).
+         */
+        patch: operations["update_cnae_mapping_v1_admin_cnae_mapping__cnae_code__patch"];
+        trace?: never;
+    };
+    "/v1/admin/cnae-mapping/{cnae_code}/restore": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Restore Cnae Mapping
+         * @description Undo a soft-delete by flipping is_active back to true.
+         */
+        post: operations["restore_cnae_mapping_v1_admin_cnae_mapping__cnae_code__restore_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
         trace?: never;
     };
     "/v1/admin/cron-status": {
@@ -911,26 +956,6 @@ export interface paths {
          *         breached_count: Number of conversations exceeding 20 business hours
          */
         get: operations["get_support_sla_v1_admin_support_sla_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/admin/survey/export-time-saved": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * List Export Surveys Aggregate
-         * @description Aggregated histogram + summary stats for the calibration dashboard.
-         */
-        get: operations["list_export_surveys_aggregate_v1_admin_survey_export_time_saved_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -4597,30 +4622,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/v1/survey/export-time-saved": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Submit Export Time Saved Survey
-         * @description Persist one row in ``export_time_saved_survey``.
-         *
-         *     Auth required. The row is owned by ``user.id`` (RLS: users only ever
-         *     see their own submissions). Returns 503 if the database is
-         *     unavailable so the frontend can retry on next export.
-         */
-        post: operations["submit_export_time_saved_survey_v1_survey_export_time_saved_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/v1/trial-emails/unsubscribe": {
         parameters: {
             query?: never;
@@ -5119,35 +5120,6 @@ export interface components {
             /** Uf */
             uf: string;
         };
-        /**
-         * AppConfigPatchRequest
-         * @description PATCH /v1/admin/config/{key} body.
-         */
-        AppConfigPatchRequest: {
-            /**
-             * Description
-             * @description Optional updated description
-             */
-            description?: string | null;
-            /**
-             * Value
-             * @description New JSONB value (scalar/array/object)
-             */
-            value: unknown;
-        };
-        /** AppConfigRow */
-        AppConfigRow: {
-            /** Description */
-            description?: string | null;
-            /** Key */
-            key: string;
-            /** Updated At */
-            updated_at?: string | null;
-            /** Updated By */
-            updated_by?: string | null;
-            /** Value */
-            value: unknown;
-        };
         /** AuthStatusResponse */
         AuthStatusResponse: {
             /** Confirmed */
@@ -5204,6 +5176,39 @@ export interface components {
             stripe_price_id?: string | null;
             /** Stripe Product Id */
             stripe_product_id?: string | null;
+        };
+        /** Body_bulk_import_v1_admin_cnae_mapping_bulk_import_post */
+        Body_bulk_import_v1_admin_cnae_mapping_bulk_import_post: {
+            /** File */
+            file: string;
+        };
+        /** BulkImportPreviewItem */
+        BulkImportPreviewItem: {
+            /** Action */
+            action: string;
+            /** Cnae Code */
+            cnae_code: string;
+            /** Error */
+            error?: string | null;
+            new?: components["schemas"]["CnaeMappingRow"] | null;
+            old?: components["schemas"]["CnaeMappingRow"] | null;
+        };
+        /** BulkImportResponse */
+        BulkImportResponse: {
+            /** Creates */
+            creates: number;
+            /** Deactivations */
+            deactivations: number;
+            /** Dry Run */
+            dry_run: boolean;
+            /** Errors */
+            errors: number;
+            /** Noops */
+            noops: number;
+            /** Preview */
+            preview: components["schemas"]["BulkImportPreviewItem"][];
+            /** Updates */
+            updates: number;
         };
         /**
          * BuscaRequest
@@ -5912,6 +5917,113 @@ export interface components {
             total_editais: number;
             /** Uf */
             uf: string;
+        };
+        /** CnaeAuditLogEntry */
+        CnaeAuditLogEntry: {
+            /** Action */
+            action: string;
+            /** Actor Email */
+            actor_email?: string | null;
+            /** Actor User Id */
+            actor_user_id?: string | null;
+            /** Cnae Code */
+            cnae_code: string | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Id */
+            id: string;
+            /** New Value */
+            new_value?: {
+                [key: string]: unknown;
+            } | null;
+            /** Note */
+            note?: string | null;
+            /** Old Value */
+            old_value?: {
+                [key: string]: unknown;
+            } | null;
+        };
+        /** CnaeMappingCreateRequest */
+        CnaeMappingCreateRequest: {
+            /** Cnae Code */
+            cnae_code: string;
+            /**
+             * Confidence
+             * @default 1
+             */
+            confidence: number;
+            /** Notes */
+            notes?: string | null;
+            /** Setor Id */
+            setor_id: string;
+        };
+        /** CnaeMappingDetailResponse */
+        CnaeMappingDetailResponse: {
+            /** Audit */
+            audit: components["schemas"]["CnaeAuditLogEntry"][];
+            mapping: components["schemas"]["CnaeMappingRow"];
+        };
+        /** CnaeMappingListResponse */
+        CnaeMappingListResponse: {
+            /** Items */
+            items: components["schemas"]["CnaeMappingRow"][];
+            /** Limit */
+            limit: number;
+            /** Offset */
+            offset: number;
+            /** Total */
+            total: number;
+        };
+        /** CnaeMappingMutationResponse */
+        CnaeMappingMutationResponse: {
+            /** Audit Id */
+            audit_id: string;
+            mapping: components["schemas"]["CnaeMappingRow"];
+        };
+        /** CnaeMappingRow */
+        CnaeMappingRow: {
+            /**
+             * Cnae Code
+             * @description 4-digit IBGE prefix
+             */
+            cnae_code: string;
+            /**
+             * Confidence
+             * @default 1
+             */
+            confidence: number;
+            /** Created At */
+            created_at?: string | null;
+            /**
+             * Is Active
+             * @default true
+             */
+            is_active: boolean;
+            /** Notes */
+            notes?: string | null;
+            /**
+             * Setor Id
+             * @description SmartLic sector identifier
+             */
+            setor_id: string;
+            /** Updated At */
+            updated_at?: string | null;
+            /** Updated By */
+            updated_by?: string | null;
+        };
+        /** CnaeMappingUpdateRequest */
+        CnaeMappingUpdateRequest: {
+            /** Confidence */
+            confidence?: number | null;
+            /** Is Active */
+            is_active?: boolean | null;
+            /** Notes */
+            notes?: string | null;
+            /** Setor Id */
+            setor_id?: string | null;
         };
         /** ComparadorBid */
         ComparadorBid: {
@@ -6735,52 +6847,6 @@ export interface components {
          * @enum {string}
          */
         ExperienciaLicitacoes: "PRIMEIRA_VEZ" | "INICIANTE" | "INTERMEDIARIO" | "EXPERIENTE";
-        /**
-         * ExportTimeSavedSurveyRequest
-         * @description Body for POST /v1/survey/export-time-saved.
-         */
-        ExportTimeSavedSurveyRequest: {
-            /**
-             * Bid Count
-             * @description Number of bids included in the export
-             */
-            bid_count?: number | null;
-            /**
-             * Estimated Manual Hours
-             * @description User-reported manual-equivalent hours (range [0.1, 50])
-             */
-            estimated_manual_hours: number;
-            /**
-             * Export Id
-             * @description Export job/download identifier
-             */
-            export_id?: string | null;
-            /**
-             * Export Type
-             * @description excel | pdf | sheets
-             */
-            export_type: string;
-            /**
-             * Free Text
-             * @description Optional free-text answer ('how would you have done this before?')
-             */
-            free_text?: string | null;
-            /**
-             * Search Id
-             * @description Search session id this export came from
-             */
-            search_id?: string | null;
-        };
-        /**
-         * ExportTimeSavedSurveyResponse
-         * @description Body for POST /v1/survey/export-time-saved (201).
-         */
-        ExportTimeSavedSurveyResponse: {
-            /** Id */
-            id: string;
-            /** Submitted At */
-            submitted_at: string;
-        };
         /** ExtendRequest */
         ExtendRequest: {
             /**
@@ -7505,13 +7571,6 @@ export interface components {
         HTTPValidationError: {
             /** Detail */
             detail?: components["schemas"]["ValidationError"][];
-        };
-        /** HistogramBucket */
-        HistogramBucket: {
-            /** Count */
-            count: number;
-            /** Range Label */
-            range_label: string;
         };
         /** IndiceResult */
         IndiceResult: {
@@ -8426,48 +8485,6 @@ export interface components {
             resultados: components["schemas"]["IndiceResult"][];
             /** Total */
             total: number;
-        };
-        /**
-         * RecalibrateRequest
-         * @description POST /v1/admin/calibration/recalibrate body.
-         */
-        RecalibrateRequest: {
-            /**
-             * Apply
-             * @description When true, writes the new median to app_config.
-             * @default false
-             */
-            apply: boolean;
-            /**
-             * Range Days
-             * @default 90
-             */
-            range_days: number;
-        };
-        /** RecalibrateResponse */
-        RecalibrateResponse: {
-            /** After Outlier Removal */
-            after_outlier_removal: number;
-            /** Applied */
-            applied: boolean;
-            /** Diff Pct */
-            diff_pct?: number | null;
-            /** Eligible */
-            eligible: boolean;
-            /** Median Bid Count */
-            median_bid_count?: number | null;
-            /** Median Per Bid */
-            median_per_bid?: number | null;
-            /** New Value */
-            new_value?: number | null;
-            /** Old Value */
-            old_value: number;
-            /** Range Days */
-            range_days: number;
-            /** Reason */
-            reason?: string | null;
-            /** Sample Size */
-            sample_size: number;
         };
         /** RecentContract */
         RecentContract: {
@@ -9593,38 +9610,6 @@ export interface components {
             /** Valor Total */
             valor_total: number;
         };
-        /**
-         * SurveyAggregateResponse
-         * @description GET /v1/admin/survey/export-time-saved response.
-         */
-        SurveyAggregateResponse: {
-            /** After Outlier Removal */
-            after_outlier_removal: number;
-            /** Current Constant */
-            current_constant: number;
-            /** Histogram */
-            histogram: components["schemas"]["HistogramBucket"][];
-            /** Iqr Lower Bound */
-            iqr_lower_bound?: number | null;
-            /** Iqr Q1 */
-            iqr_q1?: number | null;
-            /** Iqr Q3 */
-            iqr_q3?: number | null;
-            /** Iqr Upper Bound */
-            iqr_upper_bound?: number | null;
-            /** Mean Hours */
-            mean_hours?: number | null;
-            /** Median Bid Count */
-            median_bid_count?: number | null;
-            /** Median Hours */
-            median_hours?: number | null;
-            /** Median Per Bid */
-            median_per_bid?: number | null;
-            /** Range Days */
-            range_days: number;
-            /** Sample Size */
-            sample_size: number;
-        };
         /** TimeSeriesDataPoint */
         TimeSeriesDataPoint: {
             /** Label */
@@ -10513,39 +10498,6 @@ export interface operations {
             };
         };
     };
-    recalibrate_v1_admin_calibration_recalibrate_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: {
-            content: {
-                "application/json": components["schemas"]["RecalibrateRequest"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["RecalibrateResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
     reset_circuit_breakers_v1_admin_cb_reset_post: {
         parameters: {
             query?: never;
@@ -10590,18 +10542,87 @@ export interface operations {
             };
         };
     };
-    patch_app_config_v1_admin_config__key__patch: {
+    list_cnae_mappings_v1_admin_cnae_mapping_get: {
+        parameters: {
+            query?: {
+                limit?: number;
+                offset?: number;
+                search?: string | null;
+                setor_id?: string | null;
+                is_active?: boolean | null;
+                min_confidence?: number | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CnaeMappingListResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_cnae_mapping_v1_admin_cnae_mapping_post: {
         parameters: {
             query?: never;
             header?: never;
-            path: {
-                key: string;
-            };
+            path?: never;
             cookie?: never;
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["AppConfigPatchRequest"];
+                "application/json": components["schemas"]["CnaeMappingCreateRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CnaeMappingMutationResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    bulk_import_v1_admin_cnae_mapping_bulk_import_post: {
+        parameters: {
+            query?: {
+                dry_run?: boolean;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": components["schemas"]["Body_bulk_import_v1_admin_cnae_mapping_bulk_import_post"];
             };
         };
         responses: {
@@ -10611,7 +10632,135 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["AppConfigRow"];
+                    "application/json": components["schemas"]["BulkImportResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_cnae_mapping_v1_admin_cnae_mapping__cnae_code__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                cnae_code: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CnaeMappingDetailResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    soft_delete_cnae_mapping_v1_admin_cnae_mapping__cnae_code__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                cnae_code: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CnaeMappingMutationResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_cnae_mapping_v1_admin_cnae_mapping__cnae_code__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                cnae_code: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CnaeMappingUpdateRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CnaeMappingMutationResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    restore_cnae_mapping_v1_admin_cnae_mapping__cnae_code__restore_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                cnae_code: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CnaeMappingMutationResponse"];
                 };
             };
             /** @description Validation Error */
@@ -11296,37 +11445,6 @@ export interface operations {
                 };
                 content: {
                     "application/json": unknown;
-                };
-            };
-        };
-    };
-    list_export_surveys_aggregate_v1_admin_survey_export_time_saved_get: {
-        parameters: {
-            query?: {
-                range_days?: number;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["SurveyAggregateResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };
@@ -16091,39 +16209,6 @@ export interface operations {
                 };
                 content: {
                     "application/json": unknown;
-                };
-            };
-        };
-    };
-    submit_export_time_saved_survey_v1_survey_export_time_saved_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["ExportTimeSavedSurveyRequest"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ExportTimeSavedSurveyResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };
