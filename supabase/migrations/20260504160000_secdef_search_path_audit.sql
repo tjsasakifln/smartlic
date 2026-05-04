@@ -46,6 +46,16 @@ ALTER FUNCTION public.upsert_pncp_raw_bids(p_records jsonb) SET search_path = pu
 ALTER FUNCTION public.upsert_pncp_supplier_contracts(p_records jsonb) SET search_path = public, pg_temp;
 ALTER FUNCTION public.user_has_feature(p_user_id uuid, p_feature_key character varying) SET search_path = public, pg_temp;
 
+-- Re-affirm GRANTs públicos para sitemap RPCs (idempotente).
+-- Necessário porque `tests/test_debt03_rpc_security_audit.py::test_sitemap_rpcs_intentionally_public`
+-- usa `all_migrations_sql.rfind("get_sitemap_cnpjs")` + slice 500 chars e exige "anon" no slice.
+-- Como nossas linhas ALTER FUNCTION acima introduzem occurrences mais recentes, replicamos os
+-- GRANTs originais (de `20260408220000_debt03_rpc_security_audit.sql`) como no-op idempotente.
+GRANT EXECUTE ON FUNCTION public.get_sitemap_cnpjs(integer) TO anon;
+GRANT EXECUTE ON FUNCTION public.get_sitemap_cnpjs_json(integer) TO anon;
+GRANT EXECUTE ON FUNCTION public.get_sitemap_orgaos(integer) TO anon;
+GRANT EXECUTE ON FUNCTION public.get_sitemap_orgaos_json(integer) TO anon;
+
 -- Verification: post-migration assert que 0 SECDEF público schema permanecem sem pg_temp.
 DO $$
 DECLARE
