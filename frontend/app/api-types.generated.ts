@@ -483,6 +483,29 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/admin/memory-snapshot": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Memory Snapshot
+         * @description Return current process memory snapshot for leak investigation.
+         *
+         *     Master/admin only. Snapshots are NOT persisted (PII risk + size).
+         *     Caller is responsible for capturing 10× over 24h to build baseline.
+         */
+        get: operations["memory_snapshot_v1_admin_memory_snapshot_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/admin/partners": {
         parameters: {
             query?: never;
@@ -725,9 +748,31 @@ export interface paths {
         };
         /**
          * Get Seo Metrics
-         * @description Return SEO metrics for the last N days. Admin-only.
+         * @description Return SEO metrics for the last N days (legacy S14 daily rollup). Admin-only.
          */
         get: operations["get_seo_metrics_v1_admin_seo_metrics_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/admin/seo/summary": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Gsc Summary
+         * @description Return aggregated GSC analytics from gsc_metrics cache. Admin-only.
+         *
+         *     STORY-SEO-005 AC4. Populated weekly by backend/jobs/cron/gsc_sync.py.
+         */
+        get: operations["get_gsc_summary_v1_admin_seo_summary_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1805,42 +1850,6 @@ export interface paths {
         get: operations["check_phone_v1_auth_check_phone_get"];
         put?: never;
         post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/auth/login-attempt": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Record Login Attempt
-         * @description MFA-EXT-001 AC5/AC6: track password attempts to drive MFA enforcement.
-         *
-         *     Frontend (``AuthProvider``) calls this endpoint immediately after a
-         *     Supabase ``signInWithPassword`` call to report the outcome:
-         *
-         *       * ``success=true``  -> reset counter to 0, set ``last_success_at``
-         *       * ``success=false`` -> increment counter; if it crosses
-         *         ``BRUTEFORCE_FAIL_THRESHOLD`` (3), set
-         *         ``profiles.force_mfa_enrollment_until = NOW() + 7d`` and email
-         *         the user.
-         *
-         *     Trust model: the endpoint is unauthenticated; an attacker can lie
-         *     about the outcome but gains nothing — self-reported success without
-         *     a real session never produces a forced MFA window. Documented in
-         *     ADR-MFA-EXT-001.
-         *
-         *     Always returns 200 (no user-existence oracle).
-         */
-        post: operations["record_login_attempt_v1_auth_login_attempt_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -3243,11 +3252,10 @@ export interface paths {
         };
         /**
          * Get Mfa Status
-         * @description AC4 + MFA-EXT-001 AC8/AC9: Get MFA status for the current user.
+         * @description AC4: Get MFA status for the current user.
          *
          *     Returns whether MFA is enabled, enrolled factors, current AAL level,
-         *     whether MFA is required, and (MFA-EXT-001) the enforcement reason +
-         *     grace countdown so the banner can render the right variant.
+         *     and whether MFA is required for this user's role.
          */
         get: operations["get_mfa_status_v1_mfa_status_get"];
         put?: never;
@@ -7149,6 +7157,58 @@ export interface components {
             /** Lead Id */
             lead_id: string;
         };
+        /** GSCLowCTROpportunity */
+        GSCLowCTROpportunity: {
+            /** Clicks */
+            clicks: number;
+            /** Ctr */
+            ctr: number;
+            /** Impressions */
+            impressions: number;
+            /** Page */
+            page: string;
+        };
+        /** GSCPageRow */
+        GSCPageRow: {
+            /** Clicks */
+            clicks: number;
+            /** Ctr */
+            ctr: number;
+            /** Impressions */
+            impressions: number;
+            /** Page */
+            page: string;
+            /** Position */
+            position: number;
+        };
+        /** GSCQueryRow */
+        GSCQueryRow: {
+            /** Clicks */
+            clicks: number;
+            /** Ctr */
+            ctr: number;
+            /** Impressions */
+            impressions: number;
+            /** Position */
+            position: number;
+            /** Query */
+            query: string;
+        };
+        /** GSCSummaryResponse */
+        GSCSummaryResponse: {
+            /** Days */
+            days: number;
+            /** Enabled */
+            enabled: boolean;
+            /** Last Sync At */
+            last_sync_at?: string | null;
+            /** Low Ctr Opportunities */
+            low_ctr_opportunities: components["schemas"]["GSCLowCTROpportunity"][];
+            /** Top Pages Ctr */
+            top_pages_ctr: components["schemas"]["GSCPageRow"][];
+            /** Top Queries */
+            top_queries: components["schemas"]["GSCQueryRow"][];
+        };
         /**
          * GoogleSheetsExportHistory
          * @description Schema for individual export history entry.
@@ -7534,40 +7594,36 @@ export interface components {
             updated_at: string;
         };
         /**
-         * LoginAttemptRequest
-         * @description Frontend reports the outcome of a Supabase signInWithPassword call.
-         *
-         *     The endpoint is unauthenticated by design (failures happen before a
-         *     session exists). To avoid leaking user existence, the endpoint always
-         *     returns 200; if the email is unknown we no-op silently.
+         * MemorySnapshot
+         * @description Response for GET /admin/memory-snapshot (SEN-BE-010 AC0).
          */
-        LoginAttemptRequest: {
+        MemorySnapshot: {
             /**
-             * Email
-             * Format: email
+             * Asyncio Tasks Pending
+             * @default 0
              */
-            email: string;
+            asyncio_tasks_pending: number;
             /**
-             * Success
-             * @description True if Supabase auth.signInWithPassword resolved with a session.
+             * Gc Objects Count
+             * @default 0
              */
-            success: boolean;
-        };
-        /**
-         * LoginAttemptResponse
-         * @description Always 200 to avoid email-existence oracle. Body is intentionally bland.
-         */
-        LoginAttemptResponse: {
+            gc_objects_count: number;
+            /** Redis Pool Size */
+            redis_pool_size?: number | null;
+            /** Rss Bytes */
+            rss_bytes?: number | null;
+            /** Rss Mb */
+            rss_mb?: number | null;
             /**
-             * Force Mfa Triggered
+             * Tracemalloc Enabled
              * @default false
              */
-            force_mfa_triggered: boolean;
+            tracemalloc_enabled: boolean;
             /**
-             * Ok
-             * @default true
+             * Tracemalloc Top 25
+             * @default []
              */
-            ok: boolean;
+            tracemalloc_top_25: components["schemas"]["TraceMallocEntry"][];
         };
         /**
          * MessageResponse
@@ -7598,16 +7654,10 @@ export interface components {
              * @default aal1
              */
             aal_level: string;
-            /** Enforce Reason */
-            enforce_reason?: string | null;
             /** Factors */
             factors?: {
                 [key: string]: unknown;
             }[];
-            /** Force Mfa Enrollment Until */
-            force_mfa_enrollment_until?: string | null;
-            /** Grace Days Remaining */
-            grace_days_remaining?: number | null;
             /** Mfa Enabled */
             mfa_enabled: boolean;
             /**
@@ -9402,6 +9452,20 @@ export interface components {
              */
             tour_id: string;
         };
+        /**
+         * TraceMallocEntry
+         * @description Single tracemalloc allocation entry.
+         */
+        TraceMallocEntry: {
+            /** Count */
+            count: number;
+            /** Filename */
+            filename: string;
+            /** Lineno */
+            lineno: number;
+            /** Size Kb */
+            size_kb: number;
+        };
         /** TrendingSector */
         TrendingSector: {
             /** Count This Week */
@@ -10396,6 +10460,26 @@ export interface operations {
             };
         };
     };
+    memory_snapshot_v1_admin_memory_snapshot_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MemorySnapshot"];
+                };
+            };
+        };
+    };
     list_partners_endpoint_v1_admin_partners_get: {
         parameters: {
             query?: {
@@ -10769,6 +10853,37 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["SEOMetricsResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_gsc_summary_v1_admin_seo_summary_get: {
+        parameters: {
+            query?: {
+                days?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GSCSummaryResponse"];
                 };
             };
             /** @description Validation Error */
@@ -12161,39 +12276,6 @@ export interface operations {
                 };
                 content: {
                     "application/json": unknown;
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    record_login_attempt_v1_auth_login_attempt_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["LoginAttemptRequest"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["LoginAttemptResponse"];
                 };
             };
             /** @description Validation Error */
