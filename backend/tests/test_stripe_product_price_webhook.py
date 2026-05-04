@@ -406,7 +406,7 @@ class TestSignatureVerificationPreserved:
         reference the same identity.
         """
         from fastapi import HTTPException
-        import webhooks.stripe as wh_stripe_mod
+        from webhooks import stripe as wh_stripe_mod
 
         try:
             SigErr = wh_stripe_mod.stripe.error.SignatureVerificationError
