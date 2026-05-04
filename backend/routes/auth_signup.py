@@ -500,6 +500,9 @@ async def record_login_attempt(
                     if (now - last_dt) > timedelta(hours=ATTEMPT_IDLE_RESET_HOURS):
                         prior_failures = 0
                 except Exception:
+                    # Best-effort 24h-idle reset: if the timestamp is malformed
+                    # we leave prior_failures untouched and let the cron
+                    # (jobs.cron.auth_cleanup) handle the reset on the next run.
                     pass
     except Exception as e:
         logger.warning(

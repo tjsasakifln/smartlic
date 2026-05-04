@@ -185,7 +185,15 @@ async def get_mfa_status(user: dict = Depends(require_auth)):
         plan_type = profile.get("plan_type")
         force_until_raw = profile.get("force_mfa_enrollment_until")
     except Exception as e:
-        logger.warning(f"MFA-EXT-001: profile fetch failed for user {user_id[:8]}: {type(e).__name__}")
+        # Sanitize user_id for log: keep only alphanumeric to defeat
+        # log-injection (CRLF / control chars). user_id originates from JWT
+        # (validated upstream) but CodeQL still classifies it as user-controlled.
+        safe_uid = "".join(c for c in str(user_id)[:8] if c.isalnum())
+        logger.warning(
+            "MFA-EXT-001: profile fetch failed for user %s: %s",
+            safe_uid,
+            type(e).__name__,
+        )
 
     is_consultoria = plan_type == "consultoria"
 
@@ -258,6 +266,9 @@ async def get_mfa_status(user: dict = Depends(require_auth)):
                 else:
                     grace_days_remaining = 0
         except Exception:
+            # Best-effort countdown parse: malformed force_until payloads
+            # (e.g. legacy strings, stray timezone markers) must not break
+            # the /mfa/status response — degrade silently to None/None.
             pass
 
     mfa_required = bool(enforce_reason) or is_admin or is_master or is_consultoria

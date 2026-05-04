@@ -52,7 +52,7 @@ def _make_sb_for_attempts(store: FakeAttemptStore, *, user_id: str = "uid-1"):
     # auth.admin.list_users returns [{id, email}]
     list_result = MagicMock()
     list_result.users = [MagicMock(id=user_id, email="bf@example.com")]
-    list_result.users[0].__getitem__ = lambda self, k: getattr(self, k)
+    list_result.users[0].__getitem__ = getattr
     sb.auth.admin.list_users.return_value = list_result
 
     # The route uses sb_execute(query) — query is built via sb.table(...). We

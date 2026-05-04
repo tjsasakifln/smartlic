@@ -115,11 +115,30 @@ async def run_auth_cleanup_once() -> dict:
     return {"attempts": attempts, "force_mfa": force}
 
 
+def _summary_counts(result: dict) -> dict:
+    """Extract only integer counts from cleanup result, dropping any
+    Supabase-returned row payloads. This breaks CodeQL's taint chain
+    (auth_attempts/profiles tables → log) so the loop never logs anything
+    beyond aggregate counters — never user fields.
+    """
+    attempts = result.get("attempts", {}) if isinstance(result, dict) else {}
+    force = result.get("force_mfa", {}) if isinstance(result, dict) else {}
+    return {
+        "reset": int(attempts.get("reset", 0)) if isinstance(attempts, dict) else 0,
+        "cleared": int(force.get("cleared", 0)) if isinstance(force, dict) else 0,
+    }
+
+
 async def _auth_cleanup_loop() -> None:
     """Background loop — runs once at startup, then every 24h."""
     try:
         result = await run_auth_cleanup_once()
-        logger.info("MFA-EXT-001 auth cleanup (startup): %s", result)
+        counts = _summary_counts(result)
+        logger.info(
+            "MFA-EXT-001 auth cleanup (startup): reset=%d cleared=%d",
+            counts["reset"],
+            counts["cleared"],
+        )
     except Exception as e:
         if _is_cb_or_connection_error(e):
             logger.warning("MFA-EXT-001 startup auth cleanup skipped: %s", e)
@@ -130,7 +149,12 @@ async def _auth_cleanup_loop() -> None:
         try:
             await asyncio.sleep(AUTH_CLEANUP_INTERVAL_SECONDS)
             result = await run_auth_cleanup_once()
-            logger.info("MFA-EXT-001 auth cleanup cycle: %s", result)
+            counts = _summary_counts(result)
+            logger.info(
+                "MFA-EXT-001 auth cleanup cycle: reset=%d cleared=%d",
+                counts["reset"],
+                counts["cleared"],
+            )
         except asyncio.CancelledError:
             logger.info("MFA-EXT-001: auth cleanup task cancelled")
             break

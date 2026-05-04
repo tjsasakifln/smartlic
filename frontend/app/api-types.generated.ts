@@ -304,6 +304,102 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/admin/cnae-mapping": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Cnae Mappings
+         * @description List CNAE mappings with pagination + filters.
+         */
+        get: operations["list_cnae_mappings_v1_admin_cnae_mapping_get"];
+        put?: never;
+        /**
+         * Create Cnae Mapping
+         * @description Create a new mapping row.  Admin-only.
+         */
+        post: operations["create_cnae_mapping_v1_admin_cnae_mapping_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/admin/cnae-mapping/bulk-import": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Bulk Import
+         * @description CSV upload — preview-first then apply.
+         *
+         *     Default ``dry_run=true`` returns the diff without writing.  Pass
+         *     ``dry_run=false`` to commit the changes (each row gets its own
+         *     audit entry tagged ``action='bulk_import'``).
+         */
+        post: operations["bulk_import_v1_admin_cnae_mapping_bulk_import_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/admin/cnae-mapping/{cnae_code}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Cnae Mapping
+         * @description Detail view: row + last 50 audit entries.
+         */
+        get: operations["get_cnae_mapping_v1_admin_cnae_mapping__cnae_code__get"];
+        put?: never;
+        post?: never;
+        /**
+         * Soft Delete Cnae Mapping
+         * @description Soft-delete: flips is_active to false but keeps the row.
+         */
+        delete: operations["soft_delete_cnae_mapping_v1_admin_cnae_mapping__cnae_code__delete"];
+        options?: never;
+        head?: never;
+        /**
+         * Update Cnae Mapping
+         * @description Update a mapping (partial).
+         */
+        patch: operations["update_cnae_mapping_v1_admin_cnae_mapping__cnae_code__patch"];
+        trace?: never;
+    };
+    "/v1/admin/cnae-mapping/{cnae_code}/restore": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Restore Cnae Mapping
+         * @description Undo a soft-delete by flipping is_active back to true.
+         */
+        post: operations["restore_cnae_mapping_v1_admin_cnae_mapping__cnae_code__restore_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/admin/cron-status": {
         parameters: {
             query?: never;
@@ -564,80 +660,6 @@ export interface paths {
         get: operations["get_partner_revenue_endpoint_v1_admin_partners__partner_id__revenue_get"];
         put?: never;
         post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/admin/plans/billing-sync": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * List Billing Sync Rows
-         * @description Return every plan_billing_periods row enriched with drift_status.
-         */
-        get: operations["list_billing_sync_rows_v1_admin_plans_billing_sync_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/admin/plans/reconcile-now": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Reconcile Now */
-        post: operations["reconcile_now_v1_admin_plans_reconcile_now_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/admin/plans/reconciliation-runs": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** List Reconciliation Runs */
-        get: operations["list_reconciliation_runs_v1_admin_plans_reconciliation_runs_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/admin/plans/{plan_billing_period_id}/sync-to-stripe": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Sync To Stripe
-         * @description AC8/AC9: Push DB price -> Stripe by creating a new Price + archiving old.
-         */
-        post: operations["sync_to_stripe_v1_admin_plans__plan_billing_period_id__sync_to_stripe_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1850,6 +1872,42 @@ export interface paths {
         get: operations["check_phone_v1_auth_check_phone_get"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/auth/login-attempt": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Record Login Attempt
+         * @description MFA-EXT-001 AC5/AC6: track password attempts to drive MFA enforcement.
+         *
+         *     Frontend (``AuthProvider``) calls this endpoint immediately after a
+         *     Supabase ``signInWithPassword`` call to report the outcome:
+         *
+         *       * ``success=true``  -> reset counter to 0, set ``last_success_at``
+         *       * ``success=false`` -> increment counter; if it crosses
+         *         ``BRUTEFORCE_FAIL_THRESHOLD`` (3), set
+         *         ``profiles.force_mfa_enrollment_until = NOW() + 7d`` and email
+         *         the user.
+         *
+         *     Trust model: the endpoint is unauthenticated; an attacker can lie
+         *     about the outcome but gains nothing — self-reported success without
+         *     a real session never produces a forced MFA window. Documented in
+         *     ADR-MFA-EXT-001.
+         *
+         *     Always returns 200 (no user-existence oracle).
+         */
+        post: operations["record_login_attempt_v1_auth_login_attempt_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -3252,10 +3310,11 @@ export interface paths {
         };
         /**
          * Get Mfa Status
-         * @description AC4: Get MFA status for the current user.
+         * @description AC4 + MFA-EXT-001 AC8/AC9: Get MFA status for the current user.
          *
          *     Returns whether MFA is enabled, enrolled factors, current AAL level,
-         *     and whether MFA is required for this user's role.
+         *     whether MFA is required, and (MFA-EXT-001) the enforcement reason +
+         *     grace countdown so the banner can render the right variant.
          */
         get: operations["get_mfa_status_v1_mfa_status_get"];
         put?: never;
@@ -5041,45 +5100,38 @@ export interface components {
                 [key: string]: unknown;
             }[];
         };
-        /** BillingSyncListResponse */
-        BillingSyncListResponse: {
-            /** Items */
-            items: components["schemas"]["BillingSyncRow"][];
+        /** Body_bulk_import_v1_admin_cnae_mapping_bulk_import_post */
+        Body_bulk_import_v1_admin_cnae_mapping_bulk_import_post: {
+            /** File */
+            file: string;
         };
-        /** BillingSyncRow */
-        BillingSyncRow: {
-            /** Billing Period */
-            billing_period: string;
-            /**
-             * Discount Percent
-             * @default 0
-             */
-            discount_percent: number;
-            /**
-             * Drift Status
-             * @description in_sync | drift_recent | drift_stale | unknown
-             * @default unknown
-             */
-            drift_status: string;
-            /** Id */
-            id: string;
-            /**
-             * Is Archived
-             * @default false
-             */
-            is_archived: boolean;
-            /** Last Forward Synced At */
-            last_forward_synced_at?: string | null;
-            /** Last Reverse Synced At */
-            last_reverse_synced_at?: string | null;
-            /** Plan Id */
-            plan_id: string;
-            /** Price Cents */
-            price_cents: number;
-            /** Stripe Price Id */
-            stripe_price_id?: string | null;
-            /** Stripe Product Id */
-            stripe_product_id?: string | null;
+        /** BulkImportPreviewItem */
+        BulkImportPreviewItem: {
+            /** Action */
+            action: string;
+            /** Cnae Code */
+            cnae_code: string;
+            /** Error */
+            error?: string | null;
+            new?: components["schemas"]["CnaeMappingRow"] | null;
+            old?: components["schemas"]["CnaeMappingRow"] | null;
+        };
+        /** BulkImportResponse */
+        BulkImportResponse: {
+            /** Creates */
+            creates: number;
+            /** Deactivations */
+            deactivations: number;
+            /** Dry Run */
+            dry_run: boolean;
+            /** Errors */
+            errors: number;
+            /** Noops */
+            noops: number;
+            /** Preview */
+            preview: components["schemas"]["BulkImportPreviewItem"][];
+            /** Updates */
+            updates: number;
         };
         /**
          * BuscaRequest
@@ -5788,6 +5840,113 @@ export interface components {
             total_editais: number;
             /** Uf */
             uf: string;
+        };
+        /** CnaeAuditLogEntry */
+        CnaeAuditLogEntry: {
+            /** Action */
+            action: string;
+            /** Actor Email */
+            actor_email?: string | null;
+            /** Actor User Id */
+            actor_user_id?: string | null;
+            /** Cnae Code */
+            cnae_code: string | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Id */
+            id: string;
+            /** New Value */
+            new_value?: {
+                [key: string]: unknown;
+            } | null;
+            /** Note */
+            note?: string | null;
+            /** Old Value */
+            old_value?: {
+                [key: string]: unknown;
+            } | null;
+        };
+        /** CnaeMappingCreateRequest */
+        CnaeMappingCreateRequest: {
+            /** Cnae Code */
+            cnae_code: string;
+            /**
+             * Confidence
+             * @default 1
+             */
+            confidence: number;
+            /** Notes */
+            notes?: string | null;
+            /** Setor Id */
+            setor_id: string;
+        };
+        /** CnaeMappingDetailResponse */
+        CnaeMappingDetailResponse: {
+            /** Audit */
+            audit: components["schemas"]["CnaeAuditLogEntry"][];
+            mapping: components["schemas"]["CnaeMappingRow"];
+        };
+        /** CnaeMappingListResponse */
+        CnaeMappingListResponse: {
+            /** Items */
+            items: components["schemas"]["CnaeMappingRow"][];
+            /** Limit */
+            limit: number;
+            /** Offset */
+            offset: number;
+            /** Total */
+            total: number;
+        };
+        /** CnaeMappingMutationResponse */
+        CnaeMappingMutationResponse: {
+            /** Audit Id */
+            audit_id: string;
+            mapping: components["schemas"]["CnaeMappingRow"];
+        };
+        /** CnaeMappingRow */
+        CnaeMappingRow: {
+            /**
+             * Cnae Code
+             * @description 4-digit IBGE prefix
+             */
+            cnae_code: string;
+            /**
+             * Confidence
+             * @default 1
+             */
+            confidence: number;
+            /** Created At */
+            created_at?: string | null;
+            /**
+             * Is Active
+             * @default true
+             */
+            is_active: boolean;
+            /** Notes */
+            notes?: string | null;
+            /**
+             * Setor Id
+             * @description SmartLic sector identifier
+             */
+            setor_id: string;
+            /** Updated At */
+            updated_at?: string | null;
+            /** Updated By */
+            updated_by?: string | null;
+        };
+        /** CnaeMappingUpdateRequest */
+        CnaeMappingUpdateRequest: {
+            /** Confidence */
+            confidence?: number | null;
+            /** Is Active */
+            is_active?: boolean | null;
+            /** Notes */
+            notes?: string | null;
+            /** Setor Id */
+            setor_id?: string | null;
         };
         /** ComparadorBid */
         ComparadorBid: {
@@ -7594,6 +7753,42 @@ export interface components {
             updated_at: string;
         };
         /**
+         * LoginAttemptRequest
+         * @description Frontend reports the outcome of a Supabase signInWithPassword call.
+         *
+         *     The endpoint is unauthenticated by design (failures happen before a
+         *     session exists). To avoid leaking user existence, the endpoint always
+         *     returns 200; if the email is unknown we no-op silently.
+         */
+        LoginAttemptRequest: {
+            /**
+             * Email
+             * Format: email
+             */
+            email: string;
+            /**
+             * Success
+             * @description True if Supabase auth.signInWithPassword resolved with a session.
+             */
+            success: boolean;
+        };
+        /**
+         * LoginAttemptResponse
+         * @description Always 200 to avoid email-existence oracle. Body is intentionally bland.
+         */
+        LoginAttemptResponse: {
+            /**
+             * Force Mfa Triggered
+             * @default false
+             */
+            force_mfa_triggered: boolean;
+            /**
+             * Ok
+             * @default true
+             */
+            ok: boolean;
+        };
+        /**
          * MemorySnapshot
          * @description Response for GET /admin/memory-snapshot (SEN-BE-010 AC0).
          */
@@ -7654,10 +7849,16 @@ export interface components {
              * @default aal1
              */
             aal_level: string;
+            /** Enforce Reason */
+            enforce_reason?: string | null;
             /** Factors */
             factors?: {
                 [key: string]: unknown;
             }[];
+            /** Force Mfa Enrollment Until */
+            force_mfa_enrollment_until?: string | null;
+            /** Grace Days Remaining */
+            grace_days_remaining?: number | null;
             /** Mfa Enabled */
             mfa_enabled: boolean;
             /**
@@ -8308,78 +8509,6 @@ export interface components {
             /** Reason */
             reason: string;
         };
-        /** ReconcileNowResponse */
-        ReconcileNowResponse: {
-            /**
-             * Drifts Detected
-             * @default 0
-             */
-            drifts_detected: number;
-            /**
-             * Drifts Fixed
-             * @default 0
-             */
-            drifts_fixed: number;
-            /**
-             * Drifts Manual
-             * @default 0
-             */
-            drifts_manual: number;
-            /** Dry Run */
-            dry_run: boolean;
-            /** Run Id */
-            run_id?: string | null;
-            /** Status */
-            status: string;
-        };
-        /** ReconciliationRun */
-        ReconciliationRun: {
-            /** Drift Report */
-            drift_report?: unknown;
-            /**
-             * Drifts Detected
-             * @default 0
-             */
-            drifts_detected: number;
-            /**
-             * Drifts Fixed
-             * @default 0
-             */
-            drifts_fixed: number;
-            /**
-             * Drifts Manual
-             * @default 0
-             */
-            drifts_manual: number;
-            /**
-             * Dry Run
-             * @default false
-             */
-            dry_run: boolean;
-            /** Error Message */
-            error_message?: string | null;
-            /** Finished At */
-            finished_at?: string | null;
-            /** Id */
-            id: string;
-            /**
-             * Rows Checked
-             * @default 0
-             */
-            rows_checked: number;
-            /**
-             * Started At
-             * Format: date-time
-             */
-            started_at: string;
-            /** Status */
-            status: string;
-        };
-        /** ReconciliationRunsResponse */
-        ReconciliationRunsResponse: {
-            /** Items */
-            items: components["schemas"]["ReconciliationRun"][];
-        };
         /** RecoveryCodesResponse */
         RecoveryCodesResponse: {
             /** Codes */
@@ -8715,32 +8844,6 @@ export interface components {
              * @description Total value of all opportunities in BRL
              */
             valor_total: number;
-        };
-        /** ReverseSyncRequest */
-        ReverseSyncRequest: {
-            /**
-             * I Understand This Modifies Stripe
-             * @description Admin must explicitly confirm intent to mutate Stripe.
-             * @default false
-             */
-            i_understand_this_modifies_stripe: boolean;
-            /** Note */
-            note?: string | null;
-        };
-        /** ReverseSyncResponse */
-        ReverseSyncResponse: {
-            /** Audit Log Id */
-            audit_log_id?: string | null;
-            /** New Stripe Price Id */
-            new_stripe_price_id?: string | null;
-            /** Old Stripe Price Id */
-            old_stripe_price_id?: string | null;
-            /** Plan Billing Period Id */
-            plan_billing_period_id: string;
-            /** Skipped Reason */
-            skipped_reason?: string | null;
-            /** Status */
-            status: string;
         };
         /**
          * RevokeResponse
@@ -10306,6 +10409,238 @@ export interface operations {
             };
         };
     };
+    list_cnae_mappings_v1_admin_cnae_mapping_get: {
+        parameters: {
+            query?: {
+                limit?: number;
+                offset?: number;
+                search?: string | null;
+                setor_id?: string | null;
+                is_active?: boolean | null;
+                min_confidence?: number | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CnaeMappingListResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_cnae_mapping_v1_admin_cnae_mapping_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CnaeMappingCreateRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CnaeMappingMutationResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    bulk_import_v1_admin_cnae_mapping_bulk_import_post: {
+        parameters: {
+            query?: {
+                dry_run?: boolean;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": components["schemas"]["Body_bulk_import_v1_admin_cnae_mapping_bulk_import_post"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BulkImportResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_cnae_mapping_v1_admin_cnae_mapping__cnae_code__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                cnae_code: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CnaeMappingDetailResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    soft_delete_cnae_mapping_v1_admin_cnae_mapping__cnae_code__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                cnae_code: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CnaeMappingMutationResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_cnae_mapping_v1_admin_cnae_mapping__cnae_code__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                cnae_code: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CnaeMappingUpdateRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CnaeMappingMutationResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    restore_cnae_mapping_v1_admin_cnae_mapping__cnae_code__restore_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                cnae_code: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CnaeMappingMutationResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     get_cron_status_v1_admin_cron_status_get: {
         parameters: {
             query?: never;
@@ -10599,123 +10934,6 @@ export interface operations {
                 };
                 content: {
                     "application/json": unknown;
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    list_billing_sync_rows_v1_admin_plans_billing_sync_get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["BillingSyncListResponse"];
-                };
-            };
-        };
-    };
-    reconcile_now_v1_admin_plans_reconcile_now_post: {
-        parameters: {
-            query?: {
-                dry_run?: boolean;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ReconcileNowResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    list_reconciliation_runs_v1_admin_plans_reconciliation_runs_get: {
-        parameters: {
-            query?: {
-                limit?: number;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ReconciliationRunsResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    sync_to_stripe_v1_admin_plans__plan_billing_period_id__sync_to_stripe_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                plan_billing_period_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["ReverseSyncRequest"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ReverseSyncResponse"];
                 };
             };
             /** @description Validation Error */
@@ -12276,6 +12494,39 @@ export interface operations {
                 };
                 content: {
                     "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    record_login_attempt_v1_auth_login_attempt_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LoginAttemptRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LoginAttemptResponse"];
                 };
             };
             /** @description Validation Error */
