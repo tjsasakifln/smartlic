@@ -18,7 +18,6 @@ const SOURCE_LABELS: Record<string, string> = {
   PNCP: "PNCP",
   PORTAL_COMPRAS: "Portal de Compras",
   COMPRAS_GOV: "ComprasGov",
-  LICITAJA: "LicitaJá",
 };
 
 function sanitizeErrorForDisplay(error: string | undefined): string {
