@@ -77,6 +77,7 @@ from routes.notifications import router as notifications_router
 from routes.export import router as edital_export_router
 from routes.founding import router as founding_router
 from routes.conta import router as conta_router
+from routes.intel_reports import router as intel_reports_router
 
 _v1_routers = [
     admin_router, subscriptions_router, features_router, messages_router,
@@ -119,6 +120,7 @@ _v1_routers = [
     founding_router,
     conta_router,
     survey_router,
+    intel_reports_router,
 ]
 
 

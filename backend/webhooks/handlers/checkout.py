@@ -5,6 +5,7 @@ Events:
 - checkout.session.completed
 - checkout.session.async_payment_succeeded (Boleto/PIX — STORY-280)
 - checkout.session.async_payment_failed (Boleto/PIX — STORY-280)
+- payment_intent.payment_failed (Intel Report one-time payment failure — #630)
 """
 
 import asyncio
@@ -22,6 +23,117 @@ _WEBHOOK_QUERY_BUDGET_S = 5.0
 logger = get_sanitized_logger(__name__)
 
 
+# ============================================================================
+# Intel Report one-time payment handlers (#630)
+# ============================================================================
+
+async def handle_intel_report_checkout_completed(sb, session_data: dict) -> None:
+    """Handle checkout.session.completed for Intel Report one-time payments (#630).
+
+    Idempotency is guaranteed at the dispatcher level (stripe_webhook_events table),
+    so this handler does NOT implement its own dedup — the dispatcher will call this
+    at most once per event_id.
+
+    Inserts a row in intel_report_purchases with status='pending' and enqueues
+    the generate_intel_report ARQ job (issue #631).
+    """
+    metadata = session_data.get("metadata") or {}
+    product_type = metadata.get("product_type")
+    entity_key = metadata.get("entity_key")
+    user_id = metadata.get("user_id")
+    payment_intent = session_data.get("payment_intent")
+    session_id = session_data.get("id")
+
+    if not user_id or not product_type or not entity_key:
+        logger.warning(
+            f"Intel Report checkout missing required metadata: "
+            f"user_id={user_id}, product_type={product_type}, entity_key={entity_key}"
+        )
+        return
+
+    logger.info(
+        f"Intel Report checkout completed: user_id={user_id[:8]}, "
+        f"product_type={product_type}, entity_key={entity_key!r}, "
+        f"session_id={session_id}"
+    )
+
+    now_iso = datetime.now(timezone.utc).isoformat()
+    purchase_row = {
+        "user_id": user_id,
+        "product_type": product_type,
+        "entity_key": entity_key,
+        "status": "pending",
+        "stripe_checkout_session_id": session_id,
+        "stripe_payment_intent_id": payment_intent,
+        "created_at": now_iso,
+    }
+
+    insert_result = await _run_with_budget(
+        asyncio.to_thread(lambda: sb.table("intel_report_purchases").insert(purchase_row).execute()),
+        budget=_WEBHOOK_QUERY_BUDGET_S,
+        phase="route",
+        source="webhook.intel_report.insert_purchase",
+    )
+
+    purchase_id = None
+    if insert_result.data:
+        purchase_id = insert_result.data[0].get("id")
+        logger.info(f"Intel Report purchase created: purchase_id={purchase_id}")
+
+    # Enqueue generation job (issue #631 implements the actual job)
+    # Best-effort: if ARQ is unavailable the purchase row is still persisted.
+    if purchase_id:
+        try:
+            from job_queue import get_arq_pool
+            pool = await get_arq_pool()
+            if pool:
+                await pool.enqueue_job("generate_intel_report", purchase_id)
+                logger.info(f"generate_intel_report job enqueued for purchase_id={purchase_id}")
+        except Exception as arq_err:
+            logger.warning(
+                f"Could not enqueue generate_intel_report (non-fatal, will retry on webhook replay): {arq_err}"
+            )
+
+
+async def handle_intel_report_async_payment_succeeded(sb, session_data: dict) -> None:
+    """Handle checkout.session.async_payment_succeeded for Intel Report (Boleto/PIX — #630).
+
+    Same logic as handle_intel_report_checkout_completed: inserts purchase and
+    enqueues generation. This event fires when an async payment method (boleto/pix)
+    is confirmed after the checkout session was created.
+    """
+    # Reuse the same logic as the synchronous path
+    await handle_intel_report_checkout_completed(sb, session_data)
+
+
+async def handle_intel_report_payment_failed(sb, event: stripe.Event) -> None:
+    """Handle payment_intent.payment_failed for Intel Report purchases (#630).
+
+    Updates the purchase status to 'failed' for the matching payment_intent.
+    The PaymentIntent object does not have session metadata, so we look up the
+    purchase row by stripe_payment_intent_id.
+    """
+    payment_intent_obj = event.data.object
+    payment_intent_id = getattr(payment_intent_obj, "id", None) or (
+        payment_intent_obj.get("id") if hasattr(payment_intent_obj, "get") else None
+    )
+
+    if not payment_intent_id:
+        logger.warning("payment_intent.payment_failed: missing payment_intent id")
+        return
+
+    logger.warning(f"Intel Report payment failed: payment_intent_id={payment_intent_id}")
+
+    await _run_with_budget(
+        asyncio.to_thread(lambda: sb.table("intel_report_purchases").update({
+            "status": "failed",
+        }).eq("stripe_payment_intent_id", payment_intent_id).eq("status", "pending").execute()),
+        budget=_WEBHOOK_QUERY_BUDGET_S,
+        phase="route",
+        source="webhook.intel_report.mark_failed",
+    )
+
+
 async def handle_checkout_session_completed(sb, event: stripe.Event) -> None:
     """
     Handle checkout.session.completed event.
@@ -30,10 +142,19 @@ async def handle_checkout_session_completed(sb, event: stripe.Event) -> None:
     at checkout completion. We must NOT activate — wait for async_payment_succeeded.
 
     For card payments (synchronous), payment_status is "paid" — activate immediately.
+
+    #630: Intel Report one-time payments (mode=payment + metadata.product_type) are
+    dispatched to handle_intel_report_checkout_completed BEFORE the subscription checks.
     """
     session_data = event.data.object
-    user_id = resolve_user_id(sb, session_data)
     metadata = session_data.get("metadata") or {}
+
+    # #630: Intel Report one-time payment — dispatch before subscription logic
+    if session_data.get("mode") == "payment" and metadata.get("product_type"):
+        await handle_intel_report_checkout_completed(sb, session_data)
+        return
+
+    user_id = resolve_user_id(sb, session_data)
     plan_id = metadata.get("plan_id")
     billing_period = metadata.get("billing_period", "monthly")
     stripe_subscription_id = session_data.get("subscription")
@@ -172,10 +293,19 @@ async def handle_async_payment_succeeded(sb, event: stripe.Event) -> None:
 
     Fired when a Boleto/PIX async payment is confirmed after checkout.
     Activates the pending subscription created by handle_checkout_session_completed.
+
+    #630: Intel Report async payments (boleto/pix) dispatched to
+    handle_intel_report_async_payment_succeeded before subscription logic.
     """
     session_data = event.data.object
-    user_id = resolve_user_id(sb, session_data)
     metadata = session_data.get("metadata") or {}
+
+    # #630: Intel Report async payment (boleto/pix confirmed)
+    if session_data.get("mode") == "payment" and metadata.get("product_type"):
+        await handle_intel_report_async_payment_succeeded(sb, session_data)
+        return
+
+    user_id = resolve_user_id(sb, session_data)
     plan_id = metadata.get("plan_id")
     billing_period = metadata.get("billing_period", "monthly")
     stripe_subscription_id = session_data.get("subscription")
