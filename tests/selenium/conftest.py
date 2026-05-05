@@ -29,8 +29,7 @@ MFA_CODE_INPUT = (
     "input[inputmode='numeric'], "
     "input[name*='code' i], "
     "input[id*='code' i], "
-    "input[type='tel'], "
-    "input[type='text']",
+    "input[type='tel']",
 )
 MFA_SUBMIT_BUTTON = (By.CSS_SELECTOR, "button[type='submit']")
 
@@ -70,10 +69,16 @@ def driver():
 
 
 def _mfa_screen_visible(driver) -> bool:
+    """Return True if the MFA verification screen is currently displayed."""
     return any(element.is_displayed() for element in driver.find_elements(*MFA_SCREEN))
 
 
 def _complete_mfa_if_required(driver, base_url: str, timeout: int = 30) -> bool:
+    """Complete TOTP MFA flow if the MFA screen appears after password submission.
+
+    Returns True if MFA was completed, False if MFA screen was not shown.
+    Skips the test (via pytest.skip) if MFA is required but ADMIN_TOTP_SECRET is absent.
+    """
     login_url = f"{base_url}/login"
     try:
         WebDriverWait(driver, timeout).until(
@@ -93,7 +98,12 @@ def _complete_mfa_if_required(driver, base_url: str, timeout: int = 30) -> bool:
 
     import pyotp
 
-    totp_code = pyotp.TOTP(ADMIN_TOTP_SECRET.replace(" ", "")).now()
+    totp = pyotp.TOTP(ADMIN_TOTP_SECRET.replace(" ", ""))
+    # Wait out the current window if fewer than 5 seconds remain to avoid expiry on submit.
+    remaining = 30 - (time.time() % 30)
+    if remaining < 5:
+        time.sleep(remaining + 1)
+    totp_code = totp.now()
     code_input = WebDriverWait(driver, 10).until(
         EC.element_to_be_clickable(MFA_CODE_INPUT)
     )
