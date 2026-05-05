@@ -12,6 +12,10 @@ import pytest
 class TestCalculateWedgeRisk:
     """Unit tests for health.calculate_wedge_risk()."""
 
+    def setup_method(self):
+        import health
+        health._counter_baseline.clear()
+
     def _make_counter_sample(self, value: float):
         """Build a minimal Prometheus MetricFamily mock with a single sample."""
         sample = MagicMock()
