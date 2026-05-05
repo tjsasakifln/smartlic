@@ -11,6 +11,7 @@ Usage:
 
 from __future__ import annotations
 
+import html
 import re
 from datetime import datetime, timezone
 from io import BytesIO
@@ -71,7 +72,7 @@ ESFERA_LABELS = {
 def _sanitize(value: Any) -> str:
     if value is None:
         return ""
-    return ILLEGAL_CHARACTERS_RE.sub(" ", str(value))
+    return ILLEGAL_CHARACTERS_RE.sub(" ", html.escape(str(value)))
 
 
 def _fmt_currency(value: float | int | None) -> str:

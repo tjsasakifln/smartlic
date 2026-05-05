@@ -11,6 +11,7 @@ import time
 
 from fastapi import APIRouter, Response
 
+from schemas.health import ReadinessResponse
 import startup.state as _state
 
 logger = logging.getLogger(__name__)
@@ -45,7 +46,7 @@ async def health_live():
     }
 
 
-@router.get("/health/ready")
+@router.get("/health/ready", response_model=ReadinessResponse)
 async def health_ready(response: Response):
     """HARDEN-016 AC2: Readiness probe — checks Redis + Supabase.
 

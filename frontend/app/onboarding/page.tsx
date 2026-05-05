@@ -1,8 +1,6 @@
 "use client";
 
-export const dynamic = "force-dynamic";
-
-import { useState, useEffect, useCallback, useRef } from "react";
+import { Suspense, useState, useEffect, useCallback, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -39,7 +37,7 @@ export default function OnboardingPage() {
   const [analysisError, setAnalysisError] = useState<string | null>(null);
   const [existingContext, setExistingContext] = useState<Record<string, unknown> | null>(null);
   const cnpjDeeplinkFiredRef = useRef(false);
-  const searchParams = useSearchParams();
+  const [cnpjParam, setCnpjParam] = useState<string | null>(null);
 
   const [data, setData] = useState<OnboardingData>({
     cnae: "",
@@ -80,7 +78,7 @@ export default function OnboardingPage() {
 
   // GTM-642: Auto-fill UF from CNPJ deep-link (/?cnpj=XXXXXXXXXXXXXXX)
   useEffect(() => {
-    const cnpj = searchParams.get("cnpj");
+    const cnpj = cnpjParam;
     if (!cnpj || !/^\d{14}$/.test(cnpj)) return;
     if (cnpjDeeplinkFiredRef.current) return;
     cnpjDeeplinkFiredRef.current = true;
@@ -105,7 +103,7 @@ export default function OnboardingPage() {
         // Timeout or network error — continue without pre-fill (silent)
       }
     })();
-  }, [searchParams, updateData, trackEvent, user?.created_at]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [cnpjParam, updateData, trackEvent, user?.created_at]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Load existing context if user re-visits
   useEffect(() => {
@@ -330,6 +328,9 @@ export default function OnboardingPage() {
 
   return (
     <div className="min-h-screen bg-[var(--surface-0)] flex items-center justify-center p-4">
+      <Suspense fallback={null}>
+        <SearchParamsReader onCnpj={setCnpjParam} />
+      </Suspense>
       <div className="w-full max-w-2xl">
         {/* Header */}
         <div className="text-center mb-6">
@@ -413,4 +414,12 @@ export default function OnboardingPage() {
       </div>
     </div>
   );
+}
+
+function SearchParamsReader({ onCnpj }: { onCnpj: (cnpj: string | null) => void }) {
+  const searchParams = useSearchParams();
+  useEffect(() => {
+    onCnpj(searchParams.get("cnpj"));
+  }, [searchParams, onCnpj]);
+  return null;
 }
