@@ -953,3 +953,73 @@ def update_memory_metrics() -> None:
             PROCESS_MEMORY_PEAK_RSS_BYTES.set(mem["peak_rss_mb"] * 1024 * 1024)
     except Exception:
         pass  # Graceful degradation
+
+
+# ============================================================================
+# Issue #640: Wedge risk assessment
+# ============================================================================
+
+def calculate_wedge_risk() -> str:
+    """Issue #640: Compute wedge risk level from pool saturation and pipeline metrics.
+
+    Returns one of: "low", "medium", "high", "unknown".
+
+    HIGH when any of:
+    - Redis pool saturation > 80%
+    - Pipeline budget exceeded counter > 0 (any phase/source in recent window)
+    - Route timeout counter > 0 in recent window (sync .execute() wedge indicator)
+
+    MEDIUM when:
+    - Redis pool saturation 50–80%
+
+    LOW otherwise.
+    UNKNOWN when calculation fails (e.g. Redis offline).
+    """
+    try:
+        # Redis pool saturation — let exceptions propagate to outer try so we return "unknown"
+        # on genuine pool failures (e.g. Redis offline), not silently zero-out the saturation.
+        from redis_pool import get_pool_stats
+        pool_stats = get_pool_stats()
+        redis_used = pool_stats.get("used", 0)
+        redis_max = pool_stats.get("max", 0)
+        redis_pct = (redis_used / redis_max * 100) if redis_max > 0 else 0.0
+
+        # Pipeline budget exceeded counter (check if any samples exist — >0 means wedge happened)
+        pipeline_budget_exceeded = False
+        try:
+            from metrics import PIPELINE_BUDGET_EXCEEDED_TOTAL
+            # _metrics is a Counter; collect() returns MetricFamily with samples
+            for metric_family in PIPELINE_BUDGET_EXCEEDED_TOTAL.collect():
+                for sample in metric_family.samples:
+                    if sample.value > 0:
+                        pipeline_budget_exceeded = True
+                        break
+                if pipeline_budget_exceeded:
+                    break
+        except Exception:
+            pass
+
+        # Route timeout counter (sync .execute() without _run_with_budget wedge indicator)
+        route_timeout_triggered = False
+        try:
+            from metrics import ROUTE_TIMEOUT_TOTAL
+            for metric_family in ROUTE_TIMEOUT_TOTAL.collect():
+                for sample in metric_family.samples:
+                    if sample.value > 0:
+                        route_timeout_triggered = True
+                        break
+                if route_timeout_triggered:
+                    break
+        except Exception:
+            pass
+
+        # Classify risk
+        if redis_pct > 80 or pipeline_budget_exceeded or route_timeout_triggered:
+            return "high"
+        elif redis_pct > 50:
+            return "medium"
+        return "low"
+
+    except Exception as exc:
+        logger.debug("calculate_wedge_risk: computation failed (non-fatal): %s", exc)
+        return "unknown"

@@ -34,6 +34,13 @@ class HealthDependencies(BaseModel):
     )
 
 
+class ComponentCheck(BaseModel):
+    """Per-component latency and status (Issue #640)."""
+    status: str
+    latency_ms: Optional[int] = None
+    error: Optional[str] = None
+
+
 class HealthResponse(BaseModel):
     """Response for GET /health endpoint."""
     status: str
@@ -43,6 +50,18 @@ class HealthResponse(BaseModel):
     version: str
     dependencies: HealthDependencies
     sources: Optional[Dict[str, Any]] = None  # AC27 + B-06: Per-source health status (str or dict)
+
+
+class ReadinessResponse(BaseModel):
+    """Response for GET /health/ready endpoint (Issue #640)."""
+    ready: bool
+    checks: Dict[str, Any]
+    uptime_seconds: float
+    wedge_risk: str = Field(
+        default="unknown",
+        description="Issue #640: Pool/pipeline wedge risk level — low | medium | high | unknown",
+    )
+    shutting_down: Optional[bool] = None
 
 
 class SourceInfo(BaseModel):

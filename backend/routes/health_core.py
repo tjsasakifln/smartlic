@@ -118,7 +118,11 @@ async def health_ready(response: Response):
     if not is_ready:
         response.status_code = 503
 
-    return {"ready": is_ready, "checks": checks, "uptime_seconds": uptime}
+    # Issue #640: Wedge risk assessment — additive field, never blocks readiness
+    from health import calculate_wedge_risk
+    wedge_risk = calculate_wedge_risk()
+
+    return {"ready": is_ready, "checks": checks, "uptime_seconds": uptime, "wedge_risk": wedge_risk}
 
 
 @router.get("/health")
