@@ -389,7 +389,7 @@ export default async function FornecedorCnpjPage({ params }: Props) {
               oportunidades relevantes para sua empresa.
             </p>
             <Link
-              href="/signup"
+              href={`/signup?ref=cnpj&cnpj=${cnpj}`}
               className="inline-block px-6 py-3 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition-colors"
             >
               Testar 14 dias grátis →

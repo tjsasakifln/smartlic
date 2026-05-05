@@ -9000,6 +9000,28 @@ export interface components {
             total: number;
         };
         /**
+         * ReadinessResponse
+         * @description Response for GET /health/ready endpoint (Issue #640).
+         */
+        ReadinessResponse: {
+            /** Checks */
+            checks: {
+                [key: string]: unknown;
+            };
+            /** Ready */
+            ready: boolean;
+            /** Shutting Down */
+            shutting_down?: boolean | null;
+            /** Uptime Seconds */
+            uptime_seconds: number;
+            /**
+             * Wedge Risk
+             * @description Issue #640: Pool/pipeline wedge risk level — low | medium | high | unknown
+             * @default unknown
+             */
+            wedge_risk: string;
+        };
+        /**
          * RecalibrateRequest
          * @description POST /v1/admin/calibration/recalibrate body.
          */
@@ -10891,7 +10913,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": unknown;
+                    "application/json": components["schemas"]["ReadinessResponse"];
                 };
             };
         };

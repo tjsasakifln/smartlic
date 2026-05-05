@@ -8563,6 +8563,48 @@
         "title": "RankingResponse",
         "type": "object"
       },
+      "ReadinessResponse": {
+        "description": "Response for GET /health/ready endpoint (Issue #640).",
+        "properties": {
+          "checks": {
+            "additionalProperties": true,
+            "title": "Checks",
+            "type": "object"
+          },
+          "ready": {
+            "title": "Ready",
+            "type": "boolean"
+          },
+          "shutting_down": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Shutting Down"
+          },
+          "uptime_seconds": {
+            "title": "Uptime Seconds",
+            "type": "number"
+          },
+          "wedge_risk": {
+            "default": "unknown",
+            "description": "Issue #640: Pool/pipeline wedge risk level \u2014 low | medium | high | unknown",
+            "title": "Wedge Risk",
+            "type": "string"
+          }
+        },
+        "required": [
+          "ready",
+          "checks",
+          "uptime_seconds"
+        ],
+        "title": "ReadinessResponse",
+        "type": "object"
+      },
       "RecalibrateRequest": {
         "description": "POST /v1/admin/calibration/recalibrate body.",
         "properties": {
@@ -12645,7 +12687,9 @@
           "200": {
             "content": {
               "application/json": {
-                "schema": {}
+                "schema": {
+                  "$ref": "#/components/schemas/ReadinessResponse"
+                }
               }
             },
             "description": "Successful Response"

@@ -38,6 +38,7 @@ jest.mock('next/navigation', () => ({
     push: mockRouterPush,
     replace: mockRouterReplace,
   }),
+  useSearchParams: () => new URLSearchParams(),
 }));
 
 jest.mock('../../app/components/AuthProvider', () => ({

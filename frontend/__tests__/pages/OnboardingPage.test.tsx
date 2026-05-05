@@ -22,6 +22,7 @@ jest.mock('next/navigation', () => ({
     replace: mockReplace,
     back: jest.fn(),
   }),
+  useSearchParams: () => new URLSearchParams(),
 }));
 
 const mockUser = { id: 'user-1', email: 'test@test.com' };

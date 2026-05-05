@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
-import { useRouter } from "next/navigation";
+import { Suspense, useState, useEffect, useCallback, useRef } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useAuth } from "../components/AuthProvider";
@@ -36,6 +36,8 @@ export default function OnboardingPage() {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [analysisError, setAnalysisError] = useState<string | null>(null);
   const [existingContext, setExistingContext] = useState<Record<string, unknown> | null>(null);
+  const cnpjDeeplinkFiredRef = useRef(false);
+  const [cnpjParam, setCnpjParam] = useState<string | null>(null);
 
   const [data, setData] = useState<OnboardingData>({
     cnae: "",
@@ -73,6 +75,35 @@ export default function OnboardingPage() {
       return next;
     });
   }, [step1Form, step2Form]);
+
+  // GTM-642: Auto-fill UF from CNPJ deep-link (/?cnpj=XXXXXXXXXXXXXXX)
+  useEffect(() => {
+    const cnpj = cnpjParam;
+    if (!cnpj || !/^\d{14}$/.test(cnpj)) return;
+    if (cnpjDeeplinkFiredRef.current) return;
+    cnpjDeeplinkFiredRef.current = true;
+
+    (async () => {
+      try {
+        const res = await fetch(`/api/empresa/${cnpj}/perfil-b2g`, {
+          signal: AbortSignal.timeout(3000),
+        });
+        if (!res.ok) return;
+        const body = await res.json() as { empresa?: { uf?: string } };
+        const uf = body?.empresa?.uf;
+        if (uf && typeof uf === "string" && uf.length === 2) {
+          updateData({ ufs_atuacao: [uf.toUpperCase()] });
+          trackEvent("signup_cnpj_deeplink", {
+            cnpj,
+            uf: uf.toUpperCase(),
+            days_in_trial: getDaysInTrial(user?.created_at),
+          });
+        }
+      } catch {
+        // Timeout or network error — continue without pre-fill (silent)
+      }
+    })();
+  }, [cnpjParam, updateData, trackEvent, user?.created_at]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Load existing context if user re-visits
   useEffect(() => {
@@ -297,6 +328,9 @@ export default function OnboardingPage() {
 
   return (
     <div className="min-h-screen bg-[var(--surface-0)] flex items-center justify-center p-4">
+      <Suspense fallback={null}>
+        <SearchParamsReader onCnpj={setCnpjParam} />
+      </Suspense>
       <div className="w-full max-w-2xl">
         {/* Header */}
         <div className="text-center mb-6">
@@ -380,4 +414,12 @@ export default function OnboardingPage() {
       </div>
     </div>
   );
+}
+
+function SearchParamsReader({ onCnpj }: { onCnpj: (cnpj: string | null) => void }) {
+  const searchParams = useSearchParams();
+  useEffect(() => {
+    onCnpj(searchParams.get("cnpj"));
+  }, [searchParams, onCnpj]);
+  return null;
 }

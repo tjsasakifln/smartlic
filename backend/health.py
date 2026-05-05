@@ -959,6 +959,28 @@ def update_memory_metrics() -> None:
 # Issue #640: Wedge risk assessment
 # ============================================================================
 
+_counter_baseline: dict[str, float] = {}
+
+
+def _counter_delta(metric_name: str, counter: object) -> float:
+    """Delta of a Prometheus Counter since first call in this process lifetime.
+
+    Using deltas prevents wedge_risk from staying 'high' forever after a
+    one-time spike. Baseline resets on process restart.
+    """
+    try:
+        total = sum(
+            sample.value
+            for family in counter.collect()  # type: ignore[attr-defined]
+            for sample in family.samples
+        )
+        if metric_name not in _counter_baseline:
+            _counter_baseline[metric_name] = total
+        return total - _counter_baseline[metric_name]
+    except Exception:
+        return 0.0
+
+
 def calculate_wedge_risk() -> str:
     """Issue #640: Compute wedge risk level from pool saturation and pipeline metrics.
 
@@ -984,32 +1006,20 @@ def calculate_wedge_risk() -> str:
         redis_max = pool_stats.get("max", 0)
         redis_pct = (redis_used / redis_max * 100) if redis_max > 0 else 0.0
 
-        # Pipeline budget exceeded counter (check if any samples exist — >0 means wedge happened)
+        # Pipeline budget exceeded counter — delta since process start so it
+        # doesn't stay high forever after a one-time spike.
         pipeline_budget_exceeded = False
         try:
             from metrics import PIPELINE_BUDGET_EXCEEDED_TOTAL
-            # _metrics is a Counter; collect() returns MetricFamily with samples
-            for metric_family in PIPELINE_BUDGET_EXCEEDED_TOTAL.collect():
-                for sample in metric_family.samples:
-                    if sample.value > 0:
-                        pipeline_budget_exceeded = True
-                        break
-                if pipeline_budget_exceeded:
-                    break
+            pipeline_budget_exceeded = _counter_delta("pipeline_budget_exceeded", PIPELINE_BUDGET_EXCEEDED_TOTAL) > 0
         except Exception:
             pass
 
-        # Route timeout counter (sync .execute() without _run_with_budget wedge indicator)
+        # Route timeout counter — same delta approach.
         route_timeout_triggered = False
         try:
             from metrics import ROUTE_TIMEOUT_TOTAL
-            for metric_family in ROUTE_TIMEOUT_TOTAL.collect():
-                for sample in metric_family.samples:
-                    if sample.value > 0:
-                        route_timeout_triggered = True
-                        break
-                if route_timeout_triggered:
-                    break
+            route_timeout_triggered = _counter_delta("route_timeout", ROUTE_TIMEOUT_TOTAL) > 0
         except Exception:
             pass
 

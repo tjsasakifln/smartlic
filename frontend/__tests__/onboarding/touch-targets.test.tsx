@@ -13,6 +13,7 @@ jest.mock('next/navigation', () => ({
     refresh: jest.fn(),
     prefetch: jest.fn(),
   }),
+  useSearchParams: () => new URLSearchParams(),
 }));
 
 // Mock AuthProvider

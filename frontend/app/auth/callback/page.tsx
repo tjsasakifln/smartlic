@@ -149,7 +149,7 @@ export default function AuthCallbackPage() {
               signup_method: 'google',
               signup_date: session.user.created_at,
             });
-            window.location.href = "/buscar";
+            window.location.href = getPostAuthRedirect();
             return;
           }
 
@@ -178,7 +178,7 @@ export default function AuthCallbackPage() {
           clearTimeout(callbackTimeout);
           identifyUserRef.current(user.id, { signup_method: 'google' });
           setStatus("success");
-          window.location.href = "/buscar";
+          window.location.href = getPostAuthRedirect();
           return;
         }
 
@@ -201,7 +201,7 @@ export default function AuthCallbackPage() {
             });
             setStatus("success");
             subscription.unsubscribe();
-            window.location.href = "/buscar";
+            window.location.href = getPostAuthRedirect();
           }
         });
 
@@ -265,6 +265,27 @@ export default function AuthCallbackPage() {
       </div>
     </div>
   );
+}
+
+/**
+ * GTM-642: Read-once helper that returns the post-auth redirect URL.
+ * Checks sessionStorage for a CNPJ deep-link context written by signup/page.tsx.
+ * Clears the context after reading so it fires only once.
+ * Falls back to "/buscar" (the default OAuth destination).
+ */
+function getPostAuthRedirect(): string {
+  try {
+    const raw = sessionStorage.getItem("smartlic_signup_context");
+    if (!raw) return "/buscar";
+    sessionStorage.removeItem("smartlic_signup_context");
+    const ctx = JSON.parse(raw) as { ref?: string; cnpj?: string };
+    if (ctx.ref === "cnpj" && ctx.cnpj && /^\d{14}$/.test(ctx.cnpj)) {
+      return `/onboarding?cnpj=${ctx.cnpj}`;
+    }
+  } catch {
+    // sessionStorage unavailable or JSON parse error — fall through
+  }
+  return "/buscar";
 }
 
 /**
