@@ -20,9 +20,12 @@ Usage:
 from datetime import datetime
 from typing import Any
 import json
+import logging
 import os
 
 from openai import OpenAI
+
+logger = logging.getLogger(__name__)
 
 from schemas import ResumoLicitacoes, ResumoEstrategico, Recomendacao
 from excel import parse_datetime
@@ -397,6 +400,160 @@ Data atual: {datetime.now().strftime("%d/%m/%Y")}
     recompute_temporal_alerts(resumo, licitacoes)
 
     return resumo
+
+
+def generate_cnpj_narrative(data: dict[str, Any]) -> dict[str, str]:
+    """Generate competitive intelligence narrative for a CNPJ supplier report.
+
+    Uses GPT-4.1-nano (gpt-4o-mini) to produce a structured narrative covering
+    competitive patterns, key clients, focus sectors, and risk points. Falls back
+    to a deterministic text generator if the LLM call fails for any reason.
+
+    Args:
+        data: Aggregated supplier data from the `cnpj_supplier_intel` RPC.
+              Relevant keys: total_contratos, valor_total, orgaos_top,
+              objetos_top, uf_breakdown, esfera_breakdown.
+
+    Returns:
+        dict with keys:
+            padrao_competitivo: Overview of competitive patterns.
+            principais_clientes: Key buyer agencies.
+            setores_foco: Focus sectors and contract objects.
+            pontos_atencao: Risks and attention points.
+    """
+    # Always try LLM first; deterministic fallback on any exception.
+    try:
+        return _generate_cnpj_narrative_llm(data)
+    except Exception:
+        logger.warning("cnpj narrative LLM failed, using fallback", exc_info=True)
+    return _generate_cnpj_narrative_fallback(data)
+
+
+def _build_cnpj_narrative_payload(data: dict[str, Any]) -> dict[str, Any]:
+    """Prepare a compact token-efficient payload for the LLM."""
+    orgaos = (data.get("orgaos_top") or [])[:10]
+    orgaos_summary = [
+        {
+            "orgao": str(o.get("orgao_nome") or o.get("orgao") or ""),
+            "uf": o.get("uf") or "",
+            "contratos": o.get("total_contratos") or o.get("n_contratos") or 0,
+            "valor": o.get("valor_total") or 0,
+        }
+        for o in orgaos
+    ]
+
+    objetos = (data.get("objetos_top") or [])[:10]
+    objetos_summary = [
+        {
+            "objeto": (o.get("objeto") or o.get("descricao") or "")[:100],
+            "frequencia": o.get("frequencia") or o.get("count") or 0,
+        }
+        for o in objetos
+    ]
+
+    uf_bd = data.get("uf_breakdown") or {}
+    esfera_bd = data.get("esfera_breakdown") or {}
+
+    return {
+        "total_contratos": data.get("total_contratos") or 0,
+        "valor_total": data.get("valor_total") or 0,
+        "orgaos_top": orgaos_summary,
+        "objetos_top": objetos_summary,
+        "uf_breakdown": {k: (v if not isinstance(v, dict) else v.get("total_contratos", 0)) for k, v in uf_bd.items()},
+        "esfera_breakdown": esfera_bd,
+    }
+
+
+def _generate_cnpj_narrative_llm(data: dict[str, Any]) -> dict[str, str]:
+    """LLM path for generate_cnpj_narrative."""
+    api_key = os.getenv("OPENAI_API_KEY")
+    if not api_key:
+        raise ValueError("OPENAI_API_KEY not set")
+
+    payload = _build_cnpj_narrative_payload(data)
+    client = OpenAI(api_key=api_key)
+
+    system_prompt = (
+        "Você é um analista de inteligência competitiva B2G (Business-to-Government) "
+        "especializado no mercado de licitações públicas do Brasil. "
+        "Com base nos dados agregados de contratos públicos de um fornecedor, "
+        "gere uma análise concisa e objetiva em português. "
+        "Responda SOMENTE com um JSON com exatamente as 4 chaves solicitadas. "
+        "Use linguagem profissional e direta. Máximo 3 parágrafos por campo."
+    )
+
+    user_prompt = (
+        f"Analise os seguintes dados de contratos públicos de um fornecedor:\n\n"
+        f"{json.dumps(payload, ensure_ascii=False, indent=2)}\n\n"
+        "Retorne um JSON com exatamente estas chaves:\n"
+        "- padrao_competitivo: Descreva o padrão geral de atuação competitiva do fornecedor.\n"
+        "- principais_clientes: Descreva os principais órgãos compradores e sua relevância.\n"
+        "- setores_foco: Descreva os setores e tipos de contratos em que o fornecedor se especializa.\n"
+        "- pontos_atencao: Identifique riscos, concentração excessiva ou outros pontos de atenção.\n"
+    )
+
+    response = client.chat.completions.create(
+        model="gpt-4o-mini",
+        messages=[
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": user_prompt},
+        ],
+        temperature=0.3,
+        max_tokens=1500,
+        response_format={"type": "json_object"},
+    )
+
+    raw = response.choices[0].message.content or "{}"
+    parsed = json.loads(raw)
+
+    return {
+        "padrao_competitivo": str(parsed.get("padrao_competitivo") or ""),
+        "principais_clientes": str(parsed.get("principais_clientes") or ""),
+        "setores_foco": str(parsed.get("setores_foco") or ""),
+        "pontos_atencao": str(parsed.get("pontos_atencao") or ""),
+    }
+
+
+def _generate_cnpj_narrative_fallback(data: dict[str, Any]) -> dict[str, str]:
+    """Deterministic fallback for generate_cnpj_narrative when LLM is unavailable."""
+    total_c = data.get("total_contratos") or 0
+    valor_t = float(data.get("valor_total") or 0)
+
+    orgaos = (data.get("orgaos_top") or [])[:3]
+    orgaos_str = ", ".join(
+        o.get("orgao_nome") or o.get("orgao") or "—"
+        for o in orgaos
+    ) or "não identificados"
+
+    objetos = (data.get("objetos_top") or [])[:3]
+    objetos_str = ", ".join(
+        (o.get("objeto") or o.get("descricao") or "")[:60]
+        for o in objetos
+    ) or "não identificados"
+
+    uf_bd = data.get("uf_breakdown") or {}
+    ufs_str = ", ".join(list(uf_bd.keys())[:5]) if uf_bd else "diversas UFs"
+
+    ticket = (valor_t / total_c) if total_c > 0 else 0.0
+
+    padrao = (
+        f"Fornecedor com {total_c} contrato(s) registrado(s), "
+        f"totalizando R$ {_fmt_brl(valor_t)} e ticket médio de R$ {_fmt_brl(ticket)}."
+    )
+    clientes = f"Principais compradores: {orgaos_str}."
+    setores = f"Principais objetos contratados: {objetos_str}."
+    atencao = (
+        f"Presença em {ufs_str}. "
+        "Verifique concentração de receita nos principais clientes e "
+        "eventuais impedimentos de participação em licitações."
+    )
+
+    return {
+        "padrao_competitivo": padrao,
+        "principais_clientes": clientes,
+        "setores_foco": setores,
+        "pontos_atencao": atencao,
+    }
 
 
 def format_resumo_html(resumo: ResumoLicitacoes) -> str:
