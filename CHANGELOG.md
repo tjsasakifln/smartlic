@@ -18,6 +18,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Meta descriptions CTR (#641)** — 5 páginas GSC P0 (>200 impressões, CTR <1%) reescritas com copy data-driven: número real + benefício + CTA implícito, 120–155 chars. Afeta `/blog/pncp-guia-completo-empresas`, `/blog/licitacoes-engenharia-2026`, `/blog/como-consultar-contratos-publicos-pncp`, `/blog/subcontratacao-licitacoes-regras-lei-14133`, `/perguntas/prazo-publicacao-edital`.
 
 ### Added — SEO
+- **Landing `/ferramentas/pncp-licitacoes` — queries B2B tool-search (#653)** — Server Component, ISR 24h, sem fetch backend. Captura queries GSC pos 11-17 sem clique ("pncp licitações", "pncp contratos", "consultar contratos pncp"): tabela comparativa Manual (PNCP web) × SmartLic (9 dimensões), how-to 4 passos, CTA trial 14 dias. JSON-LD Article + BreadcrumbList. Links internos de `/licitacoes/[setor]` e `/observatorio`. Registrada em sitemap (case 0, priority 0.8, monthly).
 - **`app/robots.ts` dynamic route handler (SEO-PROG-007)** — substitui `public/robots.txt` estático por handler env-aware (Next.js 16 Metadata API). Production: Allow `/` + Disallow paths privados (path-exact trailing-slash para evitar prefix-match RFC 9309 §2.2.2). Preview/staging: block-all. AC6: `/alertas/` path-exact desbloqueia 464 páginas GSC previamente bloqueadas.
 - Google-Extended explícito em `Allow: /` para SGE/AI Overviews eligibility.
 - Block de 7 AI crawlers (GPTBot, ClaudeBot, Bytespider etc.) para evitar scraping de dados de treinamento.
