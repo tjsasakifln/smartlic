@@ -7,11 +7,17 @@ Events:
 - invoice.payment_action_required (3D Secure / SCA — STORY-309 AC10)
 """
 
+import asyncio
+
 import stripe
 from datetime import datetime, timezone, timedelta
 
 from log_sanitizer import get_sanitized_logger
+from pipeline.budget import _run_with_budget
 from webhooks.handlers._shared import invalidate_user_caches
+
+# RES-BE: per-query budget (fits within the 30s overall webhook timeout)
+_WEBHOOK_QUERY_BUDGET_S = 5.0
 
 logger = get_sanitized_logger(__name__)
 
@@ -32,12 +38,20 @@ async def handle_invoice_payment_succeeded(sb, event: stripe.Event) -> None:
 
     logger.info(f"Invoice paid: subscription_id={subscription_id}")
 
-    sub_result = (
-        sb.table("user_subscriptions")
-        .select("id, user_id, plan_id")
-        .eq("stripe_subscription_id", subscription_id)
-        .limit(1)
-        .execute()
+    def _sync_find_sub():
+        return (
+            sb.table("user_subscriptions")
+            .select("id, user_id, plan_id")
+            .eq("stripe_subscription_id", subscription_id)
+            .limit(1)
+            .execute()
+        )
+
+    sub_result = await _run_with_budget(
+        asyncio.to_thread(_sync_find_sub),
+        budget=_WEBHOOK_QUERY_BUDGET_S,
+        phase="route",
+        source="webhook.invoice_payment_succeeded.find_sub",
     )
 
     if not sub_result.data:
@@ -49,7 +63,15 @@ async def handle_invoice_payment_succeeded(sb, event: stripe.Event) -> None:
     plan_id = local_sub["plan_id"]
 
     # Get plan duration for new expiry
-    plan_result = sb.table("plans").select("duration_days").eq("id", plan_id).single().execute()
+    def _sync_get_plan():
+        return sb.table("plans").select("duration_days").eq("id", plan_id).single().execute()
+
+    plan_result = await _run_with_budget(
+        asyncio.to_thread(_sync_get_plan),
+        budget=_WEBHOOK_QUERY_BUDGET_S,
+        phase="route",
+        source="webhook.invoice_payment_succeeded.get_plan",
+    )
     duration_days = plan_result.data["duration_days"] if plan_result.data else 30
 
     new_expires = (datetime.now(timezone.utc) + timedelta(days=duration_days)).isoformat()
@@ -61,7 +83,15 @@ async def handle_invoice_payment_succeeded(sb, event: stripe.Event) -> None:
     was_past_due = False
     was_trialing = False
     try:
-        profile_check = sb.table("profiles").select("subscription_status").eq("id", user_id).single().execute()
+        def _sync_check_status():
+            return sb.table("profiles").select("subscription_status").eq("id", user_id).single().execute()
+
+        profile_check = await _run_with_budget(
+            asyncio.to_thread(_sync_check_status),
+            budget=_WEBHOOK_QUERY_BUDGET_S,
+            phase="route",
+            source="webhook.invoice_payment_succeeded.check_status",
+        )
         prior_status = (profile_check.data or {}).get("subscription_status")
         if prior_status == "past_due":
             was_past_due = True
@@ -71,18 +101,29 @@ async def handle_invoice_payment_succeeded(sb, event: stripe.Event) -> None:
         logger.warning(f"Failed to check prior subscription status for user_id={user_id}: {e}")
 
     # Reactivate, extend, and clear dunning state (first_failed_at -> None)
-    sb.table("user_subscriptions").update({
-        "is_active": True,
-        "expires_at": new_expires,
-        "subscription_status": "active",
-        "first_failed_at": None,
-    }).eq("id", local_sub["id"]).execute()
+    _local_sub_id = local_sub["id"]
+    await _run_with_budget(
+        asyncio.to_thread(lambda: sb.table("user_subscriptions").update({
+            "is_active": True,
+            "expires_at": new_expires,
+            "subscription_status": "active",
+            "first_failed_at": None,
+        }).eq("id", _local_sub_id).execute()),
+        budget=_WEBHOOK_QUERY_BUDGET_S,
+        phase="route",
+        source="webhook.invoice_payment_succeeded.reactivate_sub",
+    )
 
     # Sync profiles.plan_type AND subscription_status (keeps fallback current)
-    sb.table("profiles").update({
-        "plan_type": plan_id,
-        "subscription_status": "active",
-    }).eq("id", user_id).execute()
+    await _run_with_budget(
+        asyncio.to_thread(lambda: sb.table("profiles").update({
+            "plan_type": plan_id,
+            "subscription_status": "active",
+        }).eq("id", user_id).execute()),
+        budget=_WEBHOOK_QUERY_BUDGET_S,
+        phase="route",
+        source="webhook.invoice_payment_succeeded.sync_profile",
+    )
 
     await invalidate_user_caches(user_id, f"Annual renewal processed, new_expires={new_expires[:10]}")
 
@@ -151,12 +192,20 @@ async def handle_invoice_payment_failed(sb, event: stripe.Event) -> None:
     )
 
     # Find subscription to get user_id and plan
-    sub_result = (
-        sb.table("user_subscriptions")
-        .select("id, user_id, plan_id")
-        .eq("stripe_subscription_id", stripe_subscription_id)
-        .limit(1)
-        .execute()
+    def _sync_find_sub_failed():
+        return (
+            sb.table("user_subscriptions")
+            .select("id, user_id, plan_id")
+            .eq("stripe_subscription_id", stripe_subscription_id)
+            .limit(1)
+            .execute()
+        )
+
+    sub_result = await _run_with_budget(
+        asyncio.to_thread(_sync_find_sub_failed),
+        budget=_WEBHOOK_QUERY_BUDGET_S,
+        phase="route",
+        source="webhook.invoice_payment_failed.find_sub",
     )
 
     if not sub_result.data:
@@ -176,8 +225,16 @@ async def handle_invoice_payment_failed(sb, event: stripe.Event) -> None:
     # recovery playbook are different.
     was_trialing = False
     try:
-        profile_check = (
-            sb.table("profiles").select("subscription_status").eq("id", user_id).single().execute()
+        def _sync_check_trial_status():
+            return (
+                sb.table("profiles").select("subscription_status").eq("id", user_id).single().execute()
+            )
+
+        profile_check = await _run_with_budget(
+            asyncio.to_thread(_sync_check_trial_status),
+            budget=_WEBHOOK_QUERY_BUDGET_S,
+            phase="route",
+            source="webhook.invoice_payment_failed.check_status",
         )
         prior_status = (profile_check.data or {}).get("subscription_status")
         if prior_status == "trialing":
@@ -199,20 +256,37 @@ async def handle_invoice_payment_failed(sb, event: stripe.Event) -> None:
         decline_code = charge.get("decline_code", "") or charge.get("failure_code", "") or ""
 
     # Set first_failed_at on first failure, update status to past_due (STORY-309 AC7)
+    _sub_id = local_sub["id"]
     if attempt_count <= 1:
-        sb.table("user_subscriptions").update({
-            "subscription_status": "past_due",
-            "first_failed_at": datetime.now(timezone.utc).isoformat(),
-        }).eq("id", local_sub["id"]).is_("first_failed_at", "null").execute()
+        _first_failed = datetime.now(timezone.utc).isoformat()
+        await _run_with_budget(
+            asyncio.to_thread(lambda: sb.table("user_subscriptions").update({
+                "subscription_status": "past_due",
+                "first_failed_at": _first_failed,
+            }).eq("id", _sub_id).is_("first_failed_at", "null").execute()),
+            budget=_WEBHOOK_QUERY_BUDGET_S,
+            phase="route",
+            source="webhook.invoice_payment_failed.mark_past_due_first",
+        )
     else:
-        sb.table("user_subscriptions").update({
-            "subscription_status": "past_due",
-        }).eq("id", local_sub["id"]).execute()
+        await _run_with_budget(
+            asyncio.to_thread(lambda: sb.table("user_subscriptions").update({
+                "subscription_status": "past_due",
+            }).eq("id", _sub_id).execute()),
+            budget=_WEBHOOK_QUERY_BUDGET_S,
+            phase="route",
+            source="webhook.invoice_payment_failed.mark_past_due",
+        )
 
     # Also update profiles.subscription_status
-    sb.table("profiles").update({
-        "subscription_status": "past_due",
-    }).eq("id", user_id).execute()
+    await _run_with_budget(
+        asyncio.to_thread(lambda: sb.table("profiles").update({
+            "subscription_status": "past_due",
+        }).eq("id", user_id).execute()),
+        budget=_WEBHOOK_QUERY_BUDGET_S,
+        phase="route",
+        source="webhook.invoice_payment_failed.sync_profile",
+    )
 
     # Log to Sentry with customer context (AC4)
     try:
@@ -295,12 +369,20 @@ async def handle_payment_action_required(sb, event: stripe.Event) -> None:
         return
 
     # Find user
-    sub_result = (
-        sb.table("user_subscriptions")
-        .select("id, user_id, plan_id")
-        .eq("stripe_subscription_id", stripe_subscription_id)
-        .limit(1)
-        .execute()
+    def _sync_find_sub_action():
+        return (
+            sb.table("user_subscriptions")
+            .select("id, user_id, plan_id")
+            .eq("stripe_subscription_id", stripe_subscription_id)
+            .limit(1)
+            .execute()
+        )
+
+    sub_result = await _run_with_budget(
+        asyncio.to_thread(_sync_find_sub_action),
+        budget=_WEBHOOK_QUERY_BUDGET_S,
+        phase="route",
+        source="webhook.payment_action_required.find_sub",
     )
     if not sub_result.data:
         logger.warning(

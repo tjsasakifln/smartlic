@@ -7,11 +7,17 @@ Events:
 - checkout.session.async_payment_failed (Boleto/PIX — STORY-280)
 """
 
+import asyncio
+
 import stripe
 from datetime import datetime, timezone, timedelta
 
 from log_sanitizer import get_sanitized_logger
+from pipeline.budget import _run_with_budget
 from webhooks.handlers._shared import resolve_user_id, invalidate_user_caches
+
+# RES-BE: per-query budget (fits within the 30s overall webhook timeout)
+_WEBHOOK_QUERY_BUDGET_S = 5.0
 
 logger = get_sanitized_logger(__name__)
 
@@ -55,18 +61,25 @@ async def handle_checkout_session_completed(sb, event: stripe.Event) -> None:
             f"plan_id={plan_id}, payment_status=unpaid — awaiting async_payment_succeeded"
         )
 
-        sb.table("user_subscriptions").insert({
-            "user_id": user_id,
-            "plan_id": plan_id,
-            "billing_period": billing_period,
-            "credits_remaining": 0,
-            "expires_at": None,
-            "stripe_subscription_id": stripe_subscription_id,
-            "stripe_customer_id": stripe_customer_id,
-            "is_active": False,
-            "subscription_status": "pending_payment",
-        }).execute()
+        def _sync_insert_pending():
+            return sb.table("user_subscriptions").insert({
+                "user_id": user_id,
+                "plan_id": plan_id,
+                "billing_period": billing_period,
+                "credits_remaining": 0,
+                "expires_at": None,
+                "stripe_subscription_id": stripe_subscription_id,
+                "stripe_customer_id": stripe_customer_id,
+                "is_active": False,
+                "subscription_status": "pending_payment",
+            }).execute()
 
+        await _run_with_budget(
+            asyncio.to_thread(_sync_insert_pending),
+            budget=_WEBHOOK_QUERY_BUDGET_S,
+            phase="route",
+            source="webhook.checkout_completed.insert_pending",
+        )
         return
 
     # Card payment (synchronous) — activate immediately
@@ -76,7 +89,15 @@ async def handle_checkout_session_completed(sb, event: stripe.Event) -> None:
     )
 
     # Look up plan for duration_days and max_searches
-    plan_result = sb.table("plans").select("duration_days, max_searches").eq("id", plan_id).single().execute()
+    def _sync_get_plan():
+        return sb.table("plans").select("duration_days, max_searches").eq("id", plan_id).single().execute()
+
+    plan_result = await _run_with_budget(
+        asyncio.to_thread(_sync_get_plan),
+        budget=_WEBHOOK_QUERY_BUDGET_S,
+        phase="route",
+        source="webhook.checkout_completed.get_plan",
+    )
     duration_days = 30
     max_searches = 1000
     if plan_result.data:
@@ -86,12 +107,17 @@ async def handle_checkout_session_completed(sb, event: stripe.Event) -> None:
     expires_at = (datetime.now(timezone.utc) + timedelta(days=duration_days)).isoformat()
 
     # Deactivate existing active subscriptions for this user
-    sb.table("user_subscriptions").update(
-        {"is_active": False}
-    ).eq("user_id", user_id).eq("is_active", True).execute()
+    await _run_with_budget(
+        asyncio.to_thread(lambda: sb.table("user_subscriptions").update(
+            {"is_active": False}
+        ).eq("user_id", user_id).eq("is_active", True).execute()),
+        budget=_WEBHOOK_QUERY_BUDGET_S,
+        phase="route",
+        source="webhook.checkout_completed.deactivate_existing",
+    )
 
     # Create new active subscription
-    sb.table("user_subscriptions").insert({
+    _new_sub = {
         "user_id": user_id,
         "plan_id": plan_id,
         "billing_period": billing_period,
@@ -101,13 +127,24 @@ async def handle_checkout_session_completed(sb, event: stripe.Event) -> None:
         "stripe_customer_id": stripe_customer_id,
         "is_active": True,
         "subscription_status": "active",
-    }).execute()
+    }
+    await _run_with_budget(
+        asyncio.to_thread(lambda: sb.table("user_subscriptions").insert(_new_sub).execute()),
+        budget=_WEBHOOK_QUERY_BUDGET_S,
+        phase="route",
+        source="webhook.checkout_completed.insert_active",
+    )
 
     # Sync profiles.plan_type AND subscription_status (keeps fallback current — CRITICAL)
-    sb.table("profiles").update({
-        "plan_type": plan_id,
-        "subscription_status": "active",
-    }).eq("id", user_id).execute()
+    await _run_with_budget(
+        asyncio.to_thread(lambda: sb.table("profiles").update({
+            "plan_type": plan_id,
+            "subscription_status": "active",
+        }).eq("id", user_id).execute()),
+        budget=_WEBHOOK_QUERY_BUDGET_S,
+        phase="route",
+        source="webhook.checkout_completed.sync_profile",
+    )
 
     await invalidate_user_caches(user_id, "Checkout activation complete")
 
@@ -157,7 +194,15 @@ async def handle_async_payment_succeeded(sb, event: stripe.Event) -> None:
     )
 
     # Look up plan for duration_days and max_searches
-    plan_result = sb.table("plans").select("duration_days, max_searches").eq("id", plan_id).single().execute()
+    def _sync_get_plan_async():
+        return sb.table("plans").select("duration_days, max_searches").eq("id", plan_id).single().execute()
+
+    plan_result = await _run_with_budget(
+        asyncio.to_thread(_sync_get_plan_async),
+        budget=_WEBHOOK_QUERY_BUDGET_S,
+        phase="route",
+        source="webhook.async_payment_succeeded.get_plan",
+    )
     duration_days = 30
     max_searches = 1000
     if plan_result.data:
@@ -167,29 +212,48 @@ async def handle_async_payment_succeeded(sb, event: stripe.Event) -> None:
     expires_at = (datetime.now(timezone.utc) + timedelta(days=duration_days)).isoformat()
 
     # Deactivate existing active subscriptions for this user
-    sb.table("user_subscriptions").update(
-        {"is_active": False}
-    ).eq("user_id", user_id).eq("is_active", True).execute()
+    await _run_with_budget(
+        asyncio.to_thread(lambda: sb.table("user_subscriptions").update(
+            {"is_active": False}
+        ).eq("user_id", user_id).eq("is_active", True).execute()),
+        budget=_WEBHOOK_QUERY_BUDGET_S,
+        phase="route",
+        source="webhook.async_payment_succeeded.deactivate_existing",
+    )
 
     # Find and activate the pending subscription (created at checkout.session.completed)
-    pending_result = (
-        sb.table("user_subscriptions")
-        .select("id")
-        .eq("stripe_subscription_id", stripe_subscription_id)
-        .eq("subscription_status", "pending_payment")
-        .limit(1)
-        .execute()
+    def _sync_find_pending():
+        return (
+            sb.table("user_subscriptions")
+            .select("id")
+            .eq("stripe_subscription_id", stripe_subscription_id)
+            .eq("subscription_status", "pending_payment")
+            .limit(1)
+            .execute()
+        )
+
+    pending_result = await _run_with_budget(
+        asyncio.to_thread(_sync_find_pending),
+        budget=_WEBHOOK_QUERY_BUDGET_S,
+        phase="route",
+        source="webhook.async_payment_succeeded.find_pending",
     )
 
     if pending_result.data:
-        sb.table("user_subscriptions").update({
-            "is_active": True,
-            "subscription_status": "active",
-            "credits_remaining": max_searches,
-            "expires_at": expires_at,
-        }).eq("id", pending_result.data[0]["id"]).execute()
+        _pending_id = pending_result.data[0]["id"]
+        await _run_with_budget(
+            asyncio.to_thread(lambda: sb.table("user_subscriptions").update({
+                "is_active": True,
+                "subscription_status": "active",
+                "credits_remaining": max_searches,
+                "expires_at": expires_at,
+            }).eq("id", _pending_id).execute()),
+            budget=_WEBHOOK_QUERY_BUDGET_S,
+            phase="route",
+            source="webhook.async_payment_succeeded.activate_pending",
+        )
     else:
-        sb.table("user_subscriptions").insert({
+        _new_sub_async = {
             "user_id": user_id,
             "plan_id": plan_id,
             "billing_period": billing_period,
@@ -199,13 +263,24 @@ async def handle_async_payment_succeeded(sb, event: stripe.Event) -> None:
             "stripe_customer_id": stripe_customer_id,
             "is_active": True,
             "subscription_status": "active",
-        }).execute()
+        }
+        await _run_with_budget(
+            asyncio.to_thread(lambda: sb.table("user_subscriptions").insert(_new_sub_async).execute()),
+            budget=_WEBHOOK_QUERY_BUDGET_S,
+            phase="route",
+            source="webhook.async_payment_succeeded.insert_active",
+        )
 
     # Sync profiles.plan_type AND subscription_status
-    sb.table("profiles").update({
-        "plan_type": plan_id,
-        "subscription_status": "active",
-    }).eq("id", user_id).execute()
+    await _run_with_budget(
+        asyncio.to_thread(lambda: sb.table("profiles").update({
+            "plan_type": plan_id,
+            "subscription_status": "active",
+        }).eq("id", user_id).execute()),
+        budget=_WEBHOOK_QUERY_BUDGET_S,
+        phase="route",
+        source="webhook.async_payment_succeeded.sync_profile",
+    )
 
     await invalidate_user_caches(user_id, "Async payment activation complete")
 
@@ -247,11 +322,16 @@ async def handle_async_payment_failed(sb, event: stripe.Event) -> None:
 
     # Clean up pending subscription row (mark as failed)
     if stripe_subscription_id:
-        sb.table("user_subscriptions").update({
-            "subscription_status": "payment_failed",
-        }).eq("stripe_subscription_id", stripe_subscription_id).eq(
-            "subscription_status", "pending_payment"
-        ).execute()
+        await _run_with_budget(
+            asyncio.to_thread(lambda: sb.table("user_subscriptions").update({
+                "subscription_status": "payment_failed",
+            }).eq("stripe_subscription_id", stripe_subscription_id).eq(
+                "subscription_status", "pending_payment"
+            ).execute()),
+            budget=_WEBHOOK_QUERY_BUDGET_S,
+            phase="route",
+            source="webhook.async_payment_failed.mark_failed",
+        )
 
     # Send notification email
     _send_async_payment_failed_email(sb, user_id, plan_id)

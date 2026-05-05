@@ -8,10 +8,16 @@ Events:
 - customer.subscription.trial_will_end (STORY-CONV-003a AC4)
 """
 
+import asyncio
+
 import stripe
 
 from log_sanitizer import get_sanitized_logger
+from pipeline.budget import _run_with_budget
 from webhooks.handlers._shared import invalidate_user_caches
+
+# RES-BE: per-query budget (fits within the 30s overall webhook timeout)
+_WEBHOOK_QUERY_BUDGET_S = 5.0
 
 logger = get_sanitized_logger(__name__)
 
@@ -52,12 +58,20 @@ async def handle_subscription_updated(sb, event: stripe.Event) -> None:
     )
 
     # Find existing subscription
-    sub_result = (
-        sb.table("user_subscriptions")
-        .select("id, user_id, plan_id")
-        .eq("stripe_subscription_id", stripe_sub_id)
-        .limit(1)
-        .execute()
+    def _sync_find_sub():
+        return (
+            sb.table("user_subscriptions")
+            .select("id, user_id, plan_id")
+            .eq("stripe_subscription_id", stripe_sub_id)
+            .limit(1)
+            .execute()
+        )
+
+    sub_result = await _run_with_budget(
+        asyncio.to_thread(_sync_find_sub),
+        budget=_WEBHOOK_QUERY_BUDGET_S,
+        phase="route",
+        source="webhook.subscription_updated.find_sub",
     )
 
     if not sub_result.data:
@@ -78,11 +92,23 @@ async def handle_subscription_updated(sb, event: stripe.Event) -> None:
         update_data["plan_id"] = new_plan_id
 
     # Update subscription
-    sb.table("user_subscriptions").update(update_data).eq("id", local_sub["id"]).execute()
+    _sub_id = local_sub["id"]
+    _update_data = update_data
+    await _run_with_budget(
+        asyncio.to_thread(lambda: sb.table("user_subscriptions").update(_update_data).eq("id", _sub_id).execute()),
+        budget=_WEBHOOK_QUERY_BUDGET_S,
+        phase="route",
+        source="webhook.subscription_updated.update_sub",
+    )
 
     # Sync profiles.plan_type (keeps fallback current)
     profile_plan = new_plan_id if new_plan_id else local_sub["plan_id"]
-    sb.table("profiles").update({"plan_type": profile_plan}).eq("id", user_id).execute()
+    await _run_with_budget(
+        asyncio.to_thread(lambda: sb.table("profiles").update({"plan_type": profile_plan}).eq("id", user_id).execute()),
+        budget=_WEBHOOK_QUERY_BUDGET_S,
+        phase="route",
+        source="webhook.subscription_updated.sync_profile",
+    )
 
     await invalidate_user_caches(user_id, f"Subscription updated: billing_period={billing_period}")
 
@@ -345,12 +371,20 @@ async def handle_subscription_deleted(sb, event: stripe.Event) -> None:
     logger.info(f"Subscription deleted: subscription_id={stripe_sub_id}")
 
     # Find subscription to get user_id before deactivating
-    sub_result = (
-        sb.table("user_subscriptions")
-        .select("id, user_id, plan_id, expires_at")
-        .eq("stripe_subscription_id", stripe_sub_id)
-        .limit(1)
-        .execute()
+    def _sync_find_sub_deleted():
+        return (
+            sb.table("user_subscriptions")
+            .select("id, user_id, plan_id, expires_at")
+            .eq("stripe_subscription_id", stripe_sub_id)
+            .limit(1)
+            .execute()
+        )
+
+    sub_result = await _run_with_budget(
+        asyncio.to_thread(_sync_find_sub_deleted),
+        budget=_WEBHOOK_QUERY_BUDGET_S,
+        phase="route",
+        source="webhook.subscription_deleted.find_sub",
     )
 
     if not sub_result.data:
@@ -359,14 +393,25 @@ async def handle_subscription_deleted(sb, event: stripe.Event) -> None:
 
     local_sub = sub_result.data[0]
     user_id = local_sub["user_id"]
+    _sub_id = local_sub["id"]
 
     # Deactivate subscription
-    sb.table("user_subscriptions").update({
-        "is_active": False,
-    }).eq("id", local_sub["id"]).execute()
+    await _run_with_budget(
+        asyncio.to_thread(lambda: sb.table("user_subscriptions").update({
+            "is_active": False,
+        }).eq("id", _sub_id).execute()),
+        budget=_WEBHOOK_QUERY_BUDGET_S,
+        phase="route",
+        source="webhook.subscription_deleted.deactivate",
+    )
 
     # Sync profiles.plan_type to free_trial (reflects cancellation)
-    sb.table("profiles").update({"plan_type": "free_trial"}).eq("id", user_id).execute()
+    await _run_with_budget(
+        asyncio.to_thread(lambda: sb.table("profiles").update({"plan_type": "free_trial"}).eq("id", user_id).execute()),
+        budget=_WEBHOOK_QUERY_BUDGET_S,
+        phase="route",
+        source="webhook.subscription_deleted.sync_profile",
+    )
 
     await invalidate_user_caches(user_id, "Subscription deactivated")
 
@@ -479,12 +524,20 @@ async def handle_subscription_trial_will_end(sb, event: stripe.Event) -> None:
     # Resolve local user_id for logs/breadcrumb
     user_id: str = ""
     try:
-        sub_result = (
-            sb.table("user_subscriptions")
-            .select("user_id")
-            .eq("stripe_subscription_id", stripe_sub_id)
-            .limit(1)
-            .execute()
+        def _sync_find_user():
+            return (
+                sb.table("user_subscriptions")
+                .select("user_id")
+                .eq("stripe_subscription_id", stripe_sub_id)
+                .limit(1)
+                .execute()
+            )
+
+        sub_result = await _run_with_budget(
+            asyncio.to_thread(_sync_find_user),
+            budget=_WEBHOOK_QUERY_BUDGET_S,
+            phase="route",
+            source="webhook.trial_will_end.find_user",
         )
         if sub_result.data:
             user_id = sub_result.data[0]["user_id"]
