@@ -393,11 +393,10 @@ export function SignupForm({ form, loading, error, onSubmit, isFormValid }: Sign
                   if (!firedBlursRef.current.has("password")) {
                     firedBlursRef.current.add("password");
                     const val = password ?? "";
-                    // CONV-INST-002 AC2
+                    // CONV-INST-002 AC2 — value_length omitido: credential metadata não vai a analytics
                     trackWithDevice("signup_field_blur", {
                       field: "password",
                       has_value: val.length > 0,
-                      value_length: val.length,
                       has_validation_error: Boolean(errors.password),
                     });
                   }
@@ -490,11 +489,10 @@ export function SignupForm({ form, loading, error, onSubmit, isFormValid }: Sign
                 if (!firedBlursRef.current.has("confirmPassword")) {
                   firedBlursRef.current.add("confirmPassword");
                   const val = confirmPassword ?? "";
-                  // CONV-INST-002 AC2
+                  // CONV-INST-002 AC2 — value_length omitido: credential metadata não vai a analytics
                   trackWithDevice("signup_field_blur", {
                     field: "confirmPassword",
                     has_value: val.length > 0,
-                    value_length: val.length,
                     has_validation_error: Boolean(errors.confirmPassword),
                   });
                 }
