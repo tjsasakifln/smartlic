@@ -20,9 +20,12 @@ Usage:
 from datetime import datetime
 from typing import Any
 import json
+import logging
 import os
 
 from openai import OpenAI
+
+logger = logging.getLogger(__name__)
 
 from schemas import ResumoLicitacoes, ResumoEstrategico, Recomendacao
 from excel import parse_datetime
@@ -422,7 +425,7 @@ def generate_cnpj_narrative(data: dict[str, Any]) -> dict[str, str]:
     try:
         return _generate_cnpj_narrative_llm(data)
     except Exception:
-        pass
+        logger.warning("cnpj narrative LLM failed, using fallback", exc_info=True)
     return _generate_cnpj_narrative_fallback(data)
 
 
@@ -533,12 +536,9 @@ def _generate_cnpj_narrative_fallback(data: dict[str, Any]) -> dict[str, str]:
 
     ticket = (valor_t / total_c) if total_c > 0 else 0.0
 
-    def _brl(v: float) -> str:
-        return f"R$ {v:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
-
     padrao = (
         f"Fornecedor com {total_c} contrato(s) registrado(s), "
-        f"totalizando {_brl(valor_t)} e ticket médio de {_brl(ticket)}."
+        f"totalizando R$ {_fmt_brl(valor_t)} e ticket médio de R$ {_fmt_brl(ticket)}."
     )
     clientes = f"Principais compradores: {orgaos_str}."
     setores = f"Principais objetos contratados: {objetos_str}."

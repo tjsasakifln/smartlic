@@ -147,15 +147,12 @@ class TestGenerateCnpjReport:
 # ---------------------------------------------------------------------------
 
 class TestGenerateCnpjReportLlmFallback:
-    """Ensure PDF generation survives LLM failures."""
+    """Ensure generate_cnpj_report uses _build_executive_summary inline fallback when narrative key is absent."""
 
-    def test_llm_exception_does_not_break_pdf(self):
-        """If generate_cnpj_narrative raises an Exception, PDF is still generated."""
+    def test_missing_narrative_key_uses_inline_fallback(self):
+        """generate_cnpj_report falls back to _build_executive_summary when narrative key is absent."""
         from pdf_generator_intel_report import generate_cnpj_report
 
-        # Build data without a 'narrative' key — simulating caller that would
-        # normally inject the narrative from LLM. Even without narrative, the
-        # PDF generator must not crash.
         data = {**MINIMAL_DATA}
         data.pop("narrative", None)
 
@@ -183,11 +180,7 @@ class TestGenerateCnpjReportLlmFallback:
         from llm import generate_cnpj_narrative
 
         with patch.dict("os.environ", {}, clear=True):
-            # Remove OPENAI_API_KEY if present
-            import os
-            env_without_key = {k: v for k, v in os.environ.items() if k != "OPENAI_API_KEY"}
-            with patch.dict("os.environ", env_without_key, clear=True):
-                result = generate_cnpj_narrative(MINIMAL_DATA)
+            result = generate_cnpj_narrative(MINIMAL_DATA)
 
         _assert_narrative_structure(result)
 
