@@ -2,7 +2,6 @@
 
 import { useEffect, useRef } from "react";
 
-
 interface EmailDeadEndModalProps {
   onClose: () => void;
   onResend: () => void;
@@ -131,10 +130,10 @@ export function EmailDeadEndModal({
               : "Reenviar email"}
         </button>
 
-        {/* Action (c): Support */}
+        {/* Action (c): Support — mailto per CONV-INST-003 AC3 spec */}
         <a
           ref={lastFocusRef}
-          href="mailto:tiago.sasaki@confenge.com.br"
+          href="mailto:tiago@smartlic.tech"
           data-testid="dead-end-support"
           className="block w-full py-2.5 border border-divider rounded-button text-sm
                      text-ink-secondary text-center hover:bg-surface-1 transition-colors"
