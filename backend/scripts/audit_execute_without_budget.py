@@ -358,6 +358,17 @@ def audit_paths(paths: Iterable[Path]) -> list[Violation]:
     return out
 
 
+def _resolve_webhooks_dirs(routes_dir: Path) -> list[Path]:
+    """Return webhook dirs to include when --all-routes is used."""
+    backend_dir = routes_dir.parent
+    webhooks_root = backend_dir / "webhooks"
+    dirs: list[Path] = []
+    for d in [webhooks_root, webhooks_root / "handlers"]:
+        if d.is_dir():
+            dirs.append(d)
+    return dirs
+
+
 def _select_files(args: argparse.Namespace) -> list[Path]:
     routes_dir = _resolve_routes_dir()
 
@@ -368,13 +379,22 @@ def _select_files(args: argparse.Namespace) -> list[Path]:
         candidates.append(raw)
         candidates.append(routes_dir / raw.name)
         candidates.append(routes_dir.parent / raw)
+        # Also probe webhooks/ and webhooks/handlers/ for bare filenames.
+        for wh_dir in _resolve_webhooks_dirs(routes_dir):
+            candidates.append(wh_dir / raw.name)
         for c in candidates:
             if c.is_file():
                 return [c.resolve()]
         raise SystemExit(f"file not found: {args.file}")
 
     if args.all_routes:
-        return sorted(p for p in routes_dir.glob("*.py") if p.name != "__init__.py")
+        routes_files = sorted(p for p in routes_dir.glob("*.py") if p.name != "__init__.py")
+        webhook_files: list[Path] = []
+        for wh_dir in _resolve_webhooks_dirs(routes_dir):
+            webhook_files.extend(
+                p for p in wh_dir.glob("*.py") if p.name != "__init__.py"
+            )
+        return routes_files + sorted(webhook_files)
 
     # Default: only the RES-BE-015 sweep scope.
     return [routes_dir / name for name in TARGET_ROUTES if (routes_dir / name).is_file()]
@@ -427,7 +447,7 @@ def main(argv: Optional[list[str]] = None) -> int:
                 print(f"  {rel}: {per_file[f]} violation(s)")
             print(f"  total: {sum(per_file.values())}")
         else:
-            scope = "all routes" if args.all_routes else "RES-BE-015 scope"
+            scope = "all routes + webhooks" if args.all_routes else "RES-BE-015 scope"
             print(f"OK: zero violations across {len(files)} files ({scope}).")
 
     return 1 if violations else 0

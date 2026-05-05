@@ -33,12 +33,17 @@ Design notes
 
 from __future__ import annotations
 
+import asyncio
 from datetime import datetime, timezone, timedelta
 from typing import Any
 
 import stripe
 
 from log_sanitizer import get_sanitized_logger
+from pipeline.budget import _run_with_budget
+
+# RES-BE: per-query budget (fits within the 30s overall webhook timeout)
+_WEBHOOK_QUERY_BUDGET_S = 5.0
 
 logger = get_sanitized_logger(__name__)
 
@@ -140,11 +145,19 @@ async def handle_product_updated(sb, event: stripe.Event) -> dict:
 
     event_created_at = _stripe_event_created_at(event)
 
-    rows_result = (
-        sb.table("plan_billing_periods")
-        .select("id, plan_id, billing_period, last_forward_synced_at, last_reverse_synced_at")
-        .eq("stripe_product_id", product_id)
-        .execute()
+    def _sync_fetch_rows_by_product():
+        return (
+            sb.table("plan_billing_periods")
+            .select("id, plan_id, billing_period, last_forward_synced_at, last_reverse_synced_at")
+            .eq("stripe_product_id", product_id)
+            .execute()
+        )
+
+    rows_result = await _run_with_budget(
+        asyncio.to_thread(_sync_fetch_rows_by_product),
+        budget=_WEBHOOK_QUERY_BUDGET_S,
+        phase="route",
+        source="webhook.product_updated.fetch_rows",
     )
     rows = rows_result.data or []
     if not rows:
@@ -164,9 +177,16 @@ async def handle_product_updated(sb, event: stripe.Event) -> dict:
             skipped_stale += 1
             continue
 
-        sb.table("plan_billing_periods").update(
-            {"last_forward_synced_at": now_iso}
-        ).eq("id", row["id"]).execute()
+        _row_id = row["id"]
+        _ts = now_iso
+        await _run_with_budget(
+            asyncio.to_thread(lambda: sb.table("plan_billing_periods").update(
+                {"last_forward_synced_at": _ts}
+            ).eq("id", _row_id).execute()),
+            budget=_WEBHOOK_QUERY_BUDGET_S,
+            phase="route",
+            source="webhook.product_updated.update_row",
+        )
         updated += 1
 
     _emit_sentry_warning(
@@ -210,12 +230,20 @@ async def handle_price_created(sb, event: stripe.Event) -> dict:
     event_created_at = _stripe_event_created_at(event)
     now_iso = datetime.now(timezone.utc).isoformat()
 
-    existing = (
-        sb.table("plan_billing_periods")
-        .select("id, plan_id, billing_period, last_forward_synced_at, last_reverse_synced_at")
-        .eq("stripe_price_id", price_id)
-        .execute()
-    ).data or []
+    def _sync_fetch_rows_by_price():
+        return (
+            sb.table("plan_billing_periods")
+            .select("id, plan_id, billing_period, last_forward_synced_at, last_reverse_synced_at")
+            .eq("stripe_price_id", price_id)
+            .execute()
+        )
+
+    existing = (await _run_with_budget(
+        asyncio.to_thread(_sync_fetch_rows_by_price),
+        budget=_WEBHOOK_QUERY_BUDGET_S,
+        phase="route",
+        source="webhook.price_created.fetch_rows",
+    )).data or []
 
     if not existing:
         # New orphan price — log + Sentry for operator awareness.
@@ -233,9 +261,16 @@ async def handle_price_created(sb, event: stripe.Event) -> dict:
         if _race_guard_blocks(row, event_created_at):
             skipped_race += 1
             continue
-        sb.table("plan_billing_periods").update(
-            {"last_forward_synced_at": now_iso}
-        ).eq("id", row["id"]).execute()
+        _row_id = row["id"]
+        _ts = now_iso
+        await _run_with_budget(
+            asyncio.to_thread(lambda: sb.table("plan_billing_periods").update(
+                {"last_forward_synced_at": _ts}
+            ).eq("id", _row_id).execute()),
+            budget=_WEBHOOK_QUERY_BUDGET_S,
+            phase="route",
+            source="webhook.price_created.update_row",
+        )
         updated += 1
 
     return {
@@ -269,13 +304,21 @@ async def handle_price_updated(sb, event: stripe.Event) -> dict:
     is_active = price_get("active", True)
     product_id = price_get("product")
 
-    rows = (
-        sb.table("plan_billing_periods")
-        .select("id, plan_id, billing_period, stripe_product_id, "
-                "last_forward_synced_at, last_reverse_synced_at, is_archived")
-        .eq("stripe_price_id", price_id)
-        .execute()
-    ).data or []
+    def _sync_fetch_rows_by_price_updated():
+        return (
+            sb.table("plan_billing_periods")
+            .select("id, plan_id, billing_period, stripe_product_id, "
+                    "last_forward_synced_at, last_reverse_synced_at, is_archived")
+            .eq("stripe_price_id", price_id)
+            .execute()
+        )
+
+    rows = (await _run_with_budget(
+        asyncio.to_thread(_sync_fetch_rows_by_price_updated),
+        budget=_WEBHOOK_QUERY_BUDGET_S,
+        phase="route",
+        source="webhook.price_updated.fetch_rows",
+    )).data or []
 
     if not rows:
         logger.info(f"price.updated: no plan_billing_periods rows for price={price_id}")
@@ -302,7 +345,14 @@ async def handle_price_updated(sb, event: stripe.Event) -> dict:
         if bool(row.get("is_archived")) != new_archived:
             update_data["is_archived"] = new_archived
 
-        sb.table("plan_billing_periods").update(update_data).eq("id", row["id"]).execute()
+        _row_id = row["id"]
+        _udata = update_data
+        await _run_with_budget(
+            asyncio.to_thread(lambda: sb.table("plan_billing_periods").update(_udata).eq("id", _row_id).execute()),
+            budget=_WEBHOOK_QUERY_BUDGET_S,
+            phase="route",
+            source="webhook.price_updated.update_row",
+        )
         updated += 1
 
     _emit_sentry_warning(
@@ -340,12 +390,20 @@ async def handle_price_deleted(sb, event: stripe.Event) -> dict:
     event_created_at = _stripe_event_created_at(event)
     now_iso = datetime.now(timezone.utc).isoformat()
 
-    rows = (
-        sb.table("plan_billing_periods")
-        .select("id, plan_id, billing_period, last_forward_synced_at, last_reverse_synced_at, is_archived")
-        .eq("stripe_price_id", price_id)
-        .execute()
-    ).data or []
+    def _sync_fetch_rows_by_price_deleted():
+        return (
+            sb.table("plan_billing_periods")
+            .select("id, plan_id, billing_period, last_forward_synced_at, last_reverse_synced_at, is_archived")
+            .eq("stripe_price_id", price_id)
+            .execute()
+        )
+
+    rows = (await _run_with_budget(
+        asyncio.to_thread(_sync_fetch_rows_by_price_deleted),
+        budget=_WEBHOOK_QUERY_BUDGET_S,
+        phase="route",
+        source="webhook.price_deleted.fetch_rows",
+    )).data or []
 
     if not rows:
         logger.info(f"price.deleted: no plan_billing_periods rows for price={price_id}")
@@ -357,9 +415,16 @@ async def handle_price_deleted(sb, event: stripe.Event) -> dict:
         if _race_guard_blocks(row, event_created_at):
             skipped_race += 1
             continue
-        sb.table("plan_billing_periods").update(
-            {"is_archived": True, "last_forward_synced_at": now_iso}
-        ).eq("id", row["id"]).execute()
+        _row_id = row["id"]
+        _ts = now_iso
+        await _run_with_budget(
+            asyncio.to_thread(lambda: sb.table("plan_billing_periods").update(
+                {"is_archived": True, "last_forward_synced_at": _ts}
+            ).eq("id", _row_id).execute()),
+            budget=_WEBHOOK_QUERY_BUDGET_S,
+            phase="route",
+            source="webhook.price_deleted.archive_row",
+        )
         archived += 1
 
     _emit_sentry_warning(

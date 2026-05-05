@@ -31,6 +31,7 @@ from supabase_client import get_supabase
 from cache import redis_cache  # noqa: F401 — re-exported for test patches
 from log_sanitizer import get_sanitized_logger
 from quota import invalidate_plan_status_cache, clear_plan_capabilities_cache  # noqa: F401
+from pipeline.budget import _run_with_budget
 
 # Re-export handler functions for backward compatibility with test patches.
 # Tests do: @patch('webhooks.stripe._handle_checkout_session_completed')
@@ -77,6 +78,9 @@ STRIPE_WEBHOOK_SECRET = os.getenv("STRIPE_WEBHOOK_SECRET")
 
 # SYS-024: Timeout for webhook event processing (seconds)
 WEBHOOK_DB_TIMEOUT_S = 30
+
+# RES-BE: per-query budget for idempotency/status writes (fits within the 30s overall budget)
+_WEBHOOK_IDEMPOTENCY_BUDGET_S = 5.0
 
 if not STRIPE_WEBHOOK_SECRET:
     logger.error(
@@ -139,26 +143,46 @@ async def stripe_webhook(request: Request):
     try:
         # STORY-307 AC1: Atomic idempotency — INSERT ON CONFLICT DO NOTHING
         now = datetime.now(timezone.utc)
-        claim_result = sb.table("stripe_webhook_events").upsert(
-            {
-                "id": event.id,
-                "type": event.type,
-                "status": "processing",
-                "received_at": now.isoformat(),
-            },
-            on_conflict="id",
-            ignore_duplicates=True,
-        ).execute()
+        _event_id = event.id
+        _event_type = event.type
+        _now_iso = now.isoformat()
+
+        def _sync_claim():
+            return sb.table("stripe_webhook_events").upsert(
+                {
+                    "id": _event_id,
+                    "type": _event_type,
+                    "status": "processing",
+                    "received_at": _now_iso,
+                },
+                on_conflict="id",
+                ignore_duplicates=True,
+            ).execute()
+
+        claim_result = await _run_with_budget(
+            asyncio.to_thread(_sync_claim),
+            budget=_WEBHOOK_IDEMPOTENCY_BUDGET_S,
+            phase="route",
+            source="webhook.stripe.idempotency_claim",
+        )
 
         # If upsert returned no data, the event already exists
         if not claim_result.data:
             # AC6: Check if event is stuck in 'processing' for >5 minutes
-            stuck_check = (
-                sb.table("stripe_webhook_events")
-                .select("id, status, received_at")
-                .eq("id", event.id)
-                .limit(1)
-                .execute()
+            def _sync_stuck_check():
+                return (
+                    sb.table("stripe_webhook_events")
+                    .select("id, status, received_at")
+                    .eq("id", _event_id)
+                    .limit(1)
+                    .execute()
+                )
+
+            stuck_check = await _run_with_budget(
+                asyncio.to_thread(_sync_stuck_check),
+                budget=_WEBHOOK_IDEMPOTENCY_BUDGET_S,
+                phase="route",
+                source="webhook.stripe.stuck_check",
             )
             if stuck_check.data:
                 existing = stuck_check.data[0]
@@ -172,10 +196,15 @@ async def stripe_webhook(request: Request):
                             f"Stripe webhook {event.id} stuck in processing "
                             f"for >5min — reprocessing"
                         )
-                        sb.table("stripe_webhook_events").update({
-                            "status": "processing",
-                            "received_at": now.isoformat(),
-                        }).eq("id", event.id).execute()
+                        await _run_with_budget(
+                            asyncio.to_thread(lambda: sb.table("stripe_webhook_events").update({
+                                "status": "processing",
+                                "received_at": _now_iso,
+                            }).eq("id", _event_id).execute()),
+                            budget=_WEBHOOK_IDEMPOTENCY_BUDGET_S,
+                            phase="route",
+                            source="webhook.stripe.stuck_reset",
+                        )
                     else:
                         logger.info(f"Webhook already processing: event_id={event.id}")
                         return {"status": "already_processed", "event_id": event.id}
@@ -233,21 +262,35 @@ async def stripe_webhook(request: Request):
                 f"event_id={event.id}, type={event.type}"
             )
             try:
-                sb.table("stripe_webhook_events").update({
-                    "status": "timeout",
-                    "processed_at": datetime.now(timezone.utc).isoformat(),
-                    "payload": {"error": f"Processing timed out after {WEBHOOK_DB_TIMEOUT_S}s"},
-                }).eq("id", event.id).execute()
+                _timeout_at = datetime.now(timezone.utc).isoformat()
+                _timeout_msg = f"Processing timed out after {WEBHOOK_DB_TIMEOUT_S}s"
+                await _run_with_budget(
+                    asyncio.to_thread(lambda: sb.table("stripe_webhook_events").update({
+                        "status": "timeout",
+                        "processed_at": _timeout_at,
+                        "payload": {"error": _timeout_msg},
+                    }).eq("id", _event_id).execute()),
+                    budget=_WEBHOOK_IDEMPOTENCY_BUDGET_S,
+                    phase="route",
+                    source="webhook.stripe.mark_timeout",
+                )
             except Exception:
                 pass
             raise HTTPException(status_code=504, detail="Webhook processing timed out")
 
         # AC2: Mark event as completed after successful processing
-        sb.table("stripe_webhook_events").update({
-            "status": "completed",
-            "processed_at": datetime.now(timezone.utc).isoformat(),
-            "payload": event.data.object,
-        }).eq("id", event.id).execute()
+        _completed_at = datetime.now(timezone.utc).isoformat()
+        _event_payload = event.data.object
+        await _run_with_budget(
+            asyncio.to_thread(lambda: sb.table("stripe_webhook_events").update({
+                "status": "completed",
+                "processed_at": _completed_at,
+                "payload": _event_payload,
+            }).eq("id", _event_id).execute()),
+            budget=_WEBHOOK_IDEMPOTENCY_BUDGET_S,
+            phase="route",
+            source="webhook.stripe.mark_completed",
+        )
 
         logger.info(f"Webhook processed successfully: event_id={event.id}")
         return {"status": "success", "event_id": event.id}
@@ -257,11 +300,18 @@ async def stripe_webhook(request: Request):
     except Exception as e:
         # AC3: Mark event as failed on processing error
         try:
-            sb.table("stripe_webhook_events").update({
-                "status": "failed",
-                "processed_at": datetime.now(timezone.utc).isoformat(),
-                "payload": {"error": str(e)},
-            }).eq("id", event.id).execute()
+            _failed_at = datetime.now(timezone.utc).isoformat()
+            _err_str = str(e)
+            await _run_with_budget(
+                asyncio.to_thread(lambda: sb.table("stripe_webhook_events").update({
+                    "status": "failed",
+                    "processed_at": _failed_at,
+                    "payload": {"error": _err_str},
+                }).eq("id", _event_id).execute()),
+                budget=_WEBHOOK_IDEMPOTENCY_BUDGET_S,
+                phase="route",
+                source="webhook.stripe.mark_failed",
+            )
         except Exception as update_err:
             logger.error(f"Failed to mark webhook as failed: {update_err}")
         logger.error(f"Error processing webhook: {e}", exc_info=True)

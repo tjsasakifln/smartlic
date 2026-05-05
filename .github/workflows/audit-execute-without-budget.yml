@@ -17,6 +17,7 @@ on:
   pull_request:
     paths:
       - 'backend/routes/**'
+      - 'backend/webhooks/**'
       - 'backend/scripts/audit_execute_without_budget.py'
       - '.github/workflows/audit-execute-without-budget.yml'
   push:
@@ -24,6 +25,7 @@ on:
       - main
     paths:
       - 'backend/routes/**'
+      - 'backend/webhooks/**'
       - 'backend/scripts/audit_execute_without_budget.py'
 
 permissions:
