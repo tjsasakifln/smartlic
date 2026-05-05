@@ -125,7 +125,20 @@ export default function SignupPage() {
           setIsConfirmed(true);
           clearInterval(interval);
           toast.success("Email confirmado! Redirecionando...");
-          setTimeout(() => router.push("/onboarding"), 1500);
+          // GTM-642: redirect to /onboarding?cnpj=X when deep-link context exists
+          let onboardingUrl = "/onboarding";
+          try {
+            const ctx = sessionStorage.getItem("smartlic_signup_context");
+            if (ctx) {
+              const parsed = JSON.parse(ctx) as { ref?: string; cnpj?: string };
+              if (parsed.ref === "cnpj" && parsed.cnpj) {
+                onboardingUrl = `/onboarding?cnpj=${parsed.cnpj}`;
+              }
+            }
+          } catch {
+            // sessionStorage unavailable — use default redirect
+          }
+          setTimeout(() => router.push(onboardingUrl), 1500);
         }
       } catch {
         // AC7: Sentry breadcrumb on polling silent catch — NOT captureException (noise)
@@ -308,6 +321,23 @@ export default function SignupPage() {
     const refCode = params.get("ref");
     if (refCode && /^[A-Z0-9]{8}$/i.test(refCode)) {
       safeSetItem("referral_code", refCode.toUpperCase());
+    }
+  }, []);
+
+  // GTM-642: persist CNPJ deep-link context to sessionStorage for post-auth redirect
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const ref = params.get("ref");
+    const cnpj = params.get("cnpj");
+    if (ref === "cnpj" && cnpj && /^\d{14}$/.test(cnpj)) {
+      try {
+        sessionStorage.setItem(
+          "smartlic_signup_context",
+          JSON.stringify({ ref, cnpj })
+        );
+      } catch {
+        // sessionStorage unavailable (private mode) — continue without it
+      }
     }
   }, []);
 
