@@ -15,6 +15,9 @@ class TestCalculateWedgeRisk:
     def setup_method(self):
         import health
         health._counter_baseline.clear()
+        # Pre-seed baseline=0 so _counter_delta returns counter value on first call
+        health._counter_baseline["pipeline_budget_exceeded"] = 0.0
+        health._counter_baseline["route_timeout"] = 0.0
 
     def _make_counter_sample(self, value: float):
         """Build a minimal Prometheus MetricFamily mock with a single sample."""
