@@ -40,6 +40,7 @@ from webhooks.handlers.checkout import (  # noqa: F401
     handle_checkout_session_completed as _handle_checkout_session_completed,
     handle_async_payment_succeeded as _handle_async_payment_succeeded,
     handle_async_payment_failed as _handle_async_payment_failed,
+    handle_intel_report_payment_failed as _handle_intel_report_payment_failed,
     _send_async_payment_failed_email,
     _create_partner_referral_async,
 )
@@ -251,6 +252,10 @@ async def stripe_webhook(request: Request):
                 await _handle_price_updated(sb, event)
             elif event.type == "price.deleted":
                 await _handle_price_deleted(sb, event)
+            # #630: Intel Report one-time payment failure
+            # NOTE: Stripe Dashboard webhook config must include payment_intent.payment_failed
+            elif event.type == "payment_intent.payment_failed":
+                await _handle_intel_report_payment_failed(sb, event)
             else:
                 logger.info(f"Unhandled event type: {event.type}")
 

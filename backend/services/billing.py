@@ -2,6 +2,8 @@
 
 Handles billing period updates and Stripe integration.
 GTM-002: Removed pro-rata calculations — Stripe handles proration automatically.
+
+Also provides create_intel_report_checkout() for one-time payment mode (issue #630).
 """
 
 import os
@@ -72,6 +74,102 @@ def update_stripe_subscription_billing_period(
 
     logger.info(f"Successfully updated Stripe subscription {stripe_subscription_id}")
     return updated_subscription
+
+
+def create_intel_report_checkout(
+    product_type: str,
+    entity_key: str,
+    user_id: str,
+) -> dict:
+    """Create a Stripe Checkout session for an Intel Report one-time purchase.
+
+    Products:
+        - cnpj    → R$197.00 (INTEL-REPORT-001)
+        - sector_uf → R$147.00 (INTEL-REPORT-002)
+
+    NOTE: Stripe Products and Prices are created MANUALLY in the Stripe Dashboard.
+    This function uses price_data with unit_amount so it works without pre-created
+    Price objects. For production, pre-create Products in the Dashboard and use
+    their price IDs in line_items instead of price_data.
+
+    Args:
+        product_type: "cnpj" or "sector_uf"
+        entity_key: CNPJ value or "sector:uf" string
+        user_id: Supabase user UUID
+
+    Returns:
+        {"checkout_url": str, "session_id": str}
+
+    Raises:
+        ValueError: invalid product_type
+        stripe.error.StripeError: Stripe API error
+    """
+    import stripe
+
+    from schemas.intel_report import VALID_PRODUCT_TYPES, INTEL_REPORT_PRICES
+
+    if product_type not in VALID_PRODUCT_TYPES:
+        raise ValueError(
+            f"product_type deve ser um de {VALID_PRODUCT_TYPES}, recebido: {product_type!r}"
+        )
+
+    stripe_key = os.getenv("STRIPE_SECRET_KEY")
+    if not stripe_key:
+        raise ValueError("STRIPE_SECRET_KEY not configured")
+
+    frontend_url = os.getenv("FRONTEND_URL", "http://localhost:3000")
+    unit_amount = INTEL_REPORT_PRICES[product_type]
+
+    product_names = {
+        "cnpj": "SmartLic Intel Report — Análise de Empresa",
+        "sector_uf": "SmartLic Intel Report — Relatório Setor/UF",
+    }
+
+    # IMPORTANT: {CHECKOUT_SESSION_ID} is a Stripe template literal (server-side substitution).
+    # The double braces {{ }} produce a single { } in the f-string, which Stripe then substitutes.
+    success_url = (
+        f"{frontend_url}/intel-reports/{{CHECKOUT_SESSION_ID}}?status=processing"
+    )
+    cancel_url = f"{frontend_url}/intel-reports/cancelado"
+
+    logger.info(
+        f"Creating Intel Report checkout: product_type={product_type}, "
+        f"entity_key={entity_key!r}, user_id={user_id[:8]}"
+    )
+
+    session = stripe.checkout.Session.create(
+        mode="payment",
+        payment_method_types=["card", "boleto", "pix"],
+        line_items=[
+            {
+                "price_data": {
+                    "currency": "brl",
+                    "unit_amount": unit_amount,
+                    "product_data": {
+                        "name": product_names[product_type],
+                        "description": f"Relatório inteligente para {entity_key}",
+                    },
+                },
+                "quantity": 1,
+            }
+        ],
+        metadata={
+            "product_type": product_type,
+            "entity_key": entity_key,
+            "user_id": user_id,
+            "platform": "smartlic",
+        },
+        success_url=success_url,
+        cancel_url=cancel_url,
+        client_reference_id=user_id,
+        api_key=stripe_key,
+    )
+
+    logger.info(
+        f"Intel Report checkout session created: session_id={session.id}, "
+        f"user_id={user_id[:8]}"
+    )
+    return {"checkout_url": session.url, "session_id": session.id}
 
 
 def get_next_billing_date(user_id: str) -> Optional[datetime]:
