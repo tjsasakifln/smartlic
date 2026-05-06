@@ -595,7 +595,7 @@ function buildJsonLd(
 // SEO-PLAYBOOK P4: Dataset schema for AI Overviews eligibility
 // Always emitted — describes the conceptual dataset (PNCP bids for this sector).
 // Live `total_open` is enriched opportunistically when available.
-function buildDatasetJsonLd(
+export function buildDatasetJsonLd(
   sector: { name: string; slug: string },
   stats: SectorStats | null,
 ) {
@@ -638,7 +638,7 @@ function buildDatasetJsonLd(
     license: "https://creativecommons.org/licenses/by/4.0/",
     creator: {
       "@type": "Organization",
-      name: "SmartLic",
+      name: "SmartLic / CONFENGE Avaliacoes e Inteligencia Artificial LTDA",
       url: "https://smartlic.tech",
     },
     publisher: {
@@ -658,8 +658,8 @@ function buildDatasetJsonLd(
     distribution: [
       {
         "@type": "DataDownload",
-        encodingFormat: "text/html",
-        contentUrl: `https://smartlic.tech/licitacoes/${sector.slug}`,
+        encodingFormat: "application/json",
+        contentUrl: `https://smartlic.tech/v1/sectors/${sector.slug}/stats`,
       },
     ],
     url: `https://smartlic.tech/licitacoes/${sector.slug}`,
