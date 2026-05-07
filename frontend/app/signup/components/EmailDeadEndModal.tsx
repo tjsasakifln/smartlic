@@ -133,7 +133,7 @@ export function EmailDeadEndModal({
         {/* Action (c): Support */}
         <a
           ref={lastFocusRef}
-          href="mailto:tiago.sasaki@confenge.com.br"
+          href="mailto:tiago@smartlic.tech"
           data-testid="dead-end-support"
           className="block w-full py-2.5 border border-divider rounded-button text-sm
                      text-ink-secondary text-center hover:bg-surface-1 transition-colors"
