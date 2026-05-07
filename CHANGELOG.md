@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed — Backend / Tech Debt
+- **Validação de duplicatas de keywords por normalização em sectors_data.yaml (TD-BE-015 #210)** — `_validate_sector_keywords()` e `_check_list_for_duplicates()` adicionados a `backend/sectors.py`. Detecta keywords que colapsam para a mesma forma após `normalize_text()` (ex: "café" e "cafe"). Log de warnings apenas — nunca levanta exceção, nunca bloqueia startup. Checa `keywords`, `exclusions` e `context_required_keywords` por setor. 20 novos testes. Rollback: reverter commit.
+
 ### Added — Frontend / GTM
 - **CTA de trial em /observatorio (#619)** — `ObservatorioCTA` client component adicionado ao hub do observatório. Usuários não autenticados veem link `/signup?ref=observatorio-hub`; autenticados veem link `/buscar`. Empty-state de relatórios agora inclui link ativo para `/licitacoes`.
 
