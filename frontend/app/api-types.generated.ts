@@ -7672,7 +7672,7 @@ export interface components {
              * @description 'lifetime' for one-time payment (v2) or 'subscription' for legacy
              * @default lifetime
              */
-            payment_mode?: string;
+            payment_mode: string;
         };
         /** FoundingLeadEntry */
         FoundingLeadEntry: {
