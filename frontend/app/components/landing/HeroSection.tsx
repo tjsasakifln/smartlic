@@ -7,6 +7,7 @@ import { motion } from 'framer-motion';
 import { GradientButton } from '@/app/components/ui/GradientButton';
 import { useScrollAnimation } from '@/lib/animations';
 import { fadeInUp, staggerContainer } from '@/lib/animations';
+import { hero } from '@/lib/copy/valueProps';
 
 interface HeroSectionProps {
   className?: string;
@@ -119,6 +120,14 @@ export default function HeroSection({ className = '' }: HeroSectionProps) {
               </GradientButton>
             </Link>
           </motion.div>
+
+          {/* REPO-007: Founding disclaimer — below CTAs, non-competitive */}
+          <motion.p
+            className="text-sm text-zinc-400 dark:text-zinc-500 max-w-md mx-auto lg:mx-0 text-center lg:text-left mt-4"
+            variants={fadeInUp}
+          >
+            {hero.disclaimer}
+          </motion.p>
 
           {/* Trust indicators */}
           <motion.div

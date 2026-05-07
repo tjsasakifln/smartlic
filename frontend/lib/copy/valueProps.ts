@@ -61,6 +61,9 @@ export const hero = {
     pricing: "Começar a filtrar oportunidades",
     default: "Testar plataforma",
   },
+
+  // REPO-007: Founding disclaimer — locked copy v1 (below CTA buttons)
+  disclaimer: "Criado por servidor público com mais de 10 anos em licitações. Plataforma independente, sem vínculo com órgãos governamentais.",
 };
 
 // ============================================================================

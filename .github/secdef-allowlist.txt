@@ -1,8 +1,0 @@
-# SECDEF Allow-List — decremental baseline
-# Issue: #698 (SEC-SECDEF-002)
-#
-# Format: substring match against scanner output `<file>:<line> | <function_signature>`.
-# Pattern: shrinking-only — adicionar entries requer review @architect + @devops.
-#
-# Empty = clean baseline post #697 fix. All public schema SECDEF compliant after
-# migration 20260504160000_secdef_search_path_audit.sql.
