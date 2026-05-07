@@ -93,6 +93,8 @@ class FoundingAvailabilityResponse(BaseModel):
     reason: str
     coupon_code: str
     discount_pct: int
+    price_brl_cents: int
+    offer_mode: str
 
 
 def _is_valid_cnpj_check_digits(cnpj: str) -> bool:
@@ -184,6 +186,8 @@ def _check_availability(sb) -> dict[str, Any]:
             "deadline_at": row.get("deadline_at"),
             "paused": bool(row.get("paused")),
             "reason": str(row.get("reason") or "unavailable"),
+            "offer_mode": str(row.get("offer_mode") or "lifetime"),
+            "price_brl_cents": int(row.get("price_brl_cents") or 99700),
         }
     except Exception as e:
         logger.error(f"founding: check_founding_availability RPC failed: {e}")
@@ -194,6 +198,8 @@ def _check_availability(sb) -> dict[str, Any]:
             "deadline_at": None,
             "paused": False,
             "reason": "unavailable",
+            "offer_mode": "lifetime",
+            "price_brl_cents": 99700,
         }
 
 
@@ -264,6 +270,8 @@ async def founding_availability(response: Response) -> Any:
         reason=snapshot["reason"],
         coupon_code=FOUNDING_COUPON_ID,
         discount_pct=50,
+        price_brl_cents=snapshot["price_brl_cents"],
+        offer_mode=snapshot["offer_mode"],
     )
 
 
