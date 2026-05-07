@@ -2,10 +2,13 @@ import { NextRequest, NextResponse } from 'next/server';
 
 const BACKEND_URL =
   process.env.BACKEND_URL ??
-  process.env.NEXT_PUBLIC_BACKEND_URL ??
-  'http://localhost:8000';
+  process.env.NEXT_PUBLIC_BACKEND_URL;
 
 export async function GET(request: NextRequest) {
+  if (!BACKEND_URL) {
+    return NextResponse.json({ error: 'Backend unavailable' }, { status: 503 });
+  }
+
   const sessionId = request.nextUrl.searchParams.get('session_id');
   if (!sessionId) {
     return NextResponse.json({ error: 'session_id required' }, { status: 400 });
