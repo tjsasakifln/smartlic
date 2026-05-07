@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added — Docs / Partners
+- **ADR de política do programa de parceiros (#597)** — `docs/adr/partner-program.md` formaliza a política canônica: comissão 20% lifetime, pagamento mensal via Pix no dia 5, atribuição last-click 30 dias, onboarding exige CPF/CNPJ. Default `revenue_share_pct` em `CreatePartnerRequest`, `create_partner()` e `create_partner_referral()` alinhado de 25% para 20%. Valores explícitos em parceiros existentes não são alterados. Snapshot OpenAPI e testes atualizados. Rollback: reverter PR #743.
+
 ### Added — Backend / Intel Reports
 - **Entrega de Intel Reports via ARQ job (#631)** — `generate_intel_report(ctx, purchase_id)` ARQ job implementado: busca purchase/profile, gera PDFs de Raio-X do concorrente, faz upload para bucket Supabase Storage `intel-reports`, cria signed URLs 30 dias, marca purchase como `ready`, e envia email transacional Resend via novo template `intel_report_ready.html`. Tratamento de falhas com retry/backoff ARQ, status `failed`, refund Stripe automático e email de notificação de falha. Prometheus: `smartlic_intel_report_generated_total{product_type,status}`. Mixpanel: `intel_report_generated`. Job registrado em `WorkerSettings` e em `job_queue.py`. Rollback: reverter commit e desabilitar enqueue no webhook Stripe.
 
