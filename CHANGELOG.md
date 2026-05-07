@@ -8,7 +8,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added — Frontend / GTM
+- **Social proof de volume na landing e /planos (#627)** — `StatsClientIsland.tsx` ganhou linha de métricas de volume estática ("+2 milhões contratos · 27 estados · R$1k–R$500M+") abaixo dos contadores animados existentes. `StatsSection.tsx` espelha a linha no fallback noscript/SSR para SEO. `/planos` ganhou trust strip compacto acima do toggle de billing period. Dados factualmente ancorados no DataLake (`pncp_supplier_contracts` ~2M rows, `pncp_raw_bids` 27 UFs). Rollback: reverter commit `86b20bb00`.
+- **Intel Reports: CTA + checkout + polling + download (#632)** — `IntelReportCTA.tsx` client component em `/cnpj/[cnpj]` page (Server Component ISR). Proxies Next.js: `GET /api/intel-reports/` (lista), `POST /api/intel-reports/checkout`, `GET /api/intel-reports/[purchaseId]` (status), `GET /api/intel-reports/[purchaseId]/download` (PDF). Página de sucesso `/intel-reports/[sessionId]` com polling 3s × 40 iterações (120s max). Página de cancelamento `/intel-reports/cancelado`. Unauthenticated click → redirect `/signup?intent=intel_report`.
 - **CTA de trial em /observatorio (#619)** — `ObservatorioCTA` client component adicionado ao hub do observatório. Usuários não autenticados veem link `/signup?ref=observatorio-hub`; autenticados veem link `/buscar`. Empty-state de relatórios agora inclui link ativo para `/licitacoes`.
+
+### Added — Backend / Health
+- **Check de conectividade OpenAI com cache 5min (TD-BE-025 #214)** — `check_openai_health()` em `health.py` usa `models.list(limit=1)` (sem tokens) para probar reachability da API. Cache em memória 300s evita overhead de quota. Integrado em `get_system_health()`: OpenAI degraded → status do sistema `degraded` (não unhealthy). Retorna `{status, latency_ms, cached}`. Tests em `test_health_openai.py` (4 cenários: ok, degraded, not_configured, cache).
+
+### Fixed — Backend / Excel
+- **Logging estruturado e validação de tipos para geração de Excel (#180 TD-HP-003)** — `_validate_licitacoes_types()` em `excel.py` escaneia valores de dict antes de geração e loga warning para tipos não-serializáveis (observability-only, não raise). `pipeline/stages/generate.py`: `asyncio.to_thread(create_excel)` envolto em try/except; falha na geração define `excel_status='failed'` com log estruturado em vez de exception não tratada. `routes/sessions.py`: `create_excel` na rota de download envolto em try/except com HTTPException 500 acionável. 3 novos testes em `test_excel.py`.
 
 ### Added — SEO Admin
 - **GSC API sync + dashboard /admin/seo (STORY-SEO-005 #478)** — ARQ cron semanal (dom 06 UTC) sincroniza Google Search Console searchanalytics para `gsc_metrics` (Supabase). Dashboard `/admin/seo` ganhou seção "Query Analytics" com top queries, top pages por CTR e oportunidades CTR <1%. Graceful no-op se `GSC_SERVICE_ACCOUNT_JSON` ausente. Prometheus: `smartlic_gsc_sync_duration_seconds` + `smartlic_gsc_sync_rows_upserted_total`. Migration: `20260422120000_create_gsc_metrics.sql`.
