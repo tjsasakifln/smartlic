@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed — Frontend / Build
+- **Suspense boundary em /fundadores/obrigado (#823)** — `FundadoresObrigadoPage` (Server Component) agora envolve `FundadoresObrigadoClient` em `<Suspense>`, corrigindo o build crash `useSearchParams() should be wrapped in a suspense boundary`. Segue o mesmo padrão de `/planos/obrigado/page.tsx`. Rollback: reverter commit.
+
 ### Added — Frontend / Intel Reports
 - **Intel Reports frontend layer: CTA + checkout + polling + download (#632)** — Adiciona camada frontend completa para Intel Reports (one-time purchase): `IntelReportCTA` "use client" component em `/cnpj/[cnpj]` (parent Server Component com ISR); 4 API proxy routes (`/api/intel-reports/checkout`, `/api/intel-reports/`, `/api/intel-reports/[purchaseId]`, `/api/intel-reports/[purchaseId]/download`); página de sucesso pós-Stripe com polling até 120s (40×3s, `useRef` anti-stale-closure); página de cancelamento. Proxy routes usam factory `createProxyRoute` para rotas simples e padrão manual `getRefreshedToken` + `sanitizeProxyError` para rotas dinâmicas. PDF streaming com `Content-Disposition: attachment`. 6 testes unitários (CTA behavior, 401→signup redirect, checkout_url redirect, Mixpanel events, loading state). Rollback: remover seção #632 de `page.tsx` e deletar arquivos novos.
 
