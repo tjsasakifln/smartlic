@@ -330,8 +330,6 @@ def mark_founding_lead_completed(sb, session: Any) -> None:
             lead_id = str(result.data[0]["id"])
 
         logger.info(f"Founding lead marked completed: session_id={sid} rows={updated}")
-        # Optimistic success counter — may be reverted by race guard below
-        founders_checkout_success.labels(offer_version="v2_lifetime").inc()
     except Exception as e:
         logger.error(f"Failed to mark founding lead completed: session_id={sid} err={e}")
         founders_checkout_failed.labels(reason="db_error").inc()
@@ -344,6 +342,7 @@ def mark_founding_lead_completed(sb, session: Any) -> None:
         # Fail safe: never auto-refund a paying customer when the DB is
         # uncooperative. Operator alerting (Sentry) can catch the gap.
         logger.warning(f"founding race guard: RPC unavailable, skipping cap re-check — session_id={sid}")
+        founders_checkout_success.labels(offer_version="v2_lifetime").inc()
         return
 
     reason = snapshot.get("reason") or ""
@@ -354,6 +353,7 @@ def mark_founding_lead_completed(sb, session: Any) -> None:
         # refund post-hoc.
         # #785: activate lifetime founder entitlement on the happy path.
         _activate_lifetime_founder_entitlement(sb, session, lead_id)
+        founders_checkout_success.labels(offer_version="v2_lifetime").inc()
         return
 
     # The only "race" we need to refund for is founding_cap_reached. For
@@ -363,6 +363,7 @@ def mark_founding_lead_completed(sb, session: Any) -> None:
         logger.warning(
             f"founding race guard: unexpected post-completion reason={reason} session_id={sid}"
         )
+        founders_checkout_success.labels(offer_version="v2_lifetime").inc()
         return
 
     logger.error(
