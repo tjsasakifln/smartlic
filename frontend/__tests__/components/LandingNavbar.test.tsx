@@ -2,9 +2,10 @@
  * LandingNavbar Component Tests
  * STORY-223 AC21-AC24: Auth-aware CTA rendering
  * DEBT-v3-S2 AC20: Updated for RSC + client island architecture.
+ * REPO-010: Soluções dropdown + Consultoria nav item.
  *
  * LandingNavbar is now an RSC that delegates interactive parts to NavbarClientIsland.tsx.
- * Tests focus on the client islands (NavbarAuthCTA, NavScrollButton, NavbarMobileControls)
+ * Tests focus on the client islands (NavbarAuthCTA, NavSolucoesDropdown, NavbarMobileControls)
  * since RSCs render static HTML that is always present.
  *
  * Tests:
@@ -12,10 +13,11 @@
  * - AC22: Logged-in user sees "Ir para Busca" button
  * - AC23: Not-logged-in user sees "Entrar" and "Comece Gratis" (UX-345)
  * - AC24: Loading state has no layout shift (placeholder rendered)
+ * - REPO-010: Soluções dropdown renders 4 items, Consultoria link present
  */
 
-import { render, screen } from '@testing-library/react';
-import { NavbarAuthCTA, NavScrollButton } from '@/app/components/landing/NavbarClientIsland';
+import { render, screen, fireEvent } from '@testing-library/react';
+import { NavbarAuthCTA, NavScrollButton, NavSolucoesDropdown } from '@/app/components/landing/NavbarClientIsland';
 
 // Mock useAuth hook
 const mockUseAuth = jest.fn();
@@ -26,8 +28,8 @@ jest.mock('../../app/components/AuthProvider', () => ({
 
 // Mock Next.js Link component
 jest.mock('next/link', () => {
-  return function MockLink({ children, href, className }: { children: React.ReactNode; href: string; className?: string }) {
-    return <a href={href} className={className}>{children}</a>;
+  return function MockLink({ children, href, className, 'data-testid': dataTestId, role }: { children: React.ReactNode; href: string; className?: string; 'data-testid'?: string; role?: string }) {
+    return <a href={href} className={className} data-testid={dataTestId} role={role}>{children}</a>;
   };
 });
 
@@ -144,11 +146,75 @@ describe('LandingNavbar — NavbarAuthCTA (client island)', () => {
 });
 
 describe('LandingNavbar — NavScrollButton (client island)', () => {
-  it('should render Como Funciona button', () => {
+  it('should render a scroll-to-section button with given label', () => {
     render(<NavScrollButton sectionId="como-funciona" label="Como Funciona" />);
 
     const btn = screen.getByRole('button', { name: /Como Funciona/i });
     expect(btn).toBeInTheDocument();
+  });
+});
+
+describe('LandingNavbar — NavSolucoesDropdown (REPO-010)', () => {
+  it('should render dropdown trigger with correct data-testid', () => {
+    render(<NavSolucoesDropdown />);
+
+    const trigger = screen.getByTestId('nav-solucoes-dropdown');
+    expect(trigger).toBeInTheDocument();
+    expect(trigger).toHaveTextContent('Soluções');
+  });
+
+  it('should have aria-haspopup and aria-expanded=false by default', () => {
+    render(<NavSolucoesDropdown />);
+
+    const trigger = screen.getByTestId('nav-solucoes-dropdown');
+    expect(trigger).toHaveAttribute('aria-haspopup', 'true');
+    expect(trigger).toHaveAttribute('aria-expanded', 'false');
+  });
+
+  it('should show 4 items when dropdown is opened', () => {
+    render(<NavSolucoesDropdown />);
+
+    const trigger = screen.getByTestId('nav-solucoes-dropdown');
+    fireEvent.click(trigger);
+
+    expect(screen.getByRole('menuitem', { name: /SaaS/i })).toBeInTheDocument();
+    expect(screen.getByRole('menuitem', { name: /Radar B2G/i })).toBeInTheDocument();
+    expect(screen.getByRole('menuitem', { name: /Report B2G/i })).toBeInTheDocument();
+    expect(screen.getByRole('menuitem', { name: /Intel Reports/i })).toBeInTheDocument();
+  });
+
+  it('should have correct hrefs for all dropdown items', () => {
+    render(<NavSolucoesDropdown />);
+
+    fireEvent.click(screen.getByTestId('nav-solucoes-dropdown'));
+
+    expect(screen.getByRole('menuitem', { name: /SaaS/i })).toHaveAttribute('href', '/buscar');
+    expect(screen.getByRole('menuitem', { name: /Radar B2G/i })).toHaveAttribute('href', '/consultoria-b2g?modalidade=radar');
+    expect(screen.getByRole('menuitem', { name: /Report B2G/i })).toHaveAttribute('href', '/consultoria-b2g?modalidade=report');
+    expect(screen.getByRole('menuitem', { name: /Intel Reports/i })).toHaveAttribute('href', '/consultoria-b2g?modalidade=intel');
+  });
+
+  it('should toggle aria-expanded when clicked', () => {
+    render(<NavSolucoesDropdown />);
+
+    const trigger = screen.getByTestId('nav-solucoes-dropdown');
+    expect(trigger).toHaveAttribute('aria-expanded', 'false');
+
+    fireEvent.click(trigger);
+    expect(trigger).toHaveAttribute('aria-expanded', 'true');
+
+    fireEvent.click(trigger);
+    expect(trigger).toHaveAttribute('aria-expanded', 'false');
+  });
+
+  it('should close dropdown when a menu item is clicked', () => {
+    render(<NavSolucoesDropdown />);
+
+    fireEvent.click(screen.getByTestId('nav-solucoes-dropdown'));
+    expect(screen.getByRole('menu')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('menuitem', { name: /SaaS/i }));
+    expect(screen.queryByRole('menu')).not.toBeInTheDocument();
   });
 });
 
@@ -185,11 +251,29 @@ describe('LandingNavbar — Static RSC elements', () => {
     expect(planosLink).toHaveAttribute('href', '/planos');
   });
 
-  it('should show Como Funciona button', () => {
+  it('should show Consultoria link with correct data-testid (REPO-010)', () => {
     render(<LandingNavbar />);
 
-    const comoFuncionaBtn = screen.getByRole('button', { name: /Como Funciona/i });
-    expect(comoFuncionaBtn).toBeInTheDocument();
+    const consultoriaLink = screen.getByTestId('nav-consultoria');
+    expect(consultoriaLink).toBeInTheDocument();
+    expect(consultoriaLink).toHaveAttribute('href', '/consultoria-b2g');
+    expect(consultoriaLink).toHaveTextContent('Consultoria');
+  });
+
+  it('should show Soluções dropdown trigger (REPO-010)', () => {
+    render(<LandingNavbar />);
+
+    // Multiple triggers may exist (desktop dropdown)
+    const triggers = screen.getAllByTestId('nav-solucoes-dropdown');
+    expect(triggers.length).toBeGreaterThanOrEqual(1);
+    expect(triggers[0]).toHaveTextContent('Soluções');
+  });
+
+  it('should NOT show removed nav items (REPO-010)', () => {
+    render(<LandingNavbar />);
+
+    expect(screen.queryByRole('link', { name: /^Casos$/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: /^Suporte$/i })).not.toBeInTheDocument();
   });
 
   it('should render sticky header', () => {
