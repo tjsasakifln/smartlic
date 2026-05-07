@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added — Tests
+- **Edge case tests para keyword density pipeline — TD-BE-023 (#249)** — 71 testes cobrindo `normalize_text`, `match_keywords`, `validate_terms`, `_strip_org_context`, `has_red_flags`, `has_sector_red_flags`, `check_proximity_context` e `check_co_occurrence` para inputs que aparecem em dados reais do PNCP: strings vazias, whitespace-only, strings muito longas (10k tokens), caracteres especiais, Unicode/acentuado português, RTL (árabe), emojis, texto numérico, null bytes e scripts mistos. Nenhuma alteração no código de produção necessária — funções já tratam esses inputs defensivamente. Rollback: reverter commit.
 - **Cobertura do módulo health.py — TD-TEST-004 (#202)** — 26 testes unitários cobrindo `HealthStatus` enum, `SourceHealthResult.to_dict()`, `SystemHealth.to_dict()`, `initialize_health_tracking()` / `get_uptime_seconds()`, `check_source_health()` (ConnectError + exceção genérica), `get_health_status()` (integração com mock de rede) e `get_system_health()` (Redis down, circuit breaker degradado). `health.py` (1100+ linhas) tinha cobertura zero antes desta PR.
 
 ### Fixed — Backend / Tech Debt
