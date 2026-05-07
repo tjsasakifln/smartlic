@@ -10,6 +10,7 @@ from insight_collector import InsightCollector, get_collector
 BASE_URL = os.getenv("BASE_URL", "https://smartlic.tech")
 ADMIN_EMAIL = os.getenv("ADMIN_EMAIL", "tiago.sasaki@gmail.com")
 ADMIN_PASSWORD = os.getenv("ADMIN_PASSWORD", "")
+ADMIN_TOTP_SECRET = os.getenv("ADMIN_TOTP_SECRET", "")
 HEADLESS = os.getenv("HEADLESS", "true").lower() == "true"
 
 
@@ -53,9 +54,37 @@ def logged_in_driver(driver, base_url, collector):
     if not ADMIN_PASSWORD:
         pytest.skip("ADMIN_PASSWORD não configurado — pule testes autenticados")
     from pages.login_page import LoginPage
+    from selenium.webdriver.common.by import By
+    from selenium.webdriver.support.ui import WebDriverWait
+    from selenium.webdriver.support import expected_conditions as EC
+
     page = LoginPage(driver, base_url)
     login_time = page.login(ADMIN_EMAIL, ADMIN_PASSWORD)
     collector.metric("login_success_seconds", login_time)
+
+    # Check if MFA screen appeared after login
+    try:
+        WebDriverWait(driver, 5).until(
+            EC.presence_of_element_located((By.XPATH, "//*[contains(text(), 'dois fatores')]"))
+        )
+        if ADMIN_TOTP_SECRET:
+            import pyotp
+            totp = pyotp.TOTP(ADMIN_TOTP_SECRET)
+            code_input = driver.find_element(
+                By.CSS_SELECTOR, "input[type='text'], input[inputmode='numeric']"
+            )
+            code_input.clear()
+            code_input.send_keys(totp.now())
+            driver.find_element(By.CSS_SELECTOR, "button[type='submit']").click()
+            # Wait for redirect away from /login
+            WebDriverWait(driver, 30).until(
+                lambda d: "/login" not in d.current_url
+            )
+        else:
+            pytest.skip("MFA detectado mas ADMIN_TOTP_SECRET não configurado")
+    except Exception:
+        pass  # No MFA screen — login succeeded directly
+
     return driver
 
 
