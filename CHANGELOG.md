@@ -13,6 +13,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed — Backend / Tech Debt
 - **Validação de duplicatas de keywords por normalização em sectors_data.yaml (TD-BE-015 #210)** — `_validate_sector_keywords()` e `_check_list_for_duplicates()` adicionados a `backend/sectors.py`. Detecta keywords que colapsam para a mesma forma após `normalize_text()` (ex: "café" e "cafe"). Log de warnings apenas — nunca levanta exceção, nunca bloqueia startup. Checa `keywords`, `exclusions` e `context_required_keywords` por setor. 20 novos testes. Rollback: reverter commit.
 
+### Fixed — Frontend / Accessibility
+- **Atributos aria-label em botões de seleção de UF (TD-UX-001 #194, TD-UX-003 #196)** — `aria-label` dinâmico (`"Selecionar {estado}"` / `"Remover {estado}"`) adicionado aos botões de toggle de UF em `SearchCustomizePanel`. Screen readers agora anunciam o nome completo do estado em vez de soletrar a sigla. Complementa `aria-pressed` já existente. Atributos ARIA do `SavedSearchesDropdown`, `RegionSelector` e focus-trap/autoFocus/Escape do modal Save Search foram implementados em commits anteriores (TD-005 Dialog, WCAG 2.2 AAA). Rollback: reverter commit.
+
 ### Added — Frontend / GTM
 - **CTA de trial em /observatorio (#619)** — `ObservatorioCTA` client component adicionado ao hub do observatório. Usuários não autenticados veem link `/signup?ref=observatorio-hub`; autenticados veem link `/buscar`. Empty-state de relatórios agora inclui link ativo para `/licitacoes`.
 
