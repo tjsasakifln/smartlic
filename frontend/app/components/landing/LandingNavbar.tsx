@@ -1,10 +1,11 @@
 // DEBT-v3-S2 AC20: LandingNavbar is now an RSC -- client islands (NavbarScrollStyler,
-// NavScrollButton, NavbarAuthCTA, NavbarMobileControls) are in NavbarClientIsland.tsx
+// NavSolucoesDropdown, NavbarAuthCTA, NavbarMobileControls) are in NavbarClientIsland.tsx
 // to minimize the 'use client' footprint.
+// REPO-010: Added Soluções dropdown + Consultoria link; removed Como Funciona, Casos, Suporte.
 import Link from 'next/link';
 import {
   NavbarScrollStyler,
-  NavScrollButton,
+  NavSolucoesDropdown,
   NavbarAuthCTA,
   NavbarMobileControls,
 } from './NavbarClientIsland';
@@ -36,14 +37,21 @@ export default function LandingNavbar({ className = '' }: LandingNavbarProps) {
 
           {/* Navigation Links -- hidden on mobile */}
           <div className="hidden md:flex items-center space-x-6">
+            {/* REPO-010: Soluções dropdown (Phase 0 — all items point to /consultoria-b2g) */}
+            <NavSolucoesDropdown />
+            <Link
+              href="/consultoria-b2g"
+              data-testid="nav-consultoria"
+              className="text-sm text-ink-secondary/80 hover:text-ink transition-colors focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-[var(--ring)] rounded px-2 py-1"
+            >
+              Consultoria
+            </Link>
             <Link
               href="/planos"
               className="text-sm text-ink-secondary/80 hover:text-ink transition-colors focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-[var(--ring)] rounded px-2 py-1"
             >
               Planos
             </Link>
-            {/* Client island: scroll-to-section button */}
-            <NavScrollButton sectionId="como-funciona" label="Como Funciona" />
             <Link
               href="/blog"
               className="text-sm text-ink-secondary/80 hover:text-ink transition-colors focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-[var(--ring)] rounded px-2 py-1"
@@ -65,12 +73,6 @@ export default function LandingNavbar({ className = '' }: LandingNavbarProps) {
               Observatório
             </Link>
             <Link
-              href="/casos"
-              className="text-sm text-ink-secondary/80 hover:text-ink transition-colors focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-[var(--ring)] rounded px-2 py-1"
-            >
-              Casos
-            </Link>
-            <Link
               href="/sobre"
               className="text-sm text-ink-secondary/80 hover:text-ink transition-colors focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-[var(--ring)] rounded px-2 py-1"
             >
@@ -81,12 +83,6 @@ export default function LandingNavbar({ className = '' }: LandingNavbarProps) {
               className="text-sm text-ink-secondary/80 hover:text-ink transition-colors focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-[var(--ring)] rounded px-2 py-1"
             >
               Perguntas
-            </Link>
-            <Link
-              href="#suporte"
-              className="text-sm text-ink-secondary/80 hover:text-ink transition-colors focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-[var(--ring)] rounded px-2 py-1"
-            >
-              Suporte
             </Link>
           </div>
 
