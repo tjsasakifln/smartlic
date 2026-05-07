@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added — Tests
+- **Cobertura do módulo health.py — TD-TEST-004 (#202)** — 26 testes unitários cobrindo `HealthStatus` enum, `SourceHealthResult.to_dict()`, `SystemHealth.to_dict()`, `initialize_health_tracking()` / `get_uptime_seconds()`, `check_source_health()` (ConnectError + exceção genérica), `get_health_status()` (integração com mock de rede) e `get_system_health()` (Redis down, circuit breaker degradado). `health.py` (1100+ linhas) tinha cobertura zero antes desta PR.
+
 ### Fixed — Backend / Tech Debt
 - **Validação de duplicatas de keywords por normalização em sectors_data.yaml (TD-BE-015 #210)** — `_validate_sector_keywords()` e `_check_list_for_duplicates()` adicionados a `backend/sectors.py`. Detecta keywords que colapsam para a mesma forma após `normalize_text()` (ex: "café" e "cafe"). Log de warnings apenas — nunca levanta exceção, nunca bloqueia startup. Checa `keywords`, `exclusions` e `context_required_keywords` por setor. 20 novos testes. Rollback: reverter commit.
 
