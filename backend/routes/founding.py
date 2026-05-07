@@ -49,8 +49,9 @@ router = APIRouter(prefix="/founding", tags=["founding"])
 # ---------------------------------------------------------------------------
 # v2 one-time price — env var set by operator after running
 # scripts/create_founding_lifetime_price.py
+# NOTE: read at request-time (not module-load-time) to avoid import-order
+# freeze in tests and environments where the var is set after module import.
 # ---------------------------------------------------------------------------
-FOUNDING_ONE_TIME_PRICE_ID = os.getenv("FOUNDING_ONE_TIME_PRICE_ID", "")
 
 
 class FoundingCheckoutRequest(BaseModel):
@@ -270,8 +271,8 @@ async def founding_availability(response: Response) -> Any:
         deadline_at=deadline_iso,
         paused=snapshot["paused"],
         reason=snapshot["reason"],
-        coupon_code="FOUNDING_LIFETIME",
-        discount_pct=50,
+        coupon_code="",
+        discount_pct=0,
         offer_mode=snapshot.get("offer_mode", "lifetime"),
         price_brl_cents=snapshot.get("price_brl_cents", 99700),
     )
@@ -355,7 +356,8 @@ async def founding_checkout(
         logger.error("founding: STRIPE_SECRET_KEY not configured")
         raise HTTPException(status_code=500, detail="Erro ao processar pagamento. Tente novamente.")
 
-    if not FOUNDING_ONE_TIME_PRICE_ID:
+    founding_price_id = os.getenv("FOUNDING_ONE_TIME_PRICE_ID", "")
+    if not founding_price_id:
         logger.error("founding: FOUNDING_ONE_TIME_PRICE_ID not configured")
         raise HTTPException(
             status_code=500,
@@ -401,7 +403,7 @@ async def founding_checkout(
 
     session_params = {
         "payment_method_types": ["card", "boleto"],
-        "line_items": [{"price": FOUNDING_ONE_TIME_PRICE_ID, "quantity": 1}],
+        "line_items": [{"price": founding_price_id, "quantity": 1}],
         "mode": "payment",
         "success_url": f"{frontend_url}/founding/obrigado?session_id={{CHECKOUT_SESSION_ID}}",
         "cancel_url": f"{frontend_url}/founding?cancelled=true",

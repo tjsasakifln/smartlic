@@ -319,8 +319,11 @@ def _v2_checkout_setup(app_with_founding, monkeypatch, price_id="price_test_foun
     """Returns (client, stripe_create_mock)."""
     chain = _TableChain()
 
-    with patch("routes.founding.get_supabase", return_value=chain), \
-         patch.object(founding_module, "FOUNDING_ONE_TIME_PRICE_ID", price_id):
+    with patch("routes.founding.get_supabase", return_value=chain):
+        if price_id:
+            monkeypatch.setenv("FOUNDING_ONE_TIME_PRICE_ID", price_id)
+        else:
+            monkeypatch.delenv("FOUNDING_ONE_TIME_PRICE_ID", raising=False)
 
         import stripe as stripe_lib
         stripe_create_mock = MagicMock(return_value=_make_stripe_session_mock())
@@ -341,9 +344,8 @@ def test_checkout_v2_uses_mode_payment(mock_get_supabase, app_with_founding, mon
     stripe_create_mock = MagicMock(return_value=_make_stripe_session_mock())
     monkeypatch.setattr(stripe_lib.checkout.Session, "create", stripe_create_mock)
 
-    with patch.object(founding_module, "FOUNDING_ONE_TIME_PRICE_ID", "price_test_founding_lifetime"):
-        client = TestClient(app_with_founding)
-        r = client.post("/v1/founding/checkout", json=_valid_payload_args())
+    client = TestClient(app_with_founding)
+    r = client.post("/v1/founding/checkout", json=_valid_payload_args())
 
     assert r.status_code == 200
     call_kwargs = stripe_create_mock.call_args.kwargs
@@ -360,9 +362,8 @@ def test_checkout_v2_uses_card_and_boleto(mock_get_supabase, app_with_founding, 
     stripe_create_mock = MagicMock(return_value=_make_stripe_session_mock())
     monkeypatch.setattr(stripe_lib.checkout.Session, "create", stripe_create_mock)
 
-    with patch.object(founding_module, "FOUNDING_ONE_TIME_PRICE_ID", "price_test_founding_lifetime"):
-        client = TestClient(app_with_founding)
-        client.post("/v1/founding/checkout", json=_valid_payload_args())
+    client = TestClient(app_with_founding)
+    client.post("/v1/founding/checkout", json=_valid_payload_args())
 
     call_kwargs = stripe_create_mock.call_args.kwargs
     assert set(call_kwargs["payment_method_types"]) == {"card", "boleto"}
@@ -378,9 +379,8 @@ def test_checkout_v2_metadata_contains_offer_fields(mock_get_supabase, app_with_
     stripe_create_mock = MagicMock(return_value=_make_stripe_session_mock())
     monkeypatch.setattr(stripe_lib.checkout.Session, "create", stripe_create_mock)
 
-    with patch.object(founding_module, "FOUNDING_ONE_TIME_PRICE_ID", "price_test_founding_lifetime"):
-        client = TestClient(app_with_founding)
-        client.post("/v1/founding/checkout", json=_valid_payload_args())
+    client = TestClient(app_with_founding)
+    client.post("/v1/founding/checkout", json=_valid_payload_args())
 
     call_kwargs = stripe_create_mock.call_args.kwargs
     meta = call_kwargs["metadata"]
@@ -401,9 +401,8 @@ def test_checkout_v2_no_discounts_in_session(mock_get_supabase, app_with_foundin
     stripe_create_mock = MagicMock(return_value=_make_stripe_session_mock())
     monkeypatch.setattr(stripe_lib.checkout.Session, "create", stripe_create_mock)
 
-    with patch.object(founding_module, "FOUNDING_ONE_TIME_PRICE_ID", "price_test_founding_lifetime"):
-        client = TestClient(app_with_founding)
-        client.post("/v1/founding/checkout", json=_valid_payload_args())
+    client = TestClient(app_with_founding)
+    client.post("/v1/founding/checkout", json=_valid_payload_args())
 
     call_kwargs = stripe_create_mock.call_args.kwargs
     assert "discounts" not in call_kwargs
@@ -411,14 +410,14 @@ def test_checkout_v2_no_discounts_in_session(mock_get_supabase, app_with_foundin
 
 @patch("routes.founding.get_supabase")
 def test_checkout_v2_returns_500_when_price_id_not_configured(
-    mock_get_supabase, app_with_founding
+    mock_get_supabase, app_with_founding, monkeypatch
 ):
     chain = _TableChain()
     mock_get_supabase.return_value = chain
 
-    with patch.object(founding_module, "FOUNDING_ONE_TIME_PRICE_ID", ""):
-        client = TestClient(app_with_founding, raise_server_exceptions=False)
-        r = client.post("/v1/founding/checkout", json=_valid_payload_args())
+    monkeypatch.delenv("FOUNDING_ONE_TIME_PRICE_ID", raising=False)
+    client = TestClient(app_with_founding, raise_server_exceptions=False)
+    r = client.post("/v1/founding/checkout", json=_valid_payload_args())
 
     assert r.status_code == 500
 
@@ -438,9 +437,8 @@ def test_checkout_v2_returns_410_when_cap_reached(mock_get_supabase, app_with_fo
     }
     mock_get_supabase.return_value = chain
 
-    with patch.object(founding_module, "FOUNDING_ONE_TIME_PRICE_ID", "price_test_founding_lifetime"):
-        client = TestClient(app_with_founding)
-        r = client.post("/v1/founding/checkout", json=_valid_payload_args())
+    client = TestClient(app_with_founding)
+    r = client.post("/v1/founding/checkout", json=_valid_payload_args())
 
     assert r.status_code == 410
     assert r.json()["detail"]["error_code"] == "founding_cap_reached"
@@ -459,9 +457,8 @@ def test_checkout_v2_response_includes_payment_mode_lifetime(
         stripe_lib.checkout.Session, "create", MagicMock(return_value=_make_stripe_session_mock())
     )
 
-    with patch.object(founding_module, "FOUNDING_ONE_TIME_PRICE_ID", "price_test_founding_lifetime"):
-        client = TestClient(app_with_founding)
-        r = client.post("/v1/founding/checkout", json=_valid_payload_args())
+    client = TestClient(app_with_founding)
+    r = client.post("/v1/founding/checkout", json=_valid_payload_args())
 
     assert r.status_code == 200
     body = r.json()
@@ -482,12 +479,11 @@ def test_checkout_v2_checkout_source_from_query_param(
     stripe_create_mock = MagicMock(return_value=_make_stripe_session_mock())
     monkeypatch.setattr(stripe_lib.checkout.Session, "create", stripe_create_mock)
 
-    with patch.object(founding_module, "FOUNDING_ONE_TIME_PRICE_ID", "price_test_founding_lifetime"):
-        client = TestClient(app_with_founding)
-        client.post(
-            "/v1/founding/checkout?src=email_campaign",
-            json=_valid_payload_args(),
-        )
+    client = TestClient(app_with_founding)
+    client.post(
+        "/v1/founding/checkout?src=email_campaign",
+        json=_valid_payload_args(),
+    )
 
     call_kwargs = stripe_create_mock.call_args.kwargs
     assert call_kwargs["metadata"]["checkout_source"] == "email_campaign"
