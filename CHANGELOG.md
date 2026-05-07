@@ -30,6 +30,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added — Frontend / Legal
 - **Página de termos do Plano Fundadores (#793)** — `frontend/app/termos/fundadores/page.tsx` criado com 9 seções legais cobrindo escopo vitalício, fair use, sem garantia de êxito, período de resfriamento (CDC art. 49) e disclaimer de parceria governamental. `frontend/app/termos/page.tsx` atualizado com link para `/termos/fundadores`. Protege juridicamente o SmartLic e informa fundadores sobre os exatos direitos adquiridos.
 
+### Added — Frontend / Analytics
+- **Typed Mixpanel wrappers para eventos founders (#790)** — `lib/analytics/founders.ts` expõe 9 funções tipadas (`trackFoundersPageView`, `trackFoundersBannerView`, `trackFoundersBannerClick`, `trackFoundersBannerDismiss`, `trackFoundersRibbonView`, `trackFoundersRibbonClick`, `trackFoundersCtaClick`, `trackFoundersCheckoutStart`, `trackFoundersPseoConversion`). Todas usam `safeTrack` interno que silencia erros do Mixpanel (SSR / consent não dado). Testes unitários em `lib/analytics/__tests__/founders.test.ts`: cobertura de `safeTrack` (error swallowing) + todos os 9 wrappers com props forwarding. Backend: `mark_founding_lead_completed` corrigido para incrementar `founders_checkout_success` após o race guard (não antes) — evita overcount em violações de cap. 4 novos testes de counter em `test_founding_webhook_race_guard.py`. Rollback: reverter PR #790.
+
 ### Fixed — Backend / Infra
 - **Graceful shutdown uvicorn configurável via env var (#799)** — `--timeout-graceful-shutdown` em `backend/start.sh` e `backend/railway.toml` usa `${UVICORN_TIMEOUT_GRACEFUL_SHUTDOWN:-120}` (padrão 120s, alinhado com Railway drainingSeconds=120). Override via Railway env var sem redeploy. Teste `TestAC9GracefulTimeout` atualizado para verificar novo padrão parametrizado.
 
