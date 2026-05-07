@@ -1,4 +1,4 @@
-"""STORY-BIZ-001 + BIZ-FOUND-002: Founding customer checkout + canonical policy.
+"""STORY-BIZ-001 + BIZ-FOUND-002 + #783: Founding customer checkout + canonical policy.
 
 Endpoints:
 - ``POST /v1/founding/checkout`` — qualifying form -> Stripe Checkout Session.
@@ -14,11 +14,15 @@ BIZ-FOUND-002 changes:
 - The new ``GET /v1/founding/availability`` endpoint is anonymous (no auth)
   and used by the landing-page seat counter + countdown timer.
 
-Pricing model is now canonical:
-- Cap = 50 seats, deadline = 2026-05-30, lifetime 50% off forever via
-  Stripe coupon ``FOUNDING_LIFETIME``.
-- Source of truth lives in ``public.founding_policy`` (migration
-  20260428100000) and Stripe (coupon configuration).
+#783 (v2 lifetime pivot):
+- ``mode='payment'`` one-time R$997 BRL via ``FOUNDING_ONE_TIME_PRICE_ID``.
+- Adds ``payment_method_types=['card', 'boleto']``.
+- Removes coupon / discounts block entirely.
+- Expands session metadata: ``offer_version``, ``offer_mode``,
+  ``price_brl_cents``, ``checkout_source``.
+- ``FoundingCheckoutResponse`` gains ``payment_mode='lifetime'``.
+- ``FOUNDING_ONE_TIME_PRICE_ID`` must be set in env; route returns 500 if
+  missing so misconfiguration is caught immediately (fail-closed).
 """
 
 from __future__ import annotations
@@ -42,12 +46,11 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/founding", tags=["founding"])
 
 
-# BIZ-FOUND-002: lifetime coupon replaces the old 12-month FOUNDING30 default.
-# The old id is still respected if the operator wants to keep STORY-BIZ-001
-# semantics in non-prod, but new deploys go through FOUNDING_LIFETIME.
-FOUNDING_COUPON_ID = os.getenv("FOUNDING_COUPON_ID", "FOUNDING_LIFETIME")
-FOUNDING_PLAN_ID = os.getenv("FOUNDING_PLAN_ID", "smartlic_pro")
-FOUNDING_BILLING_PERIOD = os.getenv("FOUNDING_BILLING_PERIOD", "annual")
+# ---------------------------------------------------------------------------
+# v2 one-time price — env var set by operator after running
+# scripts/create_founding_lifetime_price.py
+# ---------------------------------------------------------------------------
+FOUNDING_ONE_TIME_PRICE_ID = os.getenv("FOUNDING_ONE_TIME_PRICE_ID", "")
 
 
 class FoundingCheckoutRequest(BaseModel):
@@ -79,6 +82,10 @@ class FoundingCheckoutRequest(BaseModel):
 class FoundingCheckoutResponse(BaseModel):
     checkout_url: str
     lead_id: str
+    payment_mode: str = Field(
+        default="lifetime",
+        description="'lifetime' for one-time payment (v2) or 'subscription' for legacy",
+    )
 
 
 class FoundingAvailabilityResponse(BaseModel):
@@ -135,30 +142,6 @@ def _already_registered(sb, email: str) -> bool:
         return False
 
 
-def _lookup_promotion_code(stripe_lib, api_key: str) -> dict | None:
-    """Resolve the founding coupon into a promotion_code for use in discounts.
-
-    Prefer PromotionCode (user-facing) over raw Coupon when available so
-    Stripe enforces any restrictions configured at the promo-code level.
-    Falls back to the raw coupon id if no promotion_code exists (the
-    FOUNDING_LIFETIME coupon is created without a promotion_code by default
-    via scripts/create_founding_lifetime_coupon.py).
-    """
-    try:
-        promos = stripe_lib.PromotionCode.list(
-            code=FOUNDING_COUPON_ID,
-            active=True,
-            limit=1,
-            api_key=api_key,
-        )
-        if promos.data:
-            return {"promotion_code": promos.data[0].id}
-    except Exception as e:
-        logger.warning(f"founding: promotion_code lookup failed: {e}")
-
-    return {"coupon": FOUNDING_COUPON_ID}
-
-
 def _check_availability(sb) -> dict[str, Any]:
     """Call ``check_founding_availability()`` RPC; return normalized dict.
 
@@ -177,6 +160,8 @@ def _check_availability(sb) -> dict[str, Any]:
                 "deadline_at": None,
                 "paused": False,
                 "reason": "unavailable",
+                "offer_mode": "lifetime",
+                "price_brl_cents": 99700,
             }
         row = rows[0] if isinstance(rows, list) else rows
         return {
@@ -285,8 +270,8 @@ async def founding_availability(response: Response) -> Any:
         deadline_at=deadline_iso,
         paused=snapshot["paused"],
         reason=snapshot["reason"],
-        coupon_code=FOUNDING_COUPON_ID,
-        discount_pct=50,
+        coupon_code="",
+        discount_pct=0,
         offer_mode=snapshot.get("offer_mode", "lifetime"),
         price_brl_cents=snapshot.get("price_brl_cents", 99700),
     )
@@ -298,12 +283,19 @@ async def founding_checkout(
     request: Request,
     _rl=Depends(require_rate_limit(3, 3600)),
 ) -> Any:
-    """Create a founding-customer Stripe Checkout Session with the canonical coupon applied.
+    """Create a founding-customer Stripe Checkout Session (v2 one-time payment).
 
     BIZ-FOUND-002 gate:
     - Calls ``check_founding_availability()`` BEFORE creating the lead row.
     - On ``available=false`` returns 410 Gone with structured ``error_code`` +
       ``error_reason`` so the frontend can render the right copy.
+
+    #783 changes:
+    - Uses ``mode='payment'`` (one-time) with ``FOUNDING_ONE_TIME_PRICE_ID``.
+    - Accepts ``card`` and ``boleto`` payment methods.
+    - No coupon / discounts applied.
+    - Expanded metadata: ``offer_version``, ``offer_mode``, ``price_brl_cents``,
+      ``checkout_source`` (resolved from ``src`` or ``utm_source`` query param).
 
     Side effects (when available):
     - Inserts a ``founding_leads`` row with ``checkout_status='pending'``.
@@ -328,6 +320,13 @@ async def founding_checkout(
     if not stripe_key:
         logger.error("founding: STRIPE_SECRET_KEY not configured")
         raise HTTPException(status_code=500, detail="Erro ao processar pagamento. Tente novamente.")
+
+    if not FOUNDING_ONE_TIME_PRICE_ID:
+        logger.error("founding: FOUNDING_ONE_TIME_PRICE_ID not configured")
+        raise HTTPException(
+            status_code=500,
+            detail="Configuração de preço founding indisponível. Contate o suporte.",
+        )
 
     sb = get_supabase()
 
@@ -361,29 +360,12 @@ async def founding_checkout(
             detail="Este email já possui conta SmartLic. Faça login para gerenciar sua assinatura.",
         )
 
-    def _fetch_price_id():
-        return (
-            sb.table("plan_billing_periods")
-            .select("stripe_price_id")
-            .eq("plan_id", FOUNDING_PLAN_ID)
-            .eq("billing_period", FOUNDING_BILLING_PERIOD)
-            .limit(1)
-            .execute()
-        )
-
-    bp_result = await _run_with_budget(
-        asyncio.to_thread(_fetch_price_id),
-        budget=5.0,
-        phase="route",
-        source="founding.checkout",
+    # Resolve checkout_source from query params (src takes priority over utm_source)
+    checkout_source = (
+        request.query_params.get("src")
+        or request.query_params.get("utm_source")
+        or "direct"
     )
-    stripe_price_id = (bp_result.data[0] or {}).get("stripe_price_id") if bp_result.data else None
-    if not stripe_price_id:
-        logger.error(
-            f"founding: no stripe_price_id for plan={FOUNDING_PLAN_ID} "
-            f"billing_period={FOUNDING_BILLING_PERIOD}"
-        )
-        raise HTTPException(status_code=400, detail="Plano sem configuração de preço")
 
     lead_row = {
         "email": payload.email,
@@ -411,23 +393,26 @@ async def founding_checkout(
         raise HTTPException(status_code=500, detail="Erro ao registrar sua solicitação.")
 
     frontend_url = os.getenv("FRONTEND_URL", "http://localhost:3000")
-    discount = _lookup_promotion_code(stripe_lib, stripe_key)
+
+    offer_mode = snapshot.get("offer_mode", "lifetime")
+    price_brl_cents = snapshot.get("price_brl_cents", 99700)
 
     session_params = {
-        "payment_method_types": ["card"],
-        "line_items": [{"price": stripe_price_id, "quantity": 1}],
-        "mode": "subscription",
+        "payment_method_types": ["card", "boleto"],
+        "line_items": [{"price": FOUNDING_ONE_TIME_PRICE_ID, "quantity": 1}],
+        "mode": "payment",
         "success_url": f"{frontend_url}/founding/obrigado?session_id={{CHECKOUT_SESSION_ID}}",
         "cancel_url": f"{frontend_url}/founding?cancelled=true",
         "customer_email": payload.email,
         "metadata": {
             "source": "founding",
+            "offer_version": "v2_lifetime",
+            "offer_mode": offer_mode,
+            "price_brl_cents": str(price_brl_cents),
+            "checkout_source": checkout_source,
             "founding_lead_id": lead_id,
             "cnpj": payload.cnpj,
-            "plan_id": FOUNDING_PLAN_ID,
-            "billing_period": FOUNDING_BILLING_PERIOD,
         },
-        "discounts": [discount],
     }
 
     try:
@@ -470,7 +455,12 @@ async def founding_checkout(
 
     logger.info(
         f"founding: checkout session created — lead_id={lead_id} "
-        f"session_id={session.id} email={payload.email} cnpj={payload.cnpj[:4]}***"
+        f"session_id={session.id} email={payload.email} cnpj={payload.cnpj[:4]}*** "
+        f"offer_mode={offer_mode} checkout_source={checkout_source}"
     )
 
-    return FoundingCheckoutResponse(checkout_url=session.url, lead_id=lead_id)
+    return FoundingCheckoutResponse(
+        checkout_url=session.url,
+        lead_id=lead_id,
+        payment_mode="lifetime",
+    )
