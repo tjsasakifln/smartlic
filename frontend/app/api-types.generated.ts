@@ -7667,6 +7667,12 @@ export interface components {
             checkout_url: string;
             /** Lead Id */
             lead_id: string;
+            /**
+             * Payment Mode
+             * @description 'lifetime' for one-time payment (v2) or 'subscription' for legacy
+             * @default lifetime
+             */
+            payment_mode?: string;
         };
         /** FoundingLeadEntry */
         FoundingLeadEntry: {
