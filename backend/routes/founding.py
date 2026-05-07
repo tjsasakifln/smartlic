@@ -270,8 +270,8 @@ async def founding_availability(response: Response) -> Any:
         deadline_at=deadline_iso,
         paused=snapshot["paused"],
         reason=snapshot["reason"],
-        coupon_code="",
-        discount_pct=0,
+        coupon_code="FOUNDING_LIFETIME",
+        discount_pct=50,
         offer_mode=snapshot.get("offer_mode", "lifetime"),
         price_brl_cents=snapshot.get("price_brl_cents", 99700),
     )
@@ -314,23 +314,11 @@ async def founding_checkout(
             },
         )
 
-    import stripe as stripe_lib
-
-    stripe_key = os.getenv("STRIPE_SECRET_KEY")
-    if not stripe_key:
-        logger.error("founding: STRIPE_SECRET_KEY not configured")
-        raise HTTPException(status_code=500, detail="Erro ao processar pagamento. Tente novamente.")
-
-    if not FOUNDING_ONE_TIME_PRICE_ID:
-        logger.error("founding: FOUNDING_ONE_TIME_PRICE_ID not configured")
-        raise HTTPException(
-            status_code=500,
-            detail="Configuração de preço founding indisponível. Contate o suporte.",
-        )
-
     sb = get_supabase()
 
     # BIZ-FOUND-002 gate — atomic cap + deadline + paused check.
+    # Evaluated BEFORE Stripe config checks so that 410 responses are always
+    # returned correctly even in environments without Stripe configured (e.g. tests).
     snapshot = await _run_with_budget(
         asyncio.to_thread(_check_availability, sb),
         budget=3.0,
@@ -358,6 +346,20 @@ async def founding_checkout(
         raise HTTPException(
             status_code=409,
             detail="Este email já possui conta SmartLic. Faça login para gerenciar sua assinatura.",
+        )
+
+    import stripe as stripe_lib
+
+    stripe_key = os.getenv("STRIPE_SECRET_KEY")
+    if not stripe_key:
+        logger.error("founding: STRIPE_SECRET_KEY not configured")
+        raise HTTPException(status_code=500, detail="Erro ao processar pagamento. Tente novamente.")
+
+    if not FOUNDING_ONE_TIME_PRICE_ID:
+        logger.error("founding: FOUNDING_ONE_TIME_PRICE_ID not configured")
+        raise HTTPException(
+            status_code=500,
+            detail="Configuração de preço founding indisponível. Contate o suporte.",
         )
 
     # Resolve checkout_source from query params (src takes priority over utm_source)
