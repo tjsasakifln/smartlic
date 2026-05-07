@@ -61,6 +61,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added — Backend / Intel Reports
 - **Entrega de Intel Reports via ARQ job (#631)** — `generate_intel_report(ctx, purchase_id)` ARQ job implementado: busca purchase/profile, gera PDFs de Raio-X do concorrente, faz upload para bucket Supabase Storage `intel-reports`, cria signed URLs 30 dias, marca purchase como `ready`, e envia email transacional Resend via novo template `intel_report_ready.html`. Tratamento de falhas com retry/backoff ARQ, status `failed`, refund Stripe automático e email de notificação de falha. Prometheus: `smartlic_intel_report_generated_total{product_type,status}`. Mixpanel: `intel_report_generated`. Job registrado em `WorkerSettings` e em `job_queue.py`. Rollback: reverter commit e desabilitar enqueue no webhook Stripe.
 
+### Added — Docs / Investigation
+- **Spike DISC-001: análise de origem de slugs malformados /fornecedores (#610)** — `docs/spikes/2026-04-fornecedores-15d-slug-origin.md` documenta extração local de 268 URLs de 15 dígitos (todas terminadas em `2`) e 18 URLs de 11 dígitos (CPFs redactados — LGPD art. 5) a partir de `gsc-404-urls.txt`. Hipóteses H1-H4 avaliadas via grep local: H1 (backend retorna CNPJ+dígito extra) e H2 (link interno) descartadas via evidência de código; H3 (cache CDN legacy) e H4 (Google Discovery) abertas aguardando validação em produção. Checklist STORY-DISC-001 atualizado.
+
 ### Fixed — Docs / Tech Debt
 - **Auditoria e fechamento do Gap-7: contagem de setores (#798)** — Auditoria empírica confirmou 20 setores em `backend/sectors_data.yaml` (CLAUDE.md já correto). Fechadas Inc-1 e Gap-7 em `_reversa_sdd/review-report.md` com contagem confirmada e lista completa dos IDs de setor.
 
