@@ -353,7 +353,7 @@ function formatCnpj(cnpj: string): string {
 
 /** UX-400 AC4: Source display labels and colors */
 const SOURCE_CONFIG: Record<string, { label: string; color: string }> = {
-  PNCP: { label: "PNCP", color: "bg-blue-100 text-blue-800" },
+  PNCP: { label: "Fontes Oficiais", color: "bg-blue-100 text-blue-800" },
   PCP: { label: "PCP", color: "bg-purple-100 text-purple-800" },
   ComprasGov: { label: "ComprasGov", color: "bg-green-100 text-green-800" },
 };

@@ -210,7 +210,7 @@ function renderWeeklyOG(searchParams: URLSearchParams) {
           {parseInt(bids).toLocaleString('pt-BR')}
         </p>
         <p style={{ fontSize: "24px", color: "#C8D4E8", margin: "0 0 32px 0" }}>
-          editais publicados no PNCP
+          editais publicados nas fontes oficiais
         </p>
 
         {/* Top sector */}

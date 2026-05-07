@@ -15,7 +15,7 @@
 import type { SourceStatus, SourceStatusType } from "../../../hooks/useSearchSSE";
 
 const SOURCE_LABELS: Record<string, string> = {
-  PNCP: "PNCP",
+  PNCP: "Fontes Oficiais",
   PORTAL_COMPRAS: "Portal de Compras",
   COMPRAS_GOV: "ComprasGov",
 };

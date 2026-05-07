@@ -10,14 +10,14 @@ export const revalidate = 86400;
 export const metadata: Metadata = {
   title: 'Comparador de Editais — Compare Licitações Lado a Lado',
   description:
-    'Compare até 3 editais de licitação lado a lado gratuitamente. Veja modalidade, valor, prazo e localização de cada edital. Dados reais do PNCP atualizados diariamente.',
+    'Compare até 3 editais de licitação lado a lado gratuitamente. Veja modalidade, valor, prazo e localização de cada edital. Dados reais das fontes oficiais atualizados diariamente.',
   alternates: {
     canonical: buildCanonical('/comparador'),
   },
   openGraph: {
     title: 'Comparador de Editais — Compare Licitações Lado a Lado',
     description:
-      'Compare até 3 editais de licitação lado a lado gratuitamente. Dados reais do PNCP atualizados diariamente.',
+      'Compare até 3 editais de licitação lado a lado gratuitamente. Dados reais das fontes oficiais atualizados diariamente.',
     url: buildCanonical('/comparador'),
     type: 'website',
     images: [
@@ -33,7 +33,7 @@ export const metadata: Metadata = {
     card: 'summary_large_image',
     title: 'Comparador de Editais — Compare Licitações Lado a Lado',
     description:
-      'Compare até 3 editais de licitação gratuitamente. Dados reais do PNCP.',
+      'Compare até 3 editais de licitação gratuitamente. Dados reais das fontes oficiais.',
     images: ['/api/og?title=Comparador+de+Editais'],
   },
   robots: { index: true, follow: true },
@@ -102,7 +102,7 @@ export default function ComparadorPage() {
           </h1>
           <p className="mx-auto max-w-2xl text-base text-[var(--ink-secondary)] sm:text-lg">
             Compare até 3 editais de licitação lado a lado — modalidade, valor estimado, prazo de
-            abertura e localização. Dados reais do PNCP, atualizados diariamente.
+            abertura e localização. Dados reais das fontes oficiais, atualizados diariamente.
           </p>
         </div>
 

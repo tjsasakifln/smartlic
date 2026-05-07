@@ -206,7 +206,7 @@ export default async function CnpjPerfilPage({
         </div>
         <IntelReportCTA cnpj={cnpj} />
         <p className="mt-3 text-xs text-gray-400">
-          ✓ PDF imediato &nbsp; ✓ 30 dias de acesso &nbsp; ✓ Dados PNCP atualizados
+          ✓ PDF imediato &nbsp; ✓ 30 dias de acesso &nbsp; ✓ Dados oficiais atualizados
         </p>
       </section>
 

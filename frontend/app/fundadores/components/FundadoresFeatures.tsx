@@ -7,7 +7,7 @@ const FEATURES: Feature[] = [
   {
     title: 'Busca multi-fonte unificada',
     description:
-      'PNCP + Portal de Compras Públicas + ComprasGov em uma busca consolidada com deduplicação automática.',
+      'Fontes oficiais consolidadas em uma busca unificada com deduplicação automática.',
   },
   {
     title: 'Classificação por IA',

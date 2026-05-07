@@ -12,12 +12,12 @@ import IndiceClient from './IndiceClient';
 export const metadata: Metadata = {
   title: 'Índice de Transparência Municipal em Compras Públicas',
   description:
-    'Ranking dos municípios brasileiros por transparência em compras públicas. Score calculado a partir de dados reais do PNCP: volume, eficiência, diversidade e consistência.',
+    'Ranking dos municípios brasileiros por transparência em compras públicas. Score calculado a partir de dados reais das fontes oficiais: volume, eficiência, diversidade e consistência.',
   alternates: { canonical: 'https://smartlic.tech/indice-municipal' },
   openGraph: {
     title: 'Índice SmartLic — Transparência Municipal em Compras Públicas',
     description:
-      'Ranking dos municípios brasileiros por transparência em compras públicas. Score calculado a partir de dados reais do PNCP: volume, eficiência, diversidade e consistência.',
+      'Ranking dos municípios brasileiros por transparência em compras públicas. Score calculado a partir de dados reais das fontes oficiais: volume, eficiência, diversidade e consistência.',
     url: 'https://smartlic.tech/indice-municipal',
     type: 'website',
     locale: 'pt_BR',
@@ -30,7 +30,7 @@ const datasetSchema = {
   '@type': 'Dataset',
   name: 'Índice SmartLic de Transparência Municipal em Compras Públicas',
   description:
-    'Ranking trimestral dos municípios brasileiros por transparência em compras públicas, calculado a partir de dados do PNCP processados por IA.',
+    'Ranking trimestral dos municípios brasileiros por transparência em compras públicas, calculado a partir de dados oficiais processados por IA.',
   url: 'https://smartlic.tech/indice-municipal',
   license: 'https://creativecommons.org/licenses/by/4.0/',
   creator: {
@@ -87,7 +87,7 @@ export default function IndiceMunicipalPage() {
           </h1>
           <p className="text-lg text-gray-600 max-w-2xl">
             Ranking trimestral dos municípios brasileiros por transparência em compras públicas.
-            Score calculado a partir de dados do PNCP: volume de publicações, eficiência temporal,
+            Score calculado a partir de dados oficiais: volume de publicações, eficiência temporal,
             diversidade de mercado, uso do pregão eletrônico e consistência.
           </p>
           <p className="text-sm text-gray-500 mt-3">

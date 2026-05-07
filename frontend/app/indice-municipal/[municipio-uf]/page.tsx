@@ -64,7 +64,7 @@ export async function generateMetadata({ params, searchParams }: PageProps): Pro
   const scoreText = score != null ? ` Score ${score.toFixed(1)} de 100.` : '';
 
   const title = `${municipioTitulo} (${uf}) — Índice de Transparência Municipal`;
-  const description = `Transparência em compras públicas de ${municipioTitulo}/${uf}.${scoreText} Dados do PNCP: volume, eficiência e diversidade de mercado.`;
+  const description = `Transparência em compras públicas de ${municipioTitulo}/${uf}.${scoreText} Dados das fontes oficiais: volume, eficiência e diversidade de mercado.`;
 
   return {
     title,
@@ -197,7 +197,7 @@ export default async function MunicipioPage({ params, searchParams }: PageProps)
           {municipioTitulo} ({uf})
         </h1>
         <p className="text-gray-500 text-sm mb-6">
-          Período: {periodo} · Fonte: PNCP via SmartLic
+          Período: {periodo} · Fonte: Fontes Oficiais via SmartLic
         </p>
 
         {/* Score principal */}
@@ -283,7 +283,7 @@ export default async function MunicipioPage({ params, searchParams }: PageProps)
         </div>
 
         <div className="mt-8 text-xs text-gray-400 border-t pt-4">
-          Dados derivados do PNCP (Portal Nacional de Contratações Públicas). Licença{' '}
+          Dados derivados do Portal Nacional de Contratações Públicas. Licença{' '}
           <a
             href="https://creativecommons.org/licenses/by/4.0/"
             className="underline"

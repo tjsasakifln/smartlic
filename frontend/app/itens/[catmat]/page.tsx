@@ -91,11 +91,11 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     description:
       `Quanto o governo paga por ${profile.nome_item}? ` +
       (p50Fmt ? `Preço mediano (P50): ${p50Fmt}. ` : '') +
-      `Baseado em ${profile.total_contratos} contratos reais do PNCP.`,
+      `Baseado em ${profile.total_contratos} contratos reais das fontes oficiais.`,
     alternates: { canonical: buildCanonical(`/itens/${catmat}`) },
     openGraph: {
       title: `${profile.nome_item} — Preço Governo (CATMAT ${catmat})`,
-      description: p50Fmt ? `Mediana: ${p50Fmt} · ${profile.total_contratos} contratos PNCP` : `${profile.total_contratos} contratos PNCP`,
+      description: p50Fmt ? `Mediana: ${p50Fmt} · ${profile.total_contratos} contratos oficiais` : `${profile.total_contratos} contratos oficiais`,
       type: 'website',
       locale: 'pt_BR',
     },
@@ -211,7 +211,7 @@ export default async function ItemCatmatPage({ params }: Props) {
             CATMAT {catmat}
           </p>
           <p className="text-xs text-gray-400 mb-6">
-            {profile.last_updated ? getFreshnessLabel(profile.last_updated) : 'Dados do PNCP'}
+            {profile.last_updated ? getFreshnessLabel(profile.last_updated) : 'Dados das fontes oficiais'}
             {' · '}{profile.periodo_referencia}
           </p>
 
@@ -355,7 +355,7 @@ export default async function ItemCatmatPage({ params }: Props) {
               Monitore licitações de {profile.nome_item}
             </h2>
             <p className="text-gray-600 mb-4">
-              O SmartLic rastreia editais abertos no PNCP e identifica automaticamente
+              O SmartLic rastreia editais abertos nas fontes oficiais e identifica automaticamente
               oportunidades para os produtos e serviços do seu portfólio.
             </p>
             <Link

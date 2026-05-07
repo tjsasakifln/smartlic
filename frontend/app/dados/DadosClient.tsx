@@ -598,7 +598,7 @@ function TendenciaTab({ data }: { data: TrendPoint[] }) {
         </ResponsiveContainer>
       </div>
       <p className="text-xs text-gray-400">
-        Editais publicados por dia nos últimos 30 dias no PNCP.
+        Editais publicados por dia nos últimos 30 dias nas fontes oficiais.
       </p>
     </div>
   );

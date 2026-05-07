@@ -9,7 +9,7 @@ export const metadata: Metadata = {
   title: 'Licitações por Município — Editais Abertos nas Principais Cidades',
   description:
     'Consulte licitações abertas nos principais municípios brasileiros. ' +
-    'Dados diários do PNCP com população IBGE e histórico de compras públicas.',
+    'Dados diários das fontes oficiais com população IBGE e histórico de compras públicas.',
   alternates: { canonical: buildCanonical('/municipios') },
   robots: { index: true, follow: true },
   openGraph: {
@@ -82,7 +82,7 @@ const jsonLd = [
     name: 'Licitações por Município — SmartLic',
     description:
       'Diretório de licitações públicas abertas nos principais municípios brasileiros, ' +
-      'com dados do PNCP e indicadores populacionais do IBGE.',
+      'com dados das fontes oficiais e indicadores populacionais do IBGE.',
     url: 'https://smartlic.tech/municipios',
     publisher: {
       '@type': 'Organization',
@@ -127,7 +127,7 @@ export default function MunicipiosHubPage() {
           <p className="text-gray-600 mb-8 max-w-2xl">
             Consulte editais abertos, histórico de compras públicas e indicadores
             econômicos dos principais municípios do Brasil. Dados atualizados diariamente
-            a partir do Portal Nacional de Contratações Públicas (PNCP) e do IBGE.
+            a partir das fontes oficiais de contratações públicas e do IBGE.
           </p>
 
           {/* Capitais */}
@@ -170,7 +170,7 @@ export default function MunicipiosHubPage() {
               Monitore licitações em qualquer município
             </h2>
             <p className="text-gray-600 mb-4">
-              O SmartLic rastreia editais abertos no PNCP e filtra automaticamente
+              O SmartLic rastreia editais abertos nas fontes oficiais e filtra automaticamente
               as oportunidades mais relevantes para o seu setor e região.
             </p>
             <Link

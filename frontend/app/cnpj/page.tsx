@@ -6,7 +6,7 @@ import { LeadCapture } from '@/components/LeadCapture';
 export const metadata: Metadata = {
   title: 'Consulta CNPJ B2G — Histórico de Contratos Públicos',
   description:
-    'Consulte o histórico de contratos públicos de qualquer empresa por CNPJ. Score B2G, setor detectado e oportunidades abertas. Dados do PNCP e Portal da Transparência.',
+    'Consulte o histórico de contratos públicos de qualquer empresa por CNPJ. Score B2G, setor detectado e oportunidades abertas. Dados das fontes oficiais.',
   alternates: {
     canonical: 'https://smartlic.tech/cnpj',
   },
@@ -51,7 +51,7 @@ const faqSchema = {
       name: 'De onde vêm os dados?',
       acceptedAnswer: {
         '@type': 'Answer',
-        text: 'Os dados de contratos vêm do Portal da Transparência do Governo Federal. Os dados cadastrais vêm de fontes públicas (CNPJ aberto). Os editais abertos vêm do PNCP.',
+        text: 'Os dados de contratos vêm do Portal da Transparência do Governo Federal. Os dados cadastrais vêm de fontes públicas (CNPJ aberto). Os editais abertos vêm das fontes oficiais de contratações.',
       },
     },
     {
@@ -67,7 +67,7 @@ const faqSchema = {
       name: 'Como é calculado o Score B2G?',
       acceptedAnswer: {
         '@type': 'Answer',
-        text: 'O Score B2G classifica empresas em três níveis: Ativo (5+ contratos públicos nos últimos 24 meses), Iniciante (1-4 contratos no período) e Sem Histórico (nenhum contrato público rastreado). O cálculo considera apenas dados públicos do Portal da Transparência e PNCP.',
+        text: 'O Score B2G classifica empresas em três níveis: Ativo (5+ contratos públicos nos últimos 24 meses), Iniciante (1-4 contratos no período) e Sem Histórico (nenhum contrato público rastreado). O cálculo considera apenas dados públicos das fontes oficiais.',
       },
     },
     {
@@ -75,7 +75,7 @@ const faqSchema = {
       name: 'Os dados são em tempo real?',
       acceptedAnswer: {
         '@type': 'Answer',
-        text: 'Os contratos do Portal da Transparência são atualizados diariamente pelo Governo Federal. Os editais abertos do PNCP são consultados ao vivo a cada requisição. A consulta reflete o estado mais recente disponível nas fontes oficiais.',
+        text: 'Os contratos do Portal da Transparência são atualizados diariamente pelo Governo Federal. Os editais abertos são consultados ao vivo a cada requisição. A consulta reflete o estado mais recente disponível nas fontes oficiais.',
       },
     },
     {
@@ -105,7 +105,7 @@ const softwareApplicationSchema = {
   featureList: [
     'Consulta de contratos públicos por CNPJ',
     'Score B2G (Ativo, Iniciante, Sem Histórico)',
-    'Histórico do Portal da Transparência e PNCP',
+    'Histórico do Portal da Transparência e fontes oficiais de contratações',
     'Detecção automática de setor via CNAE',
     'Oportunidades de editais abertos no setor e UF da empresa',
   ],
@@ -164,7 +164,7 @@ export default function CnpjLandingPage() {
       <h1>Consulta CNPJ B2G — Histórico de Contratos Públicos</h1>
       <p className="lead">
         Descubra o histórico de contratos com o governo de qualquer empresa.
-        Dados reais do Portal da Transparência e PNCP.
+        Dados reais do Portal da Transparência e fontes oficiais de contratações.
       </p>
 
       <CnpjSearchForm />
@@ -193,7 +193,7 @@ export default function CnpjLandingPage() {
         <p>
           Os dados de contratos vêm do Portal da Transparência do Governo Federal.
           Os dados cadastrais vêm de fontes públicas (CNPJ aberto).
-          Os editais abertos vêm do PNCP.
+          Os editais abertos vêm das fontes oficiais de contratações.
         </p>
 
         <h3>Preciso me cadastrar?</h3>
@@ -207,13 +207,13 @@ export default function CnpjLandingPage() {
           O Score B2G classifica empresas em três níveis: <strong>Ativo</strong> (5+ contratos
           públicos nos últimos 24 meses), <strong>Iniciante</strong> (1-4 contratos no período)
           e <strong>Sem Histórico</strong> (nenhum contrato público rastreado). O cálculo
-          considera apenas dados públicos do Portal da Transparência e PNCP.
+          considera apenas dados públicos das fontes oficiais.
         </p>
 
         <h3>Os dados são em tempo real?</h3>
         <p>
           Os contratos do Portal da Transparência são atualizados diariamente pelo Governo
-          Federal. Os editais abertos do PNCP são consultados ao vivo a cada requisição.
+          Federal. Os editais abertos são consultados ao vivo a cada requisição.
           A consulta reflete o estado mais recente disponível nas fontes oficiais.
         </p>
 

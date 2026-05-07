@@ -32,13 +32,13 @@ function formatBRL(value: number): string {
 
 function buildCitationHtml(stat: PublicStat, dateStr: string): string {
   return `<blockquote cite="${SITE_URL}/estatisticas">
-  ${stat.formatted_value} ${stat.label} — SmartLic, dados PNCP processados, ${dateStr}.
+  ${stat.formatted_value} ${stat.label} — SmartLic, dados oficiais processados, ${dateStr}.
   <a href="${SITE_URL}/estatisticas">Fonte: SmartLic</a>
 </blockquote>`;
 }
 
 function buildCitationAcademic(stat: PublicStat, todayStr: string): string {
-  return `SmartLic. "${stat.label}": ${stat.formatted_value}. Dados processados do PNCP. Disponível em: ${SITE_URL}/estatisticas. Acesso em: ${todayStr}.`;
+  return `SmartLic. "${stat.label}": ${stat.formatted_value}. Dados das fontes oficiais processados pelo SmartLic. Disponível em: ${SITE_URL}/estatisticas. Acesso em: ${todayStr}.`;
 }
 
 function StatCard({ stat }: { stat: PublicStat }) {

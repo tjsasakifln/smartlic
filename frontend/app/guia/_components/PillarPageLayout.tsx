@@ -156,7 +156,7 @@ export default function PillarPageLayout({ pillar, children, sections }: PillarP
                   Automatize a triagem de editais
                 </h3>
                 <p className="text-ink-secondary mb-4">
-                  O SmartLic monitora PNCP, Compras.gov e Portal de Compras Públicas 24/7 e usa IA para classificar relevância setorial por empresa. Teste grátis por 14 dias, sem cartão.
+                  O SmartLic monitora as fontes oficiais de licitações 24/7 e usa IA para classificar relevância setorial por empresa. Teste grátis por 14 dias, sem cartão.
                 </p>
                 <Link
                   href="/signup?ref=pillar-inline-cta"

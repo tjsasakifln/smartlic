@@ -31,7 +31,7 @@ export async function GET(
   <channel>
     <title>Alertas de ${sector.name} ${getUfPrep(ufUpper)} ${ufName} | SmartLic</title>
     <link>${pageUrl}</link>
-    <description>Licitações recentes de ${sector.name} ${getUfPrep(ufUpper)} ${ufName} — dados do PNCP atualizados a cada hora.</description>
+    <description>Licitações recentes de ${sector.name} ${getUfPrep(ufUpper)} ${ufName} — dados das fontes oficiais atualizados a cada hora.</description>
     <language>pt-BR</language>
     <lastBuildDate>${new Date().toUTCString()}</lastBuildDate>
     <atom:link href="${feedUrl}" rel="self" type="application/rss+xml" />

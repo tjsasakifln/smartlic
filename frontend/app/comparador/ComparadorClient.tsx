@@ -226,7 +226,7 @@ function ComparisonColumn({ bid, onRemove }: ComparisonColumnProps) {
             rel="noopener noreferrer"
             className="block rounded-lg bg-[var(--brand-blue)] px-4 py-2 text-center text-xs font-semibold text-white transition hover:opacity-90"
           >
-            Ver no PNCP
+            Ver edital oficial
           </a>
         )}
         <button

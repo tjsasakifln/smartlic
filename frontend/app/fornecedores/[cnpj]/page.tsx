@@ -101,11 +101,11 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
   return {
     title: `${profile.razao_social} — Historico B2G | ${profile.total_contratos} contratos`,
-    description: `Perfil completo de ${profile.razao_social} (CNPJ ${cnpj}): ${profile.total_contratos} contratos publicos, ${valorFmt} em contratos, atuando em ${profile.ufs_atuantes.length} estado(s). Dados PNCP.`,
+    description: `Perfil completo de ${profile.razao_social} (CNPJ ${cnpj}): ${profile.total_contratos} contratos publicos, ${valorFmt} em contratos, atuando em ${profile.ufs_atuantes.length} estado(s). Dados das fontes oficiais.`,
     alternates: { canonical: buildCanonical(`/fornecedores/${cnpj}`) },
     openGraph: {
       title: `${profile.razao_social} — Contratos com o Governo`,
-      description: `${profile.total_contratos} contratos | ${valorFmt} | PNCP`,
+      description: `${profile.total_contratos} contratos | ${valorFmt} | fontes oficiais`,
       type: 'website',
       locale: 'pt_BR',
     },
@@ -232,7 +232,7 @@ export default async function FornecedorCnpjPage({ params }: Props) {
             {profile.cnae_descricao && <> &middot; {profile.cnae_descricao}</>}
           </p>
           <p className="text-sm text-gray-400 mb-6">
-            {profile.last_updated ? getFreshnessLabel(profile.last_updated) : 'Dados do PNCP'}
+            {profile.last_updated ? getFreshnessLabel(profile.last_updated) : 'Dados das fontes oficiais'}
             {' · Fonte: Portal Nacional de Contratacoes Publicas'}
           </p>
 
@@ -385,7 +385,7 @@ export default async function FornecedorCnpjPage({ params }: Props) {
               Monitore editais do setor de {profile.razao_social}
             </h2>
             <p className="text-gray-600 mb-4">
-              O SmartLic rastreia licitações abertas do PNCP e avisa quando surgem
+              O SmartLic rastreia licitações abertas nas fontes oficiais e avisa quando surgem
               oportunidades relevantes para sua empresa.
             </p>
             <Link

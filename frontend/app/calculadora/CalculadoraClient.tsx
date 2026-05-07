@@ -373,7 +373,7 @@ export default function CalculadoraClient() {
           {/* Breakdown */}
           <div className="bg-gray-50 rounded-xl p-6 space-y-3">
             <p className="text-gray-700">
-              Seu setor tem <strong>{resultado.totalEditais} editais/mês</strong> {prepUF(resultado.dados.uf)} {resultado.dados.uf} — dados reais do PNCP
+              Seu setor tem <strong>{resultado.totalEditais} editais/mês</strong> {prepUF(resultado.dados.uf)} {resultado.dados.uf} — dados reais das fontes oficiais
             </p>
             <p className="text-gray-700">
               Sua equipe cobre <strong>{resultado.coberturaAtual.toFixed(0)}%</strong> do total disponível

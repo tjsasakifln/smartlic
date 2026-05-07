@@ -12,12 +12,12 @@ import { ObservatorioCTA } from './ObservatorioCTA';
 export const metadata: Metadata = {
   title: 'Observatório de Licitações',
   description:
-    'Análise mensal do mercado de compras públicas do Brasil. Dados reais do PNCP processados por IA: total de editais, setores em alta, valores e distribuição por modalidade.',
+    'Análise mensal do mercado de compras públicas do Brasil. Dados reais processados por IA: total de editais, setores em alta, valores e distribuição por modalidade.',
   alternates: { canonical: 'https://smartlic.tech/observatorio' },
   openGraph: {
     title: 'Observatório SmartLic — Raio-X das Licitações Públicas do Brasil',
     description:
-      'Relatórios mensais com dados reais do PNCP: volume de editais, setores em alta, valores médios e tendências por UF e modalidade.',
+      'Relatórios mensais com dados reais das fontes oficiais: volume de editais, setores em alta, valores médios e tendências por UF e modalidade.',
     url: 'https://smartlic.tech/observatorio',
     type: 'website',
     locale: 'pt_BR',
@@ -30,7 +30,7 @@ const datasetSchema = {
   '@type': 'Dataset',
   name: 'Observatório SmartLic — Licitações Públicas do Brasil',
   description:
-    'Série histórica de relatórios mensais sobre o mercado de compras públicas brasileiras, compilados a partir dos dados do PNCP (Portal Nacional de Contratações Públicas).',
+    'Série histórica de relatórios mensais sobre o mercado de compras públicas brasileiras, compilados a partir dos dados das fontes oficiais de contratações públicas.',
   url: 'https://smartlic.tech/observatorio',
   license: 'https://creativecommons.org/licenses/by/4.0/',
   creator: {
@@ -70,7 +70,7 @@ export default function ObservatorioPage() {
             Observatório de Licitações Públicas
           </h1>
           <p className="text-lg text-gray-600 max-w-2xl">
-            Relatórios mensais com dados reais do PNCP: volume de editais, setores em alta,
+            Relatórios mensais com dados reais das fontes oficiais: volume de editais, setores em alta,
             valores médios e distribuição por modalidade em todo o Brasil.
             Licença Creative Commons BY 4.0 — livre para citar e republicar com atribuição.
           </p>
@@ -119,7 +119,7 @@ export default function ObservatorioPage() {
           {/* Issue #653: link interno para landing tool-search */}
           <p className="mt-4 text-sm text-gray-600">
             <Link href="/ferramentas/pncp-licitacoes" className="text-blue-700 hover:underline">
-              Como buscar licitações no PNCP automaticamente &rarr;
+              Como buscar licitações nas fontes oficiais automaticamente &rarr;
             </Link>
           </p>
         </section>

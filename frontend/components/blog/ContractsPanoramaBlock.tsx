@@ -93,14 +93,14 @@ function buildSubtitle(
       const contexto = cityName && !ufName
         ? `de ${sectorName} em ${cityName}`
         : `de ${sectorName} ${getUfPrep(uf)} ${ufName}`;
-      return `Nos últimos 12 meses, ${total} contratos públicos ${contexto} foram assinados, movimentando ${valor}. Os dados abaixo são extraídos diretamente do PNCP e permitem identificar os principais compradores, fornecedores recorrentes e a evolução mensal da demanda.`;
+      return `Nos últimos 12 meses, ${total} contratos públicos ${contexto} foram assinados, movimentando ${valor}. Os dados abaixo são extraídos diretamente das fontes oficiais e permitem identificar os principais compradores, fornecedores recorrentes e a evolução mensal da demanda.`;
     }
     case 'cidade':
       return `Nos últimos 12 meses, ${total} contratos públicos em ${cityName} foram firmados, totalizando ${valor}. O panorama abaixo consolida todos os setores e permite identificar quais órgãos mais compram e quais fornecedores dominam o mercado local.`;
     case 'nacional':
       return sectorName
         ? `Nos últimos 12 meses, ${total} contratos públicos de ${sectorName} foram assinados no Brasil, movimentando ${valor}. O panorama abaixo consolida dados de todo o território nacional, extraídos diretamente do Portal Nacional de Contratações Públicas.`
-        : `Nos últimos 12 meses, ${total} contratos públicos foram assinados no Brasil, movimentando ${valor}. Os dados abaixo são extraídos do PNCP e refletem a atividade de compras do setor público federal, estadual e municipal.`;
+        : `Nos últimos 12 meses, ${total} contratos públicos foram assinados no Brasil, movimentando ${valor}. Os dados abaixo refletem a atividade de compras do setor público federal, estadual e municipal.`;
   }
 }
 
@@ -334,7 +334,7 @@ export default function ContractsPanoramaBlock(props: ContractsPanoramaBlockProp
 
       {/* AC9: Aviso legal PNCP */}
       <p className="text-xs text-[var(--ink-muted)] mt-2">
-        Dados extraídos do Portal Nacional de Contratações Públicas (PNCP) — base oficial do
+        Dados extraídos do Portal Nacional de Contratações Públicas — base oficial do
         governo federal. Atualização: últimos 12 meses.
       </p>
     </section>

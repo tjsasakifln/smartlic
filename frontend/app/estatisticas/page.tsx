@@ -12,14 +12,14 @@ export const revalidate = 21600; // 6h ISR
 export const metadata: Metadata = {
   title: 'Estatísticas de Licitações Públicas no Brasil',
   description:
-    'Dados atualizados de licitações públicas no Brasil: total de editais, valores médios por setor e UF, tendências. Fonte: PNCP. Cite livremente.',
+    'Dados atualizados de licitações públicas no Brasil: total de editais, valores médios por setor e UF, tendências. Fontes oficiais. Cite livremente.',
   alternates: {
     canonical: buildCanonical('/estatisticas'),
   },
   openGraph: {
     title: 'Estatísticas de Licitações Públicas no Brasil | SmartLic',
     description:
-      'Dados do PNCP atualizados a cada 6 horas: total de editais, valores médios, top setores e UFs.',
+      'Dados das fontes oficiais atualizados a cada 6 horas: total de editais, valores médios, top setores e UFs.',
     url: buildCanonical('/estatisticas'),
     type: 'website',
     images: [
@@ -35,7 +35,7 @@ export const metadata: Metadata = {
     card: 'summary_large_image',
     title: 'Estatísticas de Licitações Públicas no Brasil | SmartLic',
     description:
-      'Dados do PNCP atualizados a cada 6 horas: total de editais, valores médios, top setores e UFs.',
+      'Dados das fontes oficiais atualizados a cada 6 horas: total de editais, valores médios, top setores e UFs.',
     images: ['/api/og?title=Estatísticas+de+Licitações+Públicas'],
   },
 };
@@ -50,7 +50,7 @@ function buildDatasetSchema(updatedAt: string) {
     '@type': 'Dataset',
     name: 'Estatísticas de Licitações Públicas no Brasil',
     description:
-      'Agregações de contratações públicas publicadas no PNCP — total de editais, valores estimados, distribuição por UF, setor e modalidade.',
+      'Agregações de contratações públicas das fontes oficiais — total de editais, valores estimados, distribuição por UF, setor e modalidade.',
     url: buildCanonical('/estatisticas'),
     creator: {
       '@type': 'Organization',
@@ -167,11 +167,10 @@ export default async function EstatisticasPage() {
       {/* Header */}
       <h1>Estatísticas de Licitações Públicas no Brasil</h1>
       <p className="lead">
-        Dados atualizados do PNCP · Atualizados a cada 6 horas · Cite livremente
+        Dados das fontes oficiais · Atualizados a cada 6 horas · Cite livremente
       </p>
       <p className="text-gray-600 text-sm mb-4">
-        Todas as estatísticas abaixo são calculadas a partir do banco de dados do PNCP
-        (Portal Nacional de Contratações Públicas) processado pelo SmartLic.
+        Todas as estatísticas abaixo são calculadas a partir dos dados das fontes oficiais de contratações públicas processados pelo SmartLic.
         Clique em <strong>Citar esta estatística</strong> para obter um snippet HTML com
         blockquote e backlink, ou <strong>Copiar citação</strong> para o formato
         acadêmico ABNT.
@@ -205,14 +204,14 @@ export default async function EstatisticasPage() {
         <h2>Metodologia</h2>
         <p>
           As estatísticas desta página são calculadas sobre os editais indexados pelo SmartLic
-          a partir do PNCP (Portal Nacional de Contratações Públicas) nos últimos 30 dias
+          a partir do Portal Nacional de Contratações Públicas nos últimos 30 dias
           corridos. O banco de dados é atualizado três vezes ao dia (08h, 14h e 20h BRT).
         </p>
         <p className="mt-2">
           A classificação por setor utiliza correspondência de palavras-chave no objeto da
           contratação. Valores estimados ausentes ou zerados não são incluídos nos cálculos
           de médias e medianas. Os dados são públicos e podem ser citados com atribuição ao
-          SmartLic e ao PNCP.
+          SmartLic e às fontes oficiais de contratações.
         </p>
         <h3>Fonte primária</h3>
         <p>
