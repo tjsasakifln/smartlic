@@ -383,6 +383,11 @@ class TestGetSystemHealth:
             worker_p,
             slo_p,
             patch("pncp_client.get_circuit_breaker", return_value=mock_cb),
+            patch(
+                "health.check_openai_health",
+                new_callable=AsyncMock,
+                return_value={"status": "ok", "latency_ms": 42.0, "cached": False},
+            ),
         ):
             result = await get_system_health()
 
@@ -431,6 +436,11 @@ class TestGetSystemHealth:
             worker_p,
             slo_p,
             patch("pncp_client.get_circuit_breaker", return_value=mock_cb),
+            patch(
+                "health.check_openai_health",
+                new_callable=AsyncMock,
+                return_value={"status": "ok", "latency_ms": 42.0, "cached": False},
+            ),
         ):
             result = await get_system_health()
 
