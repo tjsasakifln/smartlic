@@ -10,6 +10,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added — Frontend / Legal
 - **Página de termos do Plano Fundadores (#793)** — `frontend/app/termos/fundadores/page.tsx` criado com 9 seções legais cobrindo escopo vitalício, fair use, sem garantia de êxito, período de resfriamento (CDC art. 49) e disclaimer de parceria governamental. `frontend/app/termos/page.tsx` atualizado com link para `/termos/fundadores`. Protege juridicamente o SmartLic e informa fundadores sobre os exatos direitos adquiridos.
 
+### Fixed — Backend / Infra
+- **Graceful shutdown uvicorn configurável via env var (#799)** — `--timeout-graceful-shutdown` em `backend/start.sh` e `backend/railway.toml` usa `${UVICORN_TIMEOUT_GRACEFUL_SHUTDOWN:-120}` (padrão 120s, alinhado com Railway drainingSeconds=120). Override via Railway env var sem redeploy. Teste `TestAC9GracefulTimeout` atualizado para verificar novo padrão parametrizado.
+
 ### Added — Frontend / Intel Reports
 - **Intel Reports frontend layer: CTA + checkout + polling + download (#632)** — Adiciona camada frontend completa para Intel Reports (one-time purchase): `IntelReportCTA` "use client" component em `/cnpj/[cnpj]` (parent Server Component com ISR); 4 API proxy routes (`/api/intel-reports/checkout`, `/api/intel-reports/`, `/api/intel-reports/[purchaseId]`, `/api/intel-reports/[purchaseId]/download`); página de sucesso pós-Stripe com polling até 120s (40×3s, `useRef` anti-stale-closure); página de cancelamento. Proxy routes usam factory `createProxyRoute` para rotas simples e padrão manual `getRefreshedToken` + `sanitizeProxyError` para rotas dinâmicas. PDF streaming com `Content-Disposition: attachment`. 6 testes unitários (CTA behavior, 401→signup redirect, checkout_url redirect, Mixpanel events, loading state). Rollback: remover seção #632 de `page.tsx` e deletar arquivos novos.
 
