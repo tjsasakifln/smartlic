@@ -16,7 +16,7 @@ export async function GET(request: NextRequest) {
 
   try {
     const res = await fetch(
-      `${BACKEND_URL}/v1/founding/checkout/status?session_id=${sessionId}`,
+      `${BACKEND_URL}/v1/founding/checkout/status?session_id=${encodeURIComponent(sessionId)}`,
       { next: { revalidate: 0 } }
     );
     if (!res.ok) {

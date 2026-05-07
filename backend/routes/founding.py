@@ -81,6 +81,13 @@ class FoundingCheckoutResponse(BaseModel):
     lead_id: str
 
 
+class FoundingCheckoutStatusResponse(BaseModel):
+    """Response model for GET /v1/founding/checkout/status."""
+
+    status: str
+    payment_status: str
+
+
 class FoundingAvailabilityResponse(BaseModel):
     """Public availability snapshot for landing-page seat counter + countdown."""
 
@@ -292,11 +299,11 @@ async def founding_availability(response: Response) -> Any:
     )
 
 
-@router.get("/checkout/status")
+@router.get("/checkout/status", response_model=FoundingCheckoutStatusResponse)
 async def founding_checkout_status(
     session_id: str = Query(..., min_length=8),
     _rl=Depends(require_rate_limit(30, 60)),
-) -> dict:
+) -> Any:
     """Return Stripe checkout session status for the founding purchase confirmation page.
 
     No auth required — Stripe ``cs_*`` session IDs are long random tokens that
@@ -307,7 +314,7 @@ async def founding_checkout_status(
     stripe_key = os.getenv("STRIPE_SECRET_KEY", "")
     if not stripe_key:
         logger.warning("founding: checkout/status called but STRIPE_SECRET_KEY not set")
-        return {"status": "unknown", "payment_status": "unpaid"}
+        return FoundingCheckoutStatusResponse(status="unknown", payment_status="unpaid")
 
     try:
         import stripe as stripe_lib  # local import to keep module testable without Stripe
@@ -316,13 +323,13 @@ async def founding_checkout_status(
             session_id,
             api_key=stripe_key,
         )
-        return {
-            "status": session.status,
-            "payment_status": session.payment_status,
-        }
+        return FoundingCheckoutStatusResponse(
+            status=session.status,
+            payment_status=session.payment_status,
+        )
     except Exception as exc:
         logger.warning(f"founding: checkout/status retrieval failed — session_id_prefix={session_id[:8]} err={exc}")
-        return {"status": "unknown", "payment_status": "unpaid"}
+        return FoundingCheckoutStatusResponse(status="unknown", payment_status="unpaid")
 
 
 @router.post("/checkout", response_model=FoundingCheckoutResponse)
