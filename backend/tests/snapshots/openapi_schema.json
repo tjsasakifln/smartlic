@@ -6401,9 +6401,82 @@
             ],
             "title": "Captured At"
           },
+          "cnpj": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cnpj"
+          },
           "email": {
             "title": "Email",
             "type": "string"
+          },
+          "empresa": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Empresa"
+          },
+          "mensagem": {
+            "anyOf": [
+              {
+                "maxLength": 500,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Mensagem"
+          },
+          "modalidade_interesse": {
+            "anyOf": [
+              {
+                "enum": [
+                  "radar",
+                  "report",
+                  "intel",
+                  "nao_sei"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Modalidade Interesse"
+          },
+          "nome": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Nome"
+          },
+          "referer_path": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Referer Path"
           },
           "setor": {
             "anyOf": [
@@ -6417,8 +6490,29 @@
             "title": "Setor"
           },
           "source": {
+            "enum": [
+              "calculadora",
+              "cnpj",
+              "alertas",
+              "consultoria",
+              "radar",
+              "report",
+              "intel",
+              "diagnostico"
+            ],
             "title": "Source",
             "type": "string"
+          },
+          "telefone": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Telefone"
           },
           "uf": {
             "anyOf": [
@@ -6430,6 +6524,28 @@
               }
             ],
             "title": "Uf"
+          },
+          "utm_campaign": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Utm Campaign"
+          },
+          "utm_source": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Utm Source"
           }
         },
         "required": [

@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added — Backend / Founders
+- **Founders welcome email template + ARQ job + founding_leads tracking fields (#791)** — `templates/emails/founders_welcome.py` com HTML + plain text, tom pessoal direto de Tiago. `send_founders_welcome_email()` em `email_service.py` com gate de idempotência via `founding_leads.welcome_sent_at`. `send_founders_welcome` ARQ job (despacha email + Mixpanel people.set). Migration `20260507130000_founding_leads_tracking_fields.sql`: adiciona `welcome_sent_at`, `checkout_source`, `offer_version` à tabela `founding_leads`. Índice parcial `idx_founding_leads_welcome_pending` para queries de idempotência. 19 testes unitários. Rollback: `20260507130000_founding_leads_tracking_fields.down.sql`.
+
 ### Fixed — SEO / Structured Data
 - **Metadados Dataset schema completos em /licitacoes/[setor] (#614)** — Adicionados campos faltantes reportados pelo GSC: `description`, `license` (CC BY 4.0), `distribution.contentUrl` e `creator` (organização legal). `buildDatasetJsonLd` exportado para testes isolados. Cobertura Jest para os campos obrigatórios do Dataset. Zera warnings de dados estruturados no Search Console. Rollback: reverter commit.
 
@@ -26,6 +29,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added — Frontend / Founders
 - `FoundersTopBanner` component with availability gate and countdown (#787)
 - `FoundersRibbon` component (inline variant) for embedding in page sections (#787)
+- **FoundersRibbon CTAs em 5 rotas pSEO de alto-intent (#788)** — Integra `FoundersRibbon` (variant `contextual`) nas páginas `/observatorio/[slug]`, `/cnpj/[cnpj]`, `/orgaos/[slug]`, `/licitacoes/[setor]` e `/blog/programmatic/[setor]`. CTA posicionado abaixo do conteúdo principal (sem impacto no SEO acima da dobra). Prop `src` rastreia rota de origem no Mixpanel via evento `founders_pseo_conversion`. Não adiciona `cache:no-store` (SEN-FE-001 safe). Rollback: reverter commit.
+
+### Added — Frontend / Pricing
+- **Tabela de comparação de preços com coluna Fundadores (#789)** — `frontend/components/pricing/PricingComparisonTable.tsx` adicionado: tabela 3 colunas (Plano Fundadores × SmartLic Pro Mensal × Anual) com colapso automático para 2 colunas quando `available=false` ou vagas esgotadas. Busca `/api/founding/availability` no mount com fail-open (erro de API mantém coluna visível). Deadline formatado em pt-BR `dd/mm/yyyy` com fallback `"30/06"`. Coluna Fundadores mostra R$997 pagamento único (modelo vitalício v2). Integrado em `/planos` e `/pricing`. Testes unitários cobrindo collapse, fail-open, formatação de deadline e CTAs. Rollback: remover `PricingComparisonTable.tsx` e reverter `planos/page.tsx` e `pricing/page.tsx`.
 
 ### Added — Frontend / Legal
 - **Página de termos do Plano Fundadores (#793)** — `frontend/app/termos/fundadores/page.tsx` criado com 9 seções legais cobrindo escopo vitalício, fair use, sem garantia de êxito, período de resfriamento (CDC art. 49) e disclaimer de parceria governamental. `frontend/app/termos/page.tsx` atualizado com link para `/termos/fundadores`. Protege juridicamente o SmartLic e informa fundadores sobre os exatos direitos adquiridos.
@@ -60,6 +67,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added — Backend / Intel Reports
 - **Entrega de Intel Reports via ARQ job (#631)** — `generate_intel_report(ctx, purchase_id)` ARQ job implementado: busca purchase/profile, gera PDFs de Raio-X do concorrente, faz upload para bucket Supabase Storage `intel-reports`, cria signed URLs 30 dias, marca purchase como `ready`, e envia email transacional Resend via novo template `intel_report_ready.html`. Tratamento de falhas com retry/backoff ARQ, status `failed`, refund Stripe automático e email de notificação de falha. Prometheus: `smartlic_intel_report_generated_total{product_type,status}`. Mixpanel: `intel_report_generated`. Job registrado em `WorkerSettings` e em `job_queue.py`. Rollback: reverter commit e desabilitar enqueue no webhook Stripe.
 
+### Added — Docs / Investigation
+- **Spike DISC-001: análise de origem de slugs malformados /fornecedores (#610)** — `docs/spikes/2026-04-fornecedores-15d-slug-origin.md` documenta extração local de 268 URLs de 15 dígitos (todas terminadas em `2`) e 18 URLs de 11 dígitos (CPFs redactados — LGPD art. 5) a partir de `gsc-404-urls.txt`. Hipóteses H1-H4 avaliadas via grep local: H1 (backend retorna CNPJ+dígito extra) e H2 (link interno) descartadas via evidência de código; H3 (cache CDN legacy) e H4 (Google Discovery) abertas aguardando validação em produção. Checklist STORY-DISC-001 atualizado.
+
 ### Fixed — Docs / Tech Debt
 - **Auditoria e fechamento do Gap-7: contagem de setores (#798)** — Auditoria empírica confirmou 20 setores em `backend/sectors_data.yaml` (CLAUDE.md já correto). Fechadas Inc-1 e Gap-7 em `_reversa_sdd/review-report.md` com contagem confirmada e lista completa dos IDs de setor.
 
@@ -90,9 +100,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed — Backend / Excel
 - **Logging estruturado e validação de tipos para geração de Excel (#180 TD-HP-003)** — `_validate_licitacoes_types()` em `excel.py` escaneia valores de dict antes de geração e loga warning para tipos não-serializáveis (observability-only, não raise). `pipeline/stages/generate.py`: `asyncio.to_thread(create_excel)` envolto em try/except; falha na geração define `excel_status='failed'` com log estruturado em vez de exception não tratada. `routes/sessions.py`: `create_excel` na rota de download envolto em try/except com HTTPException 500 acionável. 3 novos testes em `test_excel.py`.
-
-### Fixed — Analytics
-- **Extração do multiplicador hours-saved para constante nomeada (#598)** — `2.5` extraído para `ESTIMATED_HOURS_SAVED_PER_SEARCH = 2.5` em `backend/routes/analytics.py` (Gap-6 do audit brownfield). Valor é supersedido em runtime por `DEFAULT_HOURS_SAVED_PER_SEARCH` de `utils/app_config` (TTL-cached 5 min). TODO `BIZ-METRIC-001` referencia story de validação empírica futura. Rollback: reverter commit.
 
 ### Fixed — Analytics
 - **Extração do multiplicador hours-saved para constante nomeada (#598)** — `2.5` extraído para `ESTIMATED_HOURS_SAVED_PER_SEARCH = 2.5` em `backend/routes/analytics.py` (Gap-6 do audit brownfield). Valor é supersedido em runtime por `DEFAULT_HOURS_SAVED_PER_SEARCH` de `utils/app_config` (TTL-cached 5 min). TODO `BIZ-METRIC-001` referencia story de validação empírica futura. Rollback: reverter commit.

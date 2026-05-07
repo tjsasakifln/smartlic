@@ -58,12 +58,11 @@ describe('MobileMenu', () => {
   });
 
   // Navigation links
-  it('includes Home, Planos, Como Funciona, Suporte links', () => {
+  it('includes Home, Planos, Consultoria links', () => {
     render(<MobileMenu {...defaultProps} />);
     expect(screen.getByText('Home')).toBeInTheDocument();
     expect(screen.getByText('Planos')).toBeInTheDocument();
-    expect(screen.getByText('Como Funciona')).toBeInTheDocument();
-    expect(screen.getByText('Suporte')).toBeInTheDocument();
+    expect(screen.getByText('Consultoria')).toBeInTheDocument();
   });
 
   it('shows Entrar and Comece Gratis for unauthenticated users', () => {
@@ -99,10 +98,9 @@ describe('MobileMenu', () => {
     expect(defaultProps.onClose).toHaveBeenCalled();
   });
 
-  it('calls scrollToSection and onClose for section links', () => {
+  it('calls onClose when a regular nav link is clicked', () => {
     render(<MobileMenu {...defaultProps} />);
-    fireEvent.click(screen.getByText('Como Funciona'));
-    expect(defaultProps.scrollToSection).toHaveBeenCalledWith('como-funciona');
+    fireEvent.click(screen.getByText('Consultoria'));
     expect(defaultProps.onClose).toHaveBeenCalled();
   });
 

@@ -53,7 +53,7 @@ Sufixo `2` recorrente em ~80% das amostras visíveis — sugere bug determiníst
 
 ## Critérios de Aceite
 
-- [ ] **AC1:** Output: relatório `docs/spikes/2026-04-fornecedores-15d-slug-origin.md` documentando:
+- [x] **AC1:** Output: relatório `docs/spikes/2026-04-fornecedores-15d-slug-origin.md` documentando:
   - Lista completa de 286 URLs (do `gsc-404-urls.txt` filtrada)
   - Análise de pattern do dígito extra (qual posição? qual valor mais comum?)
   - Verificação de cada hipótese 1-5 com evidência (ou ausência de evidência)
@@ -61,10 +61,10 @@ Sufixo `2` recorrente em ~80% das amostras visíveis — sugere bug determiníst
 - [ ] **AC2:** Validação backend (quando STORY-INC-001 destravar):
   - `curl https://api.smartlic.tech/v1/sitemap/fornecedores-cnpj` retorna lista
   - Verificar se algum CNPJ na resposta tem 15 dígitos (ou >14)
-- [ ] **AC3:** Grep frontend extensivo: padrões `${cnpj}`, `cnpj +`, `cnpj.padStart`, `dvVerificador`, `digitoExtra` para localizar concatenação suspeita
+- [x] **AC3:** Grep frontend extensivo: padrões `${cnpj}`, `cnpj +`, `cnpj.padStart`, `dvVerificador`, `digitoExtra` para localizar concatenação suspeita
 - [ ] **AC4:** Logs Sentry: filtrar por `path ~ '/fornecedores/[0-9]{15}'` últimos 30 dias para ver exemplos vivos + referer
 - [ ] **AC5:** GSC > Performance > filtrar URL contendo padrão 15-dígitos para ver impressões/queries (de onde Google descobriu)
-- [ ] **AC6:** Recomendação para implementação: se raiz identificada, criar nova story com fix; se não identificada, recomendar mitigação (canonical 301 strip-trailing-digit, ou validação client-side mais agressiva)
+- [x] **AC6:** Recomendação para implementação: se raiz identificada, criar nova story com fix; se não identificada, recomendar mitigação (canonical 301 strip-trailing-digit, ou validação client-side mais agressiva)
 
 ### Anti-requisitos
 
@@ -73,22 +73,22 @@ Sufixo `2` recorrente em ~80% das amostras visíveis — sugere bug determiníst
 
 ## Tasks / Subtasks
 
-- [ ] Task 1 — Exportar e analisar pattern (AC: 1)
-  - [ ] @analyst lê `gsc-404-urls.txt`, filtra por `/fornecedores/[0-9]{15}` e `[0-9]{11}`
-  - [ ] Análise estatística: distribuição dos dígitos extras, posição (sempre fim?)
+- [x] Task 1 — Exportar e analisar pattern (AC: 1)
+  - [x] @analyst lê `gsc-404-urls.txt`, filtra por `/fornecedores/[0-9]{15}` e `[0-9]{11}`
+  - [x] Análise estatística: distribuição dos dígitos extras, posição (sempre fim?)
 - [ ] Task 2 — Backend validation (AC: 2)
   - [ ] **Bloqueada por STORY-INC-001** parcial — só essa task
   - [ ] Curl endpoint sitemap quando subir, verificar tamanho dos slugs retornados
-- [ ] Task 3 — Frontend grep (AC: 3)
-  - [ ] @dev/@analyst executa greps padrões listados
-  - [ ] Documenta achados (incluindo nada-encontrado)
+- [x] Task 3 — Frontend grep (AC: 3)
+  - [x] @dev/@analyst executa greps padrões listados
+  - [x] Documenta achados (incluindo nada-encontrado)
 - [ ] Task 4 — Sentry deep-dive (AC: 4)
-  - [ ] Sentry API com filtro path regex
-  - [ ] Capturar referer de N exemplos
+  - [ ] Sentry API com filtro path regex — bloqueado nesta execução sem acesso/credenciais externas
+  - [ ] Capturar referer de N exemplos — bloqueado nesta execução sem acesso/credenciais externas
 - [ ] Task 5 — GSC search analytics (AC: 5)
-  - [ ] Via Playwright mesmo protocolo do brief, navegar GSC > Performance, filtrar URL pattern
-- [ ] Task 6 — Síntese (AC: 6)
-  - [ ] Relatório final com recomendação de próximo passo
+  - [ ] Via Playwright mesmo protocolo do brief, navegar GSC > Performance, filtrar URL pattern — bloqueado nesta execução sem acesso externo/GSC
+- [x] Task 6 — Síntese (AC: 6)
+  - [x] Relatório final com recomendação de próximo passo local; checks externos explicitamente bloqueados no relatório
 
 ## Referência de materiais
 
@@ -134,3 +134,9 @@ Sufixo `2` recorrente em ~80% das amostras visíveis — sugere bug determiníst
 |------|--------|------|
 | 2026-04-27 | @sm (River) | Spike criado a partir do brief GSC root-cause §3.1 + D1 |
 | 2026-04-27 | @po (Sarah) | **Validação 6-section: 6/6 PASS → GO**. Status: Draft → Ready. Spike paralelizável; Tasks 1,3,4,5 sem bloqueador. |
+| 2026-05-06 | @dev (Dex) | Executadas Tasks 1, 3 e parte local da Task 6; relatório de spike criado com bloqueios externos documentados. |
+
+## File List
+
+- `docs/spikes/2026-04-fornecedores-15d-slug-origin.md`
+- `docs/stories/STORY-DISC-001-fornecedores-15d-slug-origin.md`
