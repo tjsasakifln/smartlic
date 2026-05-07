@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed — SEO / Structured Data
+- **Metadados Dataset schema completos em /licitacoes/[setor] (#614)** — Adicionados campos faltantes reportados pelo GSC: `description`, `license` (CC BY 4.0), `distribution.contentUrl` e `creator` (organização legal). `buildDatasetJsonLd` exportado para testes isolados. Cobertura Jest para os campos obrigatórios do Dataset. Zera warnings de dados estruturados no Search Console. Rollback: reverter commit.
+
 ### Added — Frontend / Legal
 - **Página de termos do Plano Fundadores (#793)** — `frontend/app/termos/fundadores/page.tsx` criado com 9 seções legais cobrindo escopo vitalício, fair use, sem garantia de êxito, período de resfriamento (CDC art. 49) e disclaimer de parceria governamental. `frontend/app/termos/page.tsx` atualizado com link para `/termos/fundadores`. Protege juridicamente o SmartLic e informa fundadores sobre os exatos direitos adquiridos.
 
