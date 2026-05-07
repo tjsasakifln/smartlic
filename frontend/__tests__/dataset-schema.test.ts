@@ -4,7 +4,7 @@
  * Validates the fields reported by GSC as missing on /licitacoes/[setor].
  */
 
-import { buildDatasetJsonLd } from '@/app/licitacoes/[setor]/page';
+import { buildDatasetJsonLd } from '@/app/licitacoes/[setor]/_jsonld';
 import type { SectorStats } from '@/lib/sectors';
 
 jest.mock('@/lib/sectors', () => ({
