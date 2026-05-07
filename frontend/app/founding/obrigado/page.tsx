@@ -1,12 +1,10 @@
-import type { Metadata } from 'next';
-import FoundingObrigadoClient from './FoundingObrigadoClient';
+import { permanentRedirect } from 'next/navigation';
 
-export const metadata: Metadata = {
-  title: 'Bem-vindo ao SmartLic Founding Partners',
-  description: 'Próximos passos para o seu trial SmartLic como founding partner.',
-  robots: { index: false, follow: false },
-};
-
+/**
+ * 301 redirect to the canonical post-purchase page.
+ * The new /fundadores/obrigado page handles Stripe session_id polling.
+ * permanentRedirect uses HTTP 308 in Next.js App Router (permanent, preserves method).
+ */
 export default function FoundingObrigadoPage() {
-  return <FoundingObrigadoClient />;
+  permanentRedirect('/fundadores/obrigado');
 }
