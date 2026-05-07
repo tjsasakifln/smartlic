@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added — Frontend / Legal
+- **Página de termos do Plano Fundadores (#793)** — `frontend/app/termos/fundadores/page.tsx` criado com 9 seções legais cobrindo escopo vitalício, fair use, sem garantia de êxito, período de resfriamento (CDC art. 49) e disclaimer de parceria governamental. `frontend/app/termos/page.tsx` atualizado com link para `/termos/fundadores`. Protege juridicamente o SmartLic e informa fundadores sobre os exatos direitos adquiridos.
+
 ### Fixed — Frontend / Build
 - **Suspense boundary em /fundadores/obrigado (#823)** — `FundadoresObrigadoPage` (Server Component) agora envolve `FundadoresObrigadoClient` em `<Suspense>`, corrigindo o build crash `useSearchParams() should be wrapped in a suspense boundary`. Segue o mesmo padrão de `/planos/obrigado/page.tsx`. Rollback: reverter commit.
 
