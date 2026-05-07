@@ -38,11 +38,15 @@ RESEND_API_KEY
 RESEND_WEBHOOK_SECRET
 SENTRY_DSN
 SENTRY_AUTH_TOKEN
+SENTRY_PROJECT
+SENTRY_ORG
 MIXPANEL_TOKEN
 NEXT_PUBLIC_MIXPANEL_TOKEN
 NEXT_PUBLIC_CLARITY_PROJECT_ID
 GOOGLE_*
 BRASILAPI_*
+PORTAL_TRANSPARENCIA_API_KEY
+METRICS_TOKEN
 
 # ─── Resilience feature flags (epic EPIC-RES-BE-2026-Q2) ──────────────────────
 ENABLE_BUDGET_WRAP
@@ -88,6 +92,8 @@ PORT
 PYTHONUNBUFFERED
 PYTHONPATH
 TZ
+NODE_OPTIONS
+MIN_ACTIVE_BIDS_FOR_INDEX
 
 # ─── CORS / runtime ───────────────────────────────────────────────────────────
 CORS_ORIGINS
@@ -107,6 +113,8 @@ NEXT_*
 # ─── Stripe price/product IDs ─────────────────────────────────────────────────
 STRIPE_PRICE_*
 STRIPE_PRODUCT_*
+FOUNDING_ONE_TIME_PRICE_ID
+FOUNDERS_OFFER_ENABLED
 
 # ─── OAuth ────────────────────────────────────────────────────────────────────
 GOOGLE_OAUTH_CLIENT_ID

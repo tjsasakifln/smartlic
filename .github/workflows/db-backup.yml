@@ -42,6 +42,9 @@ env:
 jobs:
   backup:
     name: pg_dump → S3
+    if: false  # Disabled: SUPABASE_DB_URL secret not configured in GitHub Actions (pg_dump fails at connection step).
+               # Also requires AWS_BACKUP_ACCESS_KEY_ID, AWS_BACKUP_SECRET_KEY, BACKUP_S3_BUCKET.
+               # Re-enable via #797 follow-up once Supabase DB URL and S3 bucket are set up in repo secrets/vars.
     runs-on: ubuntu-latest
     timeout-minutes: 30     # failsafe: dump de tabela grande não deve passar de 20min
 

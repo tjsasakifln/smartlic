@@ -47,6 +47,9 @@ permissions:
 jobs:
   k6-load-test:
     name: k6 baseline (${{ github.event.inputs.script || 'all' }})
+    if: false  # Disabled: STAGING_BACKEND_URL and LOAD_TEST_JWTS secrets not configured.
+               # Validate prerequisite step fails at startup. Re-enable via #797 follow-up
+               # once a staging environment + JWT fixture are in place.
     runs-on: ubuntu-latest
     timeout-minutes: 30
 

@@ -56,8 +56,13 @@ jobs:
         id: contracts
         run: |
           cd backend
+          # --ignore=tests/conftest.py: the parent conftest imports FastAPI/supabase_client
+          # which are not installed in the minimal contract-test environment. The contracts
+          # conftest (tests/contracts/conftest.py) is self-contained and loaded via
+          # --confcutdir. See #797 for root cause investigation.
           python -m pytest tests/contracts/ \
             --confcutdir=tests/contracts \
+            --ignore=tests/conftest.py \
             -m 'contract and not external' \
             --tb=short --no-header -v \
             --junitxml=contract-results.xml
@@ -163,6 +168,7 @@ jobs:
           cd backend
           python -m pytest tests/contracts/ \
             --confcutdir=tests/contracts \
+            --ignore=tests/conftest.py \
             -m external \
             --tb=short --no-header -v
         continue-on-error: true  # External APIs are flaky — failures go to the issue, don't break pipeline

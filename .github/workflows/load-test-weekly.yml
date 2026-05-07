@@ -21,6 +21,8 @@ on:
 
 jobs:
   load-test:
+    if: false  # Disabled: runs 50 VUs against live prod (https://api.smartlic.tech) without a staging gate.
+               # Needs a staging target URL + explicit gating before re-enabling. See #797.
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
