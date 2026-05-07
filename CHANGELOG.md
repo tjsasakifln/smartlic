@@ -15,6 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added — Analytics & Instrumentação
 - **Clarity trial+onboarding tagging + first-analysis Mixpanel lifecycle (CONV-INST-005 #572)** — `claritySet('onboarding_step', 'N/3')` nos 3 steps do onboarding; `clarityEvent('trial_started')` + `claritySet('trial_started_at')` pós first-analysis 2xx; eventos Mixpanel `first_analysis_completed/empty/failed` no SSE handler com guard `useRef` anti-double-fire e `viability_high_count` (score ≥ 0.7); `claritySet('trial_days_remaining')` no `AnalyticsProvider` com null-skip para admins.
+- **CONV-INST-005 story execution: cnae+ufs context em first-analysis redirect + hashErrorMessage refactor (#608)** — onboarding redirect para `/buscar` inclui `cnae` e `ufs` como query params, passados via `autoAnalysisContext` até o SSE handler para enriquecer payload de `first_analysis_empty`; `hashErrorMessage` extraído para função top-level (elimina duplicação); `first_analysis_failed` usa `search_id` do evento SSE quando disponível. Story file CONV-INST-005 recriado com registro de execução completo.
 
 ### Fixed — SEO
 - **Sitemap dedup: remover sitemap-blog.xml legado + cobrir /blog/programmatic/{setor}/{uf} no shard id:1 (#661)** — removida rota legada `/sitemap-blog.xml` (103 linhas) que duplicava shards id:1/id:3; adicionados 540 combos (20 setores × 27 UFs) ao shard id:1 via `generateSectorUfParams()`.
