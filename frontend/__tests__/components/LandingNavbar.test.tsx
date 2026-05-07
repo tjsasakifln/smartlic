@@ -28,8 +28,8 @@ jest.mock('../../app/components/AuthProvider', () => ({
 
 // Mock Next.js Link component
 jest.mock('next/link', () => {
-  return function MockLink({ children, href, className, 'data-testid': dataTestId, role }: { children: React.ReactNode; href: string; className?: string; 'data-testid'?: string; role?: string }) {
-    return <a href={href} className={className} data-testid={dataTestId} role={role}>{children}</a>;
+  return function MockLink({ children, href, className, 'data-testid': dataTestId, role, onClick, ...props }: { children: React.ReactNode; href: string; className?: string; 'data-testid'?: string; role?: string; onClick?: () => void; [key: string]: unknown }) {
+    return <a href={href} className={className} data-testid={dataTestId} role={role} onClick={onClick} {...props}>{children}</a>;
   };
 });
 
