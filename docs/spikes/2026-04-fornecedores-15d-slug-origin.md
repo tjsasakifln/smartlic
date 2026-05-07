@@ -307,24 +307,25 @@ As 18 URLs de 11 digitos parecem CPFs ou identificadores de pessoa fisica, nao C
 
 ### `/fornecedores/{11d}` (18 URLs)
 
-- https://smartlic.tech/fornecedores/02810984336
-- https://smartlic.tech/fornecedores/01415448990
-- https://smartlic.tech/fornecedores/09847698970
-- https://smartlic.tech/fornecedores/10861038908
-- https://smartlic.tech/fornecedores/02864381354
-- https://smartlic.tech/fornecedores/07337813309
-- https://smartlic.tech/fornecedores/01256209341
-- https://smartlic.tech/fornecedores/59209836391
-- https://smartlic.tech/fornecedores/03570103374
-- https://smartlic.tech/fornecedores/08324076310
-- https://smartlic.tech/fornecedores/89764706304
-- https://smartlic.tech/fornecedores/06247413629
-- https://smartlic.tech/fornecedores/04749023906
-- https://smartlic.tech/fornecedores/01043291903
-- https://smartlic.tech/fornecedores/86023420559
-- https://smartlic.tech/fornecedores/08722218572
-- https://smartlic.tech/fornecedores/44492707468
-- https://smartlic.tech/fornecedores/03661240480
+<!-- CPFs redacted (LGPD art. 5 — dado pessoal de pessoa natural) -->
+- https://smartlic.tech/fornecedores/[CPF-REDACTED-01]
+- https://smartlic.tech/fornecedores/[CPF-REDACTED-02]
+- https://smartlic.tech/fornecedores/[CPF-REDACTED-03]
+- https://smartlic.tech/fornecedores/[CPF-REDACTED-04]
+- https://smartlic.tech/fornecedores/[CPF-REDACTED-05]
+- https://smartlic.tech/fornecedores/[CPF-REDACTED-06]
+- https://smartlic.tech/fornecedores/[CPF-REDACTED-07]
+- https://smartlic.tech/fornecedores/[CPF-REDACTED-08]
+- https://smartlic.tech/fornecedores/[CPF-REDACTED-09]
+- https://smartlic.tech/fornecedores/[CPF-REDACTED-10]
+- https://smartlic.tech/fornecedores/[CPF-REDACTED-11]
+- https://smartlic.tech/fornecedores/[CPF-REDACTED-12]
+- https://smartlic.tech/fornecedores/[CPF-REDACTED-13]
+- https://smartlic.tech/fornecedores/[CPF-REDACTED-14]
+- https://smartlic.tech/fornecedores/[CPF-REDACTED-15]
+- https://smartlic.tech/fornecedores/[CPF-REDACTED-16]
+- https://smartlic.tech/fornecedores/[CPF-REDACTED-17]
+- https://smartlic.tech/fornecedores/[CPF-REDACTED-18]
 
 ## Evidencias locais por hipotese
 
