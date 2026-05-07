@@ -33,6 +33,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed — Frontend / Build
 - **Suspense boundary em /fundadores/obrigado (#823)** — `FundadoresObrigadoPage` (Server Component) agora envolve `FundadoresObrigadoClient` em `<Suspense>`, corrigindo o build crash `useSearchParams() should be wrapped in a suspense boundary`. Segue o mesmo padrão de `/planos/obrigado/page.tsx`. Rollback: reverter commit.
 
+### Added — Frontend / Analytics
+- **Typed Mixpanel wrappers para eventos founders (#790)** — `lib/analytics/founders.ts` expõe 9 funções tipadas (`trackFoundersPageView`, `trackFoundersBannerView`, `trackFoundersBannerClick`, `trackFoundersBannerDismiss`, `trackFoundersRibbonView`, `trackFoundersRibbonClick`, `trackFoundersCtaClick`, `trackFoundersCheckoutStart`, `trackFoundersPseoConversion`). Todas usam `safeTrack` interno que silencia erros do Mixpanel (SSR / consent não dado). Testes unitários em `lib/analytics/__tests__/founders.test.ts`: cobertura de `safeTrack` (error swallowing) + todos os 9 wrappers com props forwarding. Backend: `mark_founding_lead_completed` corrigido para incrementar `founders_checkout_success` após o race guard (não antes) — evita overcount em violações de cap. 4 novos testes de counter em `test_founding_webhook_race_guard.py`. Rollback: reverter PR #790.
+
 ### Fixed — Backend / Infra
 - **Graceful shutdown uvicorn configurável via env var (#799)** — `--timeout-graceful-shutdown` em `backend/start.sh` e `backend/railway.toml` usa `${UVICORN_TIMEOUT_GRACEFUL_SHUTDOWN:-120}` (padrão 120s, alinhado com Railway drainingSeconds=120). Override via Railway env var sem redeploy. Teste `TestAC9GracefulTimeout` atualizado para verificar novo padrão parametrizado.
 
@@ -41,6 +44,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed — CI / DevOps
 - **Correção de workflows CI com falhas (#797)** — `audit-prod-env.yml` ganhou `workflow_dispatch` + trigger `push:main` para execução independente; `cleanup.yml` ganhou `workflow_dispatch`; `contract-tests.yml` corrigido com env vars obrigatórias e `if: always()` no step de relatório; `data-parity-nightly.yml`, `db-backup.yml`, `k6-load-test.yml` e `load-test-weekly.yml` receberam `workflow_dispatch` e ajustes de infra. Workflows que dependem de infra não provisionada foram desabilitados (scheduled → manual-only). Rollback: reverter commit.
+
+### Fixed — Frontend / Analytics
+- **CONV-INST-003: lifecycle de verificação de email + timeout UI (#607)** — Botão de suporte no `EmailDeadEndModal` corrigido para `mailto:tiago@smartlic.tech` (era link `/ajuda`). Modal aparece após 300s sem confirmação de email com 3 ações de recuperação: checar spam, reenviar, contato com suporte. Import `next/link` não utilizado removido. Mixpanel: visibilidade completa do funil `email_verification_{pending,completed,timeout}`.
 
 ### Added — Frontend / Intel Reports
 - **Intel Reports frontend layer: CTA + checkout + polling + download (#632)** — Adiciona camada frontend completa para Intel Reports (one-time purchase): `IntelReportCTA` "use client" component em `/cnpj/[cnpj]` (parent Server Component com ISR); 4 API proxy routes (`/api/intel-reports/checkout`, `/api/intel-reports/`, `/api/intel-reports/[purchaseId]`, `/api/intel-reports/[purchaseId]/download`); página de sucesso pós-Stripe com polling até 120s (40×3s, `useRef` anti-stale-closure); página de cancelamento. Proxy routes usam factory `createProxyRoute` para rotas simples e padrão manual `getRefreshedToken` + `sanitizeProxyError` para rotas dinâmicas. PDF streaming com `Content-Disposition: attachment`. 6 testes unitários (CTA behavior, 401→signup redirect, checkout_url redirect, Mixpanel events, loading state). Rollback: remover seção #632 de `page.tsx` e deletar arquivos novos.

@@ -33,6 +33,7 @@ from datetime import datetime, timezone
 from typing import Any
 
 from log_sanitizer import get_sanitized_logger
+from metrics import founders_checkout_success, founders_checkout_failed
 
 logger = get_sanitized_logger(__name__)
 
@@ -331,6 +332,7 @@ def mark_founding_lead_completed(sb, session: Any) -> None:
         logger.info(f"Founding lead marked completed: session_id={sid} rows={updated}")
     except Exception as e:
         logger.error(f"Failed to mark founding lead completed: session_id={sid} err={e}")
+        founders_checkout_failed.labels(reason="db_error").inc()
         return
 
     # BIZ-FOUND-002 race guard — re-check availability AFTER the flip so the
@@ -340,6 +342,7 @@ def mark_founding_lead_completed(sb, session: Any) -> None:
         # Fail safe: never auto-refund a paying customer when the DB is
         # uncooperative. Operator alerting (Sentry) can catch the gap.
         logger.warning(f"founding race guard: RPC unavailable, skipping cap re-check — session_id={sid}")
+        founders_checkout_success.labels(offer_version="v2_lifetime").inc()
         return
 
     reason = snapshot.get("reason") or ""
@@ -350,6 +353,7 @@ def mark_founding_lead_completed(sb, session: Any) -> None:
         # refund post-hoc.
         # #785: activate lifetime founder entitlement on the happy path.
         _activate_lifetime_founder_entitlement(sb, session, lead_id)
+        founders_checkout_success.labels(offer_version="v2_lifetime").inc()
         return
 
     # The only "race" we need to refund for is founding_cap_reached. For
@@ -359,6 +363,7 @@ def mark_founding_lead_completed(sb, session: Any) -> None:
         logger.warning(
             f"founding race guard: unexpected post-completion reason={reason} session_id={sid}"
         )
+        founders_checkout_success.labels(offer_version="v2_lifetime").inc()
         return
 
     logger.error(
@@ -367,6 +372,7 @@ def mark_founding_lead_completed(sb, session: Any) -> None:
         f"{snapshot.get('seats_total', 0)} — initiating refund + email."
     )
 
+    founders_checkout_failed.labels(reason="cap_violated").inc()
     refunded = _refund_session_charge(session)
 
     try:
