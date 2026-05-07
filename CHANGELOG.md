@@ -10,6 +10,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed — Database / Migrations
 - **RLS policy gsc_metrics corrigida + 14 migrations aplicadas (#796)** — `20260422120000_create_gsc_metrics.sql` referenciava `profiles.is_master` como coluna (inexistente — é computado em Python); corrigido para `profiles.plan_type = 'master'`. 14 migrations pendentes aplicadas ao DB de produção via Management API. Resolve falha crônica em `migration-check.yml`. Rollback: `supabase db push` com `.down.sql` dos arquivos afetados.
 
+### Added — Frontend / Marketing
+- `/fundadores` landing page with founders offer copy, Calendly CTA, and availability gate
+- 301 permanent redirect from `/founding` → `/fundadores`
+
 ### Added — Frontend / Founders
 - `FoundersTopBanner` component with availability gate and countdown (#787)
 - `FoundersRibbon` component (inline variant) for embedding in page sections (#787)
