@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed — Backend / Billing
+- **Pivot Plano Fundadores para oferta vitalícia R$997 one-time (#782)** — `founding_policy` recebeu três novas colunas: `offer_mode TEXT DEFAULT 'lifetime'` (enum `subscription|lifetime`), `price_brl_cents INT DEFAULT 99700` e `consulting_discount_pct INT DEFAULT 50`. Migration `20260507110000_founding_policy_lifetime_pivot.sql` aplica o schema e atualiza a linha id=1 com `offer_mode='lifetime'`, `price_brl_cents=99700` e deadline `2026-06-30`. A RPC `check_founding_availability` foi substituída pela v2 (`20260507111000_check_founding_availability_rpc_v2.sql`) que retorna os dois novos campos. `FoundingAvailabilityResponse` expõe `price_brl_cents` e `offer_mode`; `_check_availability()` em `routes/founding.py` lê os campos do RPC com fallback seguro (`offer_mode='lifetime'`, `price_brl_cents=99700`) para deploy zero-downtime enquanto a migration ainda está pendente. 198 testes unitários novos em `test_founding_policy_lifetime_pivot.py` cobrem caminhos happy-path, fallback RPC v1, exceção e rollback para `offer_mode='subscription'`. OpenAPI snapshot e `api-types.generated.ts` regenerados. Rollback: reverter PR e executar `.down.sql`.
+
 ### Added — Docs / Partners
 - **ADR de política do programa de parceiros (#597)** — `docs/adr/partner-program.md` formaliza a política canônica: comissão 20% lifetime, pagamento mensal via Pix no dia 5, atribuição last-click 30 dias, onboarding exige CPF/CNPJ. Default `revenue_share_pct` em `CreatePartnerRequest`, `create_partner()` e `create_partner_referral()` alinhado de 25% para 20%. Valores explícitos em parceiros existentes não são alterados. Snapshot OpenAPI e testes atualizados. Rollback: reverter PR #743.
 
