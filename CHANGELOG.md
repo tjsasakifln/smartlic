@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added — Frontend / Legal
+- **Página de termos do Plano Fundadores (#793)** — `frontend/app/termos/fundadores/page.tsx` criado com 9 seções legais cobrindo escopo vitalício, fair use, sem garantia de êxito, período de resfriamento (CDC art. 49) e disclaimer de parceria governamental. `frontend/app/termos/page.tsx` atualizado com link para `/termos/fundadores`. Protege juridicamente o SmartLic e informa fundadores sobre os exatos direitos adquiridos.
+
 ### Added — Docs / Partners
 - **ADR de política do programa de parceiros (#597)** — `docs/adr/partner-program.md` formaliza a política canônica: comissão 20% lifetime, pagamento mensal via Pix no dia 5, atribuição last-click 30 dias, onboarding exige CPF/CNPJ. Default `revenue_share_pct` em `CreatePartnerRequest`, `create_partner()` e `create_partner_referral()` alinhado de 25% para 20%. Valores explícitos em parceiros existentes não são alterados. Snapshot OpenAPI e testes atualizados. Rollback: reverter PR #743.
 
