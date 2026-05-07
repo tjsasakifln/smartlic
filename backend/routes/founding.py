@@ -34,7 +34,7 @@ import os
 from pipeline.budget import _run_with_budget
 from typing import Any
 
-from fastapi import APIRouter, Depends, HTTPException, Request, Response
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response
 from pydantic import BaseModel, Field, field_validator
 
 from rate_limiter import require_rate_limit
@@ -87,6 +87,13 @@ class FoundingCheckoutResponse(BaseModel):
         default="lifetime",
         description="'lifetime' for one-time payment (v2) or 'subscription' for legacy",
     )
+
+
+class FoundingCheckoutStatusResponse(BaseModel):
+    """Response model for GET /v1/founding/checkout/status."""
+
+    status: str
+    payment_status: str
 
 
 class FoundingAvailabilityResponse(BaseModel):
@@ -276,6 +283,39 @@ async def founding_availability(response: Response) -> Any:
         offer_mode=snapshot.get("offer_mode", "lifetime"),
         price_brl_cents=snapshot.get("price_brl_cents", 99700),
     )
+
+
+@router.get("/checkout/status", response_model=FoundingCheckoutStatusResponse)
+async def founding_checkout_status(
+    session_id: str = Query(..., min_length=8),
+    _rl=Depends(require_rate_limit(30, 60)),
+) -> Any:
+    """Return Stripe checkout session status for the founding purchase confirmation page.
+
+    No auth required — Stripe ``cs_*`` session IDs are long random tokens that
+    are unguessable. Only ``status`` and ``payment_status`` are returned so no
+    PII is exposed. Used by ``/fundadores/obrigado`` to poll until payment is
+    confirmed (max 20 × 3 s = 60 s).
+    """
+    stripe_key = os.getenv("STRIPE_SECRET_KEY", "")
+    if not stripe_key:
+        logger.warning("founding: checkout/status called but STRIPE_SECRET_KEY not set")
+        return FoundingCheckoutStatusResponse(status="unknown", payment_status="unpaid")
+
+    try:
+        import stripe as stripe_lib  # local import to keep module testable without Stripe
+
+        session = stripe_lib.checkout.Session.retrieve(
+            session_id,
+            api_key=stripe_key,
+        )
+        return FoundingCheckoutStatusResponse(
+            status=session.status,
+            payment_status=session.payment_status,
+        )
+    except Exception as exc:
+        logger.warning(f"founding: checkout/status retrieval failed — session_id_prefix={session_id[:8]} err={exc}")
+        return FoundingCheckoutStatusResponse(status="unknown", payment_status="unpaid")
 
 
 @router.post("/checkout", response_model=FoundingCheckoutResponse)

@@ -5393,6 +5393,25 @@
         "title": "FoundingCheckoutResponse",
         "type": "object"
       },
+      "FoundingCheckoutStatusResponse": {
+        "description": "Response model for GET /v1/founding/checkout/status.",
+        "properties": {
+          "payment_status": {
+            "title": "Payment Status",
+            "type": "string"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "status",
+          "payment_status"
+        ],
+        "title": "FoundingCheckoutStatusResponse",
+        "type": "object"
+      },
       "FoundingLeadEntry": {
         "properties": {
           "checkout_status": {
@@ -18712,6 +18731,50 @@
           }
         },
         "summary": "Founding Checkout",
+        "tags": [
+          "founding"
+        ]
+      }
+    },
+    "/v1/founding/checkout/status": {
+      "get": {
+        "description": "Return Stripe checkout session status for the founding purchase confirmation page.\n\nNo auth required \u2014 Stripe ``cs_*`` session IDs are long random tokens that\nare unguessable. Only ``status`` and ``payment_status`` are returned so no\nPII is exposed. Used by ``/fundadores/obrigado`` to poll until payment is\nconfirmed (max 20 \u00d7 3 s = 60 s).",
+        "operationId": "founding_checkout_status_v1_founding_checkout_status_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "session_id",
+            "required": true,
+            "schema": {
+              "minLength": 8,
+              "title": "Session Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FoundingCheckoutStatusResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Founding Checkout Status",
         "tags": [
           "founding"
         ]
