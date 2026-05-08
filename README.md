@@ -68,36 +68,36 @@ A production procurement intelligence layer on top of PNCP, ComprasGov and PCP v
 
 ```mermaid
 flowchart LR
-    subgraph src["📡 Data Sources"]
-        A["PNCP\n(federal, Lei 14.133)"]
-        B["ComprasGov\n(SIASG)"]
-        C["PCP v2\n(state portals)"]
+    subgraph Sources
+        A[PNCP]
+        B[ComprasGov]
+        C[PCP v2]
     end
 
-    subgraph etl["⚙️ ETL Workers\nARQ + Redis"]
-        D["Daily crawler · 2am BRT\n27 states × 6 modalities\ncircuit breakers · retry"]
+    subgraph ETL
+        D[Daily ETL - ARQ + Redis]
     end
 
-    subgraph lake["🗄️ DataLake · Supabase PG17"]
-        F["pncp_raw_bids\n~1.5M rows · 400-day window\nfull-text GIN index (PT)"]
-        G["pncp_supplier_contracts\n~2M rows · supplier intel\ndrives programmatic SEO"]
+    subgraph DataLake
+        F[Tenders - 1.5M rows]
+        G[Contracts - 2M rows]
     end
 
-    subgraph ai["🤖 AI Enrichment"]
-        H["Sector classifier\nGPT-4.1-nano · 20 sectors\n≥85% precision"]
-        I["Viability scorer\nmodality · timeline\nvalue · geography"]
-        J["AI summaries\nasync ARQ jobs"]
+    subgraph AI
+        H[Sector Classifier - GPT-4.1-nano]
+        I[Viability Scorer]
+        J[AI Summaries]
     end
 
-    subgraph api["🔌 FastAPI"]
-        K["Search pipeline\nfull-text <100ms p95\nSSE real-time progress"]
+    subgraph API
+        K[FastAPI - Search Pipeline]
     end
 
-    subgraph delivery["📱 Delivery"]
-        L["Web App\nNext.js 16 · SSR/ISR"]
-        M["Email Alerts"]
-        N["Excel / Google Sheets"]
-        O["Public API\n10k+ SEO pages"]
+    subgraph Delivery
+        L[Web App]
+        M[Email Alerts]
+        N[Excel and Sheets]
+        O[SEO Pages]
     end
 
     A --> D
