@@ -487,3 +487,136 @@ def test_checkout_v2_checkout_source_from_query_param(
 
     call_kwargs = stripe_create_mock.call_args.kwargs
     assert call_kwargs["metadata"]["checkout_source"] == "email_campaign"
+
+
+# ---------------------------------------------------------------------------
+# _mask_email helper (#865)
+# ---------------------------------------------------------------------------
+
+
+def test_mask_email_basic():
+    from routes.founding import _mask_email
+
+    assert _mask_email("mariaalvabaron@gmail.com") == "ma****@gmail.com"
+
+
+def test_mask_email_preserves_domain():
+    from routes.founding import _mask_email
+
+    masked = _mask_email("founder@smartlic.tech")
+    assert masked.endswith("@smartlic.tech")
+    assert masked.startswith("fo****")
+
+
+# ---------------------------------------------------------------------------
+# GET /v1/founding/session-status (#865)
+# ---------------------------------------------------------------------------
+
+
+def _make_lead_row(
+    *,
+    email="maria@example.com",
+    checkout_status="completed",
+    magic_link_sent_at=None,
+    created_at="2026-05-08T10:00:00+00:00",
+):
+    return {
+        "email": email,
+        "checkout_status": checkout_status,
+        "magic_link_sent_at": magic_link_sent_at,
+        "created_at": created_at,
+    }
+
+
+def _make_sb_for_session(lead_row, *, has_profile=False):
+    """Build a minimal Supabase mock for session-status queries."""
+    sb = MagicMock()
+    tbl = MagicMock()
+    sb.table.return_value = tbl
+    tbl.select.return_value = tbl
+    tbl.eq.return_value = tbl
+    tbl.limit.return_value = tbl
+    lead_result = MagicMock(data=[lead_row] if lead_row else [])
+    profile_result = MagicMock(data=[{"id": "profile-1"}] if has_profile else [])
+    tbl.execute.side_effect = [lead_result, profile_result]
+    return sb
+
+
+@patch("routes.founding.get_supabase")
+def test_session_status_returns_completed(mock_get_supabase, app_with_founding):
+    sb = _make_sb_for_session(_make_lead_row(checkout_status="completed"))
+    mock_get_supabase.return_value = sb
+
+    client = TestClient(app_with_founding)
+    r = client.get("/v1/founding/session-status?session_id=cs_test_12345678")
+    assert r.status_code == 200
+    body = r.json()
+    assert body["status"] == "completed"
+    assert body["email"] == "ma****@example.com"
+    assert body["has_account"] is False
+    assert body["invite_sent"] is False
+
+
+@patch("routes.founding.get_supabase")
+def test_session_status_not_found_when_no_lead(mock_get_supabase, app_with_founding):
+    sb = _make_sb_for_session(None)
+    mock_get_supabase.return_value = sb
+
+    client = TestClient(app_with_founding)
+    r = client.get("/v1/founding/session-status?session_id=cs_nonexistent_1234")
+    assert r.status_code == 200
+    body = r.json()
+    assert body["status"] == "not_found"
+    assert body["email"] == ""
+    assert body["has_account"] is False
+
+
+@patch("routes.founding.get_supabase")
+def test_session_status_invite_sent_true_when_magic_link_set(
+    mock_get_supabase, app_with_founding
+):
+    lead = _make_lead_row(
+        checkout_status="completed",
+        magic_link_sent_at="2026-05-08T11:00:00+00:00",
+    )
+    sb = _make_sb_for_session(lead)
+    mock_get_supabase.return_value = sb
+
+    client = TestClient(app_with_founding)
+    r = client.get("/v1/founding/session-status?session_id=cs_test_magic_link")
+    assert r.status_code == 200
+    assert r.json()["invite_sent"] is True
+
+
+@patch("routes.founding.get_supabase")
+def test_session_status_has_account_true_when_profile_exists(
+    mock_get_supabase, app_with_founding
+):
+    sb = _make_sb_for_session(_make_lead_row(checkout_status="completed"), has_profile=True)
+    mock_get_supabase.return_value = sb
+
+    client = TestClient(app_with_founding)
+    r = client.get("/v1/founding/session-status?session_id=cs_test_has_acct_1")
+    assert r.status_code == 200
+    assert r.json()["has_account"] is True
+
+
+@patch("routes.founding.get_supabase")
+def test_session_status_expired_lead_returns_pending(mock_get_supabase, app_with_founding):
+    """A non-completed lead older than 24 h must return status='pending'."""
+    old_created_at = "2026-05-06T08:00:00+00:00"  # > 24 h before 2026-05-08
+    lead = _make_lead_row(checkout_status="pending", created_at=old_created_at)
+    sb = _make_sb_for_session(lead)
+    mock_get_supabase.return_value = sb
+
+    client = TestClient(app_with_founding)
+    r = client.get("/v1/founding/session-status?session_id=cs_test_expired_lead")
+    assert r.status_code == 200
+    assert r.json()["status"] == "pending"
+
+
+def test_session_status_rejects_short_session_id(app_with_founding):
+    """session_id shorter than 8 chars must return 422."""
+    client = TestClient(app_with_founding)
+    r = client.get("/v1/founding/session-status?session_id=short")
+    assert r.status_code == 422
