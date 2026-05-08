@@ -91,3 +91,39 @@ export function trackFoundersPseoConversion(props: {
 }): void {
   safeTrack('founders_pseo_conversion', props);
 }
+
+// ============================================================
+// FOUND-METRICS-001: Additional Checkout & Lifecycle Events
+// ============================================================
+
+export function trackFoundersCheckoutAbandoned(props: {
+  src?: string | null;
+}): void {
+  safeTrack('fundadores_checkout_abandoned', props);
+}
+
+export function trackFoundersCheckoutError(props: {
+  error_message: string;
+  src?: string | null;
+}): void {
+  safeTrack('fundadores_checkout_error', props);
+}
+
+export function trackFoundersInviteSent(props: {
+  lead_id?: string | null;
+}): void {
+  safeTrack('fundadores_invite_sent', props);
+}
+
+export function trackFoundersAccountActivated(props: {
+  user_id?: string | null;
+  offer_version?: string | null;
+}): void {
+  safeTrack('fundadores_account_activated', props);
+}
+
+export function trackFoundersCountdownViewed(props: {
+  days_remaining: number;
+}): void {
+  safeTrack('fundadores_countdown_viewed', props);
+}

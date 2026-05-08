@@ -1,6 +1,7 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { trackFoundersCountdownViewed } from '@/lib/analytics/founders';
 
 export interface FoundingAvailabilitySnapshot {
   available: boolean;
@@ -46,6 +47,7 @@ function pad2(n: number): string {
 
 export default function FundadoresCountdown({ snapshot }: Props) {
   const [now, setNow] = useState<number>(() => Date.now());
+  const countdownViewedRef = useRef(false);
 
   useEffect(() => {
     const t = setInterval(() => setNow(Date.now()), 1000);
@@ -61,6 +63,14 @@ export default function FundadoresCountdown({ snapshot }: Props) {
 
   const expired = countdown.total_ms === 0;
   const paused = snapshot?.paused ?? false;
+
+  // Fire once when the countdown is first rendered (not expired)
+  useEffect(() => {
+    if (!expired && !countdownViewedRef.current) {
+      countdownViewedRef.current = true;
+      trackFoundersCountdownViewed({ days_remaining: countdown.days });
+    }
+  }, [expired, countdown.days]);
 
   return (
     <div

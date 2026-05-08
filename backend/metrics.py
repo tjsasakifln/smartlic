@@ -1306,6 +1306,13 @@ founders_checkout_failed = _create_counter(
     labelnames=["reason"],
 )
 
+# FOUND-METRICS-001: Unified funnel counter for all founding checkout states
+FOUNDING_CHECKOUTS_TOTAL = _create_counter(
+    "smartlic_founding_checkouts_total",
+    "Founding checkout events by status (started | completed | abandoned | error)",
+    labelnames=["status"],  # started, completed, abandoned, error
+)
+
 
 # ============================================================================
 # ASGI app factory for /metrics endpoint

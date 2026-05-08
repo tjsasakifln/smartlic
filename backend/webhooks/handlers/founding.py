@@ -46,8 +46,9 @@ import threading
 from datetime import datetime, timezone
 from typing import Any
 
+from analytics_events import track_event
 from log_sanitizer import get_sanitized_logger
-from metrics import founders_checkout_success, founders_checkout_failed
+from metrics import founders_checkout_success, founders_checkout_failed, FOUNDING_CHECKOUTS_TOTAL
 
 logger = get_sanitized_logger(__name__)
 
@@ -330,6 +331,8 @@ def _send_founding_invite(sb, email: str, lead_id: str | None, sid: str | None) 
             logger.info(
                 f"founding invite sent — email={email} lead_id={lead_id} session_id={sid}"
             )
+            # Track invite sent event
+            track_event("fundadores_invite_sent", {"lead_id": lead_id})
             # Stamp magic_link_sent_at for idempotency on webhook re-delivery.
             if lead_id:
                 try:
@@ -409,6 +412,11 @@ def _activate_lifetime_founder_entitlement(sb, session: Any, lead_id: str | None
             f"session_id={sid} offer_version={offer_version} "
             f"consulting_discount_pct={consulting_discount_pct}"
         )
+        # Track account activation event
+        track_event(
+            "fundadores_account_activated",
+            {"user_id": user_id, "offer_version": offer_version},
+        )
         # Dispatch founders welcome email after successful entitlement activation.
         # Fire-and-forget via background thread — never blocks the webhook response.
         user_name = _resolve_user_display_name(sb, user_id, email)
@@ -471,6 +479,7 @@ def mark_founding_lead_completed(sb, session: Any) -> None:
     except Exception as e:
         logger.error(f"Failed to mark founding lead completed: session_id={sid} err={e}")
         founders_checkout_failed.labels(reason="db_error").inc()
+        FOUNDING_CHECKOUTS_TOTAL.labels(status="error").inc()
         return
 
     # BIZ-FOUND-002 race guard — re-check availability AFTER the flip so the
@@ -481,6 +490,7 @@ def mark_founding_lead_completed(sb, session: Any) -> None:
         # uncooperative. Operator alerting (Sentry) can catch the gap.
         logger.warning(f"founding race guard: RPC unavailable, skipping cap re-check — session_id={sid}")
         founders_checkout_success.labels(offer_version="v2_lifetime").inc()
+        FOUNDING_CHECKOUTS_TOTAL.labels(status="completed").inc()
         return
 
     reason = snapshot.get("reason") or ""
@@ -492,6 +502,7 @@ def mark_founding_lead_completed(sb, session: Any) -> None:
         # #785: activate lifetime founder entitlement on the happy path.
         _activate_lifetime_founder_entitlement(sb, session, lead_id)
         founders_checkout_success.labels(offer_version="v2_lifetime").inc()
+        FOUNDING_CHECKOUTS_TOTAL.labels(status="completed").inc()
         return
 
     # The only "race" we need to refund for is founding_cap_reached. For
@@ -502,6 +513,7 @@ def mark_founding_lead_completed(sb, session: Any) -> None:
             f"founding race guard: unexpected post-completion reason={reason} session_id={sid}"
         )
         founders_checkout_success.labels(offer_version="v2_lifetime").inc()
+        FOUNDING_CHECKOUTS_TOTAL.labels(status="completed").inc()
         return
 
     logger.error(
@@ -511,6 +523,7 @@ def mark_founding_lead_completed(sb, session: Any) -> None:
     )
 
     founders_checkout_failed.labels(reason="cap_violated").inc()
+    FOUNDING_CHECKOUTS_TOTAL.labels(status="error").inc()
     refunded = _refund_session_charge(session)
 
     try:
@@ -550,5 +563,7 @@ def mark_founding_lead_abandoned(sb, session: Any) -> None:
         )
         updated = len(result.data or [])
         logger.info(f"Founding lead marked abandoned: session_id={sid} rows={updated}")
+        if updated > 0:
+            FOUNDING_CHECKOUTS_TOTAL.labels(status="abandoned").inc()
     except Exception as e:
         logger.error(f"Failed to mark founding lead abandoned: session_id={sid} err={e}")
