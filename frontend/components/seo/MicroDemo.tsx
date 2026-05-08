@@ -14,7 +14,7 @@ interface MicroDemoProps {
 
 const KEYWORDS = ['Informática', 'São Paulo', 'Pregão'];
 const SOURCES = [
-  { name: 'Fontes Oficiais', color: 'bg-blue-500' },
+  { name: 'Gov.br', color: 'bg-blue-500' },
   { name: 'PCP', color: 'bg-emerald-500' },
   { name: 'ComprasGov', color: 'bg-violet-500' },
 ];

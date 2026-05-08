@@ -11,7 +11,7 @@
 
 /** Human-readable source names for display */
 const SOURCE_DISPLAY_NAMES: Record<string, string> = {
-  pncp: "fontes oficiais",
+  pncp: "PNCP",
   portal_compras: "Portal de Compras Publicas",
   compras_gov: "Compras.gov.br",
 };
@@ -57,7 +57,7 @@ export function TruncationWarningBanner({
     description = `Sua análise retornou mais registros do que o limite para ${ufsText}. `;
   } else {
     // Generic fallback
-    description = "Sua análise retornou mais de 250.000 registros das fontes oficiais. ";
+    description = "Sua análise retornou mais de 250.000 registros das nossas fontes. ";
   }
 
   return (

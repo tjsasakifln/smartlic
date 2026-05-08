@@ -17,7 +17,7 @@ describe("TruncationWarningBanner", () => {
   it("shows generic message when no truncated UFs provided", () => {
     render(<TruncationWarningBanner />);
     expect(
-      screen.getByText(/mais de 250\.000 registros das fontes oficiais/)
+      screen.getByText(/mais de 250.000 registros das nossas fontes/)
     ).toBeInTheDocument();
   });
 
@@ -45,7 +45,7 @@ describe("TruncationWarningBanner", () => {
   it("shows generic message for empty truncated UFs array", () => {
     render(<TruncationWarningBanner truncatedUfs={[]} />);
     expect(
-      screen.getByText(/mais de 250\.000 registros das fontes oficiais/)
+      screen.getByText(/mais de 250.000 registros das nossas fontes/)
     ).toBeInTheDocument();
   });
 
@@ -73,7 +73,7 @@ describe("TruncationWarningBanner", () => {
         />
       );
       expect(
-        screen.getByText(/Resultados do fontes oficiais atingiram o limite/)
+        screen.getByText(/Resultados do PNCP atingiram o limite/)
       ).toBeInTheDocument();
     });
 
@@ -85,7 +85,7 @@ describe("TruncationWarningBanner", () => {
         />
       );
       expect(
-        screen.getByText(/Resultados do fontes oficiais truncados para SP, RJ/)
+        screen.getByText(/Resultados do PNCP truncados para SP, RJ/)
       ).toBeInTheDocument();
     });
 
@@ -107,7 +107,7 @@ describe("TruncationWarningBanner", () => {
         />
       );
       expect(
-        screen.getByText(/Resultados truncados em fontes oficiais e Portal de Compras Publicas/)
+        screen.getByText(/Resultados truncados em PNCP e Portal de Compras Publicas/)
       ).toBeInTheDocument();
     });
 
@@ -130,7 +130,7 @@ describe("TruncationWarningBanner", () => {
         />
       );
       expect(
-        screen.getByText(/mais de 250\.000 registros das fontes oficiais/)
+        screen.getByText(/mais de 250.000 registros das nossas fontes/)
       ).toBeInTheDocument();
     });
   });
