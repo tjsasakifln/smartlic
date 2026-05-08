@@ -4,6 +4,7 @@ import { notFound } from 'next/navigation';
 import { buildCanonical, getFreshnessLabel } from '@/lib/seo';
 import LandingNavbar from '@/app/components/landing/LandingNavbar';
 import Footer from '@/app/components/Footer';
+import FornecedorPseoCTA from './FornecedorPseoCTA';
 
 // Sprint 3 Parte 13: paginas de perfil de fornecedor por CNPJ
 // ISR 24h — dados do PNCP atualizados diariamente
@@ -417,22 +418,8 @@ export default async function FornecedorCnpjPage({ params }: Props) {
             </div>
           </section>
 
-          {/* Lead Capture */}
-          <section className="mt-4 bg-blue-50 rounded-lg p-6 text-center">
-            <h2 className="text-xl font-bold text-gray-900 mb-2">
-              Monitore editais do setor de {profile.razao_social}
-            </h2>
-            <p className="text-gray-600 mb-4">
-              O SmartLic rastreia licitações abertas nas fontes oficiais e avisa quando surgem
-              oportunidades relevantes para sua empresa.
-            </p>
-            <Link
-              href={`/signup?ref=cnpj&cnpj=${cnpj}`}
-              className="inline-block px-6 py-3 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition-colors"
-            >
-              Testar 14 dias grátis →
-            </Link>
-          </section>
+          {/* Lead Capture — client component fires pseo_supplier_viewed + pseo_checkout_click */}
+          <FornecedorPseoCTA cnpj={cnpj} razaoSocial={profile.razao_social} />
 
           <p className="text-xs text-gray-400 mt-8">{profile.aviso_legal}</p>
         </div>
