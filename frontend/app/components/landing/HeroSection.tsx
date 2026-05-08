@@ -21,6 +21,7 @@ const HERO_SCREENSHOT_BLUR =
  * SAB-006 AC2/AC5: Removed stats badges (consolidated into StatsSection), CTA above fold
  * DEBT-125: 50/50 layout with annotated product screenshot
  * REPO-006: Copymasters consensus v1 — B2G intelligence positioning
+ * REPO-007: Founding disclaimer below CTAs
  */
 export default function HeroSection({ className = '' }: HeroSectionProps) {
   const { ref, isVisible } = useScrollAnimation(0.1);

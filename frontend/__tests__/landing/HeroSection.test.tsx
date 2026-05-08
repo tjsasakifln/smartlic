@@ -96,6 +96,7 @@ describe('HeroSection', () => {
     const { container } = render(<HeroSection />);
     const text = container.textContent || '';
 
+    // Stats badges removed — these values should NOT appear in HeroSection
     expect(text).not.toMatch(/87%/);
     expect(text).not.toMatch(/UFs cobertas/i);
   });
@@ -111,6 +112,7 @@ describe('HeroSection', () => {
       });
       expect(img).toBeInTheDocument();
 
+      // 50/50 layout uses flex-row on lg breakpoint
       const flexContainer = container.querySelector('.lg\\:flex-row');
       expect(flexContainer).toBeInTheDocument();
     });
@@ -149,6 +151,7 @@ describe('HeroSection', () => {
       const img = screen.getByRole('img', {
         name: /Tela de resultados do SmartLic/i,
       });
+      // dark:brightness-[0.85] dark:contrast-[1.1]
       expect(img.className).toContain('dark:brightness-');
       expect(img.className).toContain('dark:contrast-');
     });
@@ -156,8 +159,10 @@ describe('HeroSection', () => {
     it('renders browser chrome frame around screenshot', () => {
       const { container } = render(<HeroSection />);
 
+      // Browser URL bar text
       expect(screen.getByText('smartlic.tech/buscar')).toBeInTheDocument();
 
+      // Browser dots (red, yellow, green)
       const dots = container.querySelectorAll('.rounded-full');
       // 3 browser dots + 3 trust indicator dots = 6
       expect(dots.length).toBeGreaterThanOrEqual(6);
@@ -185,6 +190,7 @@ describe('HeroSection', () => {
     it('AC2: mobile layout stacks screenshot below headline (flex-col default)', () => {
       const { container } = render(<HeroSection />);
 
+      // Default is flex-col (mobile), lg:flex-row (desktop)
       const flexContainer = container.querySelector('.flex-col.lg\\:flex-row');
       expect(flexContainer).toBeInTheDocument();
     });

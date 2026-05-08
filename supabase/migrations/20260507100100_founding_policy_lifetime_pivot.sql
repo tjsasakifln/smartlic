@@ -86,13 +86,15 @@ BEGIN
     -- SELECT FOR UPDATE serializes concurrent callers on the policy row.
     -- After this lock, two parallel checkouts always see a consistent
     -- (count, decision) pair — race guard for the cap.
+    -- Table alias avoids 42702 ambiguity between the RETURNS TABLE out-param
+    -- "deadline_at" and the founding_policy column of the same name.
     SELECT
-        seat_limit,
-        deadline_at,
-        active,
-        paused_at,
-        offer_mode,
-        price_brl_cents
+        fp.seat_limit,
+        fp.deadline_at,
+        fp.active,
+        fp.paused_at,
+        fp.offer_mode,
+        fp.price_brl_cents
     INTO
         v_seat_limit,
         v_deadline,
@@ -100,8 +102,8 @@ BEGIN
         v_paused_at,
         v_offer_mode,
         v_price_brl_cents
-    FROM public.founding_policy
-    WHERE id = 1
+    FROM public.founding_policy fp
+    WHERE fp.id = 1
     FOR UPDATE;
 
     IF NOT FOUND THEN
