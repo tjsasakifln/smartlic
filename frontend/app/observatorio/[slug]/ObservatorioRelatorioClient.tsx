@@ -146,7 +146,7 @@ export default function ObservatorioRelatorioClient({
       {(relatorio.top_ufs ?? []).length > 0 && (
         <section className="mb-10">
           <h2 className="text-xl font-bold text-gray-800 mb-1">Top 10 estados por volume</h2>
-          <p className="text-sm text-gray-500 mb-4">Fonte: SmartLic Observatório — dados PNCP</p>
+          <p className="text-sm text-gray-500 mb-4">Fonte: SmartLic Observatório — dados oficiais</p>
           <div className="h-[320px]">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={relatorio.top_ufs} layout="vertical" margin={{ left: 80, right: 20, top: 5, bottom: 5 }}>
@@ -164,7 +164,7 @@ export default function ObservatorioRelatorioClient({
       {(relatorio.modalidades ?? []).length > 0 && (
         <section className="mb-10">
           <h2 className="text-xl font-bold text-gray-800 mb-1">Distribuição por modalidade</h2>
-          <p className="text-sm text-gray-500 mb-4">Fonte: SmartLic Observatório — dados PNCP</p>
+          <p className="text-sm text-gray-500 mb-4">Fonte: SmartLic Observatório — dados oficiais</p>
           <div className="h-[300px]">
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>

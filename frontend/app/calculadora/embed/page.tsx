@@ -13,7 +13,7 @@ import CalculadoraClient from '../CalculadoraClient';
 
 export const metadata: Metadata = {
   title: 'Calculadora de Oportunidades em Licitações',
-  description: 'Descubra quantas licitações do seu setor sua empresa está perdendo. Dados reais do PNCP.',
+  description: 'Descubra quantas licitações do seu setor sua empresa está perdendo. Dados reais das fontes oficiais.',
   robots: { index: false, follow: true }, // noindex — página embed não deve aparecer em busca
 };
 
@@ -39,7 +39,7 @@ export default function CalculadoraEmbedPage() {
           Calculadora de Oportunidades em Licitações
         </h1>
         <p className="text-sm text-gray-500 mb-6">
-          Dados reais do PNCP. Atualizado diariamente.
+          Dados reais das fontes oficiais. Atualizado diariamente.
         </p>
         <CalculadoraClient />
 
@@ -71,7 +71,7 @@ export default function CalculadoraEmbedPage() {
           >
             SmartLic — Inteligência em Licitações Públicas
           </a>
-          {' '}· Dados: PNCP
+          {' '}· Dados: fontes oficiais
         </p>
       </footer>
     </div>

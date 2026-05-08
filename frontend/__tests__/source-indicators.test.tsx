@@ -406,16 +406,16 @@ describe("SearchResults - Source Indicators (GTM-FIX-011 AC32)", () => {
       render(<SearchResults {...props} />);
 
       // Initially badges should not be visible
-      expect(screen.queryByText(/PNCP: 80/)).not.toBeInTheDocument();
-      expect(screen.queryByText(/PORTAL_COMPRAS: 20/)).not.toBeInTheDocument();
+      expect(screen.queryByText(/nossas fontes: 80/)).not.toBeInTheDocument();
+      expect(screen.queryByText(/Portal de Compras: 20/)).not.toBeInTheDocument();
 
       // Click toggle button
       const toggleButton = screen.getByText(/Mostrar fontes/i);
       fireEvent.click(toggleButton);
 
-      // Now badges should be visible
-      expect(screen.getByText(/PNCP: 80/)).toBeInTheDocument();
-      expect(screen.getByText(/PORTAL_COMPRAS: 20/)).toBeInTheDocument();
+      // Now badges should be visible (PNCP → "nossas fontes", PORTAL_COMPRAS → "Portal de Compras")
+      expect(screen.getByText(/nossas fontes: 80/)).toBeInTheDocument();
+      expect(screen.getByText(/Portal de Compras: 20/)).toBeInTheDocument();
 
       // Button text should change to "Ocultar fontes"
       expect(screen.getByText(/Ocultar fontes/i)).toBeInTheDocument();
@@ -448,12 +448,12 @@ describe("SearchResults - Source Indicators (GTM-FIX-011 AC32)", () => {
       // Show badges
       const toggleButton = screen.getByText(/Mostrar fontes/i);
       fireEvent.click(toggleButton);
-      expect(screen.getByText(/PNCP: 80/)).toBeInTheDocument();
+      expect(screen.getByText(/nossas fontes: 80/)).toBeInTheDocument();
 
       // Hide badges
       const hideButton = screen.getByText(/Ocultar fontes/i);
       fireEvent.click(hideButton);
-      expect(screen.queryByText(/PNCP: 80/)).not.toBeInTheDocument();
+      expect(screen.queryByText(/nossas fontes: 80/)).not.toBeInTheDocument();
 
       // Button text should change back to "Mostrar fontes"
       expect(screen.getByText(/Mostrar fontes/i)).toBeInTheDocument();
@@ -487,12 +487,12 @@ describe("SearchResults - Source Indicators (GTM-FIX-011 AC32)", () => {
       const toggleButton = screen.getByText(/Mostrar fontes/i);
       fireEvent.click(toggleButton);
 
-      // PNCP badge should have blue styling
-      const pncpBadge = screen.getByText(/PNCP: 80/).closest("span");
+      // PNCP badge should have blue styling (displayed as "nossas fontes" per REPO-002 rename)
+      const pncpBadge = screen.getByText(/nossas fontes: 80/).closest("span");
       expect(pncpBadge?.className).toContain("bg-blue-100");
 
-      // PORTAL_COMPRAS badge should have green styling
-      const pcpBadge = screen.getByText(/PORTAL_COMPRAS: 20/).closest("span");
+      // PORTAL_COMPRAS badge should have green styling (displayed as "Portal de Compras" per rename)
+      const pcpBadge = screen.getByText(/Portal de Compras: 20/).closest("span");
       expect(pcpBadge?.className).toContain("bg-green-100");
     });
 
@@ -524,8 +524,8 @@ describe("SearchResults - Source Indicators (GTM-FIX-011 AC32)", () => {
       const toggleButton = screen.getByText(/Mostrar fontes/i);
       fireEvent.click(toggleButton);
 
-      // Only PNCP badge should show (status=success)
-      expect(screen.getByText(/PNCP: 80/)).toBeInTheDocument();
+      // Only PNCP badge should show (status=success), displayed as "nossas fontes"
+      expect(screen.getByText(/nossas fontes: 80/)).toBeInTheDocument();
 
       // PORTAL_COMPRAS badge should NOT show (status=timeout)
       expect(screen.queryByText(/PORTAL_COMPRAS/)).not.toBeInTheDocument();

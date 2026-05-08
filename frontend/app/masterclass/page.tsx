@@ -9,7 +9,7 @@ export const revalidate = 86400; // ISR 24h
 
 const PAGE_TITLE = 'Masterclasses Gratuitas sobre Licitações Públicas | SmartLic';
 const PAGE_DESCRIPTION =
-  'Série gratuita de masterclasses práticas sobre licitações públicas: como participar do seu primeiro edital, análise de viabilidade e inteligência setorial com dados do PNCP.';
+  'Série gratuita de masterclasses práticas sobre licitações públicas: como participar do seu primeiro edital, análise de viabilidade e inteligência setorial com dados das fontes oficiais.';
 const PAGE_URL = buildCanonical('/masterclass');
 
 export const metadata: Metadata = {

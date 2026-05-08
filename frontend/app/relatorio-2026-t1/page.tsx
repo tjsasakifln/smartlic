@@ -11,7 +11,7 @@ const PUBLISHED = '2026-04-05';
 export const metadata: Metadata = {
   title: 'Panorama Licitações Brasil 2026 T1 — Relatório Gratuito',
   description:
-    'Dataset de 40 mil+ editais PNCP (jan-mar/2026) analisado por IA. Valor total, modalidades, setores, órgãos e tendências. Download gratuito em PDF.',
+    'Dataset de 40 mil+ editais das fontes oficiais (jan-mar/2026) analisado por IA. Valor total, modalidades, setores, órgãos e tendências. Download gratuito em PDF.',
   alternates: { canonical: CANONICAL },
   openGraph: {
     title: 'Panorama Licitações Brasil 2026 T1 — Relatório Gratuito',
@@ -90,7 +90,7 @@ const jsonLd = {
       '@id': `${CANONICAL}#dataset`,
       name: 'Editais PNCP Brasil 2026 T1',
       description:
-        'Conjunto de dados com 40 mil+ editais de licitação publicados no Portal Nacional de Contratações Públicas (PNCP) entre 01/01/2026 e 31/03/2026, classificados por setor, modalidade, UF e órgão.',
+        'Conjunto de dados com 40 mil+ editais de licitação publicados nas fontes oficiais entre 01/01/2026 e 31/03/2026, classificados por setor, modalidade, UF e órgão.',
       keywords: [
         'licitações',
         'PNCP',
@@ -153,7 +153,7 @@ export default function RelatorioPanorama2026T1Page() {
             Panorama Licitações Brasil 2026 T1
           </h1>
           <p className="text-lg sm:text-xl text-blue-100 max-w-3xl mx-auto mb-10">
-            Dataset de <strong>40 mil+ editais PNCP</strong> publicados entre janeiro e março de 2026,
+            Dataset de <strong>40 mil+ editais das fontes oficiais</strong> publicados entre janeiro e março de 2026,
             analisado por IA. Volume, valor, modalidades, setores, órgãos e tendências — em um único relatório.
           </p>
           <a
@@ -265,7 +265,7 @@ export default function RelatorioPanorama2026T1Page() {
             Quer análise ao vivo de editais do seu setor?
           </h2>
           <p className="text-lg text-blue-100 mb-8">
-            O SmartLic monitora o PNCP em tempo real e entrega as oportunidades relevantes para sua empresa, filtradas por IA.
+            O SmartLic monitora as fontes oficiais em tempo real e entrega as oportunidades relevantes para sua empresa, filtradas por IA.
           </p>
           <Link
             href="/signup"

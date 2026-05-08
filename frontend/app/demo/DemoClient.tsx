@@ -76,7 +76,7 @@ export default function DemoClient() {
       {
         id: 'demo-step-2',
         title: 'Inicie a busca multi-fonte',
-        text: 'Um clique aciona busca simultânea no PNCP, Portal de Compras Públicas e ComprasGov. O SmartLic deduplica e normaliza resultados de todas as fontes automaticamente.',
+        text: 'Um clique aciona busca simultânea em todas as fontes oficiais. O SmartLic deduplica e normaliza resultados automaticamente.',
         attachTo: { selector: '[data-tour="demo-search"]', placement: 'bottom' },
         beforeShow: () => transitionTo('selecting'),
       },
@@ -339,7 +339,7 @@ export default function DemoClient() {
             Pronto para buscar editais reais da sua empresa?
           </p>
           <p className="text-xs text-[var(--ink-secondary)]">
-            14 dias grátis · Sem cartão de crédito · Dados reais do PNCP
+            14 dias grátis · Sem cartão de crédito · Dados reais das fontes oficiais
           </p>
         </div>
         <Link

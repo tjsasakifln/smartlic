@@ -41,7 +41,7 @@ interface DayData {
 }
 
 const SOURCE_LABELS: Record<string, string> = {
-  pncp: "PNCP (Portal Nacional)",
+  pncp: "Portal Nacional de Contratações Públicas",
   portal: "Portal de Compras Públicas",
   comprasgov: "ComprasGov",
 };

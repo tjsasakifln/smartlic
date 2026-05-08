@@ -51,7 +51,7 @@ exports[`UX-400: Card snapshots card with valid link matches snapshot 1`] = `
         class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800"
         data-testid="source-badge"
       >
-        PNCP
+        Fontes Oficiais
       </span>
       <span
         class="inline-flex items-center px-2 py-0.5 rounded bg-surface-2 text-ink-secondary text-xs font-medium"

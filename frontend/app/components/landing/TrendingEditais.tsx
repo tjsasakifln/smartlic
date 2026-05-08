@@ -34,8 +34,8 @@ export async function TrendingEditais() {
         </h2>
         <p className="text-sm text-ink-secondary mb-8">
           {hasLiveData
-            ? 'Setores mais ativos esta semana — dados ao vivo do PNCP'
-            : 'Dados atualizados diariamente do Portal Nacional de Contratações Públicas (PNCP)'}
+            ? 'Setores mais ativos esta semana — dados ao vivo das fontes oficiais'
+            : 'Dados atualizados diariamente das fontes públicas consolidadas'}
         </p>
 
         {/* Sector links with optional count badges */}

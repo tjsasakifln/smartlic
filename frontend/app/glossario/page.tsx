@@ -205,7 +205,7 @@ export default function GlossárioPage() {
               Encontre licitações do seu setor automaticamente
             </h2>
             <p className="text-white/85 max-w-xl mx-auto mb-6">
-              O SmartLic monitora PNCP, PCP e ComprasGov diariamente, classifica por setor com IA e avalia viabilidade para voce focar nas melhores oportunidades.
+              O SmartLic monitora as fontes oficiais de licitações diariamente, classifica por setor com IA e avalia viabilidade para voce focar nas melhores oportunidades.
             </p>
             <Link
               href="/signup?source=glossario-cta"

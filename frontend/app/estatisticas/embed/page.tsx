@@ -7,12 +7,12 @@ export const revalidate = 86400; // 24h ISR
 export const metadata: Metadata = {
   title: 'Embed Badge de Estatísticas',
   description:
-    'Incorpore estatísticas de licitações públicas no seu site, blog ou reportagem. Widget HTML auto-contido com dados atualizados do PNCP.',
+    'Incorpore estatísticas de licitações públicas no seu site, blog ou reportagem. Widget HTML auto-contido com dados atualizados das fontes oficiais.',
   alternates: { canonical: buildCanonical('/estatisticas/embed') },
   openGraph: {
     title: 'Embed Badge de Estatísticas de Licitações | SmartLic',
     description:
-      'Widget HTML para incorporar dados de licitações públicas do PNCP. Atribuição automática.',
+      'Widget HTML para incorporar dados de licitações públicas das fontes oficiais. Atribuição automática.',
     url: buildCanonical('/estatisticas/embed'),
     type: 'website',
     locale: 'pt_BR',
@@ -49,7 +49,7 @@ export default function EstatisticasEmbedPage() {
     process.env.NEXT_PUBLIC_BACKEND_URL || 'https://api.smartlic.tech';
 
   const embedHtml = `<iframe src="${backendUrl}/v1/stats/public?format=embed" width="500" height="260" frameborder="0" style="border:none;border-radius:12px;max-width:100%"></iframe>`;
-  const badgeHtml = `<a href="https://smartlic.tech/estatisticas"><img src="${backendUrl}/v1/stats/public?format=badge" alt="Estatísticas SmartLic - PNCP" /></a>`;
+  const badgeHtml = `<a href="https://smartlic.tech/estatisticas"><img src="${backendUrl}/v1/stats/public?format=badge" alt="Estatísticas SmartLic - fontes oficiais" /></a>`;
 
   return (
     <main className="min-h-screen bg-white dark:bg-gray-950">
@@ -65,7 +65,7 @@ export default function EstatisticasEmbedPage() {
             Embed de Estatísticas de Licitações
           </h1>
           <p className="text-blue-100 text-lg">
-            Incorpore dados atualizados do PNCP no seu site, blog ou
+            Incorpore dados atualizados das fontes oficiais no seu site, blog ou
             reportagem. Widget HTML auto-contido com atribuição automática.
           </p>
         </div>
@@ -119,7 +119,7 @@ export default function EstatisticasEmbedPage() {
             Atribuição
           </h3>
           <p className="text-blue-800 dark:text-blue-300 text-sm">
-            Os dados são públicos (fonte: PNCP) e podem ser citados livremente.
+            Os dados são públicos (fonte: fontes oficiais) e podem ser citados livremente.
             Pedimos apenas a manutenção do link para{' '}
             <a
               href="https://smartlic.tech/estatisticas"

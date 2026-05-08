@@ -9,12 +9,12 @@ export const revalidate = 21600;
 export const metadata: Metadata = {
   title: 'Dados de Licitações Públicas no Brasil — Painel Interativo',
   description:
-    'Painel interativo com dados agregados de licitações públicas do PNCP: editais por setor, UF e modalidade. Atualizado a cada 6 horas. Download em CSV.',
+    'Painel interativo com dados agregados de licitações públicas: editais por setor, UF e modalidade. Atualizado a cada 6 horas. Download em CSV.',
   alternates: { canonical: buildCanonical('/dados') },
   openGraph: {
     title: 'Dados de Licitações Públicas no Brasil | SmartLic',
     description:
-      'Painel interativo com dados do PNCP atualizados a cada 6h.',
+      'Painel interativo com dados oficiais atualizados a cada 6h.',
     url: buildCanonical('/dados'),
     type: 'website',
     siteName: 'SmartLic',
@@ -22,7 +22,7 @@ export const metadata: Metadata = {
   twitter: {
     card: 'summary_large_image',
     title: 'Dados de Licitações Públicas no Brasil | SmartLic',
-    description: 'Painel interativo com dados do PNCP atualizados a cada 6h.',
+    description: 'Painel interativo com dados das fontes oficiais atualizados a cada 6h.',
   },
 };
 
@@ -55,9 +55,9 @@ function buildJsonLd(dados: DadosData | null) {
   const datasetSchema = {
     '@context': 'https://schema.org',
     '@type': 'Dataset',
-    name: 'Dados Agregados de Licitações Públicas — PNCP',
+    name: 'Dados Agregados de Licitações Públicas',
     description:
-      'Dados agregados de licitações publicadas no Portal Nacional de Contratações Públicas (PNCP), por setor, UF, modalidade e tendência temporal.',
+      'Dados agregados de licitações publicadas no Portal Nacional de Contratações Públicas, por setor, UF, modalidade e tendência temporal.',
     url: buildCanonical('/dados'),
     creator: {
       '@type': 'Organization',
@@ -87,9 +87,9 @@ function buildJsonLd(dados: DadosData | null) {
     '@type': 'DataCatalog',
     name: 'SmartLic — Catálogo de Dados de Licitações',
     description:
-      'Dados de licitações públicas extraídos do PNCP, SIASG e outras fontes oficiais.',
+      'Dados de licitações públicas extraídos das fontes oficiais.',
     url: buildCanonical('/dados'),
-    dataset: [{ '@type': 'Dataset', name: 'Licitações PNCP — Últimos 30 dias' }],
+    dataset: [{ '@type': 'Dataset', name: 'Licitações Públicas — Últimos 30 dias' }],
   };
 
   const breadcrumbSchema = {
@@ -157,7 +157,7 @@ export default async function DadosPage() {
           Dados de Licitações Públicas no Brasil
         </h1>
         <p className="text-lg text-gray-600">
-          Painel interativo com dados agregados do PNCP · Atualizado a cada 6 horas
+          Painel interativo com dados agregados das fontes oficiais · Atualizado a cada 6 horas
         </p>
         {freshnessLabel && (
           <span className="mt-3 inline-flex items-center gap-1.5 rounded-full bg-green-50 px-3 py-1 text-xs font-medium text-green-700 ring-1 ring-green-200">
@@ -252,7 +252,7 @@ export default async function DadosPage() {
               (GPT-4.1-nano).
             </li>
             <li>
-              <strong>Valores:</strong> Valores estimados informados pelos órgãos no PNCP.
+              <strong>Valores:</strong> Valores estimados informados pelos órgãos nas fontes oficiais.
               Editais sem valor informado são contabilizados mas excluídos da soma de valores.
             </li>
           </ul>

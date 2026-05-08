@@ -84,7 +84,7 @@ describe('UX-400 AC4: Source badge', () => {
   it('renders PNCP badge when _source is PNCP', () => {
     render(<LicitacaoCard licitacao={makeLicitacao({ _source: "PNCP" })} />);
     const badge = screen.getByTestId('source-badge');
-    expect(badge).toHaveTextContent('PNCP');
+    expect(badge).toHaveTextContent('Fontes Oficiais');
   });
 
   it('renders PCP badge when _source is PCP', () => {

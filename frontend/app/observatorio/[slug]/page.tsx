@@ -86,7 +86,7 @@ export async function generateMetadata({
 
   const totalDisplay = new Intl.NumberFormat('pt-BR').format(relatorio.total_editais);
   const title = `${totalDisplay} editais em ${mesDisplay} de ${ano} — Raio-X das Licitações`;
-  const description = `O Brasil publicou ${totalDisplay} editais no PNCP em ${mesDisplay.toLowerCase()} de ${ano}. Análise completa por UF, modalidade e setor com dados reais. Licença Creative Commons BY 4.0.`;
+  const description = `O Brasil publicou ${totalDisplay} editais nas fontes oficiais em ${mesDisplay.toLowerCase()} de ${ano}. Análise completa por UF, modalidade e setor com dados reais. Licença Creative Commons BY 4.0.`;
 
   return {
     title,
@@ -100,7 +100,7 @@ export async function generateMetadata({
       locale: 'pt_BR',
       images: [
         {
-          url: `/api/og?title=${encodeURIComponent(`Raio-X ${mesDisplay} ${ano}`)}&subtitle=${encodeURIComponent(`${totalDisplay} editais publicados no PNCP`)}`,
+          url: `/api/og?title=${encodeURIComponent(`Raio-X ${mesDisplay} ${ano}`)}&subtitle=${encodeURIComponent(`${totalDisplay} editais publicados nas fontes oficiais`)}`,
           width: 1200,
           height: 630,
           alt: `Raio-X das Licitações — ${mesDisplay} ${ano} | SmartLic`,

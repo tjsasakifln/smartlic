@@ -232,7 +232,7 @@ export default async function OrgaoPerfilPage({
       {/* #788: Founders plan CTA for high-intent organic visitors */}
       <FoundersRibbon
         variant="contextual"
-        copy="Transforme dados do PNCP em decisão. Vitalício por R$997."
+        copy="Transforme dados oficiais em decisão. Vitalício por R$997."
         src="pseo_orgao"
       />
 
