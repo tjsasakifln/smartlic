@@ -8,11 +8,11 @@ import Footer from '@/app/components/Footer';
 
 export const metadata: Metadata = {
   title: 'Alertas de Licitações Públicas — Todos os Setores e Estados',
-  description: 'Acompanhe licitações em tempo real por setor e estado. Feeds RSS disponíveis. Dados do PNCP atualizados a cada hora.',
+  description: 'Acompanhe licitações em tempo real por setor e estado. Feeds RSS disponíveis. Dados das fontes oficiais atualizados a cada hora.',
   alternates: { canonical: buildCanonical('/alertas-publicos') },
   openGraph: {
     title: 'Alertas de Licitações Públicas | SmartLic',
-    description: 'Licitações em tempo real por setor e estado — dados do PNCP',
+    description: 'Licitações em tempo real por setor e estado — dados das fontes oficiais',
     type: 'website',
     locale: 'pt_BR',
   },
@@ -32,7 +32,7 @@ export default function AlertasIndexPage() {
             </h1>
             <p className="text-white/80 text-lg max-w-2xl mx-auto">
               Acompanhe as licitações mais recentes por setor e estado.
-              Dados atualizados a cada hora do PNCP. Feed RSS disponível.
+              Dados atualizados a cada hora das fontes oficiais. Feed RSS disponível.
             </p>
           </div>
         </section>

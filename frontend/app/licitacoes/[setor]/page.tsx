@@ -18,6 +18,7 @@ import { MicroDemoSchema } from "@/components/seo/MicroDemoSchema";
 import StickyTrialCTA from "@/app/components/StickyTrialCTA";
 import { buildDatasetJsonLd } from "./_jsonld";
 import { FoundersRibbon } from "@/components/banners/FoundersRibbon";
+import { AdvisoryDisclaimer } from "@/components/legal/AdvisoryDisclaimer";
 
 /**
  * STORY-324 AC5: SSG with ISR 6h for sector landing pages.
@@ -157,7 +158,7 @@ export default async function SectorPage({
               queries. See docs/SEO-ORGANIC-PLAYBOOK.md §Fundação Técnica item 2. */}
           {stats.last_updated && (
             <p className="text-xs text-ink-secondary dark:text-gray-400 mt-3 text-center">
-              Dados atualizados {getFreshnessLabel(stats.last_updated)} · fonte PNCP
+              Dados atualizados {getFreshnessLabel(stats.last_updated)} · fontes oficiais
             </p>
           )}
         </section>
@@ -240,7 +241,7 @@ export default async function SectorPage({
           <HowItWorksStep
             step={1}
             title="Busque"
-            description="O SmartLic busca licitações em PNCP, PCP e ComprasGov simultaneamente, cobrindo todas as fontes oficiais."
+            description="O SmartLic busca licitações nas fontes públicas oficiais simultaneamente, cobrindo o mercado completo de contratações."
           />
           <HowItWorksStep
             step={2}
@@ -258,6 +259,11 @@ export default async function SectorPage({
         <div className="mt-12 max-w-2xl mx-auto">
           <MicroDemo variant="busca" />
           <MicroDemoSchema variant="busca" />
+        </div>
+
+        {/* REPO-020 (#772): Advisory disclaimer — score-based recommendations shown above */}
+        <div className="mt-6 max-w-2xl mx-auto">
+          <AdvisoryDisclaimer />
         </div>
       </section>
 
@@ -461,7 +467,7 @@ export default async function SectorPage({
               href="/ferramentas/pncp-licitacoes"
               className="text-brand-blue hover:underline"
             >
-              Saiba mais sobre o PNCP e como automatizar a busca de licitações &rarr;
+              Como automatizar a busca de licitações nas fontes oficiais &rarr;
             </Link>
           </p>
           <h3 className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase mb-4">

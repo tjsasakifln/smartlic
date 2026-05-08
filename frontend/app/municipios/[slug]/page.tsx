@@ -2,9 +2,11 @@ import { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { buildCanonical, getFreshnessLabel } from '@/lib/seo';
+import { getUfPrep } from '@/lib/programmatic';
 import LandingNavbar from '@/app/components/landing/LandingNavbar';
 import Footer from '@/app/components/Footer';
 import StickyTrialCTA from '@/app/components/StickyTrialCTA';
+import { AdvisoryDisclaimer } from '@/components/legal/AdvisoryDisclaimer';
 
 // Sprint 4 Parte 13: páginas de municípios com licitações abertas
 // ISR 24h — dados do PNCP atualizados diariamente
@@ -88,24 +90,23 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     ? profile.populacao.toLocaleString('pt-BR') + ' hab.'
     : '';
 
-  // REPO-016: preposicao correta por UF (DF -> 'no', demais -> 'em')
-  const prep = profile.uf.toUpperCase() === 'DF' ? 'no' : 'em';
+  const prep = getUfPrep(profile.uf.toUpperCase());
 
   return {
     title: `Licitações abertas ${prep} ${profile.nome}-${profile.uf} | SmartLic`,
     description:
       `Consulte os ${profile.total_licitacoes_abertas} editais abertos em ${profile.nome}-${profile.uf}. ` +
       (popFmt ? `${popFmt}. ` : '') +
-      'Dados diários do PNCP com histórico de compras públicas e indicadores do IBGE.',
+      'Dados diários das fontes oficiais com histórico de compras públicas e indicadores do IBGE.',
     alternates: { canonical: buildCanonical(`/municipios/${slug}`) },
     openGraph: {
       title: `Licitações em ${profile.nome}-${profile.uf}`,
-      description: `${profile.total_licitacoes_abertas} editais abertos — PNCP`,
+      description: `${profile.total_licitacoes_abertas} editais abertos — fontes oficiais`,
       type: 'website',
       locale: 'pt_BR',
       images: [
         {
-          url: `/api/og?title=${encodeURIComponent(`Licitações em ${profile.nome}-${profile.uf}`)}&subtitle=${encodeURIComponent(`${profile.total_licitacoes_abertas} editais abertos — PNCP`)}`,
+          url: `/api/og?title=${encodeURIComponent(`Licitações em ${profile.nome}-${profile.uf}`)}&subtitle=${encodeURIComponent(`${profile.total_licitacoes_abertas} editais abertos — fontes oficiais`)}`,
           width: 1200,
           height: 630,
           alt: `Licitações em ${profile.nome}-${profile.uf} | SmartLic`,
@@ -158,7 +159,7 @@ export default async function MunicipioSlugPage({ params }: Props) {
       '@context': 'https://schema.org',
       '@type': 'Dataset',
       name: `Licitações abertas em ${profile.nome}-${profile.uf}`,
-      description: `${profile.total_licitacoes_abertas} editais abertos registrados no PNCP para órgãos sediados em ${profile.nome}-${profile.uf}.`,
+      description: `${profile.total_licitacoes_abertas} editais abertos registrados nas fontes oficiais para órgãos sediados em ${profile.nome}-${profile.uf}.`,
       creator: { '@type': 'Organization', name: 'SmartLic' },
       license: 'https://creativecommons.org/licenses/by/4.0/',
       url: `https://smartlic.tech/municipios/${slug}`,
@@ -220,7 +221,7 @@ export default async function MunicipioSlugPage({ params }: Props) {
             Licitações em {profile.nome}-{profile.uf}
           </h1>
           <p className="text-sm text-gray-400 mb-6">
-            {profile.last_updated ? getFreshnessLabel(profile.last_updated) : 'Dados do PNCP'}
+            {profile.last_updated ? getFreshnessLabel(profile.last_updated) : 'Dados das fontes oficiais'}
             {' · Fonte: Portal Nacional de Contratações Públicas e IBGE'}
           </p>
 
@@ -341,7 +342,7 @@ export default async function MunicipioSlugPage({ params }: Props) {
               Monitore editais em {profile.nome}-{profile.uf}
             </h2>
             <p className="text-gray-600 mb-4">
-              O SmartLic rastreia licitações abertas no PNCP e avisa quando surgem
+              O SmartLic rastreia licitações abertas nas fontes oficiais e avisa quando surgem
               oportunidades relevantes para sua empresa no município e região.
             </p>
             <Link
@@ -370,6 +371,8 @@ export default async function MunicipioSlugPage({ params }: Props) {
           </section>
 
           <p className="text-xs text-gray-400 mt-8">{profile.aviso_legal}</p>
+          {/* REPO-020 (#772): Advisory disclaimer for algorithmic data aggregations */}
+          <AdvisoryDisclaimer variant="full" />
         </div>
       </main>
       <Footer />

@@ -107,7 +107,7 @@ describe("StatusPage", () => {
       expect(screen.getByText("Todos os sistemas operacionais")).toBeInTheDocument();
     });
 
-    expect(screen.getByText("PNCP (Portal Nacional)")).toBeInTheDocument();
+    expect(screen.getByText("Portal Nacional de Contratações Públicas")).toBeInTheDocument();
     expect(screen.getByText("99.5%")).toBeInTheDocument();
   });
 

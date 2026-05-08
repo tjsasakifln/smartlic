@@ -85,7 +85,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
   return {
     title: `Contratos de ${stats.orgao_nome} ${year} — Fornecedores e Valores`,
-    description: `${stats.orgao_nome} firmou ${stats.total_contracts} contratos totalizando ${totalFormatado}. Veja os principais fornecedores, valores e tendencias. Dados PNCP.`,
+    description: `${stats.orgao_nome} firmou ${stats.total_contracts} contratos totalizando ${totalFormatado}. Veja os principais fornecedores, valores e tendencias. Dados das fontes oficiais.`,
     alternates: { canonical: buildCanonical(`/contratos/orgao/${cnpj}`) },
     openGraph: {
       title: `Contratos de ${stats.orgao_nome}`,
@@ -300,7 +300,7 @@ export default async function OrgaoContratosPage({ params }: Props) {
               Monitore editais e contratos de {stats.orgao_nome}
             </h2>
             <p className="text-gray-600 mb-4">
-              O SmartLic rastreia licitações abertas do PNCP e avisa quando surgem oportunidades relevantes.
+              O SmartLic rastreia licitações abertas nas fontes oficiais e avisa quando surgem oportunidades relevantes.
             </p>
             <TrackingLink
               href={`/signup?utm_source=programmatic&utm_medium=cta&utm_campaign=conv-cta-001&utm_content=contratos-orgao-footer&page_cnpj=${cnpj}`}

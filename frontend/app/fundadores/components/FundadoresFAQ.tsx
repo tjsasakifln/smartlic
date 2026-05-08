@@ -18,7 +18,7 @@ const FAQS: FaqItem[] = [
   },
   {
     q: 'Posso cancelar ou pedir reembolso?',
-    a: 'Sim. Oferecemos 30 dias de garantia. Se não ficar satisfeito por qualquer motivo dentro deste prazo, devolvemos 100% do valor pago sem questionamentos.',
+    a: 'Sim. Oferecemos 7 dias de garantia. Se não ficar satisfeito por qualquer motivo dentro deste prazo, devolvemos 100% do valor pago sem questionamentos.',
   },
   {
     q: 'O SmartLic funciona para meu setor?',

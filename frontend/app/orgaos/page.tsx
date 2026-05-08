@@ -6,14 +6,14 @@ import { LeadCapture } from '@/components/LeadCapture';
 export const metadata: Metadata = {
   title: 'Órgãos Compradores — Licitações por Órgão Público',
   description:
-    'Consulte o perfil de qualquer órgão comprador público. Total de licitações, valores, modalidades e editais recentes. Dados do PNCP atualizados diariamente.',
+    'Consulte o perfil de qualquer órgão comprador público. Total de licitações, valores, modalidades e editais recentes. Dados das fontes oficiais atualizados diariamente.',
   alternates: {
     canonical: 'https://smartlic.tech/orgaos',
   },
   openGraph: {
     title: 'Órgãos Compradores — Licitações por Órgão Público',
     description:
-      'Consulte o perfil de qualquer órgão comprador público. Total de licitações, valores e editais recentes do PNCP.',
+      'Consulte o perfil de qualquer órgão comprador público. Total de licitações, valores e editais recentes das fontes oficiais.',
     url: 'https://smartlic.tech/orgaos',
     type: 'website',
     images: [
@@ -64,7 +64,7 @@ const faqSchema = {
       name: 'Como consultar licitações de um órgão?',
       acceptedAnswer: {
         '@type': 'Answer',
-        text: 'Informe o CNPJ do órgão comprador no campo acima e clique em "Consultar Órgão". Você verá o perfil completo de compras: total de licitações publicadas, valores contratados, modalidades utilizadas e os editais mais recentes disponíveis no PNCP.',
+        text: 'Informe o CNPJ do órgão comprador no campo acima e clique em "Consultar Órgão". Você verá o perfil completo de compras: total de licitações publicadas, valores contratados, modalidades utilizadas e os editais mais recentes disponíveis nas fontes oficiais.',
       },
     },
     {
@@ -72,7 +72,7 @@ const faqSchema = {
       name: 'De onde vêm os dados?',
       acceptedAnswer: {
         '@type': 'Answer',
-        text: 'Os dados vêm do PNCP — Portal Nacional de Contratações Públicas, a base oficial do Governo Federal que centraliza todas as contratações públicas do país. As informações são atualizadas diariamente e refletem o estado mais recente dos processos licitatórios.',
+        text: 'Os dados vêm das fontes oficiais de contratações públicas, bases consolidadas do Governo Federal que centralizam todas as contratações públicas do país. As informações são atualizadas diariamente e refletem o estado mais recente dos processos licitatórios.',
       },
     },
     {
@@ -112,7 +112,7 @@ const softwareApplicationSchema = {
     'Total de licitações publicadas por órgão',
     'Valores contratados e estimados',
     'Modalidades de contratação mais utilizadas',
-    'Editais abertos e recentes do PNCP',
+    'Editais abertos e recentes das fontes oficiais',
     'Setores e segmentos com maior volume de compras',
   ],
   provider: {
@@ -152,7 +152,7 @@ export default function OrgaosLandingPage() {
       <p className="lead">
         Descubra o perfil de compras de qualquer órgão público. Veja total de licitações,
         valores contratados, modalidades utilizadas e editais recentes — tudo a partir do CNPJ
-        do órgão. Dados oficiais do PNCP, atualizados diariamente.
+        do órgão. Dados das fontes oficiais, atualizados diariamente.
       </p>
 
       <OrgaoSearchForm />
@@ -192,13 +192,13 @@ export default function OrgaosLandingPage() {
           Informe o CNPJ do órgão comprador no campo acima e clique em{' '}
           <strong>"Consultar Órgão"</strong>. Você verá o perfil completo de compras: total
           de licitações publicadas, valores contratados, modalidades utilizadas e os editais
-          mais recentes disponíveis no PNCP.
+          mais recentes disponíveis nas fontes oficiais.
         </p>
 
         <h3>De onde vêm os dados?</h3>
         <p>
-          Os dados vêm do <strong>PNCP</strong> — Portal Nacional de Contratações Públicas,
-          a base oficial do Governo Federal que centraliza todas as contratações públicas do
+          Os dados vêm das <strong>fontes oficiais de contratações públicas</strong>,
+          bases consolidadas do Governo Federal que centralizam todas as contratações públicas do
           país. As informações são atualizadas diariamente e refletem o estado mais recente
           dos processos licitatórios.
         </p>

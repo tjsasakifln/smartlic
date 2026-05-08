@@ -57,7 +57,7 @@ export default async function LicitacoesIndexPage() {
           </h1>
           <p className="text-lg md:text-xl text-blue-100 max-w-3xl mx-auto">
             Encontre oportunidades de licitação em 15 setores da economia.
-            Dados reais do PNCP atualizados diariamente.
+            Dados reais das fontes oficiais atualizados diariamente.
           </p>
         </div>
       </section>

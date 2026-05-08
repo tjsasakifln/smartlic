@@ -9,11 +9,11 @@ import Footer from '@/app/components/Footer';
 export const metadata: Metadata = {
   title: 'Contratos Públicos por Setor e Estado — SmartLic',
   description:
-    'Consulte contratos públicos do governo por setor e estado. Dados do PNCP atualizados diariamente. Transparência em gastos públicos.',
+    'Consulte contratos públicos do governo por setor e estado. Dados atualizados diariamente das fontes oficiais. Transparência em gastos públicos.',
   alternates: { canonical: buildCanonical('/contratos') },
   openGraph: {
     title: 'Contratos Públicos por Setor e Estado',
-    description: 'Transparência em gastos públicos — dados do PNCP atualizados diariamente.',
+    description: 'Transparência em gastos públicos — dados oficiais atualizados diariamente.',
     type: 'website',
     locale: 'pt_BR',
   },
@@ -73,7 +73,7 @@ export default function ContratosHubPage() {
           </h1>
           <p className="text-lg text-gray-600 mb-8">
             Consulte quanto o governo gasta por setor em cada estado. Dados do Portal Nacional de
-            Contratações Públicas (PNCP), atualizados diariamente.
+            Contratações Públicas, atualizados diariamente.
           </p>
 
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">

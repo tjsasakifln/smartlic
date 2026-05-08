@@ -9,12 +9,12 @@ export const metadata: Metadata = {
   title: 'Benchmark de Preços Governamentais por CATMAT — Substitui Painel de Preços',
   description:
     'Consulte o preço médio (P10, P50, P90) que o governo federal paga por materiais e serviços. ' +
-    'Dados reais do PNCP — substitui o Painel de Preços do ComprasGov (descontinuado jul/2025).',
+    'Dados reais das fontes oficiais — substitui o Painel de Preços do ComprasGov (descontinuado jul/2025).',
   alternates: { canonical: buildCanonical('/itens') },
   robots: { index: true, follow: true },
   openGraph: {
     title: 'Benchmark de Preços Governamentais — SmartLic',
-    description: 'P10/P50/P90 de materiais e serviços comprados pelo governo federal. Dados do PNCP.',
+    description: 'P10/P50/P90 de materiais e serviços comprados pelo governo federal. Dados das fontes oficiais.',
     type: 'website',
     locale: 'pt_BR',
   },
@@ -113,7 +113,7 @@ const jsonLd = [
     name: 'Benchmark de Preços Governamentais por CATMAT — SmartLic',
     description:
       'Diretório de benchmarks de preços governamentais por código CATMAT, ' +
-      'com P10/P50/P90 calculados a partir de contratos reais do PNCP.',
+      'com P10/P50/P90 calculados a partir de contratos reais das fontes oficiais.',
     url: 'https://smartlic.tech/itens',
     publisher: {
       '@type': 'Organization',
@@ -163,7 +163,7 @@ export default function ItensHubPage() {
           <p className="text-gray-600 mb-8 max-w-2xl">
             Consulte quanto o governo federal paga por materiais e serviços, com
             preços P10 (mínimo), P50 (mediano) e P90 (máximo) calculados a partir
-            de contratos reais registrados no PNCP. Dados atualizados diariamente.
+            de contratos reais das fontes oficiais. Dados atualizados diariamente.
           </p>
 
           {/* Categorias com itens em destaque */}
@@ -207,7 +207,7 @@ export default function ItensHubPage() {
               Monitore licitações de materiais específicos
             </h2>
             <p className="text-gray-600 mb-4">
-              O SmartLic rastreia editais abertos no PNCP e identifica automaticamente
+              O SmartLic rastreia editais abertos nas fontes oficiais e identifica automaticamente
               oportunidades de fornecimento para os materiais e serviços do seu portfólio.
             </p>
             <Link

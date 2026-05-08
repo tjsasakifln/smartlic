@@ -9,11 +9,11 @@ import Footer from '@/app/components/Footer';
 export const metadata: Metadata = {
   title: 'Fornecedores do Governo por Setor e Estado',
   description:
-    'Descubra quais empresas vendem para o governo por setor e estado. Ranking de fornecedores com dados do PNCP atualizados diariamente.',
+    'Descubra quais empresas vendem para o governo por setor e estado. Ranking de fornecedores com dados atualizados diariamente das fontes oficiais.',
   alternates: { canonical: buildCanonical('/fornecedores') },
   openGraph: {
     title: 'Fornecedores do Governo por Setor e Estado',
-    description: 'Ranking de empresas que vendem para o governo — dados PNCP atualizados.',
+    description: 'Ranking de empresas que vendem para o governo — dados oficiais atualizados.',
     type: 'website',
     locale: 'pt_BR',
   },
@@ -73,7 +73,7 @@ export default function FornecedoresHubPage() {
           </h1>
           <p className="text-lg text-gray-600 mb-8">
             Descubra quais empresas vendem para o governo em cada setor e estado. Dados do Portal
-            Nacional de Contratacoes Publicas (PNCP).
+            Nacional de Contratacoes Publicas, atualizados diariamente.
           </p>
 
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">

@@ -28,10 +28,10 @@ export async function generateMetadata({
 
   const description =
     sector && ufName
-      ? `Descubra quantas licitações de ${sector.name} ${getUfPrep(ufCode)} ${ufName} sua equipe está perdendo. Dados reais do PNCP por estado.`
+      ? `Descubra quantas licitações de ${sector.name} ${getUfPrep(ufCode)} ${ufName} sua equipe está perdendo. Dados reais das fontes oficiais por estado.`
       : sector
-        ? `Descubra quantas licitações de ${sector.name} sua equipe está perdendo. Dados reais do PNCP por setor.`
-        : 'Descubra quantas licitações do seu setor sua equipe está perdendo por falta de automação. Dados reais do PNCP, por setor e UF.';
+        ? `Descubra quantas licitações de ${sector.name} sua equipe está perdendo. Dados reais das fontes oficiais por setor.`
+        : 'Descubra quantas licitações do seu setor sua equipe está perdendo por falta de automação. Dados reais das fontes oficiais, por setor e UF.';
 
   const ogTitle =
     sector && ufName
@@ -92,7 +92,7 @@ const howToSchema = {
       '@type': 'HowToStep',
       position: 3,
       name: 'Veja o resultado',
-      text: 'Descubra o valor estimado de oportunidades que sua empresa não está analisando, com dados reais do PNCP.',
+      text: 'Descubra o valor estimado de oportunidades que sua empresa não está analisando, com dados reais das fontes oficiais.',
     },
   ],
 };
@@ -106,7 +106,7 @@ const faqSchema = {
       name: 'De onde vêm os dados da calculadora?',
       acceptedAnswer: {
         '@type': 'Answer',
-        text: 'Os dados são extraídos diretamente do PNCP (Portal Nacional de Contratações Públicas), atualizados diariamente. Mostramos editais publicados nos últimos 30 dias.',
+        text: 'Os dados são extraídos das fontes oficiais de contratações públicas, atualizados diariamente. Mostramos editais publicados nos últimos 30 dias.',
       },
     },
     {
@@ -160,14 +160,14 @@ const softwareAppSchema = {
     price: '0',
     priceCurrency: 'BRL',
   },
-  description: 'Calcule quantas licitações públicas seu setor publica por mês e descubra o valor de oportunidades não analisadas. Dados reais do PNCP.',
+  description: 'Calcule quantas licitações públicas seu setor publica por mês e descubra o valor de oportunidades não analisadas. Dados reais das fontes oficiais.',
   provider: {
     '@type': 'Organization',
     name: 'SmartLic',
     url: 'https://smartlic.tech',
   },
   featureList: [
-    'Dados reais do PNCP por setor e UF',
+    'Dados reais das fontes oficiais por setor e UF',
     'Cálculo de cobertura atual vs total disponível',
     'Estimativa de receita perdida',
     'Código de incorporação gratuito para terceiros',
@@ -206,7 +206,7 @@ export default function CalculadoraPage({}: {
       <h1>Calculadora de Oportunidades B2G</h1>
       <p className="lead">
         Descubra quanto sua empresa está deixando de faturar em licitações.
-        Dados reais do PNCP, calculados para o seu setor e estado.
+        Dados reais das fontes oficiais, calculados para o seu setor e estado.
       </p>
 
       <CalculadoraClient />
@@ -224,7 +224,7 @@ export default function CalculadoraPage({}: {
         <h2 className="text-xl font-bold text-gray-900 mb-2">Incorpore esta calculadora no seu site</h2>
         <p className="text-gray-600 text-sm mb-4">
           Ofereça gratuitamente aos seus leitores a calculadora de oportunidades em licitações.
-          Dados reais do PNCP, sem nenhum custo.
+          Dados reais das fontes oficiais, sem nenhum custo.
         </p>
         <div className="bg-white rounded-lg border border-gray-300 p-4 mb-3">
           <code className="text-xs text-gray-700 break-all block font-mono leading-relaxed select-all" id="embed-code">
@@ -239,7 +239,7 @@ export default function CalculadoraPage({}: {
 
         <h3>De onde vêm os dados da calculadora?</h3>
         <p>
-          Os dados são extraídos diretamente do PNCP (Portal Nacional de Contratações Públicas),
+          Os dados são extraídos das fontes oficiais de contratações públicas,
           atualizados diariamente. Mostramos editais publicados nos últimos 30 dias.
         </p>
 

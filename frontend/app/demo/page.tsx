@@ -9,12 +9,12 @@ export const revalidate = 86400; // 24h ISR
 export const metadata: Metadata = {
   title: 'Demo Interativo — Veja o SmartLic em Ação',
   description:
-    'Experimente o SmartLic sem criar conta. Demo guiado de 2 minutos: busca multi-fonte, classificação por setor, e análise de viabilidade com 4 fatores. Dados reais do PNCP.',
+    'Experimente o SmartLic sem criar conta. Demo guiado de 2 minutos: busca multi-fonte, classificação por setor, e análise de viabilidade com 4 fatores. Dados reais das fontes oficiais.',
   alternates: { canonical: buildCanonical('/demo') },
   openGraph: {
     title: 'Demo Interativo — Veja o SmartLic em Ação',
     description:
-      'Demo guiado de 2 minutos: busca, classificação e análise de viabilidade com dados reais do PNCP.',
+      'Demo guiado de 2 minutos: busca, classificação e análise de viabilidade com dados reais das fontes oficiais.',
     type: 'website',
     url: buildCanonical('/demo'),
     locale: 'pt_BR',
@@ -73,7 +73,7 @@ export default function DemoPage() {
         applicationCategory: 'BusinessApplication',
         operatingSystem: 'Web',
         description:
-          'Plataforma de inteligência em licitações públicas com IA para classificação setorial e análise de viabilidade de editais do PNCP e fontes governamentais.',
+          'Plataforma de inteligência em licitações públicas com IA para classificação setorial e análise de viabilidade de editais das fontes governamentais oficiais.',
         offers: {
           '@type': 'Offer',
           price: '0',
@@ -153,7 +153,7 @@ export default function DemoPage() {
                 <svg className="w-4 h-4 text-emerald-400" fill="currentColor" viewBox="0 0 20 20">
                   <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                 </svg>
-                Busca PNCP + Portal de Compras + ComprasGov
+                Busca multi-fonte: Portal Oficial + ComprasGov
               </span>
               <span className="flex items-center gap-1.5">
                 <svg className="w-4 h-4 text-emerald-400" fill="currentColor" viewBox="0 0 20 20">

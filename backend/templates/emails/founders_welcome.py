@@ -3,7 +3,7 @@
 Sent after a founding checkout completes (dispatched by the webhook handler).
 Tom: pessoal, de Tiago. Sem footer corporativo pesado.
 
-from: tiago@smartlic.tech
+from: tiago.sasaki@confenge.com.br
 reply-to: tiago.sasaki@gmail.com
 """
 
@@ -12,7 +12,7 @@ from templates.emails.base import email_base, SMARTLIC_GREEN, FRONTEND_URL
 FOUNDERS_WELCOME_SUBJECT = "Bem-vindo ao Plano Fundadores SmartLic \U0001f91d"
 
 # Personal sender constants (reused by email_service).
-FOUNDERS_FROM = "Tiago do SmartLic <tiago@smartlic.tech>"
+FOUNDERS_FROM = "Tiago do SmartLic <tiago.sasaki@confenge.com.br>"
 FOUNDERS_REPLY_TO = "tiago.sasaki@gmail.com"
 
 

@@ -153,7 +153,7 @@ def _send_cap_violation_email(sb, session: Any) -> None:
         "https://smartlic.tech/pricing. Se quiser, respondo este email "
         "pessoalmente para conversar sobre próximos passos.\n\n"
         "Tiago Sasaki — fundador SmartLic\n"
-        "tiago@smartlic.tech\n"
+        "tiago.sasaki@confenge.com.br\n"
     )
 
     try:

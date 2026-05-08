@@ -75,9 +75,9 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   // AC7: description dinâmica — menciona editais quando disponíveis
   let description: string;
   if (totalContracts > 0 && totalEditais > 0) {
-    description = `${totalContracts.toLocaleString('pt-BR')} contratos firmados em ${sector.name} ${getUfPrep(ufUpper)} ${ufName} — ${totalEditais} editais abertos agora. Dados PNCP atualizados.`;
+    description = `${totalContracts.toLocaleString('pt-BR')} contratos firmados em ${sector.name} ${getUfPrep(ufUpper)} ${ufName} — ${totalEditais} editais abertos agora. Dados das fontes oficiais atualizados.`;
   } else if (totalContracts > 0) {
-    description = `Quanto o governo gasta em ${sector.name} ${getUfPrep(ufUpper)} ${ufName}? Veja ${totalContracts.toLocaleString('pt-BR')} contratos firmados, principais órgãos compradores e fornecedores. Dados PNCP atualizados.`;
+    description = `Quanto o governo gasta em ${sector.name} ${getUfPrep(ufUpper)} ${ufName}? Veja ${totalContracts.toLocaleString('pt-BR')} contratos firmados, principais órgãos compradores e fornecedores. Dados das fontes oficiais atualizados.`;
   } else if (totalEditais > 0) {
     description = `${totalEditais} editais abertos em ${sector.name} ${getUfPrep(ufUpper)} ${ufName} agora. Acompanhe oportunidades de licitação e o histórico de contratos públicos.`;
   } else {
@@ -95,7 +95,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       locale: 'pt_BR',
       images: [
         {
-          url: `/api/og?title=${encodeURIComponent(`Contratos Públicos: ${sector.name} ${getUfPrep(ufUpper)} ${ufName}`)}&subtitle=${encodeURIComponent(`${totalContracts.toLocaleString('pt-BR')} contratos firmados — PNCP`)}`,
+          url: `/api/og?title=${encodeURIComponent(`Contratos Públicos: ${sector.name} ${getUfPrep(ufUpper)} ${ufName}`)}&subtitle=${encodeURIComponent(`${totalContracts.toLocaleString('pt-BR')} contratos firmados — fontes oficiais`)}`,
           width: 1200,
           height: 630,
           alt: `Contratos Públicos de ${sector.name} ${getUfPrep(ufUpper)} ${ufName} | SmartLic`,
@@ -137,7 +137,7 @@ export default async function ContratosSetorUfPage({ params }: Props) {
     {
       question: `Quanto o governo de ${ufName} gasta em ${sector.name}?`,
       answer: data
-        ? `Nos contratos registrados no PNCP, ${ufName} tem ${data.total_contracts} contratos de ${sector.name} com valor total de ${formatBRL(data.total_value)}.`
+        ? `Nos contratos registrados nas fontes oficiais, ${ufName} tem ${data.total_contracts} contratos de ${sector.name} com valor total de ${formatBRL(data.total_value)}.`
         : `Consulte os dados atualizados nesta página para ver os contratos de ${sector.name} ${getUfPrep(ufUpper)} ${ufName}.`,
     },
     {
@@ -156,7 +156,7 @@ export default async function ContratosSetorUfPage({ params }: Props) {
       : []),
     {
       question: `Como consultar contratos públicos de ${sector.name}?`,
-      answer: `O SmartLic agrega dados do PNCP e permite consultar contratos por setor e estado. Os dados são atualizados diariamente.`,
+      answer: `O SmartLic agrega dados das fontes oficiais e permite consultar contratos por setor e estado. Os dados são atualizados diariamente.`,
     },
   ];
 
@@ -225,7 +225,7 @@ export default async function ContratosSetorUfPage({ params }: Props) {
             Contratos Públicos de {sector.name} {getUfPrep(ufUpper)} {ufName}
           </h1>
           <p className="text-gray-500 text-sm mb-6">
-            {data?.last_updated ? getFreshnessLabel(data.last_updated) : 'Dados do PNCP'}
+            {data?.last_updated ? getFreshnessLabel(data.last_updated) : 'Dados das fontes oficiais'}
             {' · Fonte: Portal Nacional de Contratações Públicas'}
           </p>
 
@@ -236,7 +236,7 @@ export default async function ContratosSetorUfPage({ params }: Props) {
                 Nenhum contrato de {sector.name} encontrado {getUfPrep(ufUpper)} {ufName} no periodo consultado.
               </p>
               <p className="text-sm text-gray-400 mt-2">
-                Os dados são indexados diariamente do PNCP. Volte em breve.
+                Os dados são indexados diariamente das fontes oficiais. Volte em breve.
               </p>
             </div>
           ) : (
@@ -467,7 +467,7 @@ export default async function ContratosSetorUfPage({ params }: Props) {
               Monitore contratos de {sector.name} {getUfPrep(ufUpper)} {ufName}
             </h2>
             <p className="text-gray-600 mb-4">
-              Receba alertas quando novos contratos forem publicados no PNCP.
+              Receba alertas quando novos contratos forem publicados nas fontes oficiais.
             </p>
             <Link
               href="/signup?ref=contratos-bot"
@@ -477,7 +477,7 @@ export default async function ContratosSetorUfPage({ params }: Props) {
             </Link>
           </section>
 
-          <p className="text-xs text-gray-400 mt-8">{data?.aviso_legal || 'Dados do PNCP. Atualização diária.'}</p>
+          <p className="text-xs text-gray-400 mt-8">{data?.aviso_legal || 'Dados das fontes oficiais. Atualização diária.'}</p>
         </div>
       </main>
       <Footer />

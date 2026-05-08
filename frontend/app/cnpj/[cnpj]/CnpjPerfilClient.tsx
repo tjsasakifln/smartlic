@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import StickyTrialCTA from '@/app/components/StickyTrialCTA';
 import { ViabilityVerdict } from '@/components/ViabilityVerdict';
+import { AdvisoryDisclaimer } from '@/components/legal/AdvisoryDisclaimer';
 
 interface Contrato {
   orgao: string;
@@ -201,6 +202,8 @@ export default function CnpjPerfilClient({ perfil }: { perfil: PerfilB2G }) {
       {viabilityScore !== null && (
         <div className="mb-8">
           <ViabilityVerdict score={viabilityScore} compact />
+          {/* REPO-020 (#772): compact mode omits built-in disclaimer; render it explicitly */}
+          <AdvisoryDisclaimer />
         </div>
       )}
 

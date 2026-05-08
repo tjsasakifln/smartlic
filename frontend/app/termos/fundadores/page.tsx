@@ -222,8 +222,8 @@ export default function TermosFundadoresPage() {
               <p className="text-gray-700 dark:text-gray-300 leading-relaxed mb-4">
                 Para exercer o direito de retratação, o consumidor deve entrar em contato com o
                 suporte SmartLic através da plataforma ou pelo e-mail{' '}
-                <a href="mailto:tiago@smartlic.tech" className="text-blue-600 dark:text-blue-400 hover:underline">
-                  tiago@smartlic.tech
+                <a href="mailto:tiago.sasaki@confenge.com.br" className="text-blue-600 dark:text-blue-400 hover:underline">
+                  tiago.sasaki@confenge.com.br
                 </a>{' '}
                 dentro do prazo.
               </p>

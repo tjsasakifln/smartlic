@@ -25,7 +25,7 @@ const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 const REASON_MESSAGES: Record<string, string> = {
   founding_cap_reached:
-    'As vagas fundadores já foram preenchidas. Obrigado pelo interesse — escreva para tiago@smartlic.tech para entrar na lista de espera.',
+    'As vagas fundadores já foram preenchidas. Obrigado pelo interesse — escreva para tiago.sasaki@confenge.com.br para entrar na lista de espera.',
   founding_deadline_passed:
     'O período de inscrição fundadores encerrou. O plano regular SmartLic Pro continua disponível em /pricing.',
   founding_paused:

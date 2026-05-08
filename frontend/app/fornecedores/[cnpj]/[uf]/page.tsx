@@ -64,7 +64,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
   return {
     title: `Fornecedores de ${sector.name} ${getUfPrep(ufUpper)} ${ufName} ${year} — SmartLic`,
-    description: `Quais empresas vendem ${sector.name} para o governo de ${ufName}? Ranking de fornecedores com valor de contratos. Dados PNCP.`,
+    description: `Quais empresas vendem ${sector.name} para o governo de ${ufName}? Ranking de fornecedores com valor de contratos. Dados das fontes oficiais.`,
     alternates: { canonical: buildCanonical(`/fornecedores/${setor}/${uf}`) },
     openGraph: {
       title: `Fornecedores: ${sector.name} ${getUfPrep(ufUpper)} ${ufName}`,
@@ -104,12 +104,12 @@ export default async function FornecedoresSetorUfPage({ params }: Props) {
     },
     {
       question: `Como se tornar fornecedor de ${sector.name} para o governo?`,
-      answer: `Para vender ${sector.name} para o governo, cadastre-se no PNCP e participe de licitacoes. O SmartLic ajuda a encontrar oportunidades relevantes.`,
+      answer: `Para vender ${sector.name} para o governo, cadastre sua empresa e participe de licitacoes. O SmartLic ajuda a encontrar oportunidades relevantes.`,
     },
     {
       question: `Quantos fornecedores de ${sector.name} existem ${getUfPrep(ufUpper)} ${ufName}?`,
       answer: data
-        ? `Existem ${data.total_suppliers} fornecedores de ${sector.name} registrados ${getUfPrep(ufUpper)} ${ufName} no PNCP.`
+        ? `Existem ${data.total_suppliers} fornecedores de ${sector.name} registrados ${getUfPrep(ufUpper)} ${ufName} nas fontes oficiais.`
         : `Veja o total atualizado de fornecedores nesta pagina.`,
     },
   ];
@@ -190,7 +190,7 @@ export default async function FornecedoresSetorUfPage({ params }: Props) {
             Fornecedores de {sector.name} {getUfPrep(ufUpper)} {ufName}
           </h1>
           <p className="text-gray-500 text-sm mb-6">
-            {data?.last_updated ? getFreshnessLabel(data.last_updated) : 'Dados do PNCP'}
+            {data?.last_updated ? getFreshnessLabel(data.last_updated) : 'Dados das fontes oficiais'}
             {' · Fonte: Portal Nacional de Contratacoes Publicas'}
           </p>
 
@@ -200,7 +200,7 @@ export default async function FornecedoresSetorUfPage({ params }: Props) {
                 Nenhum fornecedor de {sector.name} encontrado {getUfPrep(ufUpper)} {ufName} no periodo consultado.
               </p>
               <p className="text-sm text-gray-400 mt-2">
-                Os dados sao indexados diariamente do PNCP. Volte em breve.
+                Os dados sao indexados diariamente das fontes oficiais. Volte em breve.
               </p>
             </div>
           ) : (
@@ -315,7 +315,7 @@ export default async function FornecedoresSetorUfPage({ params }: Props) {
               Encontre licitações de {sector.name} {getUfPrep(ufUpper)} {ufName}
             </h2>
             <p className="text-gray-600 mb-4">
-              O SmartLic monitora editais e contratos do PNCP automaticamente.
+              O SmartLic monitora editais e contratos das fontes oficiais automaticamente.
             </p>
             <Link
               href="/signup"
@@ -325,7 +325,7 @@ export default async function FornecedoresSetorUfPage({ params }: Props) {
             </Link>
           </section>
 
-          <p className="text-xs text-gray-400 mt-8">{data?.aviso_legal || 'Dados do PNCP. Atualização diária.'}</p>
+          <p className="text-xs text-gray-400 mt-8">{data?.aviso_legal || 'Dados das fontes oficiais. Atualização diária.'}</p>
         </div>
       </main>
       <Footer />

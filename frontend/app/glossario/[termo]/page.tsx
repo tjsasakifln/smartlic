@@ -284,7 +284,7 @@ export default async function GlossaryTermPage({
                   Encontre editais abertos agora
                 </h2>
                 <p className="text-white/85 max-w-sm mx-auto mb-5 text-sm leading-relaxed">
-                  O SmartLic monitora PNCP diariamente e classifica licitações por setor automaticamente.
+                  O SmartLic monitora as fontes oficiais de licitações diariamente e classifica por setor automaticamente.
                 </p>
                 <Link
                   href="/signup?source=glossario-termo"
