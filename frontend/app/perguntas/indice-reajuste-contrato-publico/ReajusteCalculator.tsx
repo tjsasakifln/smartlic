@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { trackPseoEvent } from '@/lib/analytics/pseo';
 
 /* ------------------------------------------------------------------
  * Hardcoded annual rates (IBGE/FGV official data + 2025 estimate)
@@ -149,6 +150,13 @@ export default function ReajusteCalculator() {
     }
 
     setResult(calc);
+    trackPseoEvent('pseo_calculator_result', {
+      source_template: 'calculadora_reajuste',
+      page_url: typeof window !== 'undefined' ? window.location.href : undefined,
+      indice,
+      periodicidade,
+      periodos: calc.periodos,
+    });
   }
 
   function handleValorInput(raw: string) {

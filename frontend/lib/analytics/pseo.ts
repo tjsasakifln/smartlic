@@ -1,0 +1,77 @@
+/**
+ * Typed Mixpanel analytics wrappers for pSEO micro-conversion events.
+ * PSEO-CONV-001 (#884)
+ *
+ * All functions respect LGPD cookie consent (same gate as analytics-events.ts).
+ * All functions are SSR-safe: they return early when window is unavailable.
+ * All functions never throw — errors are swallowed silently.
+ */
+
+import mixpanel from 'mixpanel-browser';
+import { getCookieConsent } from '@/app/components/CookieConsentBanner';
+
+// ---------------------------------------------------------------------------
+// Types
+// ---------------------------------------------------------------------------
+
+export type PseoEventName =
+  | 'pseo_search_performed'
+  | 'pseo_edital_viewed'
+  | 'pseo_alert_signup'
+  | 'pseo_supplier_viewed'
+  | 'pseo_organ_viewed'
+  | 'pseo_calculator_result'
+  | 'pseo_lead_captured'
+  | 'pseo_checkout_click';
+
+export type PseoSourceTemplate =
+  | 'fornecedor_page'
+  | 'orgao_page'
+  | 'contrato_page'
+  | 'cnpj_page'
+  | 'blog_hub'
+  | 'perguntas'
+  | 'licitacoes_hub'
+  | 'calculadora_reajuste';
+
+export type PseoEventProperties = {
+  source_template: PseoSourceTemplate;
+  page_url?: string;
+  [key: string]: unknown;
+};
+
+// ---------------------------------------------------------------------------
+// Internal helpers
+// ---------------------------------------------------------------------------
+
+function isTrackingEnabled(): boolean {
+  if (typeof window === 'undefined') return false;
+  if (!process.env.NEXT_PUBLIC_MIXPANEL_TOKEN) return false;
+  const consent = getCookieConsent();
+  return consent?.analytics === true;
+}
+
+// ---------------------------------------------------------------------------
+// Public API
+// ---------------------------------------------------------------------------
+
+/**
+ * Track a pSEO micro-conversion event.
+ *
+ * Requires LGPD consent and Mixpanel token. SSR-safe.
+ */
+export function trackPseoEvent(
+  event: PseoEventName,
+  properties: PseoEventProperties,
+): void {
+  if (!isTrackingEnabled()) return;
+  try {
+    mixpanel.track(event, {
+      ...properties,
+      timestamp: new Date().toISOString(),
+      environment: process.env.NODE_ENV || 'development',
+    });
+  } catch {
+    // Mixpanel not initialized or consent not given
+  }
+}

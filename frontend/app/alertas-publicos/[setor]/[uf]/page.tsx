@@ -1,6 +1,7 @@
 import { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
+import AlertasEditalLink from './AlertasEditalLink';
 import {
   generateSectorUfParams,
   getSectorFromSlug,
@@ -210,14 +211,10 @@ export default async function AlertasPage({ params }: Props) {
                     )}
                   </div>
                   {bid.link_pncp && (
-                    <a
+                    <AlertasEditalLink
                       href={bid.link_pncp}
-                      target="_blank"
-                      rel="nofollow noopener noreferrer"
-                      className="inline-block mt-2 text-sm text-brand-blue hover:underline"
-                    >
-                      Ver edital →
-                    </a>
+                      editalId={bid.pncp_id || String(i)}
+                    />
                   )}
                 </article>
               ))}
@@ -235,7 +232,7 @@ export default async function AlertasPage({ params }: Props) {
               Score de viabilidade, alertas por email, exportação Excel. 14 dias grátis.
             </p>
             <Link
-              href={`/signup?ref=alertas-${setor}-${uf}`}
+              href={`/signup?ref=alertas-${setor}-${uf}&utm_source=pseo&utm_medium=organic&utm_content=blog_hub`}
               className="inline-block px-8 py-4 bg-white text-brand-navy font-bold rounded-xl hover:bg-gray-100 transition-colors text-lg shadow-lg"
             >
               Analisar Oportunidades →
