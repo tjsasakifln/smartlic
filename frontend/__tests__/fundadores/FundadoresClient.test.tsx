@@ -37,9 +37,8 @@ describe('FundadoresClient', () => {
 
   it('contains urgency copy about encerra date', () => {
     render(<FundadoresClient />);
-    expect(
-      screen.getByText(/Encerra 30\/06\/2026/i)
-    ).toBeInTheDocument();
+    const matches = screen.getAllByText(/Encerra 30\/06\/2026/i);
+    expect(matches.length).toBeGreaterThanOrEqual(1);
   });
 
   it('contains comparison section headline', () => {
