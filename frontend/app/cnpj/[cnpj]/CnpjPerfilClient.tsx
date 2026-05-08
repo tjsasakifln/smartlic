@@ -215,6 +215,7 @@ export default function CnpjPerfilClient({ perfil }: { perfil: PerfilB2G }) {
         </p>
         <Link
           href={`/signup?ref=cnpj-mid&setor=${perfil.setor_detectado}&uf=${empresa.uf}`}
+          data-testid="pseo-cta-primary"
           className="text-sm font-bold text-white bg-green-600 hover:bg-green-700 px-4 py-2 rounded-md whitespace-nowrap w-full sm:w-auto text-center"
           onClick={() => {
             if (typeof window !== 'undefined' && window.mixpanel) {

@@ -135,6 +135,11 @@ export default async function FornecedorCnpjPage({ params }: Props) {
     (f) => f.answer.replace(/<[^>]*>/g, '').length >= 300
   );
 
+  // PSEO-MOBILE-001 #886: valorFmt for Dataset JSON-LD description
+  const valorFmtLd = profile.valor_total >= 1_000_000
+    ? `R$ ${(profile.valor_total / 1_000_000).toFixed(1)} mi`
+    : `R$ ${(profile.valor_total / 1_000).toFixed(0)} mil`;
+
   const jsonLd = [
     {
       '@context': 'https://schema.org',
@@ -171,6 +176,25 @@ export default async function FornecedorCnpjPage({ params }: Props) {
             })),
           }
         : {}),
+    },
+    // PSEO-MOBILE-001 #886: Dataset schema for Google Dataset Search rich results
+    {
+      '@context': 'https://schema.org',
+      '@type': 'Dataset',
+      name: `Contratos públicos — ${profile.razao_social}`,
+      description: `Histórico de contratos públicos de ${profile.razao_social} (CNPJ ${cnpj}) no Portal Nacional de Contratações Públicas. ${profile.total_contratos} contratos, totalizando ${valorFmtLd}, em ${profile.ufs_atuantes.length} estado(s).`,
+      publisher: {
+        '@type': 'Organization',
+        name: 'SmartLic',
+        url: 'https://smartlic.tech',
+      },
+      creator: { '@type': 'Organization', name: 'SmartLic', url: 'https://smartlic.tech' },
+      license: 'https://dados.gov.br/dados/conteudo/sobre-dados-abertos',
+      distribution: {
+        '@type': 'DataDownload',
+        contentUrl: `https://smartlic.tech/fornecedores/${cnpj}`,
+        encodingFormat: 'text/html',
+      },
     },
     {
       '@context': 'https://schema.org',
@@ -231,10 +255,24 @@ export default async function FornecedorCnpjPage({ params }: Props) {
             CNPJ {cnpj.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})$/, '$1.$2.$3/$4-$5')}
             {profile.cnae_descricao && <> &middot; {profile.cnae_descricao}</>}
           </p>
-          <p className="text-sm text-gray-400 mb-6">
+          <p className="text-sm text-gray-400 mb-4">
             {profile.last_updated ? getFreshnessLabel(profile.last_updated) : 'Dados das fontes oficiais'}
             {' · Fonte: Portal Nacional de Contratacoes Publicas'}
           </p>
+
+          {/* PSEO-MOBILE-001 #886: Primary CTA above the fold — visible on mobile 375px without scroll */}
+          <div className="mb-6 rounded-lg bg-blue-600 px-4 py-4 text-center sm:text-left sm:flex sm:items-center sm:justify-between sm:gap-4">
+            <p className="text-sm text-blue-100 mb-3 sm:mb-0">
+              Monitore editais do setor de <span className="font-semibold text-white">{profile.razao_social}</span> e receba alertas automáticos.
+            </p>
+            <Link
+              href={`/signup?ref=fornecedor&cnpj=${cnpj}`}
+              data-testid="pseo-cta-primary"
+              className="inline-block whitespace-nowrap rounded-lg bg-white px-5 py-2.5 text-sm font-semibold text-blue-700 hover:bg-blue-50 transition-colors min-h-[44px] leading-[44px] sm:leading-normal sm:py-2.5"
+            >
+              Testar 14 dias grátis →
+            </Link>
+          </div>
 
           {/* KPI Cards */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-8">
