@@ -157,7 +157,10 @@ def _mask_email(email: str) -> str:
     """Return a masked email exposing only the first 2 chars of the local part.
 
     Example: ``mariaalvabaron@gmail.com`` -> ``ma****@gmail.com``
+    Returns the input unchanged if it does not contain ``@`` (malformed).
     """
+    if "@" not in email:
+        return email
     local, domain = email.split("@", 1)
     return f"{local[:2]}****@{domain}"
 
