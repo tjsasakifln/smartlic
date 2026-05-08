@@ -445,8 +445,8 @@ async def founding_checkout(
         "payment_method_types": ["card", "boleto"],
         "line_items": [{"price": founding_price_id, "quantity": 1}],
         "mode": "payment",
-        "success_url": f"{frontend_url}/founding/obrigado?session_id={{CHECKOUT_SESSION_ID}}",
-        "cancel_url": f"{frontend_url}/founding?cancelled=true",
+        "success_url": f"{frontend_url}/fundadores/obrigado?session_id={{CHECKOUT_SESSION_ID}}",
+        "cancel_url": f"{frontend_url}/fundadores?cancelled=true",
         "customer_email": payload.email,
         "metadata": {
             "source": "founding",

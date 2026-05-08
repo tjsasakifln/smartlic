@@ -54,9 +54,25 @@ const nextConfig = {
 
   // SEO: Redirect acentuado → slug canônico (ISSUE-SEO-004)
   // SEO: Consolidar pricing pages — /pricing → /planos (ISSUE-SEO-005)
+  // Fix #870: Redirecionar /founding → /fundadores (301 permanente)
   async redirects() {
     return [
       ...buildLegacyLicitacoesRedirects(),
+      {
+        source: '/founding/obrigado',
+        destination: '/fundadores/obrigado',
+        permanent: true,
+      },
+      {
+        source: '/founding',
+        destination: '/fundadores',
+        permanent: true,
+      },
+      {
+        source: '/founding/:path*',
+        destination: '/fundadores/:path*',
+        permanent: true,
+      },
       {
         source: '/gloss%C3%A1rio',
         destination: '/glossario',
