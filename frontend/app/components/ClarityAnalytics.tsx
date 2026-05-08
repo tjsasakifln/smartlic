@@ -51,3 +51,22 @@ export function ClarityAnalytics() {
 
   return null;
 }
+
+/**
+ * Set a custom session tag in Microsoft Clarity.
+ * SSR-safe: no-op when window is unavailable.
+ * LGPD-safe: no-op when window.clarity is not initialized
+ * (Clarity only loads after analytics consent via ClarityAnalytics component).
+ *
+ * @example
+ * setClarityTag("user_stage", "onboarding");
+ * setClarityTag("plan_type", "free_trial");
+ */
+export function setClarityTag(key: string, value: string): void {
+  if (typeof window !== "undefined") {
+    const win = window as Window & { clarity?: (...args: unknown[]) => void };
+    if (typeof win.clarity === "function") {
+      win.clarity("set", key, value);
+    }
+  }
+}
