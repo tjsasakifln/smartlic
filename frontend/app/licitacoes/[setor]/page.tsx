@@ -18,6 +18,7 @@ import { MicroDemoSchema } from "@/components/seo/MicroDemoSchema";
 import StickyTrialCTA from "@/app/components/StickyTrialCTA";
 import { buildDatasetJsonLd } from "./_jsonld";
 import { FoundersRibbon } from "@/components/banners/FoundersRibbon";
+import { AdvisoryDisclaimer } from "@/components/legal/AdvisoryDisclaimer";
 
 /**
  * STORY-324 AC5: SSG with ISR 6h for sector landing pages.
@@ -258,6 +259,11 @@ export default async function SectorPage({
         <div className="mt-12 max-w-2xl mx-auto">
           <MicroDemo variant="busca" />
           <MicroDemoSchema variant="busca" />
+        </div>
+
+        {/* REPO-020 (#772): Advisory disclaimer — score-based recommendations shown above */}
+        <div className="mt-6 max-w-2xl mx-auto">
+          <AdvisoryDisclaimer />
         </div>
       </section>
 
