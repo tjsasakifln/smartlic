@@ -557,10 +557,10 @@ describe("CRIT-053 AC8: DataQualityBanner severity escalation", () => {
       />
     );
 
-    // Message should include both segments: timeout count + PNCP degradation
+    // Message should include both segments: timeout count + degradation message
     expect(screen.getByText(/1 timeout/)).toBeInTheDocument();
     expect(
-      screen.getByText(/fonte principal \(PNCP\) esta com lentidao/)
+      screen.getByText(/A fonte principal esta com lentidao/)
     ).toBeInTheDocument();
   });
 });
