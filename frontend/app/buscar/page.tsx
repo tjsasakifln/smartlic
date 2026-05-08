@@ -35,6 +35,7 @@ import { ReferralToast, shouldShowReferralToast } from "./components/ReferralToa
 import { RestoredResultsBanner } from "./components/RestoredResultsBanner";
 import { clearNewBidsBadge } from "../../components/NewBidsNotificationBadge";
 import { setClarityTag } from "../components/ClarityAnalytics";
+import { tagOnboardingStep } from "../../lib/analytics/clarity_onboarding";
 
 function HomePageContent() {
   const orch = useSearchOrchestration();
@@ -97,11 +98,13 @@ function HomePageContent() {
   }, [orch.planInfo?.plan_id]);
 
   // CONV-INST-005 AC4: tag first_analysis_done once when results arrive
+  // Also tag onboarding_step=first_search for funnel filtering in Clarity dashboard
   useEffect(() => {
     if (firstAnalysisDoneRef.current) return;
     if (!orch.search.result || orch.search.loading) return;
     firstAnalysisDoneRef.current = true;
     setClarityTag("first_analysis_done", "true");
+    tagOnboardingStep('first_search');
   }, [orch.search.result, orch.search.loading]);
 
   if (orch.authLoading) {
