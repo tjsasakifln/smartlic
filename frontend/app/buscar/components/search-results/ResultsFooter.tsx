@@ -109,7 +109,7 @@ export function ResultsFooter({
               <div className="flex items-center justify-center gap-2 animate-fade-in">
                 {result.source_stats.filter((s: { status: string }) => s.status === "success" || s.status === "partial").map((s: { source_code: string; record_count: number; status: string }) => (
                   <span key={s.source_code} className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${s.source_code === 'PNCP' ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300' : 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300'}`}>
-                    {s.source_code === 'PNCP' ? 'nossas fontes' : s.source_code}: {s.record_count}
+                    {({'PNCP': 'nossas fontes', 'PORTAL_COMPRAS': 'Portal de Compras', 'COMPRAS_GOV': 'Compras.gov.br'} as Record<string, string>)[s.source_code] ?? s.source_code}: {s.record_count}
                   </span>
                 ))}
               </div>

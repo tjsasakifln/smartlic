@@ -152,7 +152,7 @@ describe("SearchResults with progressive results", () => {
       />
     );
 
-    expect(screen.getByText("PNCP")).toBeInTheDocument();
+    expect(screen.getByText("Fontes Oficiais")).toBeInTheDocument();
     expect(screen.getByText("Portal de Compras")).toBeInTheDocument();
   });
 
