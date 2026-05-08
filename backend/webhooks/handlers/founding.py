@@ -15,7 +15,7 @@ FOUND-CRIT-006 mode=payment support:
   reads ``metadata.source``, refund helpers read ``payment_intent``, and
   ``_activate_lifetime_founder_entitlement`` does not reference ``subscription``.
 - FOUND-CRIT-003 invite: when the buyer has not yet created an account
-  (founding is sold to unauthenticated visitors), ``_send_founder_invite``
+  (founding is sold to unauthenticated visitors), ``_send_founding_invite``
   dispatches a Supabase magic-link invite email and stamps
   ``founding_leads.magic_link_sent_at`` for idempotency.
 
@@ -287,7 +287,7 @@ def _dispatch_founders_welcome_email(email: str, user_name: str) -> None:
     thread.start()
 
 
-def _send_founder_invite(sb, email: str, lead_id: str | None, sid: str | None) -> None:
+def _send_founding_invite(sb, email: str, lead_id: str | None, sid: str | None) -> None:
     """FOUND-CRIT-003: dispatch a Supabase magic-link invite when the founder
     has paid but has not yet created an account.
 
@@ -381,7 +381,7 @@ def _activate_lifetime_founder_entitlement(sb, session: Any, lead_id: str | None
             f"(session_id={sid} email={email} lead_id={lead_id})"
         )
         # FOUND-CRIT-003: send Supabase magic-link invite so the buyer can sign up.
-        _send_founder_invite(sb, email=email, lead_id=lead_id, sid=sid)
+        _send_founding_invite(sb, email=email, lead_id=lead_id, sid=sid)
         return
 
     consulting_discount_pct = _read_consulting_discount_pct(sb)

@@ -3,7 +3,7 @@
 Covers:
 - _is_founding_session detects mode=payment sessions correctly (metadata.source='founding')
 - mark_founding_lead_completed works with mode=payment session (subscription=None)
-- _send_founder_invite dispatches Supabase invite when user has no account
+- _send_founding_invite dispatches Supabase invite when user has no account
 - Idempotency: invite is not resent when magic_link_sent_at is already set
 - checkout.py routes founding mode=payment sessions to mark_founding_lead_completed
   before the subscription-activation path (no spurious "missing plan_id" warning)
@@ -21,7 +21,7 @@ os.environ.setdefault("STRIPE_SECRET_KEY", "sk_test_fake")
 
 from webhooks.handlers.founding import (  # noqa: E402
     _is_founding_session,
-    _send_founder_invite,
+    _send_founding_invite,
     _activate_lifetime_founder_entitlement,
     mark_founding_lead_completed,
 )
@@ -246,11 +246,11 @@ def test_mark_founding_lead_completed_payment_intent_used_for_refund():
 
 
 # ---------------------------------------------------------------------------
-# _send_founder_invite — FOUND-CRIT-003
+# _send_founding_invite — FOUND-CRIT-003
 # ---------------------------------------------------------------------------
 
 
-def test_send_founder_invite_calls_supabase_admin_invite():
+def test_send_founding_invite_calls_supabase_admin_invite():
     """Dispatches auth.admin.invite_user_by_email in background thread."""
     fake_sb = MagicMock()
     # No magic_link_sent_at → invite should proceed
@@ -264,7 +264,7 @@ def test_send_founder_invite_calls_supabase_admin_invite():
     fake_sb.auth.admin = MagicMock()
     fake_sb.auth.admin.invite_user_by_email = MagicMock(return_value=MagicMock())
 
-    _send_founder_invite(fake_sb, email=_DEFAULT_EMAIL, lead_id=_DEFAULT_LEAD_ID, sid="cs_test_invite")
+    _send_founding_invite(fake_sb, email=_DEFAULT_EMAIL, lead_id=_DEFAULT_LEAD_ID, sid="cs_test_invite")
     time.sleep(0.1)  # allow daemon thread to run
 
     fake_sb.auth.admin.invite_user_by_email.assert_called_once_with(
@@ -273,7 +273,7 @@ def test_send_founder_invite_calls_supabase_admin_invite():
     )
 
 
-def test_send_founder_invite_stamps_magic_link_sent_at():
+def test_send_founding_invite_stamps_magic_link_sent_at():
     """magic_link_sent_at is set on founding_leads after successful invite."""
     fake_sb = MagicMock()
     fake_sb.table.return_value = fake_sb
@@ -286,7 +286,7 @@ def test_send_founder_invite_stamps_magic_link_sent_at():
     fake_sb.auth.admin = MagicMock()
     fake_sb.auth.admin.invite_user_by_email = MagicMock(return_value=MagicMock())
 
-    _send_founder_invite(fake_sb, email=_DEFAULT_EMAIL, lead_id=_DEFAULT_LEAD_ID, sid="cs_test_stamp")
+    _send_founding_invite(fake_sb, email=_DEFAULT_EMAIL, lead_id=_DEFAULT_LEAD_ID, sid="cs_test_stamp")
     time.sleep(0.1)
 
     # update was called on founding_leads
@@ -297,7 +297,7 @@ def test_send_founder_invite_stamps_magic_link_sent_at():
     ), "magic_link_sent_at should be stamped after invite is sent"
 
 
-def test_send_founder_invite_idempotent_when_already_sent():
+def test_send_founding_invite_idempotent_when_already_sent():
     """Does not send invite again when magic_link_sent_at is already set."""
     fake_sb = MagicMock()
     fake_sb.table.return_value = fake_sb
@@ -311,13 +311,13 @@ def test_send_founder_invite_idempotent_when_already_sent():
     fake_sb.auth.admin = MagicMock()
     fake_sb.auth.admin.invite_user_by_email = MagicMock()
 
-    _send_founder_invite(fake_sb, email=_DEFAULT_EMAIL, lead_id=_DEFAULT_LEAD_ID, sid="cs_dup")
+    _send_founding_invite(fake_sb, email=_DEFAULT_EMAIL, lead_id=_DEFAULT_LEAD_ID, sid="cs_dup")
     time.sleep(0.05)
 
     fake_sb.auth.admin.invite_user_by_email.assert_not_called()
 
 
-def test_send_founder_invite_never_raises_on_exception():
+def test_send_founding_invite_never_raises_on_exception():
     """invite_user_by_email failure does not raise — fire-and-forget."""
     fake_sb = MagicMock()
     fake_sb.table.return_value = fake_sb
@@ -330,7 +330,7 @@ def test_send_founder_invite_never_raises_on_exception():
     fake_sb.auth.admin.invite_user_by_email.side_effect = RuntimeError("Supabase down")
 
     # Must not raise
-    _send_founder_invite(fake_sb, email=_DEFAULT_EMAIL, lead_id=_DEFAULT_LEAD_ID, sid="cs_err")
+    _send_founding_invite(fake_sb, email=_DEFAULT_EMAIL, lead_id=_DEFAULT_LEAD_ID, sid="cs_err")
     time.sleep(0.1)
 
 
@@ -340,12 +340,12 @@ def test_send_founder_invite_never_raises_on_exception():
 
 
 def test_activate_entitlement_no_account_triggers_invite():
-    """When user_id is not found, _send_founder_invite is called instead of deferred silently."""
+    """When user_id is not found, _send_founding_invite is called instead of deferred silently."""
     fake_sb = _make_sb_no_account()
     session = _mode_payment_session()
 
     with patch(
-        "webhooks.handlers.founding._send_founder_invite"
+        "webhooks.handlers.founding._send_founding_invite"
     ) as mock_invite:
         _activate_lifetime_founder_entitlement(fake_sb, session, _DEFAULT_LEAD_ID)
 
@@ -362,7 +362,7 @@ def test_activate_entitlement_no_account_does_not_call_profiles_update():
     fake_sb = _make_sb_no_account()
     session = _mode_payment_session()
 
-    with patch("webhooks.handlers.founding._send_founder_invite"):
+    with patch("webhooks.handlers.founding._send_founding_invite"):
         _activate_lifetime_founder_entitlement(fake_sb, session, _DEFAULT_LEAD_ID)
 
     # profiles table should only be touched for the user_id lookup (select),
@@ -373,7 +373,7 @@ def test_activate_entitlement_no_account_does_not_call_profiles_update():
     # We don't assert zero calls (select is needed for lookup), but update
     # specifically must not have been called on the profiles mock.
     # Because _make_sb_no_account returns empty data, and the handler returns
-    # after _send_founder_invite, no update payload should be dispatched.
+    # after _send_founding_invite, no update payload should be dispatched.
     # Verify by checking no update() call was made after the deferred path.
     # (The simplest assertion: mock_invite was called and no exception raised.)
     # Already covered by test_activate_entitlement_no_account_triggers_invite.
