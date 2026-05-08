@@ -4994,7 +4994,8 @@ export interface paths {
          * Resend Webhook
          * @description Handle Resend webhook events for email tracking.
          *
-         *     Security: Svix HMAC-SHA256 signature verified against `RESEND_WEBHOOK_SECRET`.
+         *     Security: Svix HMAC-SHA256 signature verified against `TRIAL_EMAILS_WEBHOOK_SECRET`
+         *     (or legacy alias `RESEND_WEBHOOK_SECRET`).
          *     Replay protection: timestamp must be within 5 minutes of now.
          *     Fail-closed — missing secret or invalid signature returns 401.
          *
