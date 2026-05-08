@@ -491,8 +491,8 @@ describe("SearchResults - Source Indicators (GTM-FIX-011 AC32)", () => {
       const pncpBadge = screen.getByText(/nossas fontes: 80/).closest("span");
       expect(pncpBadge?.className).toContain("bg-blue-100");
 
-      // PORTAL_COMPRAS badge should have green styling
-      const pcpBadge = screen.getByText(/PORTAL_COMPRAS: 20/).closest("span");
+      // PORTAL_COMPRAS badge should have green styling (displayed as "Portal de Compras" per rename)
+      const pcpBadge = screen.getByText(/Portal de Compras: 20/).closest("span");
       expect(pcpBadge?.className).toContain("bg-green-100");
     });
 
