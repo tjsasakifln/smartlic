@@ -112,6 +112,19 @@ class FoundingAvailabilityResponse(BaseModel):
     price_brl_cents: int = Field(default=99700, description="Price in BRL cents")
 
 
+class FoundingSessionStatusResponse(BaseModel):
+    """Enriched session status for the /fundadores/obrigado page (#865).
+
+    Returns masked email, has_account, and invite_sent so the frontend can
+    render the correct post-purchase CTA without exposing full PII.
+    """
+
+    status: str = Field(description="'completed' | 'pending' | 'not_found'")
+    email: str = Field(description="Masked email (2 chars before @ + **** + domain).")
+    has_account: bool = Field(description="True if a profiles row exists for this email.")
+    invite_sent: bool = Field(description="True if magic_link_sent_at IS NOT NULL.")
+
+
 def _is_valid_cnpj_check_digits(cnpj: str) -> bool:
     """Validate Brazilian CNPJ check digits. `cnpj` must be 14 digits already."""
     if len(cnpj) != 14 or not cnpj.isdigit():
@@ -140,6 +153,18 @@ def _client_ip(request: Request) -> str:
     return request.client.host if request.client else "unknown"
 
 
+def _mask_email(email: str) -> str:
+    """Return a masked email exposing only the first 2 chars of the local part.
+
+    Example: ``mariaalvabaron@gmail.com`` -> ``ma****@gmail.com``
+    Returns the input unchanged if it does not contain ``@`` (malformed).
+    """
+    if "@" not in email:
+        return email
+    local, domain = email.split("@", 1)
+    return f"{local[:2]}****@{domain}"
+
+
 def _already_registered(sb, email: str) -> bool:
     """Return True if the email already owns a profile. Best-effort, non-blocking."""
     try:
@@ -148,6 +173,22 @@ def _already_registered(sb, email: str) -> bool:
     except Exception as e:
         logger.warning(f"founding: profile lookup failed (non-blocking): {e}")
         return False
+
+
+def _get_session_lead(sb, session_id: str) -> dict | None:
+    """Return founding_leads row for the given Stripe checkout session ID.
+
+    Returns ``None`` when not found. Raises on unexpected DB errors.
+    """
+    res = (
+        sb.table("founding_leads")
+        .select("email, checkout_status, magic_link_sent_at, created_at")
+        .eq("checkout_session_id", session_id)
+        .limit(1)
+        .execute()
+    )
+    rows = res.data or []
+    return rows[0] if rows else None
 
 
 def _check_availability(sb) -> dict[str, Any]:
@@ -316,6 +357,104 @@ async def founding_checkout_status(
     except Exception as exc:
         logger.warning(f"founding: checkout/status retrieval failed — session_id_prefix={session_id[:8]} err={exc}")
         return FoundingCheckoutStatusResponse(status="unknown", payment_status="unpaid")
+
+
+@router.get("/session-status", response_model=FoundingSessionStatusResponse)
+async def founding_session_status(
+    session_id: str = Query(..., min_length=8),
+    _rl=Depends(require_rate_limit(10, 60)),
+) -> Any:
+    """Enriched session status for the /fundadores/obrigado confirmation page (#865).
+
+    No auth required — Stripe ``cs_*`` session IDs are long random opaque tokens.
+    Returns masked email, ``has_account``, and ``invite_sent`` so the frontend
+    can render the right post-purchase CTA without polling Stripe directly.
+
+    Expiry guard: sessions with checkout_status != 'completed' that are older
+    than 24 h return ``status='pending'`` to prevent infinite polling.
+    """
+    from datetime import datetime, timezone
+
+    sb = get_supabase()
+
+    def _fetch():
+        return _get_session_lead(sb, session_id)
+
+    try:
+        lead = await _run_with_budget(
+            asyncio.to_thread(_fetch),
+            budget=5.0,
+            phase="route",
+            source="founding.session_status",
+        )
+    except Exception as exc:
+        logger.warning(
+            f"founding: session-status DB error — session_id_prefix={session_id[:8]} err={exc}"
+        )
+        raise HTTPException(
+            status_code=503,
+            detail="Erro temporário ao consultar status. Tente novamente.",
+        )
+
+    if lead is None:
+        return FoundingSessionStatusResponse(
+            status="not_found",
+            email="",
+            has_account=False,
+            invite_sent=False,
+        )
+
+    email: str = lead.get("email", "") or ""
+    checkout_status: str = lead.get("checkout_status", "") or ""
+    magic_link_sent_at = lead.get("magic_link_sent_at")
+    created_at_raw = lead.get("created_at")
+
+    # Status resolution — completed is always returned as-is.
+    # Non-completed leads older than 24 h are capped at "pending" to stop polling.
+    status: str
+    if checkout_status == "completed":
+        status = "completed"
+    else:
+        age_expired = False
+        if created_at_raw:
+            try:
+                created_dt = (
+                    datetime.fromisoformat(created_at_raw.replace("Z", "+00:00"))
+                    if isinstance(created_at_raw, str)
+                    else created_at_raw
+                )
+                if created_dt.tzinfo is None:
+                    created_dt = created_dt.replace(tzinfo=timezone.utc)
+                if (datetime.now(tz=timezone.utc) - created_dt).total_seconds() > 86400:
+                    age_expired = True
+            except Exception:
+                pass  # unparseable date — leave age_expired=False (safe)
+        status = "pending" if age_expired else (checkout_status or "pending")
+
+    # has_account — non-blocking profile lookup
+    has_account = False
+    if email:
+        try:
+            has_account = await asyncio.to_thread(_already_registered, sb, email)
+        except Exception as exc:
+            logger.warning(
+                f"founding: session-status profile check failed (non-blocking): {exc}"
+            )
+
+    invite_sent = bool(magic_link_sent_at)
+    masked = _mask_email(email) if email else ""
+
+    logger.info(
+        f"founding: session-status — session_id_prefix={session_id[:8]} "
+        f"status={status} has_account={has_account} invite_sent={invite_sent}"
+    )
+
+    return FoundingSessionStatusResponse(
+        status=status,
+        email=masked,
+        has_account=has_account,
+        invite_sent=invite_sent,
+    )
 
 
 @router.post("/checkout", response_model=FoundingCheckoutResponse)

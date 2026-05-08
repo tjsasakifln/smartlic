@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added — Backend / Founders
+- **`GET /v1/founding/session-status` — enricher para /fundadores/obrigado (#865)** — Endpoint público com rate limit (10 req/min/IP) que retorna `status`, `email` mascarado (2 chars + ****@domínio), `has_account` e `invite_sent` para o frontend renderizar CTA pós-compra correto sem expor PII. Expiry guard: leads não-`completed` com age > 24h retornam `status=pending` para evitar polling infinito. `_run_with_budget(5.0s)` protege o event loop. 8 testes unitários.
 - **Founders welcome email template + ARQ job + founding_leads tracking fields (#791)** — `templates/emails/founders_welcome.py` com HTML + plain text, tom pessoal direto de Tiago. `send_founders_welcome_email()` em `email_service.py` com gate de idempotência via `founding_leads.welcome_sent_at`. `send_founders_welcome` ARQ job (despacha email + Mixpanel people.set). Migration `20260507130000_founding_leads_tracking_fields.sql`: adiciona `welcome_sent_at`, `checkout_source`, `offer_version` à tabela `founding_leads`. Índice parcial `idx_founding_leads_welcome_pending` para queries de idempotência. 19 testes unitários. Rollback: `20260507130000_founding_leads_tracking_fields.down.sql`.
 
 ### Fixed — SEO / Structured Data
