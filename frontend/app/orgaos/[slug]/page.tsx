@@ -7,6 +7,7 @@ import { LeadCapture } from '@/components/LeadCapture';
 import { FoundersRibbon } from '@/components/banners/FoundersRibbon';
 import { fetchWithBudget } from '@/lib/safe-fetch';
 import { getBackendUrl } from '@/lib/backend-url';
+import { AdvisoryDisclaimer } from '@/components/legal/AdvisoryDisclaimer';
 
 const BACKEND_URL = getBackendUrl();
 
@@ -216,6 +217,9 @@ export default async function OrgaoPerfilPage({
         copy="Transforme dados do PNCP em decisão. Vitalício por R$997."
         src="pseo_orgao"
       />
+
+      {/* REPO-020 (#772): Advisory disclaimer for algorithmic data aggregations */}
+      <AdvisoryDisclaimer variant="full" />
     </ContentPageLayout>
   );
 }

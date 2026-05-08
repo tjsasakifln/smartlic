@@ -5,6 +5,7 @@ import { buildCanonical, getFreshnessLabel } from '@/lib/seo';
 import LandingNavbar from '@/app/components/landing/LandingNavbar';
 import Footer from '@/app/components/Footer';
 import StickyTrialCTA from '@/app/components/StickyTrialCTA';
+import { AdvisoryDisclaimer } from '@/components/legal/AdvisoryDisclaimer';
 
 // Sprint 4 Parte 13: páginas de municípios com licitações abertas
 // ISR 24h — dados do PNCP atualizados diariamente
@@ -350,6 +351,8 @@ export default async function MunicipioSlugPage({ params }: Props) {
           </section>
 
           <p className="text-xs text-gray-400 mt-8">{profile.aviso_legal}</p>
+          {/* REPO-020 (#772): Advisory disclaimer for algorithmic data aggregations */}
+          <AdvisoryDisclaimer variant="full" />
         </div>
       </main>
       <Footer />
