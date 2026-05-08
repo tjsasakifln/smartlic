@@ -269,7 +269,10 @@ def test_send_founding_invite_calls_supabase_admin_invite():
 
     fake_sb.auth.admin.invite_user_by_email.assert_called_once_with(
         _DEFAULT_EMAIL,
-        options={"redirect_to": "https://smartlic.tech/fundadores/obrigado"},
+        options={
+            "redirect_to": "https://smartlic.tech/fundadores/obrigado",
+            "data": {"is_founder": True},
+        },
     )
 
 
@@ -437,9 +440,7 @@ def test_checkout_session_completed_routes_founding_mode_payment():
         "webhooks.handlers.founding.mark_founding_lead_completed"
     ) as mock_founding:
         from webhooks.handlers.checkout import handle_checkout_session_completed
-        asyncio.get_event_loop().run_until_complete(
-            handle_checkout_session_completed(fake_sb, fake_event)
-        )
+        asyncio.run(handle_checkout_session_completed(fake_sb, fake_event))
 
     mock_founding.assert_called_once_with(fake_sb, session_dict)
 
@@ -472,9 +473,7 @@ def test_checkout_session_completed_non_founding_mode_payment_not_routed_to_foun
         "webhooks.handlers.founding.mark_founding_lead_completed"
     ) as mock_founding:
         from webhooks.handlers.checkout import handle_checkout_session_completed
-        asyncio.get_event_loop().run_until_complete(
-            handle_checkout_session_completed(fake_sb, fake_event)
-        )
+        asyncio.run(handle_checkout_session_completed(fake_sb, fake_event))
 
     mock_intel.assert_called_once()
     mock_founding.assert_not_called()

@@ -322,7 +322,10 @@ def _send_founding_invite(sb, email: str, lead_id: str | None, sid: str | None) 
         try:
             sb.auth.admin.invite_user_by_email(
                 email,
-                options={"redirect_to": "https://smartlic.tech/fundadores/obrigado"},
+                options={
+                    "redirect_to": "https://smartlic.tech/fundadores/obrigado",
+                    "data": {"is_founder": True},
+                },
             )
             logger.info(
                 f"founding invite sent — email={email} lead_id={lead_id} session_id={sid}"
