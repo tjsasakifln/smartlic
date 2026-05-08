@@ -143,6 +143,30 @@ export default function Footer() {
             </ul>
           </div>
 
+          {/* Soluções — REPO-011 (#763) */}
+          <div>
+            <h3 className="font-bold text-lg mb-4 text-ink">Soluções</h3>
+            <ul className="space-y-2 text-sm text-ink-secondary">
+              <li>
+                {/* SaaS: /planos preferred over /buscar (auth-gated) per footer public-access policy */}
+                <FooterLink href="/planos">SaaS</FooterLink>
+              </li>
+              <li>
+                <FooterLink href="/consultoria-b2g?modalidade=radar">Radar B2G</FooterLink>
+              </li>
+              <li>
+                <FooterLink href="/consultoria-b2g">Consultoria B2G</FooterLink>
+              </li>
+              <li>
+                {/* Exemplos: Phase 1 placeholder — disabled text, not a link */}
+                <span className="text-ink-muted cursor-not-allowed select-none">
+                  Exemplos{' '}
+                  <span className="text-xs">(em breve)</span>
+                </span>
+              </li>
+            </ul>
+          </div>
+
           {/* Planos */}
           <div>
             <h3 className="font-bold text-lg mb-4 text-ink">Planos</h3>
@@ -249,7 +273,7 @@ export default function Footer() {
               © 2026 SmartLic.tech. Todos os direitos reservados.
             </p>
             <p className="text-xs text-ink-muted">
-              CONFENGE Avaliações e Inteligência Artificial LTDA — CNPJ 56.688.745/0001-00 — Av. Pref. Osmar Cunha, 416 - Centro, Florianópolis - SC, 88015-100
+              CONFENGE Avaliações e Inteligência Artificial LTDA — CNPJ 52.407.089/0001-09 — Av. Pref. Osmar Cunha, 416 - Centro, Florianópolis - SC, 88015-100
             </p>
 
             {/* LGPD Badge */}

@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 
 interface MobileMenuProps {
@@ -14,20 +14,29 @@ type NavLink =
   | { href: string; label: string; sectionId?: never }
   | { sectionId: string; label: string; href?: never };
 
+// REPO-010: Soluções dropdown items (Phase 0 — all except SaaS point to /consultoria-b2g)
+const SOLUCOES_ITEMS = [
+  { label: 'SaaS', href: '/buscar' },
+  { label: 'Radar B2G', href: '/consultoria-b2g?modalidade=radar' },
+  { label: 'Report B2G', href: '/consultoria-b2g?modalidade=report' },
+  { label: 'Intel Reports', href: '/consultoria-b2g?modalidade=intel' },
+] as const;
+
+// REPO-010: Removed Como Funciona (scroll-to, low value), Casos (no page), Suporte (consolidated into Perguntas)
 const NAV_LINKS: NavLink[] = [
   { href: '/', label: 'Home' },
+  { href: '/consultoria-b2g', label: 'Consultoria' },
   { href: '/planos', label: 'Planos' },
-  { sectionId: 'como-funciona', label: 'Como Funciona' },
   { href: '/blog', label: 'Blog' },
-  { href: '/casos', label: 'Casos' },
   { href: '/sobre', label: 'Sobre' },
-  { href: '#suporte', label: 'Suporte' },
+  { href: '/perguntas', label: 'Perguntas' },
 ];
 
 export default function MobileMenu({ isOpen, onClose, user, scrollToSection }: MobileMenuProps) {
   const menuRef = useRef<HTMLDivElement>(null);
   const scrollYRef = useRef(0);
   const lastInteractionRef = useRef<number>(Date.now());
+  const [isSolucoesOpen, setIsSolucoesOpen] = useState(false);
 
   // Track user interactions for safety timeout (AC2)
   useEffect(() => {
@@ -197,6 +206,50 @@ export default function MobileMenu({ isOpen, onClose, user, scrollToSection }: M
 
         {/* Navigation links */}
         <nav className="p-4 space-y-1" aria-label="Menu principal">
+          {/* REPO-010: Soluções accordion */}
+          <div>
+            <button
+              onClick={() => setIsSolucoesOpen((v) => !v)}
+              aria-expanded={isSolucoesOpen}
+              aria-haspopup="true"
+              data-testid="nav-solucoes-dropdown"
+              className="w-full min-h-[44px] px-4 py-3 flex items-center justify-between text-base font-medium
+                         text-[var(--ink)] hover:bg-[var(--surface-1)] rounded-lg transition-colors
+                         focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-[var(--ring)]"
+            >
+              Soluções
+              <svg
+                width="14"
+                height="14"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2.5"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                className={`transition-transform duration-200 ${isSolucoesOpen ? 'rotate-180' : ''}`}
+                aria-hidden="true"
+              >
+                <polyline points="6 9 12 15 18 9" />
+              </svg>
+            </button>
+            {isSolucoesOpen && (
+              <div className="ml-4 mt-1 space-y-0.5 border-l border-[var(--border)] pl-3">
+                {SOLUCOES_ITEMS.map((item) => (
+                  <Link
+                    key={item.label}
+                    href={item.href}
+                    onClick={onClose}
+                    className="block min-h-[40px] px-3 py-2.5 text-sm font-medium
+                               text-[var(--ink-secondary)] hover:text-[var(--ink)] hover:bg-[var(--surface-1)] rounded-lg transition-colors
+                               focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-[var(--ring)]"
+                  >
+                    {item.label}
+                  </Link>
+                ))}
+              </div>
+            )}
+          </div>
           {NAV_LINKS.map((link) => {
             if (link.sectionId) {
               return (
