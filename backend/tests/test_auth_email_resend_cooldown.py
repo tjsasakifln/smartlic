@@ -286,10 +286,15 @@ class TestAuthStatusServerSideEvent:
 
         assert response.status_code == 200
         assert response.json()["confirmed"] is True
-        mock_track_event.assert_called_once()
-        call_args = mock_track_event.call_args
-        assert call_args[0][0] == "email_verification_completed"
-        props = call_args[0][1]
+        # CONV-INST-003: now fires 2 events (email_confirmation_clicked + email_verification_completed)
+        assert mock_track_event.call_count >= 1
+        event_names = [c.args[0] for c in mock_track_event.call_args_list if c.args]
+        assert "email_verification_completed" in event_names
+        assert "email_confirmation_clicked" in event_names
+        # Verify email_verification_completed props
+        verification_call = next(c for c in mock_track_event.call_args_list
+                                 if c.args and c.args[0] == "email_verification_completed")
+        props = verification_call.args[1]
         assert props["email_domain"] == "example.com"
         assert props["source"] == "server_side"
 

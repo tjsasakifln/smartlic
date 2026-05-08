@@ -739,7 +739,86 @@ Every event automatically includes these properties:
 
 ---
 
+## 7. Email Confirmation Lifecycle Events (CONV-INST-003)
+
+These events track the complete email confirmation funnel from signup through activation.
+
+**Source:** `frontend/lib/analytics/email_lifecycle.ts` (frontend) + `backend/routes/auth_signup.py` + `backend/routes/auth_email.py` (backend server-side).
+
+### `email_confirmation_sent`
+
+**Description:** Triggered server-side immediately after a new user account is created (Supabase sends the confirmation email automatically).
+
+**When Triggered:** `POST /auth/signup` — after `create_user` succeeds.
+
+**Properties:**
+
+| Property | Type | Required | Description | Example |
+|----------|------|----------|-------------|---------|
+| `user_id` | String | ✅ | Supabase user UUID | `uid-abc-123` |
+| `source` | String | ✅ | Trigger origin | `signup` |
+
+---
+
+### `email_confirmation_clicked`
+
+**Description:** Triggered server-side on the first time `GET /auth/status` detects the email as confirmed. Idempotent — fires only once per user.
+
+**When Triggered:** First successful `GET /auth/status` polling cycle after email link click.
+
+**Properties:**
+
+| Property | Type | Required | Description | Example |
+|----------|------|----------|-------------|---------|
+| `user_id` | String | ✅ | Supabase user UUID | `uid-abc-123` |
+| `email_domain` | String | ✅ | Domain of the confirmed email | `example.com` |
+| `source` | String | ✅ | Always `server_side` | `server_side` |
+
+---
+
+### `email_confirmation_expired`
+
+**Description:** Fired client-side when the confirmation link has expired before the user clicks it.
+
+**When Triggered:** Frontend detects confirmation link expiry.
+
+**Properties:**
+
+| Property | Type | Required | Description | Example |
+|----------|------|----------|-------------|---------|
+| `user_id` | String | ✅ | Supabase user UUID | `uid-abc-123` |
+
+---
+
+### `email_confirmation_resent`
+
+**Description:** Triggered server-side when the user requests a resend of the confirmation email.
+
+**When Triggered:** `POST /auth/resend-confirmation` — after resend call succeeds.
+
+**Properties:**
+
+| Property | Type | Required | Description | Example |
+|----------|------|----------|-------------|---------|
+| `source` | String | ✅ | Trigger origin | `resend_endpoint` |
+
+---
+
+### `email_verification_completed`
+
+**Description:** Legacy alias for `email_confirmation_clicked`. Kept for backward-compatibility with existing Mixpanel funnels. Both events fire together on first confirmation.
+
+**Note:** Use `email_confirmation_clicked` for new funnels; `email_verification_completed` is retained for historical continuity.
+
+---
+
 ## Changelog
+
+### Version 1.1 (2026-05-08)
+- Added Email Confirmation Lifecycle Events section (CONV-INST-003)
+- 4 new events: `email_confirmation_sent`, `email_confirmation_clicked`, `email_confirmation_expired`, `email_confirmation_resent`
+- Backend server-side triggers in `auth_signup.py` and `auth_email.py`
+- Frontend typed wrappers in `frontend/lib/analytics/email_lifecycle.ts`
 
 ### Version 1.0 (2026-01-30)
 - Initial event dictionary
