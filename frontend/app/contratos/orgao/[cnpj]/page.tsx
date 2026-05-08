@@ -178,6 +178,7 @@ export default async function OrgaoContratosPage({ params }: Props) {
                 href={`/signup?utm_source=programmatic&utm_medium=cta&utm_campaign=conv-cta-001&utm_content=contratos-orgao&page_cnpj=${cnpj}`}
                 eventName="cta_clicked"
                 eventProps={{ cta_name: 'contratos_orgao_hero', destination: '/signup', page_type: 'contratos_orgao', page_cnpj: cnpj, orgao_nome: stats.orgao_nome }}
+                data-testid="pseo-cta-primary"
                 className="inline-block px-6 py-3 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition-colors min-h-[44px]"
               >
                 Teste grátis por 14 dias
