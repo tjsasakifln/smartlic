@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useAnalytics } from "../../../hooks/useAnalytics";
 import { EmailDeadEndModal } from "./EmailDeadEndModal";
+import { tagOnboardingStep } from "../../../lib/analytics/clarity_onboarding";
 
 interface SignupSuccessProps {
   email: string;
@@ -53,6 +54,8 @@ export function SignupSuccess({
       rollout_branch: rolloutBranch ?? "unknown",
       signup_method: "email", // Google OAuth goes through /auth/callback — never reaches this screen
     });
+    // CONV-INST-005: Tag Clarity session with email_pending step
+    tagOnboardingStep('email_pending');
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // AC3: After 5min without confirmation, fire timeout event + show dead-end modal.

@@ -21,6 +21,7 @@ import { SignupOAuth } from "./components/SignupOAuth";
 import { SignupForm } from "./components/SignupForm";
 import CardCollect from "./components/CardCollect";
 import { computeRolloutBranch, readRolloutPctFromEnv, type RolloutBranch } from "./hooks/useRolloutBranch";
+import { tagOnboardingStep } from "../../lib/analytics/clarity_onboarding";
 
 // STORY-323: Partner name type
 type PartnerInfo = { name: string; slug: string } | null;
@@ -65,6 +66,11 @@ export default function SignupPage() {
       setTimeout(() => { router.push("/buscar"); }, 1500);
     }
   }, [authLoading, authSession, router]);
+
+  // CONV-INST-005: Tag Clarity session with signup_form step on mount
+  useEffect(() => {
+    tagOnboardingStep('signup_form');
+  }, []);
 
   // STORY-323 AC16: Partner tracking
   const [partnerInfo, setPartnerInfo] = useState<PartnerInfo>(null);
@@ -122,6 +128,8 @@ export default function SignupPage() {
             email_domain: email.split("@")[1] ?? "",
             polling_iterations: pollingIterationsRef.current,
           });
+          // CONV-INST-005: Tag Clarity session as email confirmed
+          tagOnboardingStep('email_confirmed');
           setIsConfirmed(true);
           clearInterval(interval);
           toast.success("Email confirmado! Redirecionando...");
