@@ -1,11 +1,16 @@
 /**
  * ContratosHubPanel — painel acima da dobra para o Hub de Contratos Públicos.
  *
- * PSEO-HUB-002: Server component com links de busca de contratos por fornecedor/órgão.
- * Não faz fetch de dados dinâmicos (hub de navegação estrutural).
+ * PSEO-HUB-002: Async server component com ISR 3600s.
+ * Busca dados reais de contratos por setor/UF via backend e exibe
+ * ContractsPanoramaBlock com dados de engenharia/SP como âncora principal.
+ * Retorna null silenciosamente se BACKEND_URL não estiver configurado.
  */
 
 import Link from 'next/link';
+import ContractsPanoramaBlock from '@/components/blog/ContractsPanoramaBlock';
+import { SECTOR_SLUG_TO_BACKEND_ID } from '@/lib/programmatic';
+import type { ContratosSetorUfStats } from '@/lib/contracts-fallback';
 
 const SECTOR_LINKS = [
   { slug: 'engenharia', label: 'Contratos de Engenharia', ufs: ['SP', 'MG', 'RJ'] },
@@ -15,7 +20,30 @@ const SECTOR_LINKS = [
   { slug: 'facilities', label: 'Contratos de Facilities', ufs: ['SP', 'RJ', 'DF'] },
 ];
 
-export default function ContratosHubPanel() {
+// Fetcher local com ISR 3600s (lib/contracts-fallback usa 86400 — aqui precisamos 3600 por AC)
+async function fetchContratosHubStats(
+  sectorSlug: string,
+  uf: string,
+): Promise<ContratosSetorUfStats | null> {
+  const backendUrl = process.env.BACKEND_URL;
+  if (!backendUrl) return null;
+  try {
+    const sectorId = SECTOR_SLUG_TO_BACKEND_ID[sectorSlug] ?? sectorSlug.replace(/-/g, '_');
+    const res = await fetch(
+      `${backendUrl}/v1/blog/stats/contratos/${sectorId}/uf/${uf.toUpperCase()}`,
+      { next: { revalidate: 3600 }, signal: AbortSignal.timeout(10000) },
+    );
+    if (!res.ok) return null;
+    return res.json();
+  } catch {
+    return null;
+  }
+}
+
+export default async function ContratosHubPanel() {
+  // Âncora: engenharia/SP — setor de maior volume de contratos
+  const engenhSpData = await fetchContratosHubStats('engenharia', 'SP');
+
   return (
     <div className="not-prose mb-10">
       {/* CTA principal — above the fold */}
@@ -42,6 +70,19 @@ export default function ContratosHubPanel() {
           </Link>
         </div>
       </div>
+
+      {/* Panorama real — Engenharia/SP como âncora de dados */}
+      {engenhSpData && (
+        <div className="mb-6">
+          <ContractsPanoramaBlock
+            variant="setor-uf"
+            data={engenhSpData}
+            sectorName="Engenharia"
+            ufName="São Paulo"
+            uf="SP"
+          />
+        </div>
+      )}
 
       {/* Busca por tipo */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
