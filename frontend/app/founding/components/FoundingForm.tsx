@@ -26,7 +26,7 @@ const MOTIVO_MAX = 1000;
 
 const REASON_MESSAGES: Record<string, string> = {
   founding_cap_reached:
-    'As 50 vagas founding já foram preenchidas. Obrigado pelo interesse — escreva para tiago@smartlic.tech para entrar na lista de espera.',
+    'As 50 vagas founding já foram preenchidas. Obrigado pelo interesse — escreva para tiago.sasaki@confenge.com.br para entrar na lista de espera.',
   founding_deadline_passed:
     'O período de inscrição founding (até 30/05/2026) terminou. O plano regular SmartLic Pro continua disponível em /pricing.',
   founding_paused:

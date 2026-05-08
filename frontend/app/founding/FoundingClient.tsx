@@ -152,8 +152,8 @@ export default function FoundingClient() {
           <p>
             Cupom <code>FOUNDING_LIFETIME</code> — 50% off vitalício, máximo 50 partners. Em caso de
             dúvida, escreva para{' '}
-            <a href="mailto:tiago@smartlic.tech" className="text-blue-600 underline">
-              tiago@smartlic.tech
+            <a href="mailto:tiago.sasaki@confenge.com.br" className="text-blue-600 underline">
+              tiago.sasaki@confenge.com.br
             </a>
             .
           </p>

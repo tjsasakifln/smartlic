@@ -37,7 +37,7 @@ logger = logging.getLogger(__name__)
 RESEND_API_KEY = os.getenv("RESEND_API_KEY", "")
 EMAIL_FROM = os.getenv("EMAIL_FROM", "SmartLic <noreply@smartlic.tech>")
 EMAIL_ENABLED = os.getenv("EMAIL_ENABLED", "true").lower() in ("true", "1", "yes", "on")
-INTEL_REPORT_EMAIL_FROM = "SmartLic <tiago@smartlic.tech>"
+INTEL_REPORT_EMAIL_FROM = "SmartLic <tiago.sasaki@confenge.com.br>"
 INTEL_REPORT_REPLY_TO = "tiago.sasaki@gmail.com"
 
 # Retry configuration
@@ -239,7 +239,7 @@ def send_email_async(
 # ---------------------------------------------------------------------------
 # Founders email constants (personal tone — from Tiago directly)
 # ---------------------------------------------------------------------------
-FOUNDERS_EMAIL_FROM = "Tiago do SmartLic <tiago@smartlic.tech>"
+FOUNDERS_EMAIL_FROM = "Tiago do SmartLic <tiago.sasaki@confenge.com.br>"
 FOUNDERS_EMAIL_REPLY_TO = "tiago.sasaki@gmail.com"
 
 
@@ -383,7 +383,7 @@ def send_intel_report_ready(
 # ---------------------------------------------------------------------------
 # Founders email constants (personal tone — from Tiago directly)
 # ---------------------------------------------------------------------------
-FOUNDERS_EMAIL_FROM = "Tiago do SmartLic <tiago@smartlic.tech>"
+FOUNDERS_EMAIL_FROM = "Tiago do SmartLic <tiago.sasaki@confenge.com.br>"
 FOUNDERS_EMAIL_REPLY_TO = "tiago.sasaki@gmail.com"
 
 

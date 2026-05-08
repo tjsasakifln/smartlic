@@ -205,7 +205,7 @@ class TestSendFoundersWelcomeEmail:
             send_founders_welcome_email("vip@example.com", "VIP")
 
         _, kwargs = mock_send.call_args
-        assert kwargs.get("from_email") == "Tiago do SmartLic <tiago@smartlic.tech>"
+        assert kwargs.get("from_email") == "Tiago do SmartLic <tiago.sasaki@confenge.com.br>"
         assert kwargs.get("reply_to") == "tiago.sasaki@gmail.com"
 
 

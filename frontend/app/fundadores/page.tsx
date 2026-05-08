@@ -62,7 +62,7 @@ const jsonLdFaq = {
       name: 'Posso cancelar ou pedir reembolso?',
       acceptedAnswer: {
         '@type': 'Answer',
-        text: 'Sim. Oferecemos 30 dias de garantia. Se não ficar satisfeito por qualquer motivo dentro deste prazo, devolvemos 100% do valor pago.',
+        text: 'Sim. Oferecemos 7 dias de garantia. Se não ficar satisfeito por qualquer motivo dentro deste prazo, devolvemos 100% do valor pago.',
       },
     },
   ],
