@@ -201,6 +201,13 @@ async def resend_confirmation(
     except Exception:
         _resend_timestamps[email_lower] = now
 
+    # CONV-INST-003: Track resend event (fire-and-forget, never raises)
+    try:
+        from analytics_events import track_event
+        track_event("email_confirmation_resent", {"source": "resend_endpoint"})
+    except Exception:
+        pass
+
     logger.info(f"Confirmation email resent for {email_lower[:4]}***")
 
     return ResendResponse(
@@ -241,17 +248,29 @@ async def auth_status(email: str = Query(..., description="Email to check")):
                         if is_first_confirm:
                             from analytics_events import track_event
                             user_id = getattr(user, "id", None)
+                            uid_str = str(user_id) if user_id else "unknown"
+                            # email_confirmation_clicked: canonical CONV-INST-003 event
+                            track_event(
+                                "email_confirmation_clicked",
+                                {
+                                    "user_id": uid_str,
+                                    "email_domain": email_lower.split("@")[1],
+                                    "source": "server_side",
+                                },
+                            )
+                            # email_verification_completed: legacy alias kept for
+                            # backward-compat with existing Mixpanel funnels
                             track_event(
                                 "email_verification_completed",
                                 {
-                                    "user_id": str(user_id) if user_id else "unknown",
+                                    "user_id": uid_str,
                                     "email_domain": email_lower.split("@")[1],
                                     "source": "server_side",
                                 },
                             )
                     except Exception as e:
                         logger.debug(
-                            f"Server-side email_verification_completed emit failed: {type(e).__name__}"
+                            f"Server-side email confirmation analytics emit failed: {type(e).__name__}"
                         )
 
                     # CRIT-SEC: Do NOT expose user_id — prevents enumeration

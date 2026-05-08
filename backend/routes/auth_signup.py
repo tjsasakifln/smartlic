@@ -195,6 +195,13 @@ async def signup(
     except Exception:  # noqa: BLE001
         logger.debug("Audit log failed for signup", exc_info=True)
 
+    # CONV-INST-003: Track confirmation email sent event (fire-and-forget, never raises)
+    try:
+        from analytics_events import track_event
+        track_event("email_confirmation_sent", {"user_id": user_id, "source": "signup"})
+    except Exception:  # noqa: BLE001
+        pass
+
     # 2. No card → legacy trial path. Compute local trial_end and return.
     if not body.stripe_payment_method_id:
         _update_profile_with_stripe(
