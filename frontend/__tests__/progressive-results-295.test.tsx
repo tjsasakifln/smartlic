@@ -34,7 +34,7 @@ describe("SourceStatusGrid", () => {
 
     render(<SourceStatusGrid sourceStatuses={statuses} />);
 
-    expect(screen.getByText("PNCP")).toBeInTheDocument();
+    expect(screen.getByText("Fontes Oficiais")).toBeInTheDocument();
     expect(screen.getByText("Portal de Compras")).toBeInTheDocument();
     expect(screen.getByText("(42)")).toBeInTheDocument();
   });
