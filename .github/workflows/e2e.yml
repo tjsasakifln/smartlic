@@ -141,7 +141,7 @@ jobs:
 
       - name: Upload Playwright report
         if: failure()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: playwright-report
           path: frontend/playwright-report/
@@ -149,7 +149,7 @@ jobs:
 
       - name: Upload test results
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: e2e-test-results
           path: frontend/test-results/
@@ -157,7 +157,7 @@ jobs:
 
       - name: Upload server logs
         if: failure()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: server-logs
           path: |
@@ -294,7 +294,7 @@ jobs:
 
       - name: Upload Playwright report (billing)
         if: failure() && steps.guard.outputs.skip == 'false'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: playwright-report-billing
           path: frontend/playwright-report/
@@ -302,7 +302,7 @@ jobs:
 
       - name: Upload server logs (billing)
         if: failure() && steps.guard.outputs.skip == 'false'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: server-logs-billing
           path: |

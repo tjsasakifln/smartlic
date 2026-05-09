@@ -80,7 +80,7 @@ jobs:
 
       # DEBT-123 AC9: Codecov upload — intentionally non-blocking (external service, not security)
       - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v4
+        uses: codecov/codecov-action@v6
         if: true
         with:
           file: ./backend/coverage.xml
@@ -205,7 +205,7 @@ jobs:
 
       # DEBT-123 AC9: Codecov upload — intentionally non-blocking (external service, not security)
       - name: Upload coverage
-        uses: codecov/codecov-action@v4
+        uses: codecov/codecov-action@v6
         with:
           file: ./frontend/coverage/coverage-final.json
           flags: frontend
@@ -251,7 +251,7 @@ jobs:
 
       - name: Upload integration test results
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: integration-test-results
           path: backend/tests/integration/
@@ -387,7 +387,7 @@ jobs:
           fi
 
       - name: Upload backend logs
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         if: always()
         with:
           name: backend-logs
@@ -395,7 +395,7 @@ jobs:
           retention-days: 7
 
       - name: Upload frontend logs
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         if: always()
         with:
           name: frontend-logs
@@ -403,7 +403,7 @@ jobs:
           retention-days: 7
 
       - name: Upload Playwright report
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         if: always()
         with:
           name: playwright-report
@@ -411,7 +411,7 @@ jobs:
           retention-days: 30
 
       - name: Upload test results
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         if: always()
         with:
           name: e2e-test-results

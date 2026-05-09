@@ -1,0 +1,73 @@
+# SEC-TEST-2026-001 AC2: Dedicated security test gate — OWASP Top-5 baseline
+# Runs backend/tests/security/ on every PR. Fails the PR if any test fails.
+# Coverage report is dedicated (does NOT mix with general suite coverage).
+name: "Security Tests (OWASP Top-5 Baseline)"
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: security-tests-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  security-tests:
+    name: Security Tests
+    runs-on: ubuntu-latest
+
+    env:
+      SUPABASE_URL: https://test.supabase.co
+      SUPABASE_SERVICE_ROLE_KEY: test-service-role-key
+      OPENAI_API_KEY: sk-test-key
+      ENCRYPTION_KEY: bzc732A921Puw9JN4lrzMo1nw0EjlcUdAyR6Z6N7Sqc=
+      ENVIRONMENT: test
+      SENTRY_DSN: ""
+      REDIS_URL: ""
+      LOG_LEVEL: WARNING
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: |
+          cd backend
+          pip install -r requirements.txt
+          pip install pytest pytest-cov pytest-asyncio httpx pytest-timeout
+
+      - name: Run OWASP Top-5 baseline tests
+        run: |
+          cd backend
+          pytest tests/security/ -v \
+            --timeout=30 \
+            --cov=auth \
+            --cov=admin \
+            --cov=rate_limiter \
+            --cov=webhooks/stripe.py \
+            --cov-fail-under=0 \
+            --cov-report=term-missing \
+            --cov-report=xml:security-coverage.xml \
+            --junitxml=security-pytest-report.xml
+          echo "Security baseline tests passed (5 classes: auth bypass, SQLi, SSRF, Stripe spoof, rate-limit bypass)"
+
+      - name: Upload security coverage report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: security-coverage
+          path: |
+            backend/security-coverage.xml
+            backend/security-pytest-report.xml
+          retention-days: 30

@@ -351,15 +351,100 @@ Ready para handoff:
 
 **Nota:** composite mantido estável porque CRIT-084 e POOL-LEAK-001 ainda abertos compensam as melhorias de reliability.
 
-## 10. Refresh — 2026-05-08
+---
 
-### 10.1 PRs / Stories Shipped (período)
+## 10. Refresh — 2026-05-08 (Sentry FE Quiescente — SMARTLIC-FE-F)
+
+### 10.3 SMARTLIC-FE-F (Sentry quiescente) — RCA concluído
+
+| Status | Severidade | Story | Anchor |
+|--------|------------|-------|--------|
+| ✅ ROOT CAUSE IDENTIFICADO (downgrade de gap aberto → known cause + follow-up) | 🟡 (era 🔴) | SMARTLIC-FE-F-INVEST-001 (Done); follow-up SMARTLIC-FE-F-FIX-001 a criar | `docs/sessions/2026-05/2026-05-08-sentry-fe-quiescent-rca.md` |
+
+**Premissa do gap revisada empiricamente:** narrativa "0 events Sentry frontend em janela 7d" é **incorreta**. Sentry SDK frontend recebe ~6.150 events/dia. Visibilidade zero no issues stream tem causa dupla:
+
+1. **Plano Sentry com error quota esgotada.** Stats v2 7d (project `4510878216224768`):
+   - `client_discard / ratelimit_backoff = 45.656` (SDK self-throttle on 429)
+   - `rate_limited / error_usage_exceeded = 4.601` (rejeição server-side)
+   - `client_discard / event_processor = 20.233` (beforeSend → null)
+   - **accepted ~5 em 14 dias.**
+2. **`beforeSend` união muito agressiva.** Drop default por AbortError + USER_CANCELLED + NAVIGATION + SSE-pipe `>110s` é defensável individualmente (STORY-422), mas a união silencia ~93% dos events que sobram do quota.
+
+Hypothesis #1 (SSG init) e #2 (DSN ausente em build env) **rejeitadas**: `frontend/Dockerfile` linha 56/89 declara `ARG/ENV NEXT_PUBLIC_SENTRY_DSN`; volume empírico (~80k events/14d transitando pelo SDK) confirma init OK em runtime/CSR. Hypothesis #4 (ad-blocker) **não material**: `tunnelRoute: "/monitoring"` em `next.config.js` neutraliza.
+
+**Cap aplicado (PO Required Fix non-blocker AC3):** fix > 1 dia (plano + 5 issues noisy + filter audit + alerta Prometheus). Investigation story encerrada; correção move para `SMARTLIC-FE-F-FIX-001`.
+
+**Top 5 issues 14d que dominam o volume (Pareto — alvo do fix):**
+
+- `Error: Page changed from static to dynamic at runtime /contratos/orgao/107918310` — 2.238 ocorrências em um dia
+- `TimeoutError: The operation was aborted due to timeout` — ~115 eventos em 7 grupos
+- `InvariantError: Could not resolve param value for segment: mes]-[ano` — 21
+- `EvalError: Refused to evaluate ... unsafe-eval` — 21
+- `Error: You cannot use different slug names for the same dynamic path ('setor' != ...)` — 10
+
+**Diferencial vs gaps anteriores:** gap não era "quiescente"; era "ofuscado por quota + filtro". Próxima vez que sintoma "0 events" aparecer, primeira ação é `stats_v2` com `groupBy=outcome,reason`, não fixar config SDK.
+
+---
+
+## 11. Refresh — 2026-05-09 (TEST-ERR-RECOVERY-2026-001)
+
+### 11.1 Stories Shipped
+
+| Story | Descrição | PR |
+|-------|-----------|----|
+| TEST-ERR-RECOVERY-2026-001 | Error-recovery test coverage (substitui #236 stale): pipeline timeout, pool exhaustion, Redis fallback, Stripe retry idempotency, OpenAI fallback, SSE reconnect, API backoff | feat/test-err-recovery-2026-001 |
+
+### 11.2 Coverage Delta
+
+- **Backend:** +5 test files (3 recovery + 2 integration) com 16 testes verdes
+- **Frontend:** +2 test files com 8 testes verdes
+- **Doc:** `docs/testing/recovery-coverage.md` registra paths cobertos vs deferred
+- **Total:** 24 testes em 7 arquivos
+
+### 11.3 Gaps Resolvidos
+
+| Gap | Resolução | Evidência |
+|-----|-----------|-----------|
+| #236 (stale TD-TEST-025) | Fechado com escopo decomposto: 3 paths críticos cobertos via incidents 2026-04 (CRIT-084, POOL-LEAK-001, OpenAI 503) | TEST-ERR-RECOVERY-2026-001 |
+| Recovery paths sem regressão automatizada | 7 paths agora fail-fast em CI (pipeline timeout, pool sheds, Redis ConnectionError, Stripe retry, OpenAI 503, SSE reconnect, API backoff) | `backend/tests/recovery/`, `frontend/__tests__/recovery/` |
+
+### 11.4 Score 2026-05-09
+
+| Dimensão | Score | Delta |
+|----------|-------|-------|
+| Documentation coverage | 🟢 87% | ≈ estável |
+| Operational reliability | 🟡 82% | ≈ estável (CRIT-084 / POOL-LEAK-001 ainda abertos) |
+| Architectural consistency | 🟢 89% | ≈ estável |
+| Test/CI gates | 🟢 **88%** | **+4** (recovery suite — 7 paths críticos cobertos pós-incidents 2026-04) |
+| RBAC/Security | 🟡 77% | ≈ estável |
+| **Composite** | 🟢 **84.6%** | **+0.6** (test/CI puxa, demais ≈) |
+
+**Nota:** test/CI score reflete cobertura efetiva contra a classe de incidents real (não comprehensive). Próximo bump dependerá de RES-BE-017 (POOL-LEAK-001 root-cause fix) ou CRIT-084 final closure.
+
+---
+
+## 11. Refresh — 2026-05-08 EOD (SEC-TEST-2026-001)
+
+### 11.1 Score 2026-05-08 EOD
+
+| Dimensão | Score | Delta vs §9.5 (2026-05-02) | Justificativa |
+|----------|-------|----------------------------|---------------|
+| Test/CI gates | 🟢 89% | +5 | **69 tests OWASP Top-5 baseline (SEC-TEST-2026-001) + dedicated security-tests.yml CI gate** |
+| RBAC/Security | 🟢 83% | +6 | **SEC-TEST-2026-001 baseline (auth bypass + SQLi + SSRF guards + Stripe spoof + rate-limit bypass)** |
+
+**SEC-TEST-2026-001 (2026-05-08):** OWASP Top-5 baseline shipped — substitui Issue #201 stale (escopo monolítico >5d nunca executado). 69 tests passing em `backend/tests/security/` (10 auth + 32 sqli + 12 ssrf + 8 stripe + 7 rate-limit), dedicated CI workflow `security-tests.yml`, doc `docs/security/test-baseline.md` com roadmap SEC-TEST-002+ (OWASP A05/A06/A09/SSRF-fuzz). Cobertura 6/10 OWASP categorias (todas P1).
+
+---
+
+## 12. Refresh — 2026-05-08 EOD-2 (RBAC-ORG-002)
+
+### 12.1 PRs / Stories Shipped (período)
 
 | Commit / PR | Story | Descrição | Status |
 |-------------|-------|-----------|--------|
 | `feat/rbac-org-002` | RBAC-ORG-002 | Audit script + CI gate + 16 cross-tenant tests para org_id propagation | InReview |
 
-### 10.2 Gaps Resolvidos (neste período)
+### 12.2 Gaps Resolvidos (neste período)
 
 | Gap | Resolução | Evidência |
 |-----|-----------|-----------|
@@ -367,19 +452,15 @@ Ready para handoff:
 | RBAC-CI gate forward-looking | Workflow `audit-org-rbac.yml` bloqueia PRs com novo P0 multi-tenant leak | `.github/workflows/audit-org-rbac.yml` |
 | RBAC-cross-tenant test coverage | 16 tests cobrindo Alice OWNER-A → OrgB id-injection scenarios | `backend/tests/test_rbac_org_cross_tenant.py` |
 
-### 10.3 Findings Empíricos
+### 12.3 Findings Empíricos
 
 - **Premissa da story (cross-org leak via pipeline/intel_reports/etc.) não materializou:** schema atual mantém esses dados user-scoped, sem `org_id` column. Confirmação via grep `routes/*.py` + leitura de `pipeline_items` migration (025).
 - **Único P1 observado** (`POST /v1/organizations/{org_id}/accept`) é by-design (ADR §accept invitee=auth-only).
 - **AC2 vacuamente satisfeita** (zero P0). Out-of-scope: auditoria de propagação `user_id` (sibling concern flagged em `docs/audits/2026-05-rbac-org-propagation-notes.md` para story futura se/quando shared org-data emergir).
 
-### 10.4 Score 2026-05-08
+### 12.4 Score 2026-05-08 EOD-2
 
 | Dimensão | Score | Delta |
 |----------|-------|-------|
-| Documentation coverage | 🟢 87% | ≈ estável |
-| Operational reliability | 🟡 82% | ≈ estável |
-| Architectural consistency | 🟢 89% | ≈ estável |
-| Test/CI gates | 🟢 86% | +2 (audit-org-rbac CI gate + 16 cross-tenant tests) |
-| RBAC/Security | 🟡 **82%** | **+5** (cross-tenant audit + CI gate forward-looking + tests; gap-1 multi-tenant LGPD agora coberto end-to-end) |
-| **Composite** | 🟢 **85%** | +1 vs 2026-05-02 |
+| Test/CI gates | 🟢 91% | +2 (audit-org-rbac CI gate + 16 cross-tenant tests, sobre §11.1 baseline 89%) |
+| RBAC/Security | 🟡 **88%** | **+5** (cross-tenant audit + CI gate forward-looking + tests; gap-1 multi-tenant LGPD agora coberto end-to-end, sobre §11.1 baseline 83%) |
