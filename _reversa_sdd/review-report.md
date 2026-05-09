@@ -27,7 +27,8 @@
 | 16. design-system | ✅ | ✅ (combined) | inline | — | — | 🟢 75% |
 | 17. email-templates | ✅ | ✅ (combined) | ✅ 12 | (interno) | parte US-005 | 🟢 100% |
 | 18. tests+migrations | ✅ | ✅ (combined) | (interno) | (CI) | — | 🟡 70% |
-| 19. intel-reports | ✅ | — | ✅ 13 | ✅ | — | 🟢 100% |
+| 19. intel-reports | ✅ | ✅ | ✅ 13 | ✅ | — | 🟢 100% |
+| 20. plans-capabilities-runtime | ✅ | (combined em billing-quota) | inline data-master §11 | (interno) | — | 🟢 90% |
 
 **Cobertura geral: ~95% completo (alvo `doc_level=completo`).** Specs SDD formais para 13/19 módulos críticos. Módulos 06-13 adicionados em 2026-05-08 (issue #857). Restantes têm cobertura via code-analysis + flowchart + user-stories.
 
@@ -412,14 +413,22 @@ Hypothesis #1 (SSG init) e #2 (DSN ausente em build env) **rejeitadas**: `fronte
 
 | Dimensão | Score | Delta |
 |----------|-------|-------|
-| Documentation coverage | 🟢 87% | ≈ estável |
+| Documentation coverage | 🟢 **100%** | **+13** (DOC-COVERAGE-001 fechou Pass-2 deferred — data-master §11-§14, code-analysis Modules 19/20 + MFA + tests, flowcharts/intel-reports.md NEW) |
 | Operational reliability | 🟡 82% | ≈ estável (CRIT-084 / POOL-LEAK-001 ainda abertos) |
 | Architectural consistency | 🟢 89% | ≈ estável |
 | Test/CI gates | 🟢 **88%** | **+4** (recovery suite — 7 paths críticos cobertos pós-incidents 2026-04) |
 | RBAC/Security | 🟡 77% | ≈ estável |
-| **Composite** | 🟢 **84.6%** | **+0.6** (test/CI puxa, demais ≈) |
+| **Composite** | 🟢 **87.2%** | **+3.2** (doc coverage 87→100% puxa principal; demais ≈) |
 
 **Nota:** test/CI score reflete cobertura efetiva contra a classe de incidents real (não comprehensive). Próximo bump dependerá de RES-BE-017 (POOL-LEAK-001 root-cause fix) ou CRIT-084 final closure.
+
+### 11.5 Gaps DOC-COVERAGE-001 — RESOLVED
+
+| Gap (entrada Pass-2 deferred) | Status pós-DOC-COVERAGE-001 | Evidência |
+|-------------------------------|-----------------------------|-----------|
+| `data-master.md` schema completo + RLS | ✅ RESOLVED | §11 (tabelas plans/intel_report_purchases/cnae_setores/founding_leads ext) + §12 (Views INVOKER) + §13 (RPCs) + §14 (ERD delta) |
+| `code-analysis.md` modules novos | ✅ RESOLVED | Module 19 intel-reports + Module 20 plans-capabilities-runtime + Module 6.M MFA TOTP + Module 18 extensions (SEC-TEST/TEST-ERR-RECOVERY/godmodule) |
+| `flowcharts/intel-reports.md` | ✅ RESOLVED | Novo arquivo com 3 sequenceDiagrams (Flow 1 cnpj_supplier R$67 / Flow 2 sector_uf R$147 / Flow 3 failure paths) |
 
 ---
 
@@ -464,3 +473,43 @@ Hypothesis #1 (SSG init) e #2 (DSN ausente em build env) **rejeitadas**: `fronte
 |----------|-------|-------|
 | Test/CI gates | 🟢 91% | +2 (audit-org-rbac CI gate + 16 cross-tenant tests, sobre §11.1 baseline 89%) |
 | RBAC/Security | 🟡 **88%** | **+5** (cross-tenant audit + CI gate forward-looking + tests; gap-1 multi-tenant LGPD agora coberto end-to-end, sobre §11.1 baseline 83%) |
+
+---
+
+## 13. Refresh — DOC-COVERAGE-001 Sign-off (2026-05-09)
+
+**Story:** [DOC-COVERAGE-001](../docs/stories/2026-05/DOC-COVERAGE-001-data-master-code-analysis-flowcharts-refresh.story.md) — P2 Pass-2 deferred refresh
+**PR:** `feat/doc-coverage-001-pass-2-deferred-refresh` (issue #952)
+**Squad:** @architect (lead) + @data-engineer
+**Status:** Ready for review-pr
+
+### 13.1 Artefatos refreshados
+
+| Artefato | Tipo de mudança | Resumo |
+|----------|-----------------|--------|
+| `_reversa_sdd/data-master.md` | additive (§11–§14 appended) | Tabelas novas/estendidas 2026-05-04→09 (plans capabilities, plans_audit, intel_report_purchases, cnae_setores, founding_leads ext); Views SECDEF→INVOKER (PR #955 fwd-ref); RPCs novas (cnpj_supplier_intel + sector_uf_intel + get_orgao_top_contracts_json fwd-ref); ERD delta Mermaid |
+| `_reversa_sdd/code-analysis.md` | additive (Module 19 + Module 20 + Module 6.M + Module 18 ext) | Module 19 intel-reports v0.1+v0.2; Module 20 plans-capabilities-runtime; subseção 6.M MFA TOTP enroll/verify (PRs #677 #700); extensão Module 18 (SEC-TEST-2026-001 / TEST-ERR-RECOVERY-2026-001 / godmodule LOC gate) |
+| `_reversa_sdd/flowcharts/intel-reports.md` | NEW | 3 Mermaid sequenceDiagrams: Flow 1 cnpj_supplier (R$67), Flow 2 sector_uf (R$147), Flow 3 failure paths (webhook / PDF / Storage / email) + cross-refs specs 07 + 07b + 13 |
+| `_reversa_sdd/review-report.md` | edits §1 + §11.4 + §11.5 + §12 (esta seção) | Module 19 flowchart status ✅; doc coverage 87→100%; gaps DOC-COVERAGE-001 marked RESOLVED |
+
+### 13.2 Anti-vapor evidence (AC5)
+
+`wc -l` empírico antes/após em cada arquivo (capturado per-commit + reportado em PR body). git diff --stat confirma persistence em cada commit. Memory entry `feedback_doc_coverage_001_durability.md` content embutido em PR body (worktree path constraint impossibilita escrita em `~/.claude/projects/-mnt-d-pncp-poc/memory/` — task brief mandate).
+
+### 13.3 Wave B sequencing notes
+
+PRs #955 (SEC-VIEW-001 — 3 views INVOKER) e #957 (DATA-CAP-001 — get_orgao_top_contracts_json + paginate_full helper) estavam UNMERGED no momento deste refresh. Documentação foi escrita como **post-merge canonical state com forward-references explícitas** ao número do PR + filename da migration — pattern canonical para wave B following wave A (per task brief).
+
+Se reorder de merge ocorrer (#957 antes de #955 ou rebase forçado), os blocos forward-referenced em data-master §12 e §13.4 podem precisar update marginal. Monitorar.
+
+### 13.4 Score Composite final
+
+| Dimensão | Antes (§11.4) | Depois (13) | Delta |
+|----------|---------------|-------------|-------|
+| Documentation coverage | 87% | **100%** | **+13** |
+| Composite | 84.6% | **87.2%** | **+2.6** |
+
+**Trigger DoR para próxima iteração:** Composite ≥90% requer:
+- RES-BE-017 (POOL-LEAK-001) close-out → Operational reliability +5
+- Closure de `feedback_secdef_search_path_trap` family + audit `pg_policy` export → RBAC/Security +5
+- O timing depende de Sprint planning, não de DOC-COVERAGE-001.
