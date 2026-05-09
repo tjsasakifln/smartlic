@@ -76,7 +76,7 @@ python-json-logger>=3.3.0,<4.0.0
 sentry-sdk[fastapi]==2.59.0
 
 # Prometheus metrics exporter (GTM-RESILIENCE-E03)
-prometheus_client>=0.20.0
+prometheus_client>=0.25.0
 
 # SEN-BE-010 + ADR-MEMORY-BUDGET: process memory introspection (RSS gauge in
 # health.py + lifespan.py:140-144 sample loop + admin/memory-snapshot endpoint).
