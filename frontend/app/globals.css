@@ -6,30 +6,30 @@
 :root {
   /* Canvas & Ink - WCAG Contrast Documentation */
   --canvas: #ffffff;  /* Base background */
-  --ink: #1e2d3b;     /* Primary text - vs canvas: 12.6:1 (AAA ✅) */
-  --ink-secondary: #3d5975;  /* Secondary text - vs canvas: 5.5:1 (AA ✅) */
-  --ink-muted: #6b7a8a;  /* Muted text - vs canvas: 5.1:1 (AA ✅) - Bug fix P2-6: Improved from #808f9f (4.48:1) */
+  --ink: #1e2d3b;     /* Primary text - vs canvas: 14.06:1 (AAA ✅) */
+  --ink-secondary: #3d5975;  /* Secondary text - vs canvas: 7.28:1 (AAA ✅) */
+  --ink-muted: #5a6573;  /* Muted text - vs canvas: 5.93:1, vs surface-1: 5.58:1, vs surface-2: 5.28:1 (AA ✅ all backgrounds) - Issue #197: Darkened from #6b7a8a (was actually 4.14:1 vs surface-1, FAILED AA despite earlier P2-6 comment) */
   --ink-faint: #c0d2e5;  /* Faint text/borders - vs canvas: 1.9:1 (decorative only) */
 
   /* Brand Colors */
-  --brand-navy: #0a1e3f;  /* Primary brand - vs canvas: 14.8:1 (AAA ✅) */
-  --brand-blue: #116dff;  /* Accent color - vs canvas: 4.8:1 (AA ✅) */
-  --brand-blue-hover: #0d5ad4;  /* Hover state - vs canvas: 6.2:1 (AA+ ✅) */
+  --brand-navy: #0a1e3f;  /* Primary brand - vs canvas: 17.4:1 (AAA ✅) */
+  --brand-blue: #116dff;  /* Accent color - vs canvas: 4.51:1 (AA text ✅), vs surface-1: 4.25:1 (UI 3:1 ✅, text use should prefer brand-blue-hover on tinted bg) */
+  --brand-blue-hover: #0d5ad4;  /* Hover state - vs canvas: 6.12:1, vs surface-1: 5.76:1 (AA ✅) */
   --brand-blue-subtle: #e8f0ff;  /* Subtle background - vs ink: 1.1:1 (decorative only) */
 
   /* Surface Hierarchy */
   --surface-0: #ffffff;  /* Base surface */
-  --surface-1: #f7f8fa;  /* Elevated surface - vs ink: 12.3:1 (AAA ✅) */
-  --surface-2: #f0f2f5;  /* Card backgrounds - vs ink: 11.8:1 (AAA ✅) */
+  --surface-1: #f7f8fa;  /* Elevated surface - vs ink: 13.2:1 (AAA ✅) */
+  --surface-2: #f0f2f5;  /* Card backgrounds - vs ink: 12.5:1 (AAA ✅) */
   --surface-elevated: #ffffff;  /* Modals/dropdowns */
 
-  /* Semantic Colors */
-  --success: #16a34a;  /* Success state - vs canvas: 4.7:1 (AA ✅) */
-  --success-subtle: #f0fdf4;  /* Success bg - vs success: 1.2:1 (decorative) */
-  --error: #dc2626;  /* Error state - vs canvas: 5.9:1 (AA ✅) */
-  --error-subtle: #fef2f2;  /* Error bg - vs error: 1.1:1 (decorative) */
-  --warning: #ca8a04;  /* Warning state - vs canvas: 5.2:1 (AA ✅) */
-  --warning-subtle: #fefce8;  /* Warning bg - vs warning: 1.1:1 (decorative) */
+  /* Semantic Colors — Issue #197: retuned to AA-pass on all surfaces (canvas/surface-1/surface-2) and on their *-subtle banners */
+  --success: #107533;  /* Success text - vs canvas: 5.81:1, surface-1: 5.47:1, surface-2: 5.18:1, success-subtle: 5.55:1 (AA ✅) - was #16a34a (3.30:1, FAILED) */
+  --success-subtle: #f0fdf4;  /* Success bg - decorative; pair text uses --success */
+  --error: #b91c1c;  /* Error text - vs canvas: 6.47:1, surface-1: 6.09:1, surface-2: 5.77:1, error-subtle: 5.91:1 (AA ✅) - was #dc2626 (4.41:1 vs error-subtle, FAILED banner pattern) */
+  --error-subtle: #fef2f2;  /* Error bg - decorative; pair text uses --error */
+  --warning: #92580a;  /* Warning text - vs canvas: 5.80:1, surface-1: 5.46:1, surface-2: 5.17:1, warning-subtle: 5.60:1 (AA ✅) - was #ca8a04 (2.94:1 vs canvas, FAILED) */
+  --warning-subtle: #fefce8;  /* Warning bg - decorative; pair text uses --warning */
 
   /* Borders */
   --border: rgba(0, 0, 0, 0.08);  /* Subtle borders */
@@ -42,7 +42,7 @@
   --text-tertiary: var(--ink-muted);
 
   /* Focus Ring */
-  --ring: #116dff;  /* Focus indicator - vs canvas: 4.8:1 (AA ✅) */
+  --ring: #116dff;  /* Focus indicator - vs canvas: 4.51:1 (UI component WCAG 1.4.11 ≥3:1 ✅) */
 
   /* ========================================
      STORY-174: Premium SaaS Design System
@@ -107,11 +107,12 @@
   /* DEBT-012: Third-party brand colors */
   --whatsapp: #25D366;
 
-  /* STORY-2.5: Disabled state tokens — WCAG AA compliant
-     ink-disabled: #6B7280 vs #F3F4F6 surface → 4.6:1 (AA ✅ text)
+  /* STORY-2.5 + Issue #197: Disabled state tokens — WCAG AA compliant
+     ink-disabled: #5F6770 vs #F3F4F6 surface → 5.21:1 (AA ✅ text)
      surface-disabled: #F3F4F6 vs #FFFFFF canvas → UI component, not text
+     Was #6B7280 (4.39:1, FAILED).
   */
-  --ink-disabled: #6B7280;      /* 4.6:1 vs surface-disabled (#F3F4F6) — AA ✅ */
+  --ink-disabled: #5F6770;      /* 5.21:1 vs surface-disabled (#F3F4F6), 5.74:1 vs canvas — AA ✅ */
   --surface-disabled: #F3F4F6;  /* Disabled input/button background */
 }
 
@@ -143,11 +144,12 @@
 
   --ring: #3b8bff;  /* Focus indicator - vs canvas: 6.2:1 (AA ✅) */
 
-  /* STORY-2.5: Dark mode disabled tokens — WCAG AA compliant
-     ink-disabled: #9CA3AF vs #374151 surface → 4.5:1 (AA ✅ text)
+  /* STORY-2.5 + Issue #197: Dark mode disabled tokens — WCAG AA compliant
+     ink-disabled: #a8b0bb vs #374151 surface → 4.71:1 (AA ✅ text)
      surface-disabled: #374151 vs #121212 canvas → UI component
+     Was #9CA3AF (4.06:1, FAILED).
   */
-  --ink-disabled: #9CA3AF;      /* 4.5:1 vs surface-disabled (#374151) — AA ✅ */
+  --ink-disabled: #a8b0bb;      /* 4.71:1 vs surface-disabled (#374151), 8.56:1 vs canvas — AA ✅ */
   --surface-disabled: #374151;  /* Disabled input/button background dark mode */
 
   /* STORY-174: Dark mode premium variables */

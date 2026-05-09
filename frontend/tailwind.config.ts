@@ -53,9 +53,9 @@ const config: Config = {
         "chart-10": "var(--chart-10)",
         /* DEBT-012: Third-party brand colors */
         whatsapp: "var(--whatsapp)",
-        /* STORY-2.5: Disabled state tokens — WCAG AA 4.5:1 (text), 3:1 (large)
-           Light: ink-disabled (#6B7280) vs surface-disabled (#F3F4F6) → 4.6:1 ✅
-           Dark:  ink-disabled (#9CA3AF) vs surface-disabled (#374151) → 4.5:1 ✅
+        /* STORY-2.5 + Issue #197: Disabled state tokens — WCAG AA 4.5:1 (text), 3:1 (large)
+           Light: ink-disabled (#5F6770) vs surface-disabled (#F3F4F6) → 5.21:1 ✅
+           Dark:  ink-disabled (#a8b0bb) vs surface-disabled (#374151) → 4.71:1 ✅
         */
         "ink-disabled": "var(--ink-disabled)",
         "surface-disabled": "var(--surface-disabled)",
