@@ -27,6 +27,7 @@ from pydantic import BaseModel
 
 from metrics import OBSERVATORIO_BUDGET_EXCEEDED
 from pipeline.budget import _run_with_budget
+from utils.postgrest_paginate import paginate_full
 
 logger = logging.getLogger(__name__)
 router = APIRouter(tags=["observatorio"])
@@ -323,15 +324,24 @@ def _query_historical_sync(data_inicial: str, data_final: str) -> list[dict]:
     """
     from supabase_client import get_supabase
     sb = get_supabase()
-    resp = (
+    # DATA-CAP-001: paginate — even an old historical month for a small UF
+    # can hold tens of thousands of bids. The previous .limit(5000) was
+    # silently truncated to 1000 by PostgREST max_rows, biasing the
+    # observatório monthly reports toward the most recent rows in the
+    # window (whatever lexicographic order the DB returned).
+    builder = (
         sb.table("pncp_raw_bids")
         .select("pncp_id, objeto_compra, valor_total_estimado, modalidade_id, uf, data_publicacao")
         .gte("data_publicacao", data_inicial)
         .lte("data_publicacao", data_final + "T23:59:59")
-        .limit(5000)
-        .execute()
     )
-    rows = resp.data or []
+    rows = paginate_full(
+        builder,
+        batch_size=1000,
+        max_total=10_000,
+        route="observatorio.historical",
+        entity_type="pncp_raw_bids",
+    )
     # Normalize to keys expected by _generate_relatorio processing
     normalized: list[dict] = []
     for r in rows:

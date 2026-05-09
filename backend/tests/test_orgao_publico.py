@@ -48,9 +48,40 @@ def _make_bid_row(
 
 
 def _mock_supabase_response(data: list[dict]):
+    """Mock supabase client supporting both the bids paginate_full chain and
+    the RPC ``get_orgao_top_contracts_json`` used by ``_fetch_contracts_data``.
+
+    DATA-CAP-001 changed:
+      * pncp_raw_bids fetch: ``.eq().eq().range(s,e).execute()`` (no more .limit)
+      * pncp_supplier_contracts agg: replaced with ``sb.rpc(...).execute()``
+
+    This mock satisfies both. The bids chain now serves the full ``data`` list
+    on the FIRST .range() call and an empty list on any subsequent call so
+    paginate_full's loop terminates after one iteration. The RPC returns an
+    empty contracts payload (top_fornecedores=[], totals=0) — tests that
+    care about contract data should override .rpc explicitly.
+    """
     mock_sb = MagicMock()
-    mock_resp = MagicMock()
-    mock_resp.data = data
+
+    # ---- pncp_raw_bids paginate_full chain ----
+    bids_resp_full = MagicMock()
+    bids_resp_full.data = data
+    bids_resp_empty = MagicMock()
+    bids_resp_empty.data = []
+
+    range_target = (
+        mock_sb.table.return_value
+        .select.return_value
+        .eq.return_value
+        .eq.return_value
+        .range.return_value
+    )
+    # First call returns the full data set; subsequent calls return empty so
+    # paginate_full sees a short batch and exits the loop.
+    range_target.execute.side_effect = [bids_resp_full, bids_resp_empty, bids_resp_empty]
+
+    # Backwards-compat: keep ``.limit().execute()`` shape working in case any
+    # test still depends on it via other modules.
     (
         mock_sb.table.return_value
         .select.return_value
@@ -58,7 +89,17 @@ def _mock_supabase_response(data: list[dict]):
         .eq.return_value
         .limit.return_value
         .execute
-    ).return_value = mock_resp
+    ).return_value = bids_resp_full
+
+    # ---- get_orgao_top_contracts_json RPC (Pattern A) ----
+    rpc_resp = MagicMock()
+    rpc_resp.data = {
+        "top_fornecedores": [],
+        "total_contratos_24m": 0,
+        "valor_total_contratos_24m": 0.0,
+    }
+    mock_sb.rpc.return_value.execute.return_value = rpc_resp
+
     return mock_sb
 
 

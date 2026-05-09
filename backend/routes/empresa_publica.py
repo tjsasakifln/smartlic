@@ -524,12 +524,21 @@ async def _fetch_editais_abertos(setor_id: str, uf: str) -> tuple[int, list[dict
             return 0, []
 
         now = datetime.now(timezone.utc)
+        # DATA-CAP-001: query_datalake delegates to the search_datalake RPC,
+        # which is itself capped at 1000 rows per UF call by PostgREST
+        # max_rows. The previous limit=2000 was silently truncated to 1000
+        # so callers were never receiving the rows they asked for. Cap to
+        # 1000 explicitly to keep the contract honest. Raising the ceiling
+        # above 1000 requires per-UF pagination inside
+        # ``datalake_query.query_datalake`` and is out of scope for
+        # DATA-CAP-001 (story Notes: "Não tocar datalake_query.py" —
+        # tracked as a follow-up story).
         results = await query_datalake(
             ufs=[uf],
             data_inicial=(now - timedelta(days=30)).strftime("%Y-%m-%d"),
             data_final=now.strftime("%Y-%m-%d"),
             keywords=list(sector.keywords),
-            limit=2000,
+            limit=1000,
         )
         return len(results), results[:5]
     except Exception as e:

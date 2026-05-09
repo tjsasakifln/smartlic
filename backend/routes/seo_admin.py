@@ -10,6 +10,7 @@ from pydantic import BaseModel
 from datetime import date, timedelta
 
 from pipeline.budget import _run_with_budget
+from utils.postgrest_paginate import paginate_full
 
 from auth import require_auth
 from admin import require_admin
@@ -199,15 +200,24 @@ async def get_gsc_summary(
             logger.warning("gsc_summary: top_queries query failed — %s", exc)
 
         try:
-            p_resp = (
+            # DATA-CAP-001: paginate via .range() — over a 90d window the
+            # gsc_metrics page-level rollup easily exceeds 1000 rows; the
+            # previous .limit(5000) was silently capped at 1000 by PostgREST,
+            # under-counting impressions/clicks per page in the admin panel.
+            p_builder = (
                 supabase.table("gsc_metrics")
                 .select("page,impressions,clicks,ctr,position")
                 .gte("date", cutoff)
-                .limit(5000)
-                .execute()
+            )
+            p_rows = paginate_full(
+                p_builder,
+                batch_size=1000,
+                max_total=10_000,
+                route="seo_admin.gsc_summary_pages",
+                entity_type="gsc_metrics",
             )
             pg_agg: dict[str, dict] = {}
-            for row in (p_resp.data or []):
+            for row in (p_rows or []):
                 p = (row.get("page") or "").strip()
                 if not p:
                     continue

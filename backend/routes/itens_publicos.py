@@ -25,6 +25,7 @@ from fastapi import APIRouter, HTTPException, Response
 from pipeline.budget import _run_with_budget
 from routes._sitemap_cache_headers import SITEMAP_CACHE_HEADERS
 from pydantic import BaseModel
+from utils.postgrest_paginate import paginate_full
 
 from metrics import record_sitemap_count
 
@@ -437,16 +438,26 @@ async def _fetch_price_data(nome_item: str) -> tuple[list[float], list[dict]]:
     def _sync_fetch() -> list[dict]:
         from supabase_client import get_supabase
         sb = get_supabase()
-        resp = (
+        # DATA-CAP-001: previously a bare ``.limit(1000).execute()`` which
+        # is exactly the silent-cap boundary — for very common keywords
+        # (e.g. "papel", "computador") there are far more than 1000 active
+        # contracts, so the P10/P50/P90 benchmark was being computed on the
+        # 1000 most recent rows only. paginate_full lifts the ceiling to
+        # max_total while preserving the order=data_assinatura DESC.
+        builder = (
             sb.table("pncp_supplier_contracts")
             .select("valor_global,objeto_contrato,orgao_nome,data_assinatura,uf")
             .ilike("objeto_contrato", f"%{palavras[0]}%")
             .eq("is_active", True)
             .order("data_assinatura", desc=True)
-            .limit(1000)
-            .execute()
         )
-        return resp.data or []
+        return paginate_full(
+            builder,
+            batch_size=1000,
+            max_total=5000,
+            route="itens_publicos.fetch_price_data",
+            entity_type="pncp_supplier_contracts",
+        )
 
     try:
         rows = await _run_with_budget(
