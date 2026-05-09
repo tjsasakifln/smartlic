@@ -1,0 +1,231 @@
+name: "Audit — Godmodule LOC Gate"
+
+# Guards against new godmodule files (>1000 LOC) and rapid LOC growth (>20%
+# in a single PR) in backend Python and frontend TypeScript sources.
+#
+# Rules:
+#   NEW files  (not present in origin/main): FAIL (exit 1) if >1000 LOC.
+#   EXISTING files that grow >20% in this PR: WARNING annotation + summary.
+#
+# Baseline — files already above 1000 LOC with open refactor issues (do NOT
+# block PRs that do not touch these files):
+#   backend/filter/pipeline.py        1918 LOC
+#   backend/metrics.py                1326 LOC
+#   backend/routes/blog_stats.py      1279 LOC
+#   backend/pipeline/stages/execute.py 1240 LOC
+#   backend/admin.py                  1240 LOC
+#   backend/filter/keywords.py        1116 LOC
+#   backend/health.py                 1096 LOC
+
+on:
+  pull_request:
+    paths:
+      - 'backend/**/*.py'
+      - 'frontend/**/*.ts'
+      - 'frontend/**/*.tsx'
+      - '.github/workflows/audit-godmodule-loc.yml'
+
+permissions:
+  contents: read
+  pull-requests: write
+
+concurrency:
+  group: audit-godmodule-loc-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  loc-audit:
+    name: LOC gate — no new godmodules
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # required for git diff against origin/main
+
+      - name: Check LOC
+        id: loc
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          LOC_LIMIT=1000
+          GROWTH_THRESHOLD=20  # percent
+
+          # Collect changed files in this PR (vs origin/main).
+          mapfile -t CHANGED_FILES < <(
+            git diff --name-only "origin/${{ github.base_ref }}...HEAD" 2>/dev/null \
+              || git diff --name-only HEAD~1 2>/dev/null \
+              || true
+          )
+
+          FAILURES=()
+          WARNINGS=()
+
+          count_lines() {
+            local f="$1"
+            if [ ! -f "$f" ]; then
+              echo 0
+              return
+            fi
+            wc -l < "$f" | tr -d ' ' || echo 0
+          }
+
+          for file in "${CHANGED_FILES[@]}"; do
+            # ---- scope filter ----
+            # Python: backend/**/*.py, exclude tests/, venv/, migrations/
+            # TS/TSX: frontend/**/*.ts, frontend/**/*.tsx,
+            #         exclude *.test.ts, *.test.tsx, node_modules/
+            is_python=false
+            is_ts=false
+
+            case "$file" in
+              backend/*.py|backend/**/*.py)
+                case "$file" in
+                  backend/tests/*|backend/**/tests/*|backend/venv/*|backend/**/venv/*|backend/migrations/*|backend/**/migrations/*)
+                    continue ;;
+                esac
+                is_python=true ;;
+              frontend/*.ts|frontend/**/*.ts|frontend/*.tsx|frontend/**/*.tsx)
+                case "$file" in
+                  *.test.ts|*.test.tsx|frontend/node_modules/*)
+                    continue ;;
+                esac
+                is_ts=true ;;
+              *)
+                continue ;;
+            esac
+
+            if ! $is_python && ! $is_ts; then
+              continue
+            fi
+
+            # Skip if file was deleted in this PR
+            [ -f "$file" ] || continue
+
+            current_loc=$(count_lines "$file")
+
+            # Check whether the file exists on origin/main
+            if git show "origin/${{ github.base_ref }}:$file" > /tmp/_base_file 2>/dev/null; then
+              # EXISTING file — check for >20% growth
+              base_loc=$(wc -l < /tmp/_base_file | tr -d ' ' || echo 0)
+              if [ "$base_loc" -gt 0 ]; then
+                growth=$(( (current_loc - base_loc) * 100 / base_loc ))
+                if [ "$growth" -gt "$GROWTH_THRESHOLD" ]; then
+                  WARNINGS+=("$file: ${base_loc} → ${current_loc} LOC (+${growth}%)")
+                  echo "::warning file=${file},title=LOC growth >${GROWTH_THRESHOLD}%::${file} grew ${growth}% in this PR (${base_loc} → ${current_loc} LOC). Consider splitting this module."
+                fi
+              fi
+              # Existing files already above LOC_LIMIT are grandfathered — skip hard fail.
+            else
+              # NEW file — hard fail if >1000 LOC
+              if [ "$current_loc" -gt "$LOC_LIMIT" ]; then
+                FAILURES+=("$file: ${current_loc} LOC (limit ${LOC_LIMIT})")
+                echo "::error file=${file},title=New godmodule (>${LOC_LIMIT} LOC)::New file ${file} has ${current_loc} LOC. Break it into smaller modules before merging."
+              fi
+            fi
+          done
+
+          # ---- GitHub Actions step summary ----
+          {
+            echo "## Audit — Godmodule LOC Gate"
+            echo ""
+            if [ ${#FAILURES[@]} -eq 0 ] && [ ${#WARNINGS[@]} -eq 0 ]; then
+              echo ":white_check_mark: No LOC violations or significant growth detected."
+            else
+              if [ ${#FAILURES[@]} -gt 0 ]; then
+                echo "### :x: New files exceeding ${LOC_LIMIT} LOC (FAIL)"
+                echo ""
+                for f in "${FAILURES[@]}"; do
+                  echo "- \`$f\`"
+                done
+                echo ""
+              fi
+              if [ ${#WARNINGS[@]} -gt 0 ]; then
+                echo "### :warning: Existing files with >20% LOC growth (WARNING)"
+                echo ""
+                for w in "${WARNINGS[@]}"; do
+                  echo "- \`$w\`"
+                done
+                echo ""
+                echo "> Growth warnings do **not** block the PR. Consider splitting these modules before they become godmodules."
+              fi
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
+
+          # Persist arrays as newline-delimited outputs
+          HAS_FAILURES="false"
+          HAS_WARNINGS="false"
+          [ ${#FAILURES[@]} -gt 0 ] && HAS_FAILURES="true"
+          [ ${#WARNINGS[@]} -gt 0 ] && HAS_WARNINGS="true"
+
+          echo "has_failures=${HAS_FAILURES}" >> "$GITHUB_OUTPUT"
+          echo "has_warnings=${HAS_WARNINGS}" >> "$GITHUB_OUTPUT"
+
+          FAILURES_JSON=$(printf '%s\n' "${FAILURES[@]+"${FAILURES[@]}"}" | jq -Rs 'split("\n") | map(select(length > 0))')
+          WARNINGS_JSON=$(printf '%s\n' "${WARNINGS[@]+"${WARNINGS[@]}"}" | jq -Rs 'split("\n") | map(select(length > 0))')
+          echo "failures_json=${FAILURES_JSON}" >> "$GITHUB_OUTPUT"
+          echo "warnings_json=${WARNINGS_JSON}" >> "$GITHUB_OUTPUT"
+
+      - name: Post / update PR comment
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const hasFailures = '${{ steps.loc.outputs.has_failures }}' === 'true';
+            const hasWarnings = '${{ steps.loc.outputs.has_warnings }}' === 'true';
+
+            let failuresList = [];
+            let warningsList = [];
+            try { failuresList = JSON.parse('${{ steps.loc.outputs.failures_json }}' || '[]'); } catch {}
+            try { warningsList = JSON.parse('${{ steps.loc.outputs.warnings_json }}' || '[]'); } catch {}
+
+            const marker = '<!-- audit-godmodule-loc -->';
+
+            let body = '';
+            if (!hasFailures && !hasWarnings) {
+              body = `${marker}
+            ## Audit — Godmodule LOC Gate — PASS
+
+            No new files exceed 1000 LOC, and no existing files grew more than 20% in this PR.`;
+            } else {
+              const failBlock = hasFailures
+                ? `### :x: New files exceeding 1000 LOC (FAIL — must fix before merge)\n\n${failuresList.map(f => `- \`${f}\``).join('\n')}\n\nSplit these into smaller modules. New files must stay under 1000 LOC.\n`
+                : '';
+              const warnBlock = hasWarnings
+                ? `### :warning: Existing files with >20% LOC growth (WARNING — does not block)\n\n${warningsList.map(w => `- \`${w}\``).join('\n')}\n\nConsider splitting before they become godmodules.\n`
+                : '';
+              const status = hasFailures ? '**FAIL**' : 'WARN';
+              body = `${marker}
+            ## Audit — Godmodule LOC Gate — ${status}
+
+            ${failBlock}${warnBlock}`;
+            }
+
+            const { data: comments } = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+            });
+            const existing = comments.find(c => c.body && c.body.includes(marker));
+            if (existing) {
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: existing.id,
+                body,
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body,
+              });
+            }
+
+      - name: Fail on new godmodules
+        if: steps.loc.outputs.has_failures == 'true'
+        run: |
+          echo "One or more new files exceed 1000 LOC. See annotations above."
+          exit 1
