@@ -679,10 +679,15 @@ class _ContractsQueryBuilder:
     """Chainable mock that mirrors supabase-py query builder for pncp_supplier_contracts.
 
     Captures invoked filter kwargs so tests can assert UF/municipio were applied.
+
+    DATA-CAP-001: also supports ``.range(start, end)`` so paginate_full's
+    paginated execution path returns the same filtered dataset across one
+    page (then exhausts on the second call).
     """
     def __init__(self, rows):
         self._rows = rows
         self.filters = {}
+        self._range: tuple[int, int] | None = None
 
     def select(self, *_a, **_kw):
         return self
@@ -701,6 +706,14 @@ class _ContractsQueryBuilder:
     def limit(self, *_a, **_kw):
         return self
 
+    def range(self, start, end):
+        # paginate_full calls this per page. Stash the slice; execute() will
+        # honor it. The mock dataset is small (a handful of rows), so the
+        # first page returns the full filtered set and subsequent pages
+        # return [] — paginate_full's `if not page: break` exits the loop.
+        self._range = (start, end)
+        return self
+
     def execute(self):
         rows = list(self._rows)
         uf = self.filters.get("eq:uf")
@@ -711,6 +724,11 @@ class _ContractsQueryBuilder:
             # strip the surrounding %…% wildcards, case-insensitive substring
             needle = municipio_ilike.strip("%").lower()
             rows = [r for r in rows if needle in (r.get("municipio") or "").lower()]
+        # Honor the .range(start, end) slice if paginate_full asked for one.
+        if self._range is not None:
+            start, end = self._range
+            rows = rows[start : end + 1]
+            self._range = None  # next call (next page) starts empty
         resp = MagicMock()
         resp.data = rows
         return resp

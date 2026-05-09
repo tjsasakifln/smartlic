@@ -35,14 +35,34 @@ def _mock_rows(n=5):
 # Contratos Stats
 # ---------------------------------------------------------------------------
 
+def _wire_paginate_full(mock_sb, rows):
+    """DATA-CAP-001: route the supabase mock chain so paginate_full works.
+
+    The new code calls ``.order(...).range(start, end).execute()`` repeatedly
+    until a short page lands. We side_effect the first call with the full
+    rows and follow with empties so the loop exits on the second page.
+    """
+    mock_resp = MagicMock(data=rows)
+    mock_empty = MagicMock(data=[])
+    chain = (
+        mock_sb.table.return_value
+        .select.return_value
+        .eq.return_value
+        .eq.return_value
+        .order.return_value
+    )
+    # paginate_full: .order().range().execute()
+    chain.range.return_value.execute.side_effect = [mock_resp, mock_empty, mock_empty]
+    # Legacy .order().limit().execute() (kept for any test that hasn't migrated).
+    chain.limit.return_value.execute.return_value = mock_resp
+
+
 class TestContratosStats:
     @patch("routes.contratos_publicos.get_supabase", create=True)
     def test_contratos_stats_success(self, mock_get_sb, client):
         """GET /v1/contratos/{setor}/{uf}/stats returns 200 with valid data."""
         mock_sb = MagicMock()
-        mock_resp = MagicMock()
-        mock_resp.data = _mock_rows(5)
-        mock_sb.table.return_value.select.return_value.eq.return_value.eq.return_value.order.return_value.limit.return_value.execute.return_value = mock_resp
+        _wire_paginate_full(mock_sb, _mock_rows(5))
 
         with patch("supabase_client.get_supabase", return_value=mock_sb):
             # Clear cache to ensure fresh query
@@ -77,12 +97,9 @@ class TestContratosStats:
     def test_contratos_stats_empty_results(self, mock_get_sb, client):
         """GET /v1/contratos/{setor}/{uf}/stats returns 200 with zero contracts when no keyword match."""
         mock_sb = MagicMock()
-        mock_resp = MagicMock()
-        # Rows that don't match vestuario keywords
-        mock_resp.data = [{"objeto_contrato": "servico de TI", "ni_fornecedor": "123", "orgao_cnpj": "456",
+        _wire_paginate_full(mock_sb, [{"objeto_contrato": "servico de TI", "ni_fornecedor": "123", "orgao_cnpj": "456",
                            "orgao_nome": "Org", "nome_fornecedor": "F", "valor_global": "100",
-                           "data_assinatura": "2026-03-01"}]
-        mock_sb.table.return_value.select.return_value.eq.return_value.eq.return_value.order.return_value.limit.return_value.execute.return_value = mock_resp
+                           "data_assinatura": "2026-03-01"}])
 
         with patch("supabase_client.get_supabase", return_value=mock_sb):
             from routes.contratos_publicos import _contratos_cache
@@ -143,9 +160,7 @@ class TestFornecedoresStats:
     def test_fornecedores_stats_success(self, mock_get_sb, client):
         """GET /v1/fornecedores/{setor}/{uf}/stats returns 200."""
         mock_sb = MagicMock()
-        mock_resp = MagicMock()
-        mock_resp.data = _mock_rows(5)
-        mock_sb.table.return_value.select.return_value.eq.return_value.eq.return_value.order.return_value.limit.return_value.execute.return_value = mock_resp
+        _wire_paginate_full(mock_sb, _mock_rows(5))
 
         with patch("supabase_client.get_supabase", return_value=mock_sb):
             from routes.contratos_publicos import _fornecedores_cache
@@ -199,17 +214,9 @@ class TestContratosDedup:
     rows for the same supplier/orgao (multiple contracts per entity)."""
 
     def _mock_chain(self, mock_sb, rows):
-        mock_resp = MagicMock()
-        mock_resp.data = rows
-        (
-            mock_sb.table.return_value
-            .select.return_value
-            .eq.return_value
-            .eq.return_value
-            .order.return_value
-            .limit.return_value
-            .execute.return_value
-        ) = mock_resp
+        # DATA-CAP-001: paginate_full uses .order().range().execute() — wire
+        # both legacy .limit() chain and new .range() chain.
+        _wire_paginate_full(mock_sb, rows)
 
     @patch("routes.contratos_publicos.get_supabase", create=True)
     def test_contratos_stats_no_duplicate_fornecedores(self, mock_get_sb, client):

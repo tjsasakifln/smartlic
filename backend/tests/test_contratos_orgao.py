@@ -12,10 +12,21 @@ def client():
 
 
 def _make_mock_sb(rows):
-    mock_resp = MagicMock()
-    mock_resp.data = rows
+    """DATA-CAP-001: wire both .order().limit().execute() (legacy) and
+    .order().range().execute() (paginate_full) chains. Range side_effect
+    cycles full→empty so the loop exits after one paginated page."""
+    mock_resp = MagicMock(data=rows)
+    mock_empty = MagicMock(data=[])
     mock_sb = MagicMock()
-    mock_sb.table.return_value.select.return_value.eq.return_value.eq.return_value.order.return_value.limit.return_value.execute.return_value = mock_resp
+    chain = (
+        mock_sb.table.return_value
+        .select.return_value
+        .eq.return_value
+        .eq.return_value
+        .order.return_value
+    )
+    chain.limit.return_value.execute.return_value = mock_resp
+    chain.range.return_value.execute.side_effect = [mock_resp, mock_empty, mock_empty]
     return mock_sb
 
 

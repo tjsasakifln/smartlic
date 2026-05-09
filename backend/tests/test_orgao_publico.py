@@ -48,17 +48,41 @@ def _make_bid_row(
 
 
 def _mock_supabase_response(data: list[dict]):
+    """DATA-CAP-001: helper mocks both the legacy .limit(N).execute() chain
+    and the new .range(...).execute() chain produced by paginate_full, plus
+    the .rpc(...).execute() path used by orgao Pattern A. Returns ``data``
+    on the first .range() call and an empty page on subsequent calls so the
+    paginate_full loop exits after one page (matching the pre-fix dataset
+    size which fits well below the 1000-row cap).
+    """
     mock_sb = MagicMock()
     mock_resp = MagicMock()
     mock_resp.data = data
-    (
+    mock_empty = MagicMock(data=[])
+
+    # Build the shared terminal mock that both legacy .limit and new .range
+    # converge into. side_effect cycles: first call returns full page, all
+    # subsequent calls return empty so the paginate_full loop exits.
+    chain = (
         mock_sb.table.return_value
         .select.return_value
         .eq.return_value
         .eq.return_value
-        .limit.return_value
-        .execute
-    ).return_value = mock_resp
+    )
+    # Legacy .limit().execute() (still used by paths that haven't migrated)
+    chain.limit.return_value.execute.return_value = mock_resp
+    # New .range().execute() — paginate_full calls .range(0, 999) etc.
+    chain.range.return_value.execute.side_effect = [mock_resp, mock_empty, mock_empty]
+    # .order().range().execute() chain used by paginate_full when a route
+    # tacks on .order(...) before paginate_full() consumes the builder.
+    chain.order.return_value.range.return_value.execute.side_effect = [
+        mock_resp, mock_empty, mock_empty,
+    ]
+    chain.order.return_value.limit.return_value.execute.return_value = mock_resp
+
+    # Pattern A — RPC RETURNS json scalar (orgao top contracts).
+    # _fetch_contracts_data passes the same row list as raw json array.
+    mock_sb.rpc.return_value.execute.return_value = MagicMock(data=data)
     return mock_sb
 
 
