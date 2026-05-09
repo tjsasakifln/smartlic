@@ -1,6 +1,8 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { useSearchParams } from 'next/navigation';
+import { trackFoundersCheckoutAbandoned } from '@/lib/analytics/founders';
 import FundadoresForm from './components/FundadoresForm';
 import FundadoresFAQ from './components/FundadoresFAQ';
 import FundadoresFeatures from './components/FundadoresFeatures';
@@ -19,6 +21,7 @@ function trackEvent(name: string, props?: Record<string, unknown>) {
 
 const REFRESH_INTERVAL_MS = 60_000;
 
+
 // TODO: remove hardcoded fallback after #782 merges (price_brl_cents in API response)
 function formatPrice(priceBrlCents: number | undefined): string {
   if (priceBrlCents !== undefined && priceBrlCents > 0) {
@@ -29,10 +32,20 @@ function formatPrice(priceBrlCents: number | undefined): string {
 
 export default function FundadoresClient() {
   const [snapshot, setSnapshot] = useState<FoundingAvailabilitySnapshot | null>(null);
+  const searchParams = useSearchParams();
+  const abandonedTrackedRef = useRef(false);
 
   useEffect(() => {
     trackEvent('fundadores_page_viewed', { source: 'landing' });
   }, []);
+
+  // Track checkout abandoned when user returns from Stripe with ?cancelled=true
+  useEffect(() => {
+    if (!abandonedTrackedRef.current && searchParams?.get('cancelled') === 'true') {
+      abandonedTrackedRef.current = true;
+      trackFoundersCheckoutAbandoned({ src: searchParams?.get('src') });
+    }
+  }, [searchParams]);
 
   useEffect(() => {
     let cancelled = false;

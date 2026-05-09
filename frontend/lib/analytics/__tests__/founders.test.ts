@@ -24,6 +24,11 @@ import {
   trackFoundersCtaClick,
   trackFoundersCheckoutStart,
   trackFoundersPseoConversion,
+  trackFoundersCheckoutAbandoned,
+  trackFoundersCheckoutError,
+  trackFoundersInviteSent,
+  trackFoundersAccountActivated,
+  trackFoundersCountdownViewed,
 } from '../founders';
 
 const mockTrack = mixpanel.track as jest.Mock;
@@ -156,5 +161,89 @@ describe('trackFoundersPseoConversion', () => {
       from_route: '/contratos/tecnologia/SP',
       variant: 'default',
     });
+  });
+});
+
+// ---------------------------------------------------------------------------
+// FOUND-METRICS-001: New events
+// ---------------------------------------------------------------------------
+
+describe('trackFoundersCheckoutAbandoned', () => {
+  it('calls mixpanel.track with fundadores_checkout_abandoned', () => {
+    trackFoundersCheckoutAbandoned({ src: 'email' });
+    expect(mockTrack).toHaveBeenCalledWith('fundadores_checkout_abandoned', { src: 'email' });
+  });
+
+  it('accepts null src', () => {
+    trackFoundersCheckoutAbandoned({ src: null });
+    expect(mockTrack).toHaveBeenCalledWith('fundadores_checkout_abandoned', { src: null });
+  });
+
+  it('does not throw when mixpanel.track throws', () => {
+    mockTrack.mockImplementationOnce(() => {
+      throw new Error('mp not initialized');
+    });
+    expect(() => trackFoundersCheckoutAbandoned({ src: null })).not.toThrow();
+  });
+});
+
+describe('trackFoundersCheckoutError', () => {
+  it('calls mixpanel.track with fundadores_checkout_error and error_message', () => {
+    trackFoundersCheckoutError({ error_message: 'Falha de rede.', src: null });
+    expect(mockTrack).toHaveBeenCalledWith('fundadores_checkout_error', {
+      error_message: 'Falha de rede.',
+      src: null,
+    });
+  });
+
+  it('does not throw when mixpanel.track throws', () => {
+    mockTrack.mockImplementationOnce(() => {
+      throw new Error('mp not initialized');
+    });
+    expect(() =>
+      trackFoundersCheckoutError({ error_message: 'some error' })
+    ).not.toThrow();
+  });
+});
+
+describe('trackFoundersInviteSent', () => {
+  it('calls mixpanel.track with fundadores_invite_sent and lead_id', () => {
+    trackFoundersInviteSent({ lead_id: 'abc-123' });
+    expect(mockTrack).toHaveBeenCalledWith('fundadores_invite_sent', { lead_id: 'abc-123' });
+  });
+
+  it('accepts null lead_id', () => {
+    trackFoundersInviteSent({ lead_id: null });
+    expect(mockTrack).toHaveBeenCalledWith('fundadores_invite_sent', { lead_id: null });
+  });
+});
+
+describe('trackFoundersAccountActivated', () => {
+  it('calls mixpanel.track with fundadores_account_activated', () => {
+    trackFoundersAccountActivated({ user_id: 'user-xyz', offer_version: 'v2_lifetime' });
+    expect(mockTrack).toHaveBeenCalledWith('fundadores_account_activated', {
+      user_id: 'user-xyz',
+      offer_version: 'v2_lifetime',
+    });
+  });
+
+  it('accepts null optional props', () => {
+    trackFoundersAccountActivated({ user_id: null, offer_version: null });
+    expect(mockTrack).toHaveBeenCalledWith('fundadores_account_activated', {
+      user_id: null,
+      offer_version: null,
+    });
+  });
+});
+
+describe('trackFoundersCountdownViewed', () => {
+  it('calls mixpanel.track with fundadores_countdown_viewed and days_remaining', () => {
+    trackFoundersCountdownViewed({ days_remaining: 23 });
+    expect(mockTrack).toHaveBeenCalledWith('fundadores_countdown_viewed', { days_remaining: 23 });
+  });
+
+  it('forwards days_remaining=0 correctly', () => {
+    trackFoundersCountdownViewed({ days_remaining: 0 });
+    expect(mockTrack).toHaveBeenCalledWith('fundadores_countdown_viewed', { days_remaining: 0 });
   });
 });

@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import type { FoundingAvailabilitySnapshot } from './FundadoresCountdown';
+import { trackFoundersCheckoutError } from '@/lib/analytics/founders';
 
 type Status = 'idle' | 'loading' | 'success' | 'error';
 
@@ -91,6 +92,7 @@ export default function FundadoresForm({ availability, price = 'R$997' }: Props 
         } catch {
           // ignore JSON parse errors — keep default message
         }
+        trackFoundersCheckoutError({ error_message: msg });
         setErrorMsg(msg);
         setStatus('error');
         return;
@@ -100,7 +102,9 @@ export default function FundadoresForm({ availability, price = 'R$997' }: Props 
       trackEvent('fundadores_checkout_started', { lead_id: data.lead_id });
       window.location.href = data.checkout_url;
     } catch {
-      setErrorMsg('Falha de rede. Verifique sua conexão e tente novamente.');
+      const networkMsg = 'Falha de rede. Verifique sua conexão e tente novamente.';
+      trackFoundersCheckoutError({ error_message: networkMsg });
+      setErrorMsg(networkMsg);
       setStatus('error');
     }
   }

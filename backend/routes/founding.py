@@ -37,6 +37,7 @@ from typing import Any
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response
 from pydantic import BaseModel, Field, field_validator
 
+from metrics import FOUNDING_CHECKOUTS_TOTAL
 from rate_limiter import require_rate_limit
 from supabase_client import get_supabase
 
@@ -641,6 +642,8 @@ async def founding_checkout(
         f"session_id={session.id} email={payload.email} cnpj={payload.cnpj[:4]}*** "
         f"offer_mode={offer_mode} checkout_source={checkout_source}"
     )
+
+    FOUNDING_CHECKOUTS_TOTAL.labels(status="started").inc()
 
     return FoundingCheckoutResponse(
         checkout_url=session.url,
