@@ -4,6 +4,13 @@ import * as Sentry from "@sentry/nextjs";
 // AC18: Graceful no-op when DSN is not configured
 const dsn = process.env.NEXT_PUBLIC_SENTRY_DSN;
 
+// SMARTLIC-FE-F-INVEST-001 AC2: opt-in debug logging gate. Setting
+// NEXT_PUBLIC_SENTRY_DEBUG=1 emits one console line per event the SDK
+// considers, before beforeSend filter rules drop it. This is how we will
+// surface in the future whether a "missing" event was filtered locally or
+// quota-rate-limited by Sentry. Off by default to avoid prod console noise.
+const SENTRY_DEBUG = process.env.NEXT_PUBLIC_SENTRY_DEBUG === "1";
+
 if (dsn) {
   Sentry.init({
     dsn,
@@ -14,6 +21,16 @@ if (dsn) {
     // Reduce SSE proxy noise and drop legitimate user cancellations.
     beforeSend(event) {
       const message = event.exception?.values?.[0]?.value || "";
+
+      if (SENTRY_DEBUG) {
+        // eslint-disable-next-line no-console
+        console.log(
+          "[sentry-debug] beforeSend",
+          event.event_id,
+          event.level,
+          message.slice(0, 160)
+        );
+      }
 
       // STORY-422 AC1/AC4: Drop events that carry an explicit
       // `close_reason: USER_CANCELLED` tag/extra. These are legitimate user
