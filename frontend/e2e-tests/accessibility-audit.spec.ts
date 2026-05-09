@@ -1,12 +1,19 @@
 /**
- * DEBT-109 AC1-AC3: Automated Accessibility Audits via @axe-core/playwright
+ * DEBT-109 AC1-AC3 + TD-FE-027 (#276): Automated Accessibility Audits.
  *
- * Runs axe-core analysis on 5 core pages to detect critical a11y violations.
- * Critical violations must be 0; serious/moderate are documented as known issues.
+ * Runs axe-core analysis on 10 core pages to detect critical/serious WCAG 2.1
+ * AA violations. Refactored on 2026-05-08 to use the shared `axe` fixture
+ * (`frontend/e2e-tests/fixtures/axe.ts`) so every spec gets a pre-configured
+ * AxeBuilder + an opinionated severity gate.
+ *
+ * Severity policy:
+ *   - critical / serious  → fail the test (blocking)
+ *   - moderate / minor    → logged for triage, non-blocking
+ *
+ * Triage runbook: docs/testing/a11y-e2e.md
  */
 
-import { test, expect } from '@playwright/test';
-import AxeBuilder from '@axe-core/playwright';
+import { test, expect } from './fixtures/axe';
 import {
   mockAuthAPI,
   mockSearchAPI,
@@ -15,69 +22,63 @@ import {
   mockMeAPI,
 } from './helpers/test-utils';
 
-// Helper: run axe audit and assert 0 critical violations
-async function auditPage(page: any, context: string) {
-  const results = await new AxeBuilder({ page })
-    .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'])
-    .analyze();
-
-  const critical = results.violations.filter((v) => v.impact === 'critical');
-  const serious = results.violations.filter((v) => v.impact === 'serious');
-  const moderate = results.violations.filter((v) => v.impact === 'moderate');
-
-  // Log non-critical for documentation (AC3)
-  if (serious.length > 0 || moderate.length > 0) {
-    console.log(`\n[${context}] Known a11y issues:`);
-    for (const v of [...serious, ...moderate]) {
-      console.log(`  - [${v.impact}] ${v.id}: ${v.description} (${v.nodes.length} nodes)`);
-    }
-  }
-
-  // AC2: 0 critical violations
-  expect(critical, `Critical a11y violations on ${context}`).toHaveLength(0);
-
-  return { critical, serious, moderate, total: results.violations.length };
-}
-
 test.describe('Accessibility Audits — @axe-core/playwright', () => {
   // -----------------------------------------------------------------------
   // 1. Login page (public, no auth needed)
   // -----------------------------------------------------------------------
-  test('AC1.1: Login page has 0 critical a11y violations', async ({ page }) => {
+  test('AC1.1: Login page has 0 critical a11y violations', async ({
+    page,
+    makeAxeBuilder,
+    assertNoSeriousViolations,
+  }) => {
     await page.goto('/login');
     await page.waitForLoadState('domcontentloaded');
-    // Wait for form to render
     await page.waitForSelector('form', { timeout: 10000 }).catch(() => {});
-    await page.waitForTimeout(500); // Allow hydration
+    await page.waitForTimeout(500);
 
-    const result = await auditPage(page, 'Login');
-    console.log(`Login: ${result.total} total violations (${result.serious.length} serious, ${result.moderate.length} moderate)`);
+    const results = await makeAxeBuilder().analyze();
+    const summary = assertNoSeriousViolations(results, 'Login');
+    console.log(
+      `Login: ${summary.total} total violations (${summary.serious.length} serious, ${summary.moderate.length} moderate)`,
+    );
   });
 
   // -----------------------------------------------------------------------
   // 2. Buscar page (core search page, needs setores mock)
   // -----------------------------------------------------------------------
-  test('AC1.2: Buscar page has 0 critical a11y violations', async ({ page }) => {
+  test('AC1.2: Buscar page has 0 critical a11y violations', async ({
+    page,
+    makeAxeBuilder,
+    assertNoSeriousViolations,
+  }) => {
     await mockSetoresAPI(page);
     await mockSearchAPI(page, 'success');
     await mockDownloadAPI(page);
 
     await page.goto('/buscar');
     await page.waitForLoadState('domcontentloaded');
-    // Wait for search form to render (UF grid, sector selector)
-    await page.waitForSelector('[data-testid="search-form"], form, .search-form, main', {
-      timeout: 10000,
-    }).catch(() => {});
+    await page
+      .waitForSelector('[data-testid="search-form"], form, .search-form, main', {
+        timeout: 10000,
+      })
+      .catch(() => {});
     await page.waitForTimeout(500);
 
-    const result = await auditPage(page, 'Buscar');
-    console.log(`Buscar: ${result.total} total violations (${result.serious.length} serious, ${result.moderate.length} moderate)`);
+    const results = await makeAxeBuilder().analyze();
+    const summary = assertNoSeriousViolations(results, 'Buscar');
+    console.log(
+      `Buscar: ${summary.total} total violations (${summary.serious.length} serious, ${summary.moderate.length} moderate)`,
+    );
   });
 
   // -----------------------------------------------------------------------
   // 3. Dashboard page (authenticated)
   // -----------------------------------------------------------------------
-  test('AC1.3: Dashboard page has 0 critical a11y violations', async ({ page }) => {
+  test('AC1.3: Dashboard page has 0 critical a11y violations', async ({
+    page,
+    makeAxeBuilder,
+    assertNoSeriousViolations,
+  }) => {
     await mockAuthAPI(page, 'user');
     await mockMeAPI(page, {
       plan_id: 'smartlic_pro',
@@ -85,7 +86,6 @@ test.describe('Accessibility Audits — @axe-core/playwright', () => {
       credits_remaining: 50,
     });
 
-    // Mock analytics endpoints
     await page.route('**/api/analytics**', async (route) => {
       await route.fulfill({
         status: 200,
@@ -100,7 +100,6 @@ test.describe('Accessibility Audits — @axe-core/playwright', () => {
       });
     });
 
-    // Mock sessions endpoint
     await page.route('**/api/sessions**', async (route) => {
       await route.fulfill({
         status: 200,
@@ -111,16 +110,23 @@ test.describe('Accessibility Audits — @axe-core/playwright', () => {
 
     await page.goto('/dashboard');
     await page.waitForLoadState('domcontentloaded');
-    await page.waitForTimeout(1000); // Allow data fetching + render
+    await page.waitForTimeout(1000);
 
-    const result = await auditPage(page, 'Dashboard');
-    console.log(`Dashboard: ${result.total} total violations (${result.serious.length} serious, ${result.moderate.length} moderate)`);
+    const results = await makeAxeBuilder().analyze();
+    const summary = assertNoSeriousViolations(results, 'Dashboard');
+    console.log(
+      `Dashboard: ${summary.total} total violations (${summary.serious.length} serious, ${summary.moderate.length} moderate)`,
+    );
   });
 
   // -----------------------------------------------------------------------
   // 4. Pipeline page (authenticated, needs pipeline mock)
   // -----------------------------------------------------------------------
-  test('AC1.4: Pipeline page has 0 critical a11y violations', async ({ page }) => {
+  test('AC1.4: Pipeline page has 0 critical a11y violations', async ({
+    page,
+    makeAxeBuilder,
+    assertNoSeriousViolations,
+  }) => {
     await mockAuthAPI(page, 'user');
     await mockMeAPI(page, {
       plan_id: 'smartlic_pro',
@@ -128,7 +134,6 @@ test.describe('Accessibility Audits — @axe-core/playwright', () => {
       credits_remaining: 50,
     });
 
-    // Mock pipeline endpoint
     await page.route('**/api/pipeline**', async (route) => {
       await route.fulfill({
         status: 200,
@@ -154,15 +159,21 @@ test.describe('Accessibility Audits — @axe-core/playwright', () => {
     await page.waitForLoadState('domcontentloaded');
     await page.waitForTimeout(1000);
 
-    const result = await auditPage(page, 'Pipeline');
-    console.log(`Pipeline: ${result.total} total violations (${result.serious.length} serious, ${result.moderate.length} moderate)`);
+    const results = await makeAxeBuilder().analyze();
+    const summary = assertNoSeriousViolations(results, 'Pipeline');
+    console.log(
+      `Pipeline: ${summary.total} total violations (${summary.serious.length} serious, ${summary.moderate.length} moderate)`,
+    );
   });
 
   // -----------------------------------------------------------------------
   // 5. Planos page (public pricing page)
   // -----------------------------------------------------------------------
-  test('AC1.5: Planos page has 0 critical a11y violations', async ({ page }) => {
-    // Mock plans endpoint
+  test('AC1.5: Planos page has 0 critical a11y violations', async ({
+    page,
+    makeAxeBuilder,
+    assertNoSeriousViolations,
+  }) => {
     await page.route('**/api/plans**', async (route) => {
       await route.fulfill({
         status: 200,
@@ -186,8 +197,11 @@ test.describe('Accessibility Audits — @axe-core/playwright', () => {
     await page.waitForLoadState('domcontentloaded');
     await page.waitForTimeout(500);
 
-    const result = await auditPage(page, 'Planos');
-    console.log(`Planos: ${result.total} total violations (${result.serious.length} serious, ${result.moderate.length} moderate)`);
+    const results = await makeAxeBuilder().analyze();
+    const summary = assertNoSeriousViolations(results, 'Planos');
+    console.log(
+      `Planos: ${summary.total} total violations (${summary.serious.length} serious, ${summary.moderate.length} moderate)`,
+    );
   });
 
   // =======================================================================
@@ -197,32 +211,50 @@ test.describe('Accessibility Audits — @axe-core/playwright', () => {
   // -----------------------------------------------------------------------
   // 6. Landing page (public)
   // -----------------------------------------------------------------------
-  test('AC1.6: Landing page has 0 critical a11y violations', async ({ page }) => {
+  test('AC1.6: Landing page has 0 critical a11y violations', async ({
+    page,
+    makeAxeBuilder,
+    assertNoSeriousViolations,
+  }) => {
     await page.goto('/');
     await page.waitForLoadState('domcontentloaded');
     await page.waitForTimeout(500);
 
-    const result = await auditPage(page, 'Landing');
-    console.log(`Landing: ${result.total} total violations (${result.serious.length} serious, ${result.moderate.length} moderate)`);
+    const results = await makeAxeBuilder().analyze();
+    const summary = assertNoSeriousViolations(results, 'Landing');
+    console.log(
+      `Landing: ${summary.total} total violations (${summary.serious.length} serious, ${summary.moderate.length} moderate)`,
+    );
   });
 
   // -----------------------------------------------------------------------
   // 7. Signup page (public)
   // -----------------------------------------------------------------------
-  test('AC1.7: Signup page has 0 critical a11y violations', async ({ page }) => {
+  test('AC1.7: Signup page has 0 critical a11y violations', async ({
+    page,
+    makeAxeBuilder,
+    assertNoSeriousViolations,
+  }) => {
     await page.goto('/signup');
     await page.waitForLoadState('domcontentloaded');
     await page.waitForSelector('form', { timeout: 10000 }).catch(() => {});
     await page.waitForTimeout(500);
 
-    const result = await auditPage(page, 'Signup');
-    console.log(`Signup: ${result.total} total violations (${result.serious.length} serious, ${result.moderate.length} moderate)`);
+    const results = await makeAxeBuilder().analyze();
+    const summary = assertNoSeriousViolations(results, 'Signup');
+    console.log(
+      `Signup: ${summary.total} total violations (${summary.serious.length} serious, ${summary.moderate.length} moderate)`,
+    );
   });
 
   // -----------------------------------------------------------------------
   // 8. Historico page (authenticated)
   // -----------------------------------------------------------------------
-  test('AC1.8: Historico page has 0 critical a11y violations', async ({ page }) => {
+  test('AC1.8: Historico page has 0 critical a11y violations', async ({
+    page,
+    makeAxeBuilder,
+    assertNoSeriousViolations,
+  }) => {
     await mockAuthAPI(page, 'user');
     await mockMeAPI(page, {
       plan_id: 'smartlic_pro',
@@ -230,7 +262,6 @@ test.describe('Accessibility Audits — @axe-core/playwright', () => {
       credits_remaining: 50,
     });
 
-    // Mock sessions/history endpoint
     await page.route('**/api/sessions**', async (route) => {
       await route.fulfill({
         status: 200,
@@ -243,14 +274,21 @@ test.describe('Accessibility Audits — @axe-core/playwright', () => {
     await page.waitForLoadState('domcontentloaded');
     await page.waitForTimeout(1000);
 
-    const result = await auditPage(page, 'Historico');
-    console.log(`Historico: ${result.total} total violations (${result.serious.length} serious, ${result.moderate.length} moderate)`);
+    const results = await makeAxeBuilder().analyze();
+    const summary = assertNoSeriousViolations(results, 'Historico');
+    console.log(
+      `Historico: ${summary.total} total violations (${summary.serious.length} serious, ${summary.moderate.length} moderate)`,
+    );
   });
 
   // -----------------------------------------------------------------------
   // 9. Conta page (authenticated — account settings)
   // -----------------------------------------------------------------------
-  test('AC1.9: Conta page has 0 critical a11y violations', async ({ page }) => {
+  test('AC1.9: Conta page has 0 critical a11y violations', async ({
+    page,
+    makeAxeBuilder,
+    assertNoSeriousViolations,
+  }) => {
     await mockAuthAPI(page, 'user');
     await mockMeAPI(page, {
       plan_id: 'smartlic_pro',
@@ -258,7 +296,6 @@ test.describe('Accessibility Audits — @axe-core/playwright', () => {
       credits_remaining: 50,
     });
 
-    // Mock subscription status
     await page.route('**/api/subscription**', async (route) => {
       await route.fulfill({
         status: 200,
@@ -276,19 +313,32 @@ test.describe('Accessibility Audits — @axe-core/playwright', () => {
     await page.waitForLoadState('domcontentloaded');
     await page.waitForTimeout(1000);
 
-    const result = await auditPage(page, 'Conta');
-    console.log(`Conta: ${result.total} total violations (${result.serious.length} serious, ${result.moderate.length} moderate)`);
+    const results = await makeAxeBuilder().analyze();
+    const summary = assertNoSeriousViolations(results, 'Conta');
+    console.log(
+      `Conta: ${summary.total} total violations (${summary.serious.length} serious, ${summary.moderate.length} moderate)`,
+    );
   });
 
   // -----------------------------------------------------------------------
   // 10. Ajuda page (public help center)
   // -----------------------------------------------------------------------
-  test('AC1.10: Ajuda page has 0 critical a11y violations', async ({ page }) => {
+  test('AC1.10: Ajuda page has 0 critical a11y violations', async ({
+    page,
+    makeAxeBuilder,
+    assertNoSeriousViolations,
+  }) => {
     await page.goto('/ajuda');
     await page.waitForLoadState('domcontentloaded');
     await page.waitForTimeout(500);
 
-    const result = await auditPage(page, 'Ajuda');
-    console.log(`Ajuda: ${result.total} total violations (${result.serious.length} serious, ${result.moderate.length} moderate)`);
+    const results = await makeAxeBuilder().analyze();
+    const summary = assertNoSeriousViolations(results, 'Ajuda');
+    console.log(
+      `Ajuda: ${summary.total} total violations (${summary.serious.length} serious, ${summary.moderate.length} moderate)`,
+    );
   });
 });
+
+// Re-export so consumers can `import { expect } from this spec` if needed.
+export { expect };
