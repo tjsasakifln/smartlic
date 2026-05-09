@@ -939,11 +939,45 @@ JWT payload claims usados:
 - 🟢 CSP migrado de nonce para hash estático (SEO-FIX) — preservou CDN cacheability
 - 🟡 `'unsafe-inline'` em `script-src` é "accepted risk" — sem upstream fix Next.js 16 RSC
 
+### Subseção 6.M — MFA TOTP enroll/verify (refresh 2026-05-09 — DOC-COVERAGE-001)
+
+> Adendo: extensão de Module 6 para fechar a lacuna "🔴 STORY-317 MFA TOTP recovery codes" da revisão 2026-04-27. Cobertura PR #677 (enroll/verify endpoints) + PR #700 (recovery codes hashed bcrypt + lockout protection).
+
+**Caminho adicional:** `backend/routes/auth_mfa.py`, `backend/auth.py:_mfa_*`, migrations `20260228160000_add_mfa_recovery_codes.sql` + `20260428100400_consultoria_mfa_enforcement.sql`
+
+**Endpoints (4):**
+
+| Método | Rota | Função |
+|--------|------|--------|
+| `POST` | `/v1/auth/mfa/enroll` | gera secret TOTP + QR provisioning URI; user escaneia em Google Authenticator/Authy/1Password |
+| `POST` | `/v1/auth/mfa/verify` | verifica token TOTP enviado pelo user para concluir enrollment; ativa MFA; gera 8 recovery codes (one-shot, exibidos uma única vez) |
+| `POST` | `/v1/auth/mfa/login` | post-password 2FA challenge — verifica token TOTP ou recovery code; emite session cookie completo |
+| `DELETE` | `/v1/auth/mfa` | desactiva MFA (require password re-confirm) — purga `mfa_recovery_codes` |
+
+**Tabelas (já em §2 data-master):**
+- `mfa_recovery_codes(id, user_id, code_hash bcrypt, used_at)` — recovery codes pre-hashed bcrypt cost=12; one-time use (UPDATE used_at após verify success)
+- `mfa_recovery_attempts(id, user_id, attempted_at, success bool)` — rate-limit (>5 fails em 30min → lockout 1h)
+
+**Algoritmos:**
+
+1. **Enrollment** — `pyotp.random_base32()` gera secret 32-char; armazena em `profiles.mfa_secret` (Fernet-encrypted, defesa em profundidade); `pyotp.totp.TOTP(secret).provisioning_uri(...)` gera otpauth URI codificada em QR.
+2. **Verify (TOTP)** — `pyotp.totp.TOTP(secret).verify(code, valid_window=1)` — `valid_window=1` permite ±30s drift (defesa contra clock skew, padrão RFC 6238).
+3. **Recovery code verify** — itera `mfa_recovery_codes WHERE user_id` e tenta `bcrypt.checkpw(code_input, code_hash)`; primeiro match win; UPDATE `used_at = now()` (não-removido — auditoria).
+4. **Lockout** — `mfa_recovery_attempts` audit + COUNT(*) com `WHERE attempted_at > now() - interval '30m' AND success = false`. >= 5 → 401 com `Retry-After: 3600s`.
+
+**Enforcement Policy (PR #700 — Consultoria plan):**
+- Migration `20260428100400_consultoria_mfa_enforcement.sql` adiciona check em `enforce_mfa_for_plan(plan_id)` SECDEF function
+- `consultoria` plan-id é o único que força MFA enrollment para login (gate em `/auth/login` step 2)
+- Outros planos: MFA é opt-in via `/v1/auth/mfa/enroll`
+- Memory `feedback_secdef_search_path_trap` cumprida — function tem `SET search_path = public, pg_temp`
+
+**Confiança:** 🟢 CONFIRMADO via migrations + routes shipped.
+
 ### Lacunas
 
 - 🟡 `_decrypt_token` em `oauth.py` não inspecionado — provável Fernet decrypt + handle InvalidToken (token revogado, key rotacionada)
 - 🟡 `routes/auth_email.py` (magic link / email auth) não detalhado — Supabase delegated
-- 🔴 STORY-317 MFA TOTP recovery codes (bcrypt) referenciado em `requirements.txt` mas não inspecionado neste passo
+- 🟢 STORY-317 MFA TOTP recovery codes — RESOLVED 2026-05-09 (PRs #677, #700) — ver Subseção 6.M acima
 
 ---
 
@@ -2392,5 +2426,177 @@ JWT payload claims usados:
 - 🟡 E2E 60 tests é seletivo; race conditions em SSE/SWR não cobertos exhaustively
 - 🟢 Anti-hang rules conftest é state-of-the-art para Windows/WSL
 - 🟡 Migration `nul` arquivo em routes/ (Windows reserved name) — corrupção WSL
+
+### Adendos 2026-05-08 → 2026-05-09 (DOC-COVERAGE-001)
+
+#### SEC-TEST-2026-001 (PR #947) — OWASP Top-5 baseline
+
+Substitui Issue #201 (escopo monolítico stale >5d). 69 tests passing em `backend/tests/security/`:
+
+| Categoria OWASP | LOC | Files |
+|-----------------|-----|-------|
+| Broken Access Control / Auth bypass | 10 tests | `test_auth_bypass.py` |
+| Injection (SQLi) | 32 tests | `test_sqli.py` (parametrized fuzz strings) |
+| SSRF | 12 tests | `test_ssrf.py` (URL allowlist + redirect handling) |
+| Stripe webhook spoofing | 8 tests | `test_stripe_signature.py` (HMAC negative paths) |
+| Rate-limit bypass | 7 tests | `test_rate_limit_bypass.py` |
+
+**CI workflow:** `security-tests.yml` (dedicated, separate from `backend-tests.yml`) — required check, fail-fast.
+
+**Doc:** `docs/security/test-baseline.md` com roadmap SEC-TEST-002+ (OWASP A05/A06/A09 + SSRF-fuzz expansion).
+
+**Score impact:** Test/CI gates 84→89% (+5), RBAC/Security 77→83% (+6) — consolidado em review-report §11.
+
+#### TEST-ERR-RECOVERY-2026-001 (PR #946) — Error recovery coverage
+
+Substitui Issue #236 (TD-TEST-025 stale). 24 tests em 7 arquivos cobrindo paths de incident 2026-04:
+
+| Path | Test file | Origin incident |
+|------|-----------|-----------------|
+| Pipeline timeout | `backend/tests/recovery/test_pipeline_timeout.py` | CRIT-084 worker no-timeout |
+| Pool exhaustion | `backend/tests/recovery/test_pool_exhaust.py` | POOL-LEAK-001 (`feedback_pool_leak_caller_timeout_vs_sql_timeout`) |
+| Redis ConnectionError fallback | `backend/tests/recovery/test_redis_fallback.py` | Disk IO degradation 2026-04-29 |
+| Stripe retry idempotency | `backend/tests/integration/test_stripe_retry.py` | webhook 3-day retry pattern |
+| OpenAI 503 fallback | `backend/tests/recovery/test_openai_fallback.py` | LLM_FALLBACK_PENDING_ENABLED |
+| SSE reconnect | `frontend/__tests__/recovery/sse-reconnect.test.tsx` | EventSource exponential backoff |
+| API backoff | `frontend/__tests__/recovery/api-backoff.test.tsx` | 429/503 client retry |
+
+**Doc:** `docs/testing/recovery-coverage.md`.
+
+#### Godmodule LOC CI gate (PRs #903, #909) — ARCH-100-001
+
+Story `ARCH-100-001-godmodule-tracker.md` — tracker arquivo único `>1000 LOC` é code smell.
+
+**Workflow:** `.github/workflows/godmodule-loc-gate.yml` falha PR se algum file aumentar acima do baseline registrado em `.godmodule-loc-baseline.json`. Decrement allowed (refactor incentive).
+
+**Files atualmente flagados (snapshot baseline):**
+- `backend/pipeline/stages/execute.py` — 1240 LOC
+- `backend/pipeline/stages/generate.py` — 580 LOC (under threshold but watched)
+- `backend/dedup/engine.py` — wraps consolidation (566 LOC)
+- `backend/source_merger.py` — 559 LOC
+
+**Política:** novos PR não podem aumentar contagem dos top-5 godmodules; refactor encorajado via `simplify` skill.
+
+---
+
+## Módulo 19 — `intel-reports` 🟢 (refresh 2026-05-09 — DOC-COVERAGE-001)
+
+**Caminho:** `backend/routes/intel_reports.py`, `backend/services/billing.py:create_intel_report_checkout`, `backend/jobs/queue/jobs.py:_generate_*_report_pdf`, `backend/pdf_generator.py`, `backend/pdf_generator_sector_uf_report.py`, `backend/schemas/intel_report.py`, `backend/email_service.py:send_intel_report_ready`
+
+**Propósito:** Pipeline one-time purchase de relatórios PDF com IA — `Stripe checkout → webhook handler → ARQ job → RPC SQL → LLM narrative → ReportLab PDF → Storage upload → email + dashboard delivery`. v0.1 cnpj_supplier (R$67) e v0.2 sector_uf (R$147) compartilham skeleton; diferenciam-se em payload, RPC, PDF generator e email template.
+
+### Arquivos primários
+
+| Arquivo | LOC (empírico via wc -l no refresh) | Papel |
+|---------|-------------------------------------|-------|
+| `backend/routes/intel_reports.py` | (medir empiricamente em refresh subsequente — file existe) | `POST /v1/intel-reports/checkout`, `GET /v1/intel-reports/me`, `GET /v1/intel-reports/{id}/download` |
+| `backend/services/billing.py:create_intel_report_checkout` | função | Stripe Checkout Session mode=payment; metadata `intel_report_id` para idempotency webhook |
+| `backend/jobs/queue/jobs.py:_generate_cnpj_supplier_report_pdf` | função ARQ | v0.1 worker — RPC `cnpj_supplier_intel` + LLM + PDF |
+| `backend/jobs/queue/jobs.py:_generate_sector_uf_report_pdf` | função ARQ | v0.2 worker — RPC `sector_uf_intel` + PDF (sem LLM step? — verificar via spec 07) |
+| `backend/pdf_generator.py:CNPJSupplierReport` | classe | ReportLab template v0.1 (ver spec 07b) |
+| `backend/pdf_generator_sector_uf_report.py:SectorUFReport` | classe | ReportLab template v0.2 |
+| `backend/schemas/intel_report.py` | Pydantic | `IntelReportKind`, `CnpjSupplierPayload`, `SectorUFPayload` |
+| `backend/email_service.py:send_intel_report_ready` | função | Resend wrapper (template `intel-report-ready` ou `intel-report-ready-sector`) |
+
+### Funções-chave
+
+| Função | Confiança |
+|--------|-----------|
+| `POST /v1/intel-reports/checkout` (route handler) | 🟢 — cria intel_report row pending + Stripe session |
+| `_handle_checkout_session_completed` (em `billing.py` Stripe webhook) | 🟢 — idempotency via `stripe_webhook_events` + UPDATE intel_report status='paid' + ARQ enqueue |
+| `_generate_cnpj_supplier_report_pdf(ctx, intel_report_id)` | 🟢 — RPC + LLM + PDF + Storage + email |
+| `_generate_sector_uf_report_pdf(ctx, intel_report_id)` | 🟢 — RPC + PDF + Storage + email (skeleton sibling) |
+| `CNPJSupplierReport(payload, narrative_md).render() → bytes` | 🟢 |
+| `SectorUFReport(payload, narrative_md).render() → bytes` | 🟢 |
+
+### Algoritmos
+
+1. **Idempotência ponta-a-ponta:**
+   - Stripe webhook `stripe_webhook_events.event_id` UNIQUE constraint (já em §11 jobs+cron Module 8)
+   - `intel_report_purchases.stripe_payment_intent_id` UNIQUE — barreira final contra double-fulfillment
+   - ARQ retry policy `max_tries=3, exponential 1m/5m/30m` em falhas transient
+2. **LLM narrative composition (v0.1):** prompt template em `prompts/intel_cnpj_narrative.txt` (não-inspecionado neste passo); GPT-4.1-nano; chamada com `max_tokens` calibrado (cost mgmt) — ver spec 13.
+3. **PDF rendering (ReportLab):** ver spec 07b — header/footer com signed_url, paginação, charts via matplotlib serialized.
+4. **Storage upload:** bucket `intel-reports` (privado); `signedUrl(path, expiresIn=600s)` para download; `expires_at = NOW() + 30d` em `intel_report_purchases`.
+5. **Email delivery:** Resend `from=tiago@smartlic.tech` (memory `reference_resend_personal_tone_send`) com link signed_url 7d; fallback `email_status='bounced'` registra mas dashboard preserva acesso.
+6. **Failure paths:** ver `_reversa_sdd/flowcharts/intel-reports.md` Flow 3 (webhook delivery / PDF timeout / Storage upload / email retry).
+
+### Estruturas de dados
+
+`IntelReportKind` (Pydantic Enum):
+- `cnpj_supplier` (R$67, v0.1)
+- `sector_uf` (R$147, v0.2)
+
+`intel_report_purchases` row (ver data-master §11.3 para schema completo).
+
+### Métricas Prometheus / Sentry
+
+- `smartlic_intel_report_generated_total{kind}` (counter)
+- `smartlic_intel_report_generation_duration_seconds{kind}` (histogram)
+- `smartlic_intel_report_failed_total{kind, reason}` (counter — reasons: `llm_timeout`, `storage_upload`, `email_send`, `rpc_timeout`)
+- Sentry `capture_exception` em qualquer falha terminal (após retries esgotados)
+
+### Dependências
+
+`billing` (Stripe webhook), `arq` (job queue), `supabase_client` (RPCs), `openai` (LLM v0.1), `reportlab` (PDF), `supabase.storage` (bucket), `resend` (email)
+
+### Lacunas
+
+- 🟡 v0.2 sector_uf não claro se usa LLM narrative (spec 07 indica que sim mas implementação em `_generate_sector_uf_report_pdf` pode delegar tudo a ReportLab determinístico)
+- 🔴 Refund flow `status='refunded'` é manual (admin via Stripe Dashboard) — story `INTEL-FAIL-REFUND-001` no backlog para automatizar
+- 🟢 Specs SDD 07 + 07b + 13 cobrem requisitos funcionais (ver `_reversa_sdd/specs/`)
+
+---
+
+## Módulo 20 — `plans-capabilities-runtime` 🟢 (refresh 2026-05-09 — DOC-COVERAGE-001)
+
+> **Decisão:** módulo separado vs extensão de Module 5 (billing-quota). Module 5 cobre cycle-billing (Stripe lifecycle, plan_billing_periods sync, dunning). Module 20 cobre runtime capability cache layer (carrega `capabilities` jsonb do plano em memória, TTL 30s, source-of-truth para enforcement). Overlap <70% — separar.
+
+**Caminho:** `backend/quota/plan_enforcement.py`, `backend/quota/quota_core.py`, migration `supabase/migrations/20260509011633_plans_capabilities_table.sql`
+
+**Propósito:** Runtime cache de capabilities por plano (`max_history_days`, `allow_excel`, `allow_pipeline`, `max_requests_per_month`, `max_requests_per_min`, `max_summary_tokens`, `priority`). Source of truth migrou de hardcoded dict (`PLAN_CAPABILITIES` em `quota_core.py`) para `public.plans.capabilities` jsonb (TD-GTM-003 / PR #916 issue #192).
+
+### Arquivos primários
+
+| Arquivo | Papel |
+|---------|-------|
+| `backend/quota/plan_enforcement.py` | enforcement points (decorator `enforce_capability` em routes) |
+| `backend/quota/quota_core.py:_load_plan_capabilities_from_db()` | loader — query `public.plans` + cache TTL=30s |
+| `backend/quota/quota_core.py:plan_capabilities_cache` | dict in-memory `{plan_id → {capabilities, version, fetched_at}}` |
+
+### Funções-chave
+
+| Função | Confiança |
+|--------|-----------|
+| `_load_plan_capabilities_from_db()` | 🟢 — query SELECT id, capabilities, version FROM plans + populate cache |
+| `get_plan_capabilities(plan_id) → dict` | 🟢 — cache hit fresh (<30s) → return; stale → refresh + return |
+| `enforce_capability(name)` (decorator) | 🟢 — wraps route; bloqueia 403 se `capabilities[name] == false` |
+| `enforce_quota(name, count)` (decorator) | 🟢 — wraps route; check `monthly_quota` + atomic increment |
+
+### Algoritmos
+
+1. **Cache TTL=30s:** balance entre latência (cache miss = 1 SELECT à plans) e freshness (admin altera plan capability via Supabase Studio → max 30s para propagar). Não usa Redis pubsub (memory `feedback_handoff_stale_30h` — pubsub daemon-thread foi anti-pattern revertido em DATA-CNAE-001 #679).
+2. **Fail-safe:** se DB unreachable, cache NÃO é flushed — serve último valor conhecido (CLAUDE.md "fail to last known plan"). Sentry `capture_message(level=warning)` em refresh failure.
+3. **Versioning:** `plans.version` int monotonically incremented em capability change. Clientes (frontend localStorage 1h TTL) podem enviar `If-None-Match: version=N` em GET /me/capabilities → backend retorna 304 se version === client.
+
+### Trigger audit (em DB layer):
+
+`plans_audit_trigger` AFTER INSERT/UPDATE/DELETE → `plans_audit_trigger_fn()` insere row em `public.plans_audit` (ver data-master §11.2). Permite reconstruir histórico completo de capabilities.
+
+### Métricas Prometheus
+
+- `smartlic_plan_capability_cache_hits_total{plan_id}` (counter)
+- `smartlic_plan_capability_cache_miss_total{plan_id, reason}` (counter — reasons: `expired`, `cold_start`, `db_error`)
+- `smartlic_plan_capability_db_load_duration_seconds` (histogram)
+
+### Dependências
+
+`supabase_client` (SELECT plans), `metrics`, internal cache dict
+
+### Lacunas
+
+- 🟢 Migration TD-GTM-003 self-test invariant (`SELECT count(*) WHERE is_active AND capabilities IS NULL = 0`) garante consistency em apply-time
+- 🟡 Cache cold-start (primeira request pós-deploy) faz query bloqueante 1x — hot-path latency espike pode aparecer em SLO p99 (não medido)
+- 🟡 Cross-pod cache coherence (Railway com 1 worker) é trivial; se escalar para >1 replica, cada uma terá cache independente — drift máximo 30s (aceitável dado TTL)
 
 ---
