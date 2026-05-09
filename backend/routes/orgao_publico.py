@@ -434,18 +434,18 @@ async def _fetch_contracts_data(orgao_cnpj: str, limit: int = 10) -> dict:
     def _sync_query() -> list[dict]:
         from supabase_client import get_supabase
         sb = get_supabase()
-        # Aggregate by supplier CNPJ — Supabase doesn't support GROUP BY directly,
-        # so we fetch up to 2000 rows and aggregate in Python (table grows large post-backfill;
-        # a proper RPC would be ideal but this is zero-infra and works for cache=24h).
-        resp = (
-            sb.table("pncp_supplier_contracts")
-            .select("ni_fornecedor,nome_fornecedor,valor_global")
-            .eq("orgao_cnpj", orgao_cnpj)
-            .eq("is_active", True)
-            .limit(2000)
-            .execute()
-        )
-        return resp.data or []
+        # DATA-CAP-001 Pattern A: RPC RETURNS json scalar bypasses PostgREST
+        # max_rows=1000 cap. Previously .limit(2000).execute() was silently
+        # capped at 1000 for órgãos with > 1000 active contracts, degrading
+        # the top-fornecedores aggregation. p_limit=2000 preserves the
+        # previous aggregation source set; Python aggregation below is
+        # unchanged.
+        resp = sb.rpc(
+            "get_orgao_top_contracts_json",
+            {"p_orgao_cnpj": orgao_cnpj, "p_limit": 2000},
+        ).execute()
+        raw = resp.data if isinstance(resp.data, list) else []
+        return raw
 
     try:
         rows = await _run_with_budget(

@@ -299,6 +299,19 @@ DATALAKE_TRUNCATION_SUSPECTED = _create_counter(
     labelnames=["uf"],
 )
 
+# DATA-CAP-001: Generic PostgREST max-rows truncation suspect counter for the
+# `paginate_full` helper (backend/utils/postgrest_paginate.py). Distinct from
+# the legacy DATALAKE_TRUNCATION_SUSPECTED above (which is keyed by ``uf`` for
+# the per-UF datalake query). New callsites should reach this metric via
+# ``paginate_full(query, route=..., entity_type=...)``.
+POSTGREST_TRUNCATION_SUSPECTED = _create_counter(
+    "smartlic_postgrest_truncation_suspected_total",
+    "Paginated PostgREST queries that returned exactly 1000 rows in a single "
+    "page — possible silent max_rows truncation. Labeled by callsite route and "
+    "entity_type so operators can spot which routes are bumping the cap.",
+    labelnames=["route", "entity_type"],
+)
+
 # HARDEN-006 AC4: Dedup merge-enrichment field counter
 DEDUP_FIELDS_MERGED = _create_counter(
     "smartlic_dedup_fields_merged_total",
