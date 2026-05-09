@@ -43,14 +43,12 @@ def test_pncp_async_base_url_is_official_host():
     from clients.pncp.async_client import AsyncPNCPClient
 
     assert AsyncPNCPClient.BASE_URL == "https://pncp.gov.br/api/consulta/v1"
-    assert AsyncPNCPClient.BASE_URL.startswith("https://pncp.gov.br")
 
 
 def test_pncp_sync_base_url_is_official_host():
     from clients.pncp.sync_client import PNCPClient  # type: ignore
 
     assert PNCPClient.BASE_URL == "https://pncp.gov.br/api/consulta/v1"
-    assert PNCPClient.BASE_URL.startswith("https://pncp.gov.br")
 
 
 @pytest.mark.parametrize("dangerous", SSRF_DANGEROUS_HOSTS)
