@@ -81,7 +81,7 @@ prometheus_client>=0.25.0
 # SEN-BE-010 + ADR-MEMORY-BUDGET: process memory introspection (RSS gauge in
 # health.py + lifespan.py:140-144 sample loop + admin/memory-snapshot endpoint).
 # Already optional fallback in health.py:922. Promote to required.
-psutil>=5.9.0
+psutil>=5.9.8
 
 # Product analytics (paywall_hit, trial_started, signup_completed, ...).
 # MIXPANEL_TOKEN é required em prod startup (PR #530 MON-FN-005), mas a
