@@ -332,7 +332,7 @@ Data atual: {datetime.now().strftime("%d/%m/%Y")}
 
     # Call OpenAI API with structured output
     response = client.beta.chat.completions.parse(
-        model="gpt-4o-mini",  # Using gpt-4o-mini as gpt-4.1-nano doesn't exist
+        model="gpt-4.1-nano",
         messages=[
             {"role": "system", "content": system_prompt},
             {"role": "user", "content": user_prompt},
@@ -354,9 +354,9 @@ Data atual: {datetime.now().strftime("%d/%m/%Y")}
             _input_tokens = response.usage.prompt_tokens or 0
             _output_tokens = response.usage.completion_tokens or 0
             from metrics import LLM_COST_USD, LLM_TOKENS_DETAILED
-            _model_name = "gpt-4o-mini"
-            # gpt-4o-mini pricing: $0.15/1M input, $0.60/1M output
-            _cost_usd = _input_tokens * 0.15 / 1_000_000 + _output_tokens * 0.60 / 1_000_000
+            _model_name = "gpt-4.1-nano"
+            # gpt-4.1-nano pricing: $0.10/1M input, $0.40/1M output
+            _cost_usd = _input_tokens * 0.10 / 1_000_000 + _output_tokens * 0.40 / 1_000_000
             LLM_COST_USD.labels(model=_model_name, operation="summary").inc(_cost_usd)
             LLM_TOKENS_DETAILED.labels(model=_model_name, operation="summary", direction="input").inc(_input_tokens)
             LLM_TOKENS_DETAILED.labels(model=_model_name, operation="summary", direction="output").inc(_output_tokens)
@@ -406,7 +406,7 @@ Data atual: {datetime.now().strftime("%d/%m/%Y")}
 def generate_cnpj_narrative(data: dict[str, Any]) -> dict[str, str]:
     """Generate competitive intelligence narrative for a CNPJ supplier report.
 
-    Uses GPT-4.1-nano (gpt-4o-mini) to produce a structured narrative covering
+    Uses GPT-4.1-nano to produce a structured narrative covering
     competitive patterns, key clients, focus sectors, and risk points. Falls back
     to a deterministic text generator if the LLM call fails for any reason.
 
@@ -494,7 +494,7 @@ def _generate_cnpj_narrative_llm(data: dict[str, Any]) -> dict[str, str]:
     )
 
     response = client.chat.completions.create(
-        model="gpt-4o-mini",
+        model="gpt-4.1-nano",
         messages=[
             {"role": "system", "content": system_prompt},
             {"role": "user", "content": user_prompt},
