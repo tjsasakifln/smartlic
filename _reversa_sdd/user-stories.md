@@ -396,6 +396,33 @@
 
 ---
 
+## Persona — Comprador one-time Intel Report
+
+### US-027 — Compra Intel Report v0.2 (Panorama Setorial × UF) 🟢
+
+**Como** usuário (autenticado, qualquer plano — incluindo trial)
+**Quero** comprar um PDF "Panorama Setorial × UF" por R$147,00 sem assinatura
+**Para que** eu obtenha um diagnóstico imediato do mercado de licitações naquele recorte (top fornecedores, órgãos, séries temporais) sem upgrade de plano.
+
+**Aceitação (fluxo end-to-end):**
+- **(1) Stripe Checkout** — `POST /v1/intel-reports/checkout` com `{product_type:"sector_uf", entity_key:"limpeza:SP"}` → `services/billing.py:create_intel_report_checkout` cria Stripe session com `unit_amount=14700` (centavos), `mode=payment` (one-time), metadata `{user_id, product_type, entity_key}`. INSERT `intel_report_purchases(status='pending', stripe_session_id)`. Retorna `{checkout_url, session_id}`.
+- **(2) Webhook `checkout.session.completed`** — `webhooks/handlers/checkout.py` verifica assinatura Stripe + dedup via `events_processed`, atualiza `intel_report_purchases.status='pending'` (mantém para o worker pegar) e enqueue ARQ `generate_intel_report(purchase_id)`.
+- **(3) ARQ job `generate_intel_report`** (`backend/jobs/queue/jobs.py:259-...`) — fetch purchase, despatch para `_generate_sector_uf_report_pdf` que chama `pdf_generator_sector_uf_report.generate_sector_uf_report(db, entity_key)`. Internamente:
+  - `sectors.get_sector("limpeza")` → keywords + label
+  - `db.rpc("sector_uf_intel", {p_sector, p_keywords, p_uf, p_window_months:24})` → JSONB payload (RPC `SECURITY DEFINER`, `service_role` only — ver spec `07-intel-report-sector-uf.md`)
+  - ReportLab assembly em `BytesIO` (7 seções A4)
+- **(4) Upload Supabase Storage** — `_upload_intel_report_pdf(db, purchase_id, user_id, pdf_bytes)` em path `{user_id}/{purchase_id}.pdf` no bucket `intel-reports` (RLS: user só lê próprio prefix). Cria signed URL TTL 30d via `bucket.create_signed_url`.
+- **(5) UPDATE `intel_report_purchases SET status='ready', pdf_url=signed_url`**.
+- **(6) Email Resend** — `email_service.send_intel_report_ready(user_email, name, pdf_url, product_name, purchase_id)` com template `templates/emails/panorama_t1_delivery.py`. Domain `smartlic.tech` from `tiago@smartlic.tech` + reply-to `tiago.sasaki@gmail.com`.
+- **(7) Frontend polling** — `GET /v1/intel-reports/{purchase_id}` (poll até `status='ready'`) → `GET /v1/intel-reports/{purchase_id}/download` faz ownership check (404 vs 403) e streams PDF.
+- **Erro de geração** — RPC `RAISE` ou `ReportLab` exception → `status='failed'` + `_refund_intel_report_purchase` (Stripe Refund automático via `payment_intent`) + `_send_intel_report_failed_email` (apologetic email Resend).
+
+**Trial?** Sim — não há `plan_check` em `/v1/intel-reports/checkout`; qualquer usuário autenticado pode comprar (one-time, fora da quota).
+
+**Mapeamento código:** `backend/routes/intel_reports.py`, `backend/services/billing.py:create_intel_report_checkout`, `backend/schemas/intel_report.py` (`INTEL_REPORT_PRICES.sector_uf=14700`), `backend/webhooks/handlers/checkout.py`, `backend/jobs/queue/jobs.py:generate_intel_report` (linhas 259-...) + `_generate_sector_uf_report_pdf` (linhas 125-134), `backend/pdf_generator_sector_uf_report.py`, `supabase/migrations/20260508120000_sector_uf_intel_rpc.sql`, `backend/email_service.py:send_intel_report_ready`, `backend/templates/emails/panorama_t1_delivery.py`. Specs: `07-intel-report-sector-uf.md` (RPC), `07b-intel-pdf-generator.md` (PDF contract), `13-intel-reports.spec.md` (product surface + endpoints + state machine).
+
+---
+
 ## Lacunas identificadas
 
 - 🔴 **Founding plan** — pricing, deadline, cap not clear

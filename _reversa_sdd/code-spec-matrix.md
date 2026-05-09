@@ -11,6 +11,7 @@
 | `03-auth-oauth` | auth-oauth | `backend/auth.py`, `backend/authorization.py`, `backend/oauth.py`, `backend/routes/auth_*.py`, `backend/routes/mfa.py`, `frontend/middleware.ts`, `frontend/app/{login,signup,auth,recuperar-senha}/` | ~1.700 |
 | `04-pipeline-kanban` | pipeline-kanban | `backend/routes/pipeline.py`, `backend/schemas/pipeline.py`, `frontend/app/pipeline/`, `frontend/hooks/usePipeline.ts` | ~1.200 |
 | `05-ingestion-datalake` | ingestion-datalake | `backend/ingestion/`, `backend/datalake_query.py`, `backend/jobs/queue/config.py`, `backend/jobs/cron/pncp_canary.py` | ~1.500 |
+| `07-intel-report-sector-uf` + `07b-intel-pdf-generator` | intel-report-sector-uf (v0.2 INTEL-REPORT-002 — R$147 one-time) | `supabase/migrations/20260508120000_sector_uf_intel_rpc.sql` (+ `.down.sql`), `backend/pdf_generator_sector_uf_report.py`, `backend/jobs/queue/jobs.py` (`_generate_sector_uf_report_pdf` + `generate_intel_report`), `backend/services/billing.py:create_intel_report_checkout`, `backend/schemas/intel_report.py`, `backend/routes/intel_reports.py`, `backend/email_service.py:send_intel_report_ready`, `backend/tests/test_sector_uf_intel_pdf.py` (34 tests) | ~1.400 |
 
 ## Code → Spec
 
