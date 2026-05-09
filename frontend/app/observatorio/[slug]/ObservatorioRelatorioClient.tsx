@@ -152,7 +152,8 @@ export default function ObservatorioRelatorioClient({
               <BarChart data={relatorio.top_ufs} layout="vertical" margin={{ left: 80, right: 20, top: 5, bottom: 5 }}>
                 <XAxis type="number" tickFormatter={(v) => formatInt(v)} tick={{ fontSize: 12 }} />
                 <YAxis type="category" dataKey="uf_name" width={80} tick={{ fontSize: 12 }} />
-                <Tooltip formatter={(v: number | undefined) => [formatInt(v ?? 0), 'Editais']} />
+                {/* eslint-disable-next-line @typescript-eslint/no-explicit-any -- recharts 3.8 Formatter generic intersection requires loose value typing */}
+                <Tooltip formatter={((v: any) => [formatInt(typeof v === 'number' ? v : 0), 'Editais']) as any} />
                 <Bar dataKey="total" fill="#2563eb" radius={[0, 4, 4, 0]} />
               </BarChart>
             </ResponsiveContainer>
@@ -185,7 +186,8 @@ export default function ObservatorioRelatorioClient({
                 <Legend
                   formatter={(value) => <span className="text-xs">{value}</span>}
                 />
-                <Tooltip formatter={(v: number | undefined, name) => [formatInt(v ?? 0) + ' editais', name]} />
+                {/* eslint-disable-next-line @typescript-eslint/no-explicit-any -- recharts 3.8 Formatter generic intersection requires loose value typing */}
+                <Tooltip formatter={((v: any, name: any) => [formatInt(typeof v === 'number' ? v : 0) + ' editais', name]) as any} />
               </PieChart>
             </ResponsiveContainer>
           </div>
