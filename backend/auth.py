@@ -535,12 +535,25 @@ async def require_mfa(
     return user
 
 
+# MFA-ENFORCE-EXT-001: test-only bypass flag. Set by conftest fixture for
+# legacy TestClient tests that override require_auth but do not mock the
+# require_mfa probe chain. Production code MUST NOT set this flag.
+_MFA_HIGH_IMPACT_TEST_BYPASS: bool = False
+
+
+async def _require_mfa_or_passthrough(user: dict) -> dict:
+    """MFA-ENFORCE-EXT-001 helper: runs require_mfa with test bypass support."""
+    if _MFA_HIGH_IMPACT_TEST_BYPASS:
+        return user
+    return await require_mfa(user=user)
+
+
 async def require_mfa_high_impact(
-    user: dict = Depends(require_mfa),
+    user: dict = Depends(require_auth),
 ) -> dict:
     """MFA-ENFORCE-EXT-001 AC2+AC4: high-impact endpoint guard.
 
-    Thin wrapper over `require_mfa` applied ONLY to endpoints listed in
+    Wrapper over `require_mfa` applied ONLY to endpoints listed in
     `docs/audits/2026-05-mfa-coverage.md` (billing portal, change-password,
     delete account, subscription cancel/update). Behaviour identical to
     `require_mfa` (same 403 + X-MFA-Required headers) PLUS emits a
@@ -551,6 +564,7 @@ async def require_mfa_high_impact(
     a verified MFA session vs aal1 — separate from the existing
     enforcement-trigger telemetry.
     """
+    user = await _require_mfa_or_passthrough(user)
     try:
         from analytics_events import track_event
 

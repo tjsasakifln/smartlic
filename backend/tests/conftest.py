@@ -255,7 +255,7 @@ def _reset_bulkhead_registry():
 
 
 @pytest.fixture(autouse=True)
-def _bypass_require_mfa_high_impact():
+def _bypass_require_mfa_high_impact(request, monkeypatch):
     """MFA-ENFORCE-EXT-001: Bypass MFA wrapper for TestClient tests by default.
 
     Existing TestClient tests override `require_auth` with a stub user but
@@ -265,31 +265,21 @@ def _bypass_require_mfa_high_impact():
     endpoints that this story now gates (billing-portal, change-password,
     /me delete, subscriptions cancel/update-billing-period).
 
-    This autouse override aliases `require_mfa_high_impact` back to
-    `require_auth` for the duration of the test. Tests that explicitly
-    validate MFA enforcement (e.g. `test_mfa_enforcement_extended.py`)
-    pop this override and install their own mocks.
+    Sets the module-level `auth._MFA_HIGH_IMPACT_TEST_BYPASS` flag so the
+    wrapper short-circuits to a pass-through. Tests that exercise the
+    real enforcement chain (`test_mfa_enforcement_extended.py`) opt out
+    by clearing the flag for their session.
+
+    Module flag (not env var) is used because some tests `@patch` the
+    `os.getenv` attribute globally with a Mock, which breaks env-based
+    flags (Mock returns the mock value for any key).
     """
-    try:
-        from fastapi import Depends as _Depends
-        from main import app
-        from auth import require_auth, require_mfa_high_impact
-    except Exception:
-        yield
-        return
-    sentinel_key = "__mfa_high_impact_default_override__"
-    if require_mfa_high_impact not in app.dependency_overrides:
-        async def _bypass(user: dict = _Depends(require_auth)) -> dict:
-            return user
-        app.dependency_overrides[require_mfa_high_impact] = _bypass
-        setattr(app.state, sentinel_key, True)
+    import auth as _auth_mod
+    if request.node.fspath.basename == "test_mfa_enforcement_extended.py":
+        monkeypatch.setattr(_auth_mod, "_MFA_HIGH_IMPACT_TEST_BYPASS", False)
+    else:
+        monkeypatch.setattr(_auth_mod, "_MFA_HIGH_IMPACT_TEST_BYPASS", True)
     yield
-    if getattr(app.state, sentinel_key, False):
-        app.dependency_overrides.pop(require_mfa_high_impact, None)
-        try:
-            delattr(app.state, sentinel_key)
-        except AttributeError:
-            pass
 
 
 @pytest.fixture(autouse=True)
