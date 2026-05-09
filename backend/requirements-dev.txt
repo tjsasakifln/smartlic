@@ -30,4 +30,4 @@ mypy==1.15.0
 hypothesis>=6.152.4
 
 # Mutation testing (STORY-6.6) — runs in CI (Linux); not supported on Windows
-mutmut>=2.4.0
+mutmut>=2.5.1
