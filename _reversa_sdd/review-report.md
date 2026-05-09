@@ -350,3 +350,36 @@ Ready para handoff:
 | **Composite** | 🟢 **84%** | ≈ estável (+0; reliability +4 vs coverage +1; outras marginais) |
 
 **Nota:** composite mantido estável porque CRIT-084 e POOL-LEAK-001 ainda abertos compensam as melhorias de reliability.
+
+## 10. Refresh — 2026-05-08
+
+### 10.1 PRs / Stories Shipped (período)
+
+| Commit / PR | Story | Descrição | Status |
+|-------------|-------|-----------|--------|
+| `feat/rbac-org-002` | RBAC-ORG-002 | Audit script + CI gate + 16 cross-tenant tests para org_id propagation | InReview |
+
+### 10.2 Gaps Resolvidos (neste período)
+
+| Gap | Resolução | Evidência |
+|-----|-----------|-----------|
+| RBAC-cross-tenant audit | RBAC-ORG-002 — audit script AST-based de 213 rotas; zero P0 fora de `organizations.py` | `docs/audits/2026-05-rbac-org-propagation.md` + `audit-org-rbac.yml` workflow |
+| RBAC-CI gate forward-looking | Workflow `audit-org-rbac.yml` bloqueia PRs com novo P0 multi-tenant leak | `.github/workflows/audit-org-rbac.yml` |
+| RBAC-cross-tenant test coverage | 16 tests cobrindo Alice OWNER-A → OrgB id-injection scenarios | `backend/tests/test_rbac_org_cross_tenant.py` |
+
+### 10.3 Findings Empíricos
+
+- **Premissa da story (cross-org leak via pipeline/intel_reports/etc.) não materializou:** schema atual mantém esses dados user-scoped, sem `org_id` column. Confirmação via grep `routes/*.py` + leitura de `pipeline_items` migration (025).
+- **Único P1 observado** (`POST /v1/organizations/{org_id}/accept`) é by-design (ADR §accept invitee=auth-only).
+- **AC2 vacuamente satisfeita** (zero P0). Out-of-scope: auditoria de propagação `user_id` (sibling concern flagged em `docs/audits/2026-05-rbac-org-propagation-notes.md` para story futura se/quando shared org-data emergir).
+
+### 10.4 Score 2026-05-08
+
+| Dimensão | Score | Delta |
+|----------|-------|-------|
+| Documentation coverage | 🟢 87% | ≈ estável |
+| Operational reliability | 🟡 82% | ≈ estável |
+| Architectural consistency | 🟢 89% | ≈ estável |
+| Test/CI gates | 🟢 86% | +2 (audit-org-rbac CI gate + 16 cross-tenant tests) |
+| RBAC/Security | 🟡 **82%** | **+5** (cross-tenant audit + CI gate forward-looking + tests; gap-1 multi-tenant LGPD agora coberto end-to-end) |
+| **Composite** | 🟢 **85%** | +1 vs 2026-05-02 |
