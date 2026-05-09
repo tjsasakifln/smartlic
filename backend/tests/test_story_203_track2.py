@@ -60,8 +60,8 @@ def test_sys_m04_plan_capabilities_loader():
     except ImportError as e:
         pytest.fail(f"Cannot import quota helpers: {e}")
 
-    assert PLAN_CAPABILITIES_CACHE_TTL == 300, (
-        f"Expected PLAN_CAPABILITIES_CACHE_TTL=300s, got {PLAN_CAPABILITIES_CACHE_TTL}s"
+    assert PLAN_CAPABILITIES_CACHE_TTL == 30, (
+        f"Expected PLAN_CAPABILITIES_CACHE_TTL=30s (TD-GTM-003 #192), got {PLAN_CAPABILITIES_CACHE_TTL}s"
     )
 
     try:
