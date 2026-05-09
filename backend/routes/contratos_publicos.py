@@ -24,6 +24,7 @@ from pydantic import BaseModel
 
 from pipeline.budget import _run_with_budget
 from sectors import SECTORS
+from utils.postgrest_paginate import paginate_full
 
 logger = logging.getLogger(__name__)
 router = APIRouter(tags=["contratos-publicos"])
@@ -186,7 +187,10 @@ async def _fetch_sector_contracts(
     def _sync_query() -> list[dict]:
         from supabase_client import get_supabase
         sb = get_supabase()
-        resp = (
+        # DATA-CAP-001: paginate via .range() because PostgREST silently caps
+        # any single response at max_rows=1000. The previous .limit(5000) was
+        # silently truncating contracts for any UF with >1000 active contracts.
+        builder = (
             sb.table("pncp_supplier_contracts")
             .select(
                 "ni_fornecedor,nome_fornecedor,orgao_cnpj,orgao_nome,"
@@ -195,10 +199,14 @@ async def _fetch_sector_contracts(
             .eq("uf", uf_upper)
             .eq("is_active", True)
             .order("data_assinatura", desc=True)
-            .limit(5000)
-            .execute()
         )
-        return resp.data or []
+        return paginate_full(
+            builder,
+            batch_size=1000,
+            max_total=5000,
+            route="contratos_publicos.sector_contracts",
+            entity_type="pncp_supplier_contracts",
+        )
 
     try:
         rows = await _run_with_budget(
@@ -268,7 +276,10 @@ async def orgao_contratos_stats(cnpj: str):
     def _sync_query_orgao() -> list[dict]:
         from supabase_client import get_supabase
         sb = get_supabase()
-        resp = (
+        # DATA-CAP-001: paginate via .range() — orgãos públicos federais e
+        # estaduais grandes (TJ, TCU, ministérios) podem ter milhares de
+        # contratos ativos; .limit(5000) era silenciosamente capado a 1000.
+        builder = (
             sb.table("pncp_supplier_contracts")
             .select(
                 "ni_fornecedor,nome_fornecedor,orgao_cnpj,orgao_nome,"
@@ -277,10 +288,14 @@ async def orgao_contratos_stats(cnpj: str):
             .eq("orgao_cnpj", cnpj_clean)
             .eq("is_active", True)
             .order("data_assinatura", desc=True)
-            .limit(5000)
-            .execute()
         )
-        return resp.data or []
+        return paginate_full(
+            builder,
+            batch_size=1000,
+            max_total=5000,
+            route="contratos_publicos.orgao_contratos_stats",
+            entity_type="pncp_supplier_contracts",
+        )
 
     try:
         rows = await _run_with_budget(

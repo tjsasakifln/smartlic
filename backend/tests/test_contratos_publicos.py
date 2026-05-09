@@ -42,6 +42,14 @@ class TestContratosStats:
         mock_sb = MagicMock()
         mock_resp = MagicMock()
         mock_resp.data = _mock_rows(5)
+        # DATA-CAP-001: route now calls paginate_full → .order().range(s,e).execute()
+        # Empty resp on the second call ends the pagination loop.
+        empty_resp = MagicMock()
+        empty_resp.data = []
+        mock_sb.table.return_value.select.return_value.eq.return_value.eq.return_value.order.return_value.range.return_value.execute.side_effect = [
+            mock_resp, empty_resp, empty_resp
+        ]
+        # Backwards-compat with any caller still chaining .limit.
         mock_sb.table.return_value.select.return_value.eq.return_value.eq.return_value.order.return_value.limit.return_value.execute.return_value = mock_resp
 
         with patch("supabase_client.get_supabase", return_value=mock_sb):
@@ -82,6 +90,14 @@ class TestContratosStats:
         mock_resp.data = [{"objeto_contrato": "servico de TI", "ni_fornecedor": "123", "orgao_cnpj": "456",
                            "orgao_nome": "Org", "nome_fornecedor": "F", "valor_global": "100",
                            "data_assinatura": "2026-03-01"}]
+        # DATA-CAP-001: route now calls paginate_full → .order().range(s,e).execute()
+        # Empty resp on the second call ends the pagination loop.
+        empty_resp = MagicMock()
+        empty_resp.data = []
+        mock_sb.table.return_value.select.return_value.eq.return_value.eq.return_value.order.return_value.range.return_value.execute.side_effect = [
+            mock_resp, empty_resp, empty_resp
+        ]
+        # Backwards-compat with any caller still chaining .limit.
         mock_sb.table.return_value.select.return_value.eq.return_value.eq.return_value.order.return_value.limit.return_value.execute.return_value = mock_resp
 
         with patch("supabase_client.get_supabase", return_value=mock_sb):
@@ -145,6 +161,14 @@ class TestFornecedoresStats:
         mock_sb = MagicMock()
         mock_resp = MagicMock()
         mock_resp.data = _mock_rows(5)
+        # DATA-CAP-001: route now calls paginate_full → .order().range(s,e).execute()
+        # Empty resp on the second call ends the pagination loop.
+        empty_resp = MagicMock()
+        empty_resp.data = []
+        mock_sb.table.return_value.select.return_value.eq.return_value.eq.return_value.order.return_value.range.return_value.execute.side_effect = [
+            mock_resp, empty_resp, empty_resp
+        ]
+        # Backwards-compat with any caller still chaining .limit.
         mock_sb.table.return_value.select.return_value.eq.return_value.eq.return_value.order.return_value.limit.return_value.execute.return_value = mock_resp
 
         with patch("supabase_client.get_supabase", return_value=mock_sb):
@@ -201,6 +225,20 @@ class TestContratosDedup:
     def _mock_chain(self, mock_sb, rows):
         mock_resp = MagicMock()
         mock_resp.data = rows
+        empty_resp = MagicMock()
+        empty_resp.data = []
+        # DATA-CAP-001: paginate_full chain — .order().range(s,e).execute()
+        # First call returns the rows, subsequent return empty so loop exits.
+        (
+            mock_sb.table.return_value
+            .select.return_value
+            .eq.return_value
+            .eq.return_value
+            .order.return_value
+            .range.return_value
+            .execute
+        ).side_effect = [mock_resp, empty_resp, empty_resp]
+        # Legacy compat
         (
             mock_sb.table.return_value
             .select.return_value

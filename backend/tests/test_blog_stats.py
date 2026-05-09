@@ -701,6 +701,12 @@ class _ContractsQueryBuilder:
     def limit(self, *_a, **_kw):
         return self
 
+    def range(self, start, end):
+        # DATA-CAP-001: paginate_full uses .range(start, end).execute(); slice
+        # the filtered rows accordingly so the helper sees a short final batch.
+        self._range = (start, end)
+        return self
+
     def execute(self):
         rows = list(self._rows)
         uf = self.filters.get("eq:uf")
@@ -711,6 +717,11 @@ class _ContractsQueryBuilder:
             # strip the surrounding %…% wildcards, case-insensitive substring
             needle = municipio_ilike.strip("%").lower()
             rows = [r for r in rows if needle in (r.get("municipio") or "").lower()]
+        rng = getattr(self, "_range", None)
+        if rng is not None:
+            start, end = rng
+            rows = rows[start : end + 1]
+            self._range = None  # next .range() call will reset
         resp = MagicMock()
         resp.data = rows
         return resp

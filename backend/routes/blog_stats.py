@@ -25,6 +25,7 @@ from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
 from sectors import SECTORS, SectorConfig
+from utils.postgrest_paginate import paginate_full
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/blog/stats", tags=["blog-stats"])
@@ -937,13 +938,19 @@ def _query_contratos_sync(
         # substring match via ilike (handles variations like "São Paulo" vs "SAO PAULO").
         query = query.ilike("municipio", f"%{municipio_pattern}%")
 
-    resp = (
-        query
-        .order("data_assinatura", desc=True)
-        .limit(5000)
-        .execute()
+    # DATA-CAP-001: paginate via .range() because PostgREST silently caps
+    # any single response at max_rows=1000. The previous .limit(5000) was
+    # silently truncating to 1000 rows, which broke /blog/stats/* pillar
+    # pages for high-volume sectors / large UFs (top_orgaos, top_fornecedores
+    # and monthly_trend were computed off a 1000-row sample — wrong totals).
+    builder = query.order("data_assinatura", desc=True)
+    return paginate_full(
+        builder,
+        batch_size=1000,
+        max_total=10_000,
+        route="blog_stats.contratos",
+        entity_type="pncp_supplier_contracts",
     )
-    return resp.data or []
 
 
 def _empty_contratos_stats() -> dict:

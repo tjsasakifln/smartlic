@@ -14,7 +14,15 @@ def client():
 def _make_mock_sb(rows):
     mock_resp = MagicMock()
     mock_resp.data = rows
+    empty_resp = MagicMock()
+    empty_resp.data = []
     mock_sb = MagicMock()
+    # DATA-CAP-001: route now calls paginate_full → .order().range(s,e).execute()
+    # First call returns rows; subsequent empty/short response ends pagination loop.
+    mock_sb.table.return_value.select.return_value.eq.return_value.eq.return_value.order.return_value.range.return_value.execute.side_effect = [
+        mock_resp, empty_resp, empty_resp
+    ]
+    # Backwards-compat with any caller still chaining .limit.
     mock_sb.table.return_value.select.return_value.eq.return_value.eq.return_value.order.return_value.limit.return_value.execute.return_value = mock_resp
     return mock_sb
 

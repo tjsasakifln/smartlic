@@ -299,6 +299,15 @@ DATALAKE_TRUNCATION_SUSPECTED = _create_counter(
     labelnames=["uf"],
 )
 
+# DATA-CAP-001: PostgREST max-rows=1000 silent truncation in non-RPC table queries.
+# Incremented every time ``utils.postgrest_paginate.paginate_full`` sees a full batch
+# (signal: the route would have truncated silently if it had used ``.limit()`` instead).
+POSTGREST_TRUNCATION_SUSPECTED = _create_counter(
+    "smartlic_postgrest_truncation_suspected_total",
+    "PostgREST table queries (non-RPC) where a paginated batch returned exactly batch_size rows — signals the route would silently truncate without paginate_full",
+    labelnames=["route", "entity_type"],
+)
+
 # HARDEN-006 AC4: Dedup merge-enrichment field counter
 DEDUP_FIELDS_MERGED = _create_counter(
     "smartlic_dedup_fields_merged_total",

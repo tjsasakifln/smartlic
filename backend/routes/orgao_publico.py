@@ -17,6 +17,7 @@ from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
 from pipeline.budget import _run_with_budget
+from utils.postgrest_paginate import paginate_full
 
 logger = logging.getLogger(__name__)
 router = APIRouter(tags=["orgao-publico"])
@@ -262,7 +263,11 @@ async def _build_orgao_stats(cnpj: str) -> tuple[dict, bool]:
         from supabase_client import get_supabase
 
         sb = get_supabase()
-        resp = (
+        # DATA-CAP-001: paginate via .range() — without paginate_full,
+        # PostgREST silently capped this at 1000 rows even with
+        # .limit(5000), so any orgão with >1000 active bids returned
+        # exactly 1000 rounded counts (visible UX bug on /orgaos/[cnpj]).
+        builder = (
             sb.table("pncp_raw_bids")
             .select(
                 "orgao_razao_social,"
@@ -276,10 +281,14 @@ async def _build_orgao_stats(cnpj: str) -> tuple[dict, bool]:
             )
             .eq("orgao_cnpj", cnpj)
             .eq("is_active", True)
-            .limit(5000)
-            .execute()
         )
-        return resp.data or []
+        return paginate_full(
+            builder,
+            batch_size=1000,
+            max_total=5000,
+            route="orgao_publico.orgao_stats",
+            entity_type="pncp_raw_bids",
+        )
 
     try:
         rows = await _run_with_budget(
@@ -428,79 +437,59 @@ async def _fetch_contracts_data(orgao_cnpj: str, limit: int = 10) -> dict:
     Returns dict with 'top_fornecedores', 'total_contratos_24m', 'valor_total_contratos_24m'.
     Returns empty/zero gracefully when table is empty (during/before backfill) or
     when the query exceeds ``_ORGAO_QUERY_BUDGET_S`` (RES-BE-015 negative cache).
+
+    DATA-CAP-001: previously fetched up to 2000 rows and aggregated in Python,
+    which silently truncated to 1000 rows under PostgREST max_rows for any
+    orgão with >1000 active contracts (under-counted totals + wrong top-N).
+    Now uses ``get_orgao_top_contracts_json`` RPC which returns scalar JSON
+    (not subject to row-count cap) with server-side aggregation.
     """
     result = {"top_fornecedores": [], "total_contratos_24m": 0, "valor_total_contratos_24m": 0.0}
 
-    def _sync_query() -> list[dict]:
+    def _sync_rpc() -> dict:
         from supabase_client import get_supabase
         sb = get_supabase()
-        # Aggregate by supplier CNPJ — Supabase doesn't support GROUP BY directly,
-        # so we fetch up to 2000 rows and aggregate in Python (table grows large post-backfill;
-        # a proper RPC would be ideal but this is zero-infra and works for cache=24h).
-        resp = (
-            sb.table("pncp_supplier_contracts")
-            .select("ni_fornecedor,nome_fornecedor,valor_global")
-            .eq("orgao_cnpj", orgao_cnpj)
-            .eq("is_active", True)
-            .limit(2000)
-            .execute()
-        )
-        return resp.data or []
+        resp = sb.rpc(
+            "get_orgao_top_contracts_json",
+            {"p_orgao_cnpj": orgao_cnpj, "p_limit": limit},
+        ).execute()
+        # supabase-py returns the JSON value directly in resp.data when the
+        # RPC RETURNS a scalar JSON — handle both shapes defensively.
+        data = getattr(resp, "data", None)
+        if isinstance(data, list):
+            data = data[0] if data else None
+        return data or {}
 
     try:
-        rows = await _run_with_budget(
-            asyncio.to_thread(_sync_query),
+        agg = await _run_with_budget(
+            asyncio.to_thread(_sync_rpc),
             budget=_ORGAO_QUERY_BUDGET_S,
             phase="route",
             source="orgao_publico.contracts_data",
         )
-        if not rows:
+        if not agg:
             return result
 
-        # Aggregate totals for the organ
-        total_valor = 0.0
-        for r in rows:
-            try:
-                total_valor += float(r.get("valor_global") or 0)
-            except (ValueError, TypeError):
-                pass
-
-        result["total_contratos_24m"] = len(rows)
-        result["valor_total_contratos_24m"] = round(total_valor, 2)
-
-        # Aggregate by supplier
-        from collections import defaultdict
-        agg: dict[str, dict] = defaultdict(lambda: {"nome": "", "cnpj": "", "contratos": 0, "valor": 0.0})
-        for r in rows:
-            ni = r.get("ni_fornecedor") or ""
-            if not ni:
-                continue
-            agg[ni]["cnpj"] = ni
-            agg[ni]["nome"] = r.get("nome_fornecedor") or ni
-            agg[ni]["contratos"] += 1
-            try:
-                agg[ni]["valor"] += float(r.get("valor_global") or 0)
-            except (ValueError, TypeError):
-                pass
-
-        top = sorted(agg.values(), key=lambda x: x["valor"], reverse=True)[:limit]
+        top = agg.get("top_fornecedores") or []
         result["top_fornecedores"] = [
             {
-                "nome": t["nome"],
-                "cnpj": t["cnpj"],
-                "total_contratos": t["contratos"],
-                "valor_total": round(t["valor"], 2),
+                "nome": (t.get("nome") or t.get("cnpj") or "Não informado"),
+                "cnpj": (t.get("cnpj") or ""),
+                "total_contratos": int(t.get("total_contratos") or 0),
+                "valor_total": float(t.get("valor_total") or 0.0),
             }
             for t in top
-            if t["valor"] > 0
+            if (t.get("valor_total") or 0) > 0
         ]
+        result["total_contratos_24m"] = int(agg.get("total_contratos_24m") or 0)
+        result["valor_total_contratos_24m"] = float(agg.get("valor_total_contratos_24m") or 0.0)
 
     except asyncio.TimeoutError:
         logger.warning(
-            "contracts_data query exceeded %.1fs budget for %s",
+            "contracts_data RPC exceeded %.1fs budget for %s",
             _ORGAO_QUERY_BUDGET_S, orgao_cnpj,
         )
     except Exception as exc:
-        logger.warning("contracts_data query failed for %s: %s", orgao_cnpj, exc)
+        logger.warning("contracts_data RPC failed for %s: %s", orgao_cnpj, exc)
 
     return result
