@@ -890,6 +890,32 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/admin/revalidate-seo": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Admin Revalidate Seo
+         * @description Manually trigger ISR revalidation for the given frontend paths.
+         *
+         *     Calls the Next.js ``POST /api/revalidate`` endpoint (secret-gated).
+         *     Fire-and-forget — the HTTP call is made but result is not awaited for
+         *     user-facing errors.  Any failure is logged as a warning.
+         *
+         *     Requires admin role.  Raises HTTP 400 if ``paths`` is empty.
+         */
+        post: operations["admin_revalidate_seo_v1_admin_revalidate_seo_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/admin/schema-contract-status": {
         parameters: {
             query?: never;
@@ -10612,6 +10638,18 @@ export interface components {
              */
             valor_total: number;
         };
+        /** RevalidateSEORequest */
+        RevalidateSEORequest: {
+            /** Paths */
+            paths: string[];
+        };
+        /** RevalidateSEOResponse */
+        RevalidateSEOResponse: {
+            /** Paths */
+            paths: string[];
+            /** Status */
+            status: string;
+        };
         /** ReverseSyncRequest */
         ReverseSyncRequest: {
             /**
@@ -13412,6 +13450,39 @@ export interface operations {
                 };
                 content: {
                     "application/json": unknown;
+                };
+            };
+        };
+    };
+    admin_revalidate_seo_v1_admin_revalidate_seo_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RevalidateSEORequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RevalidateSEOResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };
