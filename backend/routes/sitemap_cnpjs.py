@@ -13,6 +13,8 @@ Layers de implementacao (/sitemap/cnpjs):
 import asyncio
 import logging
 
+import sentry_sdk
+
 from pipeline.budget import _run_with_budget
 import time
 from datetime import datetime, timezone
@@ -129,6 +131,8 @@ async def sitemap_cnpjs(response: Response):
             "sitemap_cnpjs: budget %.0fs exceeded — returning empty negative cache",
             _BUDGET_S,
         )
+        sentry_sdk.capture_message('sitemap_source_timeout', level='warning',
+            tags={'endpoint': 'cnpjs', 'outcome': 'timeout'})
         data = _empty_cnpjs_response()
         _set_cached("cnpjs", data, ttl=_NEGATIVE_CACHE_TTL_SECONDS)
     except Exception as exc:
@@ -136,7 +140,37 @@ async def sitemap_cnpjs(response: Response):
         data = _empty_cnpjs_response()
         _set_cached("cnpjs", data, ttl=_NEGATIVE_CACHE_TTL_SECONDS)
 
-    record_sitemap_count("cnpjs", len(data.get("cnpjs", [])))
+    cnpj_list = data.get("cnpjs", [])
+    if len(cnpj_list) == 0:
+        try:
+            from supabase_client import get_supabase, sb_execute
+            sb = get_supabase()
+            resp = await sb_execute(
+                sb.table("pncp_raw_bids").select("orgao_cnpj", count="exact").neq("orgao_cnpj", "").not_.is_("orgao_cnpj", "null").limit(0)
+            )
+            source_count = resp.count if hasattr(resp, 'count') and resp.count is not None else 0
+            if source_count and source_count > 0:
+                sentry_sdk.capture_message('sitemap_empty_despite_data', level='error',
+                    tags={'endpoint': 'cnpjs', 'source_count': source_count})
+        except Exception:
+            pass
+        try:
+            sb2 = get_supabase()
+            resp2 = await sb_execute(
+                sb2.table("pncp_raw_bids").select("data_publicacao").order("data_publicacao", desc=True).limit(1)
+            )
+            if resp2.data and len(resp2.data) > 0:
+                raw = resp2.data[0].get("data_publicacao")
+                if raw:
+                    last_dt = datetime.fromisoformat(str(raw)[:10]).replace(tzinfo=timezone.utc)
+                    age_seconds = (datetime.now(timezone.utc) - last_dt).total_seconds()
+                    if age_seconds > 93600:
+                        sentry_sdk.capture_message('sitemap_source_stale', level='warning',
+                            tags={'endpoint': 'cnpjs', 'age_hours': round(age_seconds / 3600, 1)})
+        except Exception:
+            pass
+
+    record_sitemap_count("cnpjs", len(cnpj_list))
     return SitemapCnpjsResponse(**data)
 
 
@@ -293,6 +327,8 @@ async def sitemap_fornecedores_cnpj(response: Response):
             "sitemap_fornecedores_cnpj: budget %.0fs exceeded — returning empty negative cache",
             _BUDGET_S,
         )
+        sentry_sdk.capture_message('sitemap_source_timeout', level='warning',
+            tags={'endpoint': 'fornecedores-cnpj', 'outcome': 'timeout'})
         data = _empty_cnpjs_response()
         _set_fornecedores_cached("fornecedores_cnpj", data, ttl=_NEGATIVE_CACHE_TTL_SECONDS)
     except Exception as exc:
@@ -300,7 +336,37 @@ async def sitemap_fornecedores_cnpj(response: Response):
         data = _empty_cnpjs_response()
         _set_fornecedores_cached("fornecedores_cnpj", data, ttl=_NEGATIVE_CACHE_TTL_SECONDS)
 
-    record_sitemap_count("fornecedores-cnpj", len(data.get("cnpjs", [])))
+    fornecedores_list = data.get("cnpjs", [])
+    if len(fornecedores_list) == 0:
+        try:
+            from supabase_client import get_supabase, sb_execute
+            sb = get_supabase()
+            resp = await sb_execute(
+                sb.table("pncp_supplier_contracts").select("id", count="exact").limit(0)
+            )
+            source_count = resp.count if hasattr(resp, 'count') and resp.count is not None else 0
+            if source_count and source_count > 0:
+                sentry_sdk.capture_message('sitemap_empty_despite_data', level='error',
+                    tags={'endpoint': 'fornecedores-cnpj', 'source_count': source_count})
+        except Exception:
+            pass
+        try:
+            sb2 = get_supabase()
+            resp2 = await sb_execute(
+                sb2.table("pncp_supplier_contracts").select("data_assinatura").order("data_assinatura", desc=True).limit(1)
+            )
+            if resp2.data and len(resp2.data) > 0:
+                raw = resp2.data[0].get("data_assinatura")
+                if raw:
+                    last_dt = datetime.fromisoformat(str(raw)[:10]).replace(tzinfo=timezone.utc)
+                    age_seconds = (datetime.now(timezone.utc) - last_dt).total_seconds()
+                    if age_seconds > 93600:
+                        sentry_sdk.capture_message('sitemap_source_stale', level='warning',
+                            tags={'endpoint': 'fornecedores-cnpj', 'age_hours': round(age_seconds / 3600, 1)})
+        except Exception:
+            pass
+
+    record_sitemap_count("fornecedores-cnpj", len(fornecedores_list))
     return SitemapFornecedoresCnpjResponse(**data)
 
 
