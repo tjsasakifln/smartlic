@@ -372,12 +372,34 @@ AUDIT_TEST_CASES = [
     ("servicos_prediais", "Contratacao de servicos de zeladoria para os predios da prefeitura", True),
     ("servicos_prediais", "Aquisicao de escavadeira hidraulica para desassoreamento da lagoa", False),
     # --- produtos_limpeza (TP) ---
+    # Positive: keyword "detergente"+"alvejante"+"desinfetante" hit; no exclusion fires (#971 AC6)
+    ("produtos_limpeza", "Aquisicao de detergente alvejante e desinfetante para escolas municipais", True),
+    # Positive: keyword "material de limpeza" (signature_term) hit; no exclusion fires (#971 AC6)
+    ("produtos_limpeza", "Registro de precos para material de limpeza de uso geral em reparticoes", True),
+    # Positive: keyword "papel higienico"+"papel toalha" hit; no exclusion fires (#971 AC6)
+    ("produtos_limpeza", "Aquisicao de papel higienico e papel toalha para banheiros publicos", True),
+    # Negative: pre-existing — exclusion "lubrificante" + "limpeza pesada para veiculos" blocks automotive context
     ("produtos_limpeza", "Aquisicao de lubrificantes e produtos de limpeza pesada para veiculos", False),
+    # Negative: exclusions "empresa de limpeza" + "zeladoria" route this to servicos_prediais (#971 AC6)
+    ("produtos_limpeza", "Contratacao de empresa de limpeza e zeladoria para predios municipais", False),
+    # Negative: exclusions "tinta" + "cimento" route construction supplies to engenharia (#971 AC6)
+    ("produtos_limpeza", "Aquisicao de tinta e cimento para reforma da escola municipal", False),
     # --- medicamentos (TP) ---
     ("medicamentos", "Aquisicao de medicamentos para a rede municipal de saude", True),
     ("medicamentos", "Registro de preco para medicamentos da farmacia basica", True),
     ("medicamentos", "Contratacao de plano de saude para servidores municipais", False),
     ("medicamentos", "Aquisicao de agulhas de costura e linhas para oficina de costura", False),
+    # --- equipamentos_medicos (TP) ---
+    # Positive: keyword "tomografo" (signature_term) hit; no exclusion fires (#971 AC6)
+    ("equipamentos_medicos", "Aquisicao de tomografo computadorizado para o hospital regional", True),
+    # Positive: keyword "ventilador pulmonar" (signature_term) hit; no exclusion fires (#971 AC6)
+    ("equipamentos_medicos", "Aquisicao de ventilador pulmonar para UTI neonatal", True),
+    # Positive: keyword "autoclave" (signature_term) hit; no exclusion fires (#971 AC6)
+    ("equipamentos_medicos", "Aquisicao de autoclave horizontal para central de esterilizacao", True),
+    # Negative: exclusions "seringa" + "agulha" route descartaveis to insumos_hospitalares (#971 AC6)
+    ("equipamentos_medicos", "Aquisicao de seringas e agulhas descartaveis para sala de vacinacao", False),
+    # Negative: exclusions "notebook" + "impressora" route IT goods to informatica (#971 AC6)
+    ("equipamentos_medicos", "Aquisicao de notebooks e impressoras para a secretaria de saude", False),
     # --- insumos_hospitalares (TP) ---
     ("insumos_hospitalares", "Aquisicao de seringas e agulhas descartaveis", True),
     # --- vigilancia (TP) ---
