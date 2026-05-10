@@ -1,50 +1,50 @@
-# PRD Tecnico: SmartLic — v0.5.3
+# PRD Técnico: SmartLic — v0.5.3
 
 > **SOFTWARE PROPRIETÁRIO** — © 2024-2026 CONFENGE AVALIAÇÕES E INTELIGÊNCIA ARTIFICIAL LTDA. Todos os direitos reservados.
 > Contato: tiago.sasaki@confenge.com.br | WhatsApp: +55 (48) 9 8834-4559
 
-**Versao:** 0.5.3
+**Versão:** 0.5.3
 **Data:** Abril 2026
-**Tipo:** Especificacao tecnica de implementacao
+**Tipo:** Especificação técnica de implementação
 **Status:** PRODUCTION — Contracts Backfill + SEO Expansion (2026-04-09)
-**Produto:** SmartLic — Plataforma de inteligencia em licitacoes publicas
-**Empresa:** CONFENGE Avaliacoes e Inteligencia Artificial LTDA
+**Produto:** SmartLic — Plataforma de inteligência em licitações públicas
+**Empresa:** CONFENGE Avaliações e Inteligência Artificial LTDA
 **Production:** https://smartlic.tech
 
-> **Nota de evolucao:** Este PRD foi originalmente escrito para o POC v0.1-v0.2 (busca PNCP para vestuario).
-> O sistema evoluiu significativamente. As secoes abaixo foram atualizadas para refletir o estado atual.
-> Para historico detalhado de mudancas, consulte:
-> - `docs/summaries/gtm-resilience-summary.md` — 25 stories de resiliencia
-> - `docs/summaries/gtm-fixes-summary.md` — 37 fixes de producao
-> - `CHANGELOG.md` — Historico completo de versoes
+> **Nota de evolução:** Este PRD foi originalmente escrito para o POC v0.1-v0.2 (busca PNCP para vestuário).
+> O sistema evoluiu significativamente. As seções abaixo foram atualizadas para refletir o estado atual.
+> Para histórico detalhado de mudanças, consulte:
+> - `docs/summaries/gtm-resilience-summary.md` — 25 stories de resiliência
+> - `docs/summaries/gtm-fixes-summary.md` — 37 fixes de produção
+> - `CHANGELOG.md` — Histórico completo de versões
 
 ---
 
-## 0. VISAO GERAL DO SISTEMA (v0.5)
+## 0. VISÃO GERAL DO SISTEMA (v0.5)
 
-### 0.1 O que e o SmartLic
+### 0.1 O que é o SmartLic
 
-Plataforma de inteligencia em licitacoes publicas que automatiza a descoberta, analise e qualificacao de oportunidades para empresas B2G (Business-to-Government) e consultorias de licitacao.
+Plataforma de inteligência em licitações públicas que automatiza a descoberta, análise e qualificação de oportunidades para empresas B2G (Business-to-Government) e consultorias de licitação.
 
 **Diferenciais:**
-- IA de classificacao setorial (GPT-4.1-nano) com zero-match classification
-- Analise de viabilidade com 4 fatores (modalidade, timeline, valor, geografia)
+- IA de classificação setorial (GPT-4.1-nano) com zero-match classification
+- Análise de viabilidade com 4 fatores (modalidade, timeline, valor, geografia)
 - Busca multi-fonte consolidada (PNCP + PCP + ComprasGov)
 
 ### 0.2 Arquitetura atual
 
 ```
 ┌──────────────────────────────────────────────────────────────────────┐
-│                     FRONTEND (Next.js 16 — 22 paginas)               │
-│  Buscar | Dashboard | Pipeline | Historico | Onboarding | Admin      │
+│                     FRONTEND (Next.js 16 — 22 páginas)               │
+│  Buscar | Dashboard | Pipeline | Histórico | Onboarding | Admin      │
 │  SSE Progress | localStorage cache | Supabase Auth                   │
 └───────────────────────────────┬──────────────────────────────────────┘
                                 │ API Proxy (route handlers)
 ┌───────────────────────────────▼──────────────────────────────────────┐
-│                     BACKEND (FastAPI 0.129 — 65+ modulos)            │
+│                     BACKEND (FastAPI 0.129 — 65+ módulos)            │
 │                                                                      │
 │  ┌─────────────────────────────────────────────────────────────────┐ │
-│  │ INGESTAO PERIODICA (ARQ Worker — background)                    │ │
+│  │ INGESTÃO PERIÓDICA (ARQ Worker — background)                    │ │
 │  │  Full daily 2am BRT + Incremental 3x/day (8am/2pm/8pm BRT)    │ │
 │  │  PNCP API → transformer → upsert pncp_raw_bids (Supabase)     │ │
 │  │  ~40K+ rows ativas | 12-day retention | content_hash dedup     │ │
@@ -57,20 +57,20 @@ Plataforma de inteligencia em licitacoes publicas que automatiza a descoberta, a
 │  └──────────────────────────────┬──────────────────────────────────┘ │
 │                                 │                                    │
 │  ┌──────────────────────────────▼──────────────────────────────────┐ │
-│  │ FILTRAGEM + CLASSIFICACAO                                       │ │
+│  │ FILTRAGEM + CLASSIFICAÇÃO                                       │ │
 │  │  1. UF check | 2. Value range | 3. Keyword density scoring     │ │
 │  │  4. LLM zero-match (GPT-4.1-nano YES/NO) | 5. Status/date     │ │
 │  │  6. Viability assessment (4 fatores, 100-point scale)           │ │
 │  └──────────────────────────────┬──────────────────────────────────┘ │
 │                                 │                                    │
 │  ┌──────────────────────────────▼──────────────────────────────────┐ │
-│  │ SAIDA                                                           │ │
+│  │ SAÍDA                                                           │ │
 │  │  LLM Summary (ARQ job) | Excel (ARQ job) | Pipeline (Supabase) │ │
 │  │  SSE events: llm_ready, excel_ready | Immediate fallback       │ │
 │  └─────────────────────────────────────────────────────────────────┘ │
 │                                                                      │
 │  CACHE: InMemory(4h) + Supabase(24h) | SWR background refresh       │
-│  BILLING: Stripe (SmartLic Pro R$397/mes) | Quota enforcement          │
+│  BILLING: Stripe (SmartLic Pro R$397/mês) | Quota enforcement          │
 │  OBSERVABILITY: Prometheus /metrics | OpenTelemetry | Sentry         │
 │  AUTH: Supabase (email + Google OAuth) | RLS | JWT                   │
 └──────────────────────────────────────────────────────────────────────┘
@@ -82,59 +82,59 @@ INFRA: Railway (web + worker + frontend) | Supabase Cloud | Redis
 
 | ID | Nome | Viability Value Range |
 |----|------|-----------------------|
-| vestuario | Vestuario e Uniformes | Definido em sectors_data.yaml |
+| vestuário | Vestuário e Uniformes | Definido em sectors_data.yaml |
 | alimentos | Alimentos e Merenda | " |
-| informatica | Hardware e Equipamentos de TI | " |
-| mobiliario | Mobiliario | " |
-| papelaria | Papelaria e Material de Escritorio | " |
+| informática | Hardware e Equipamentos de TI | " |
+| mobiliário | Mobiliário | " |
+| papelaria | Papelaria e Material de Escritório | " |
 | engenharia | Engenharia, Projetos e Obras | " |
 | software | Software e Sistemas | " |
-| facilities | Facilities e Manutencao | " |
-| saude | Saude | " |
-| vigilancia | Vigilancia e Seguranca Patrimonial | " |
-| transporte | Transporte e Veiculos | " |
-| manutencao_predial | Manutencao e Conservacao Predial | " |
-| engenharia_rodoviaria | Engenharia Rodoviaria e Infraestrutura Viaria | " |
-| materiais_eletricos | Materiais Eletricos e Instalacoes | " |
-| materiais_hidraulicos | Materiais Hidraulicos e Saneamento | " |
+| facilities | Facilities e Manutenção | " |
+| saúde | Saúde | " |
+| vigilância | Vigilância e Segurança Patrimonial | " |
+| transporte | Transporte e Veículos | " |
+| manutencao_predial | Manutenção e Conservação Predial | " |
+| engenharia_rodoviaria | Engenharia Rodoviária e Infraestrutura Viária | " |
+| materiais_eletricos | Materiais Elétricos e Instalações | " |
+| materiais_hidraulicos | Materiais Hidráulicos e Saneamento | " |
 
-Cada setor tem keywords, exclusoes, e viability_value_range definidos em `backend/sectors_data.yaml`.
+Cada setor tem keywords, exclusões, e viability_value_range definidos em `backend/sectors_data.yaml`.
 
-### 0.4 Parametros do sistema (ATUALIZADOS)
+### 0.4 Parâmetros do sistema (ATUALIZADOS)
 
-| Parametro | Valor Atual | Nota |
+| Parâmetro | Valor Atual | Nota |
 |-----------|-------------|------|
 | `MAX_DIAS_BUSCA` | **10 dias** | Era 180, depois 15. Reduzido para performance |
 | `PAGE_SIZE` (PNCP) | **50** | PNCP reduziu silenciosamente de 500 para 50 (fev/2026) |
 | `PNCP_BATCH_SIZE` | 5 UFs | UFs processadas em lotes de 5 |
 | `PNCP_BATCH_DELAY_S` | 2.0s | Delay entre batches |
 | `TIMEOUT_PIPELINE` | 360s | Timeout global do pipeline |
-| `TIMEOUT_CONSOLIDATION` | 300s | Timeout da consolidacao multi-fonte |
+| `TIMEOUT_CONSOLIDATION` | 300s | Timeout da consolidação multi-fonte |
 | `TIMEOUT_PER_SOURCE` | 180s | Timeout por fonte (PNCP, PCP, ComprasGov) |
 | `TIMEOUT_PER_UF` | 90s (normal), 120s (degraded) | Timeout por UF |
 | `TIMEOUT_FRONTEND_PROXY` | 480s (8 min) | Timeout do proxy Next.js |
-| `LLM_ARBITER_MODEL` | gpt-4.1-nano | Modelo para classificacao |
+| `LLM_ARBITER_MODEL` | gpt-4.1-nano | Modelo para classificação |
 | `MAX_CONCURRENT_REVALIDATIONS` | 3 | Background cache refresh |
 
 ---
 
 ## 1. ESCOPO FUNCIONAL
 
-### 1.1 Fluxo de execucao (v0.5 — datalake + fallback multi-fonte)
+### 1.1 Fluxo de execução (v0.5 — datalake + fallback multi-fonte)
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
-│                        INTERFACE WEB (22 paginas)                │
-│  Buscar: Setor + UFs + Periodo + Filtros avancados               │
+│                        INTERFACE WEB (22 páginas)                │
+│  Buscar: Setor + UFs + Período + Filtros avançados               │
 │  SSE progress tracking | Resilience banners | Cache indicators   │
 └──────────────────────────────┬──────────────────────────────────┘
                                │
                                ▼
 ┌─────────────────────────────────────────────────────────────────┐
-│                   BUSCA NO DATALAKE (caminho primario)            │
+│                   BUSCA NO DATALAKE (caminho primário)            │
 │  search_datalake RPC → pncp_raw_bids (PostgreSQL tsquery)       │
 │  Full-text search (Portuguese) + UF/date/modality/value filters │
-│  ~40K+ rows ativas | Atualizado 4x/dia via ingestao periodica   │
+│  ~40K+ rows ativas | Atualizado 4x/dia via ingestão periódica   │
 │                                                                  │
 │  Se 0 resultados → fallback para live API multi-fonte:          │
 │  PNCP (prio 1, 50/pg) + PCP v2 (prio 2, 10/pg) + ComprasGov   │
@@ -153,7 +153,7 @@ Cada setor tem keywords, exclusoes, e viability_value_range definidos em `backen
                                │
                                ▼
 ┌─────────────────────────────────────────────────────────────────┐
-│                   SAIDA                                          │
+│                   SAÍDA                                          │
 │  LLM Summary (ARQ background job, immediate fallback)           │
 │  Excel (ARQ background job, SSE excel_ready event)              │
 │  Pipeline (Supabase, kanban drag-and-drop)                      │
@@ -161,18 +161,18 @@ Cada setor tem keywords, exclusoes, e viability_value_range definidos em `backen
 └─────────────────────────────────────────────────────────────────┘
 ```
 
-### 1.2 Parametros do sistema
+### 1.2 Parâmetros do sistema
 
-| Parametro | Valor | Justificativa |
+| Parâmetro | Valor | Justificativa |
 |-----------|-------|---------------|
 | `VALOR_MIN` | R$ 50.000,00 | Eliminar micro-compras com baixo ROI |
-| `VALOR_MAX` | R$ 5.000.000,00 | Limite operacional tipico de PMEs |
-| `MAX_DIAS_BUSCA` | **10** | Performance + relevancia (era 30, reduzido progressivamente) |
-| `TIMEOUT_REQUEST` | 30s | Tolerancia para API lenta |
+| `VALOR_MAX` | R$ 5.000.000,00 | Limite operacional típico de PMEs |
+| `MAX_DIAS_BUSCA` | **10** | Performance + relevância (era 30, reduzido progressivamente) |
+| `TIMEOUT_REQUEST` | 30s | Tolerância para API lenta |
 | `MAX_RETRIES` | 5 | Tentativas antes de falha definitiva |
 | `BACKOFF_BASE` | 2s | Base do exponential backoff |
 | `BACKOFF_MAX` | 60s | Teto do backoff |
-| `PAGE_SIZE` | **50** | Maximo permitido pela API PNCP (era 500, reduzido em fev/2026) |
+| `PAGE_SIZE` | **50** | Máximo permitido pela API PNCP (era 500, reduzido em fev/2026) |
 
 ---
 
@@ -193,7 +193,7 @@ GET https://pncp.gov.br/api/consulta/v1/contratacoes/publicacao
 | `dataInicial` | string (YYYY-MM-DD) | Sim | Data inicial de publicação |
 | `dataFinal` | string (YYYY-MM-DD) | Sim | Data final de publicação |
 | `uf` | string | Não | Sigla do estado (filtro server-side) |
-| `pagina` | int | Sim | Página atual (1-indexed) |
+| `página` | int | Sim | Página atual (1-indexed) |
 | `tamanhoPagina` | int | Sim | Itens por página (max 500) |
 
 ### 2.3 Estrutura de resposta
