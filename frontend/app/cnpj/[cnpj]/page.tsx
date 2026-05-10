@@ -52,7 +52,7 @@ interface PerfilB2G {
   aviso_legal: string;
 }
 
-export const revalidate = 86400; // 24h ISR
+export const revalidate = 3600; // 24h ISR
 
 export function generateStaticParams() {
   return []; // SSR on-demand
@@ -62,7 +62,7 @@ async function fetchPerfil(cnpj: string): Promise<PerfilB2G | null> {
   return fetchWithBudget<PerfilB2G>(`${BACKEND_URL}/v1/empresa/${cnpj}/perfil-b2g`, {
     timeout: 10000,
     retries: 1,
-    revalidate: 86400,
+    revalidate: 3600,
     label: 'cnpj-perfil',
   });
 }

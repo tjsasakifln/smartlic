@@ -12,7 +12,7 @@ import Footer from '@/app/components/Footer';
 
 // Sprint 6 Parte 13: páginas de benchmark de preços por código CATMAT
 // ISR 24h — dados do PNCP atualizados diariamente
-export const revalidate = 86400;
+export const revalidate = 3600;
 
 const _MAX_STATIC_CATMATS = 200;
 
@@ -52,7 +52,7 @@ async function fetchProfile(catmat: string): Promise<ItemProfile | null> {
   return fetchWithBudget<ItemProfile>(`${BACKEND_URL}/v1/itens/${catmat}/profile`, {
     timeout: 10000,
     retries: 1,
-    revalidate: 86400,
+    revalidate: 3600,
     label: 'item-profile',
   });
 }
@@ -65,7 +65,7 @@ export async function generateStaticParams() {
     {
       timeout: 15000,
       retries: 0,
-      revalidate: 86400,
+      revalidate: 3600,
       label: 'sitemap-itens-static',
       fallback: { catmats: [] },
     },
