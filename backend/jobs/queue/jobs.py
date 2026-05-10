@@ -735,8 +735,8 @@ async def reclassify_pending_bids_job(ctx: dict, search_id: str, sector_name: st
 
 
 async def classify_zero_match_job(ctx: dict, search_id: str, candidates: list[dict], setor: str, sector_name: str, custom_terms: list[str] | None = None, enqueued_at: float = 0, **kwargs) -> dict:
-    from config import MAX_ZERO_MATCH_ITEMS, ZERO_MATCH_JOB_TIMEOUT_S, LLM_ZERO_MATCH_BATCH_SIZE, FILTER_ZERO_MATCH_BUDGET_S, LLM_FALLBACK_PENDING_ENABLED
-    from metrics import ZERO_MATCH_JOB_DURATION, ZERO_MATCH_JOB_STATUS, ZERO_MATCH_JOB_QUEUE_TIME
+    from config import MAX_ZERO_MATCH_ITEMS, ZERO_MATCH_VALUE_RATIO, ZERO_MATCH_JOB_TIMEOUT_S, LLM_ZERO_MATCH_BATCH_SIZE, FILTER_ZERO_MATCH_BUDGET_S, LLM_FALLBACK_PENDING_ENABLED
+    from metrics import ZERO_MATCH_JOB_DURATION, ZERO_MATCH_JOB_STATUS, ZERO_MATCH_JOB_QUEUE_TIME, ZERO_MATCH_CAP_APPLIED_TOTAL, ZERO_MATCH_POOL_SIZE
     from progress import get_tracker
     from jobs.queue.result_store import store_zero_match_results
 
@@ -745,8 +745,71 @@ async def classify_zero_match_job(ctx: dict, search_id: str, candidates: list[di
         ZERO_MATCH_JOB_QUEUE_TIME.observe(job_start - enqueued_at)
 
     total_candidates = len(candidates)
-    will_classify = min(total_candidates, MAX_ZERO_MATCH_ITEMS)
-    logger.info(f"CRIT-059: classify_zero_match_job start (search_id={search_id}, candidates={total_candidates}, will_classify={will_classify})")
+
+    # CRIT-058 AC4: Observe pool size before cap (always, for visibility).
+    if total_candidates > 0:
+        ZERO_MATCH_POOL_SIZE.observe(total_candidates)
+
+    # CRIT-058 AC1+AC2: Apply cap with value-prioritized selection.
+    # When the pool exceeds MAX_ZERO_MATCH_ITEMS, we sort by valor_estimado desc
+    # and take the top-N (with ZERO_MATCH_VALUE_RATIO controlling how much of the
+    # cap is filled by value vs. random sampling — currently always 1.0=all-by-value).
+    # Items dropped by the cap are tagged as pending_review (zero_match_cap_exceeded).
+    cap_applied = total_candidates > MAX_ZERO_MATCH_ITEMS
+    if cap_applied:
+        ZERO_MATCH_CAP_APPLIED_TOTAL.inc()
+
+        def _parse_value(lic: dict) -> float:
+            v = lic.get("valorTotalEstimado") or lic.get("valorEstimado") or 0
+            if isinstance(v, str):
+                try:
+                    return float(v.replace(".", "").replace(",", "."))
+                except ValueError:
+                    return 0.0
+            try:
+                return float(v) if v else 0.0
+            except (TypeError, ValueError):
+                return 0.0
+
+        # Stable sort by value desc — prioritizes high-value contracts.
+        sorted_pool = sorted(candidates, key=_parse_value, reverse=True)
+
+        # AC2: split between by-value and random remainder per ZERO_MATCH_VALUE_RATIO.
+        # ratio>=1.0 -> all by value (default). ratio<1.0 reserves a slice for random
+        # sampling from the remainder for diversity (deterministic per search_id).
+        ratio = max(0.0, min(1.0, float(ZERO_MATCH_VALUE_RATIO)))
+        n_by_value = int(MAX_ZERO_MATCH_ITEMS * ratio)
+        n_random = MAX_ZERO_MATCH_ITEMS - n_by_value
+
+        pool_to_classify = list(sorted_pool[:n_by_value])
+        remainder = sorted_pool[n_by_value:]
+        if n_random > 0 and remainder:
+            import random as _random
+            rng = _random.Random(search_id)  # deterministic per search_id
+            sample_size = min(n_random, len(remainder))
+            pool_to_classify.extend(rng.sample(remainder, sample_size))
+
+        # Mark dropped items as pending_review (cap_exceeded).
+        classified_ids = {id(item) for item in pool_to_classify}
+        for lic in candidates:
+            if id(lic) not in classified_ids:
+                lic.update({
+                    "_relevance_source": "pending_review",
+                    "_pending_review": True,
+                    "_pending_review_reason": "zero_match_cap_exceeded",
+                    "_term_density": 0.0,
+                    "_matched_terms": [],
+                    "_confidence_score": 0,
+                    "_llm_evidence": [],
+                })
+    else:
+        pool_to_classify = list(candidates)
+
+    will_classify = len(pool_to_classify)
+    logger.info(
+        f"CRIT-058/059: classify_zero_match_job start "
+        f"(search_id={search_id}, candidates={total_candidates}, will_classify={will_classify}, cap_applied={cap_applied})"
+    )
 
     tracker = await get_tracker(search_id)
     if tracker:
@@ -756,7 +819,10 @@ async def classify_zero_match_job(ctx: dict, search_id: str, candidates: list[di
     approved: list[dict] = []
     rejected_count = pending_count = classified = 0
     budget_start = time.time()
-    pool_to_classify = candidates[:will_classify]
+    # CRIT-058: count items deferred by cap into pending so the job result reflects
+    # the full deferred surface (cap-deferred + budget/timeout-deferred).
+    if cap_applied:
+        pending_count += total_candidates - will_classify
 
     try:
         batch_items = []
