@@ -17,70 +17,87 @@ import { filterNoindexedSitemap } from '@/lib/seo/noindex';
 // STORY-SEO-001 AC3: Observable fetch wrapper. Replaces the silent `catch { return []; }`
 // pattern that hid ECONNREFUSED / DNS / 5xx errors at build time — which is exactly how
 // `sitemap/4.xml` went empty in production for weeks without Sentry or Prometheus alerting.
-// The wrapper still returns null on failure (callers default to []), so build never breaks.
+//
+// SEO-SITEMAP-CASCADE-001: wrapper now returns a discriminated result so callers can
+// distinguish 503 (retriable — backend DB timeout) from 200+[] (legitimate empty) from
+// other errors. This prevents ISR from caching a backend-timeout-induced empty sitemap.
 //
 // SEN-BE-007 AC11: structured Sentry breadcrumb on every fetch (success and failure)
-// with sitemap_outcome ∈ {success, http_error, timeout, empty_data}, latency_ms, and
-// url_count. Distinguishes timeout from generic fetch_error (previously lumped together).
+// with sitemap_outcome ∈ {success, http_error, timeout, empty_data, service_unavailable},
+// latency_ms, and url_count.
+type FetchSitemapResult<T> =
+  | { kind: 'success'; data: T }
+  | { kind: 'empty_data'; data: T }
+  | { kind: 'service_unavailable' }   // backend 503 — retriable
+  | { kind: 'http_error'; status: number }
+  | { kind: 'timeout' };
+
 async function fetchSitemapJson<T>(
   endpoint: string,
   extract: (data: unknown) => T,
   label: string,
-): Promise<T | null> {
+): Promise<FetchSitemapResult<T>> {
   const backendUrl = getBackendUrl();
   const url = `${backendUrl}${endpoint}`;
   const startedAt = Date.now();
-  let outcome: 'success' | 'http_error' | 'timeout' | 'empty_data' = 'success';
+  let outcome: 'success' | 'http_error' | 'timeout' | 'empty_data' | 'service_unavailable' = 'success';
   let statusCode = 0;
   let urlCount = 0;
-  let result: T | null = null;
-  let capturedError: unknown = null;
+  let fetchResult: FetchSitemapResult<T> = { kind: 'http_error', status: 0 };
   try {
     const resp = await fetch(url, {
       next: { revalidate: 3600 },
       signal: AbortSignal.timeout(15000),
     });
     statusCode = resp.status;
-    if (!resp.ok) {
+    if (resp.status === 503) {
+      // SEO-SITEMAP-CASCADE-001: backend returned 503 (DB timeout) — do NOT cache this.
+      outcome = 'service_unavailable';
+      console.warn(`[sitemap] ${label} returned 503 (backend timeout) url=${url}`);
+      fetchResult = { kind: 'service_unavailable' };
+    } else if (!resp.ok) {
       outcome = 'http_error';
       const err = new Error(`Sitemap fetch ${label} returned HTTP ${resp.status}`);
-      capturedError = err;
       console.error(`[sitemap] ${err.message} url=${url}`);
       Sentry.captureException(err, {
         tags: { sitemap_endpoint: label, sitemap_outcome: 'http_error' },
         contexts: { sitemap: { endpoint, url, status: resp.status } },
       });
-      result = null;
+      fetchResult = { kind: 'http_error', status: resp.status };
     } else {
       const data = (await resp.json()) as unknown;
-      result = extract(data);
+      const extracted = extract(data);
       // Count URLs in extracted payload — defensive shape check.
-      if (Array.isArray(result)) {
-        urlCount = result.length;
-      } else if (result && typeof result === 'object') {
+      if (Array.isArray(extracted)) {
+        urlCount = extracted.length;
+      } else if (extracted && typeof extracted === 'object') {
         // Shape varies per endpoint (combos/cnpjs/orgaos/slugs/catmats). Sum any array values.
-        for (const v of Object.values(result as Record<string, unknown>)) {
+        for (const v of Object.values(extracted as Record<string, unknown>)) {
           if (Array.isArray(v)) urlCount += v.length;
         }
       }
       if (urlCount === 0) {
         outcome = 'empty_data';
+        fetchResult = { kind: 'empty_data', data: extracted };
+      } else {
+        outcome = 'success';
+        fetchResult = { kind: 'success', data: extracted };
       }
     }
   } catch (err) {
-    capturedError = err;
     const errName = (err as Error)?.name || '';
     if (errName === 'TimeoutError' || errName === 'AbortError') {
       outcome = 'timeout';
+      fetchResult = { kind: 'timeout' };
     } else {
       outcome = 'http_error';
+      fetchResult = { kind: 'http_error', status: 0 };
     }
     console.error(`[sitemap] fetch ${label} failed (${outcome})`, err);
     Sentry.captureException(err, {
       tags: { sitemap_endpoint: label, sitemap_outcome: outcome },
       contexts: { sitemap: { endpoint, url } },
     });
-    result = null;
   } finally {
     Sentry.addBreadcrumb({
       category: 'sitemap',
@@ -95,33 +112,59 @@ async function fetchSitemapJson<T>(
       },
     });
   }
-  // Reference capturedError to silence unused-variable lint while keeping the
-  // explicit assignment for future structured-logging needs.
-  void capturedError;
-  return result;
+  return fetchResult;
 }
 
-// SEN-BE-007 AC12: 1× retry with 2s backoff. Retries on null result (timeout or
-// http_error). Does NOT retry on `empty_data` — an empty array is a valid response
-// from the backend (e.g. no indexable combos yet). Total worst case: 15s + 2s + 15s = 32s.
+// SEO-SITEMAP-CASCADE-001: 503-aware retry with exponential backoff.
+//
+// Previous behaviour (SEN-BE-007 AC12): 1× retry with 2s flat delay, returns null on all
+// failures — callers silently defaulted to [] which ISR cached for 1h.
+//
+// New behaviour:
+//  - 503 (backend DB timeout) → retry up to maxRetries times with 2^attempt * 1000ms backoff.
+//    On exhaustion → THROW so Next.js ISR preserves last known-good sitemap (stale-while-revalidate).
+//  - 200+[] (legitimate empty) → return [] immediately (no retry, valid state).
+//  - Other http_error / timeout → return null (callers default to [], same as before).
+//
+// Worst case: 3 attempts × (15s fetch + backoff) = 15s + (1+2+4)s = ~22s. Within ISR budget.
 async function fetchSitemapJsonWithRetry<T>(
   endpoint: string,
   extract: (data: unknown) => T,
   label: string,
+  maxRetries = 3,
 ): Promise<T | null> {
-  const first = await fetchSitemapJson<T>(endpoint, extract, label);
-  if (first !== null) {
-    return first;
-  }
-  await new Promise((resolve) => setTimeout(resolve, 2000));
-  const second = await fetchSitemapJson<T>(endpoint, extract, `${label}-retry`);
-  if (second === null) {
+  for (let attempt = 0; attempt < maxRetries; attempt++) {
+    const res = await fetchSitemapJson<T>(endpoint, extract, `${label}${attempt > 0 ? `-retry${attempt}` : ''}`);
+
+    if (res.kind === 'success' || res.kind === 'empty_data') {
+      // 200+data or 200+[] — both are legitimate; return extracted value.
+      return res.data;
+    }
+
+    if (res.kind === 'service_unavailable') {
+      if (attempt < maxRetries - 1) {
+        // Exponential backoff before retry: 1s, 2s, 4s, ...
+        const delayMs = Math.pow(2, attempt) * 1000;
+        await new Promise((resolve) => setTimeout(resolve, delayMs));
+        continue;
+      }
+      // Final attempt still got 503 — throw so ISR preserves last known-good sitemap.
+      const exhaustedErr = new Error(`sitemap_${label}_503_exhausted`);
+      Sentry.captureException(exhaustedErr, {
+        tags: { sitemap_endpoint: label, sitemap_outcome: 'retry_exhausted_503' },
+        contexts: { sitemap: { endpoint, attempts: maxRetries } },
+      });
+      throw exhaustedErr;
+    }
+
+    // http_error or timeout on non-503 — return null (caller defaults to []).
     Sentry.captureMessage(`sitemap_retry_exhausted_${label}`, {
       level: 'warning',
       tags: { sitemap_endpoint: label, sitemap_outcome: 'retry_exhausted' },
     });
+    return null;
   }
-  return second;
+  return null;
 }
 
 /**

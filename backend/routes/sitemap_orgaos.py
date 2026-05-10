@@ -20,6 +20,7 @@ from datetime import datetime, timezone
 from typing import Optional
 
 from fastapi import APIRouter, Response
+from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 
 from metrics import record_sitemap_count
@@ -88,14 +89,17 @@ async def sitemap_orgaos(response: Response):
         )
         _set_cached("orgaos", data, ttl=_CACHE_TTL_SECONDS)
     except asyncio.TimeoutError:
-        logger.warning(
-            "sitemap_orgaos: budget %.0fs exceeded — returning empty negative cache",
+        logger.error(
+            "sitemap_orgaos: budget %.0fs exceeded — returning 503 (not caching)",
             _BUDGET_S,
         )
         sentry_sdk.capture_message('sitemap_source_timeout', level='warning',
             tags={'endpoint': 'orgaos', 'outcome': 'timeout'})
-        data = _empty_orgaos_response()
-        _set_cached("orgaos", data, ttl=_NEGATIVE_CACHE_TTL_SECONDS)
+        return JSONResponse(
+            status_code=503,
+            content={"detail": "sitemap_source_timeout"},
+            headers={"Retry-After": "30"},
+        )
     except Exception as exc:
         logger.error("sitemap_orgaos unexpected error: %s", exc)
         data = _empty_orgaos_response()
@@ -269,14 +273,17 @@ async def sitemap_contratos_orgao_indexable(response: Response):
         )
         _contratos_orgao_cache[key] = (data, time.time(), _CACHE_TTL_SECONDS)
     except asyncio.TimeoutError:
-        logger.warning(
-            "sitemap_contratos_orgao_indexable: budget %.0fs exceeded — empty negative cache",
+        logger.error(
+            "sitemap_contratos_orgao_indexable: budget %.0fs exceeded — returning 503 (not caching)",
             _BUDGET_S,
         )
         sentry_sdk.capture_message('sitemap_source_timeout', level='warning',
             tags={'endpoint': 'contratos-orgao-indexable', 'outcome': 'timeout'})
-        data = _empty_orgaos_response()
-        _contratos_orgao_cache[key] = (data, time.time(), _NEGATIVE_CACHE_TTL_SECONDS)
+        return JSONResponse(
+            status_code=503,
+            content={"detail": "sitemap_source_timeout"},
+            headers={"Retry-After": "30"},
+        )
     except Exception as exc:
         logger.error("sitemap_contratos_orgao_indexable unexpected error: %s", exc)
         data = _empty_orgaos_response()
