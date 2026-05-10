@@ -9,8 +9,24 @@ import { buildCanonical, SITE_URL } from '@/lib/seo';
 import { stripMarkdown } from '@/lib/text';
 import LandingNavbar from '@/app/components/landing/LandingNavbar';
 import Footer from '@/app/components/Footer';
+import AuthorByline from '@/components/seo/AuthorByline';
+import { getAuthorBySlug, DEFAULT_AUTHOR_SLUG } from '@/lib/authors';
 
 export const revalidate = 86400;
+
+/**
+ * SEO-P2-011 (Issue #997): E-E-A-T author bylines on legal/Lei 14.133 pages.
+ *
+ * Perguntas pages are content-heavy on Lei 14.133/jurisprudence/TCU and
+ * therefore YMYL-adjacent. They previously rendered with `Organization`
+ * author only — weak Trustworthiness signal in SERP. We layer an `Article`
+ * JSON-LD with `author: Person` on top of the existing `QAPage` (kept for
+ * AI Overviews) and bind the `acceptedAnswer.author` to the same Person.
+ */
+const ARTICLE_PUBLISHED_AT = '2025-09-01';
+// Bumped on every meaningful answer revision; keep within last 12 months
+// for the "fresh content" SERP signal.
+const ARTICLE_UPDATED_AT = '2026-05-10';
 
 export function generateStaticParams() {
   return getAllQuestionSlugs().map((slug) => ({ slug }));
@@ -67,6 +83,24 @@ export default async function PerguntaPage({
   // Markdown markers must be stripped so `**bold**` never leaks into search.
   const plainAnswer = stripMarkdown(question.answer);
 
+  // SEO-P2-011 (#997): E-E-A-T Person author for Article + QAPage schemas.
+  const author = getAuthorBySlug(DEFAULT_AUTHOR_SLUG);
+  const personAuthorLd = author
+    ? {
+        '@type': 'Person',
+        name: author.name,
+        url: `${SITE_URL}/blog/author/${author.slug}`,
+        jobTitle: author.role,
+        image: author.image,
+        sameAs: author.sameAs,
+        knowsAbout: author.knowsAbout,
+      }
+    : {
+        '@type': 'Organization',
+        name: 'SmartLic',
+        url: SITE_URL,
+      };
+
   /* QAPage JSON-LD — primary schema for AI Overviews */
   const qaPageLd = {
     '@context': 'https://schema.org',
@@ -79,13 +113,36 @@ export default async function PerguntaPage({
       acceptedAnswer: {
         '@type': 'Answer',
         text: plainAnswer,
-        author: {
-          '@type': 'Organization',
-          name: 'SmartLic',
-          url: SITE_URL,
-        },
+        author: personAuthorLd,
       },
     },
+  };
+
+  /* Article JSON-LD — SEO-P2-011 #997: E-E-A-T signal for legal/Lei 14.133 pages.
+     Layered alongside QAPage (which serves AI Overviews). Together they tell
+     Google "this is a Q&A page authored by a real, credentialed Person."     */
+  const articleLd = {
+    '@context': 'https://schema.org',
+    '@type': 'Article',
+    headline: question.title,
+    description: question.metaDescription,
+    author: personAuthorLd,
+    publisher: {
+      '@type': 'Organization',
+      name: 'SmartLic',
+      logo: {
+        '@type': 'ImageObject',
+        url: `${SITE_URL}/logo.svg`,
+      },
+    },
+    datePublished: ARTICLE_PUBLISHED_AT,
+    dateModified: ARTICLE_UPDATED_AT,
+    mainEntityOfPage: {
+      '@type': 'WebPage',
+      '@id': buildCanonical(`/perguntas/${slug}`),
+    },
+    inLanguage: 'pt-BR',
+    ...(question.legalBasis ? { citation: [{ '@type': 'CreativeWork', name: question.legalBasis }] } : {}),
   };
 
   const breadcrumbLd = {
@@ -146,6 +203,13 @@ export default async function PerguntaPage({
         <div className="mx-auto max-w-4xl px-4 py-12 grid grid-cols-1 lg:grid-cols-3 gap-12">
           {/* Main content */}
           <article className="lg:col-span-2">
+            {/* SEO-P2-011 (#997): E-E-A-T author byline above answer body */}
+            <AuthorByline
+              authorSlug={DEFAULT_AUTHOR_SLUG}
+              publishedAt={ARTICLE_PUBLISHED_AT}
+              updatedAt={ARTICLE_UPDATED_AT}
+              className="mb-6"
+            />
             <div className="prose prose-lg max-w-none text-ink-secondary leading-relaxed">
               <ReactMarkdown remarkPlugins={[remarkGfm]}>
                 {question.answer}
@@ -238,6 +302,7 @@ export default async function PerguntaPage({
 
         {/* JSON-LD */}
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(qaPageLd) }} />
+        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(articleLd) }} />
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbLd) }} />
         {faqPageLd && (
           <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(faqPageLd) }} />
