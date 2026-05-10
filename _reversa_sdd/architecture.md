@@ -523,6 +523,22 @@ erDiagram
 | **Add multi-tenant feature** | `org_id` propagation em handler | passar org context em hooks | tests cross-org RLS isolation | optional `organization_X` table |
 | **Add MFA factor** | `mfa.py` + `routes/mfa.py` | `app/conta/mfa/page.tsx` | tests TOTP/SMS flow | `mfa_X` table se needed |
 
+### ADR cross-references (Spec Impact Matrix → ADRs)
+
+> Decisões arquiteturais que governam linhas da matriz acima. Index canonical: [`docs/adr/README.md`](../docs/adr/README.md). Lifecycle status: [`docs/adr/LIFECYCLE-REVIEW-2026-05-09.md`](../docs/adr/LIFECYCLE-REVIEW-2026-05-09.md).
+
+| Linha matriz | ADR(s) governando | Path |
+|--------------|-------------------|------|
+| Add API endpoint (`response_model=` mandatory) | ADR-PARITY-BE-FE-001 | `docs/adr/ADR-PARITY-BE-FE-001-response-model-mandatory.md` |
+| Add billing plan / Stripe webhook | ADR-BILL-SYNC-001 | `docs/adr/ADR-BILL-SYNC-001-bidirectional-strategy.md` |
+| Add cron job | ADR (cron consolidation) | `docs/adr/cron-consolidation.md` |
+| Add MFA factor | ADR-MFA-EXT-001 (canonical), `mfa-policy.md` (predecessor) | `docs/adr/ADR-MFA-EXT-001-mandatory-policy.md` |
+| Add multi-tenant feature | ADR (org RBAC) | `docs/adr/org-rbac.md` |
+| Godmodule split / new package decomposition | ADR-ARCH-001 | `docs/adr/ADR-ARCH-001-godmodule-split-strategy.md` |
+| `service_role` query (`statement_timeout`) | ADR-SEN-BE-001b | `docs/adr/ADR-SEN-BE-001b-service-role-timeout.md` |
+| Founding-plan touch points | ADR-BIZ-FOUND-002 | `docs/adr/ADR-BIZ-FOUND-002-founding-policy.md` |
+| Partner program / referral / commission | ADR (partner program) | `docs/adr/partner-program.md` |
+
 ### Spec Impact por arquivo crítico
 
 | File | Outras file que importam ele |
