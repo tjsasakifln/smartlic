@@ -22,6 +22,12 @@ const HERO_SCREENSHOT_BLUR =
  * DEBT-125: 50/50 layout with annotated product screenshot
  * REPO-006: Copymasters consensus v1 — B2G intelligence positioning
  * REPO-007: Founding disclaimer below CTAs
+ * COPY-LANDING-004 (#1003): Beachhead anti-assessor + trust signals 2026
+ *  - V1 headline: "Pare de pagar R$3.000/mês ao assessor que copia o PNCP"
+ *  - CTA primário: "Testar 14 dias grátis →" + sub "Sem cartão. Cancele em 1 clique."
+ *  - CTA secundário: ancoragem Plano Fundadores R$997
+ *  - Founder-led visível: nome + cargo + LinkedIn (Schema.org Person já em StructuredData.tsx)
+ *  - Trust signals 2026: founder + changelog + roadmap + 60d garantia (substitui "Sem dados fabricados")
  */
 export default function HeroSection({ className = '' }: HeroSectionProps) {
   const { ref, isVisible } = useScrollAnimation(0.1);
@@ -60,7 +66,7 @@ export default function HeroSection({ className = '' }: HeroSectionProps) {
       >
         {/* Left column — text content */}
         <div className="flex-1 text-center lg:text-left max-w-xl lg:max-w-none">
-          {/* Headline with gradient text */}
+          {/* COPY-LANDING-004: Headline anti-assessor (V1) */}
           <motion.h1
             className="
               text-4xl sm:text-5xl lg:text-6xl
@@ -70,17 +76,17 @@ export default function HeroSection({ className = '' }: HeroSectionProps) {
               leading-[1.1]
             "
             variants={fadeInUp}
+            data-testid="hero-headline"
           >
             <span className="text-ink">
-              Decisão comercial em licitação não nasce de PDF.
-            </span>
-            <br />
+              Pare de pagar R$3.000/mês ao assessor
+            </span>{' '}
             <span className="text-gradient">
-              Nasce de inteligência.
+              que copia o PNCP.
             </span>
           </motion.h1>
 
-          {/* Subheadline */}
+          {/* COPY-LANDING-004: Sub com ancoragem de preço (mensal + Fundadores vitalício) */}
           <motion.p
             className="
               text-lg sm:text-xl
@@ -92,8 +98,10 @@ export default function HeroSection({ className = '' }: HeroSectionProps) {
               lg:max-w-lg
             "
             variants={fadeInUp}
+            data-testid="hero-subheadline"
           >
-            SmartLic lê o edital, mapeia o concorrente, calcula a chance real. Sua empresa decide go/no-go em minutos — não em três dias de leitura.
+            SmartLic lê o edital, mapeia o concorrente e calcula a chance real.
+            R$197/mês ou R$997 vitalício — não R$3.000 por PDF no WhatsApp.
           </motion.p>
 
           {/* CTA Buttons — AC5: Primary CTA visible above the fold */}
@@ -101,51 +109,97 @@ export default function HeroSection({ className = '' }: HeroSectionProps) {
             className="flex flex-col sm:flex-row items-center lg:items-start justify-center lg:justify-start gap-4 mt-10"
             variants={fadeInUp}
           >
-            <Link href="/signup?source=hero-primary" data-testid="hero-cta-primary">
-              <GradientButton
-                variant="primary"
-                size="lg"
-                glow={true}
+            <div className="flex flex-col items-center lg:items-start gap-1">
+              <Link href={hero.cta.primaryHref} data-testid="hero-cta-primary">
+                <GradientButton
+                  variant="primary"
+                  size="lg"
+                  glow={true}
+                >
+                  {hero.cta.primary}
+                </GradientButton>
+              </Link>
+              <span
+                className="text-xs text-ink-muted"
+                data-testid="hero-cta-primary-subtext"
               >
-                Testar plataforma
-              </GradientButton>
-            </Link>
+                {hero.cta.primarySubtext}
+              </span>
+            </div>
 
-            <Link href="/consultoria-b2g#diagnostico" data-testid="hero-cta-secondary">
+            <Link href={hero.cta.secondaryHref} data-testid="hero-cta-secondary">
               <GradientButton
                 variant="secondary"
                 size="lg"
                 glow={false}
               >
-                Solicitar diagnóstico B2G
+                {hero.cta.secondary}
               </GradientButton>
             </Link>
           </motion.div>
 
-          {/* REPO-007: Founding disclaimer — below CTAs, non-competitive */}
-          <motion.p
-            className="text-sm text-zinc-400 dark:text-zinc-500 max-w-md mx-auto lg:mx-0 text-center lg:text-left mt-4"
-            variants={fadeInUp}
-          >
-            {hero.disclaimer}
-          </motion.p>
-
-          {/* Trust indicators */}
+          {/* COPY-LANDING-004: Founder-led visível — nome + cargo + LinkedIn */}
           <motion.div
-            className="mt-6 flex flex-wrap items-center justify-center lg:justify-start gap-x-6 gap-y-2 text-xs text-ink-muted"
+            className="mt-6 flex items-center justify-center lg:justify-start gap-3 text-sm"
             variants={fadeInUp}
+            data-testid="hero-founder-strip"
           >
-            <span className="flex items-center gap-1.5">
+            <div
+              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-brand-blue-subtle text-brand-blue font-semibold"
+              aria-hidden="true"
+            >
+              TS
+            </div>
+            <p className="text-ink-secondary text-left leading-snug">
+              Criado por{' '}
+              <a
+                href={hero.founder.linkedinUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="font-semibold text-ink underline-offset-2 hover:underline"
+                data-testid="hero-founder-linkedin"
+              >
+                {hero.founder.name}
+              </a>
+              , {hero.founder.role}.
+            </p>
+          </motion.div>
+
+          {/* COPY-LANDING-004: Trust signals 2026 — substitui "Sem dados fabricados" por sinais positivos verificáveis */}
+          <motion.div
+            className="mt-6 flex flex-wrap items-center justify-center lg:justify-start gap-x-5 gap-y-2 text-xs text-ink-muted"
+            variants={fadeInUp}
+            data-testid="hero-trust-signals"
+          >
+            <Link
+              href="/changelog"
+              className="flex items-center gap-1.5 hover:text-ink-secondary transition-colors"
+              data-testid="hero-trust-changelog"
+            >
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-              Fontes oficiais verificadas
+              Changelog público
+            </Link>
+            <Link
+              href="/roadmap"
+              className="flex items-center gap-1.5 hover:text-ink-secondary transition-colors"
+              data-testid="hero-trust-roadmap"
+            >
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+              Roadmap aberto
+            </Link>
+            <span
+              className="flex items-center gap-1.5"
+              data-testid="hero-trust-guarantee"
+            >
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+              60 dias de garantia · devolução incondicional
             </span>
-            <span className="flex items-center gap-1.5">
+            <span
+              className="flex items-center gap-1.5"
+              data-testid="hero-trust-sources"
+            >
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-              Critérios objetivos, não opinião
-            </span>
-            <span className="flex items-center gap-1.5">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-              Sem dados fabricados
+              Fontes oficiais verificadas (PNCP, ComprasGov, PCP)
             </span>
           </motion.div>
         </div>
