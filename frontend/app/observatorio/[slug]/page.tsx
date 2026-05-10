@@ -4,9 +4,14 @@
  * Slug format: raio-x-abril-2026 → mes=4, ano=2026
  * Renders charts (BarChart, PieChart, LineChart), CSV download, embed button.
  *
- * AC13: notFound() on fetch failure or malformed slug; generateMetadata returns
- * robots:noindex when data is missing.
+ * AC13: notFound() on malformed slug only; generateMetadata returns
+ * robots:noindex when data is missing/empty.
  * AC14: Sentry.captureMessage when relatorio is empty (warning level + tags).
+ *
+ * Issue #1034 (HOTFIX): Removed `notFound()` for null/empty backend payloads.
+ * Under ISR (revalidate=86400), `notFound()` becomes a 24h terminal state from
+ * a single transient blip. Now: transient errors re-throw (preserve last-good
+ * ISR cache); empty-period payloads render <EmptyStateSEO> with noindex.
  */
 
 import { Metadata } from 'next';
@@ -15,6 +20,7 @@ import { notFound } from 'next/navigation';
 import * as Sentry from '@sentry/nextjs';
 import ObservatorioRelatorioClient from './ObservatorioRelatorioClient';
 import { FoundersRibbon } from '@/components/banners/FoundersRibbon';
+import EmptyStateSEO from '@/components/seo/EmptyStateSEO';
 
 const BACKEND_URL = process.env.BACKEND_URL || 'http://localhost:8000';
 
@@ -40,17 +46,30 @@ function parseSlug(slug: string): { mes: number; ano: number } | null {
   return { mes, ano };
 }
 
+/**
+ * Issue #1034: Distinguish transient vs terminal failures.
+ *
+ * - 2xx OK (incl. `is_empty_period:true`) → return parsed payload.
+ * - 4xx (e.g. 404 truly not found) → return `null` so page renders EmptyState.
+ * - Network error / 5xx / abort → THROW so ISR keeps the last-good cache and
+ *   doesn't poison the URL with a 24h terminal `notFound()`.
+ *
+ * Timeout 15s (was 10s) aligns with Supabase statement_timeout floor for
+ * service_role queries.
+ */
 async function fetchRelatorio(mes: number, ano: number) {
-  try {
-    const resp = await fetch(`${BACKEND_URL}/v1/observatorio/relatorio/${mes}/${ano}`, {
-      next: { revalidate: 86400 }, // 24h ISR
-      signal: AbortSignal.timeout(10000),
-    });
-    if (!resp.ok) return null;
-    return await resp.json();
-  } catch {
+  const resp = await fetch(`${BACKEND_URL}/v1/observatorio/relatorio/${mes}/${ano}`, {
+    next: { revalidate: 86400 }, // 24h ISR
+    signal: AbortSignal.timeout(15000),
+  });
+  if (resp.status >= 500) {
+    throw new Error(`observatorio_backend_5xx:${resp.status}`);
+  }
+  if (!resp.ok) {
+    // 4xx → treat as "no data for this period" (not transient).
     return null;
   }
+  return await resp.json();
 }
 
 export async function generateMetadata({
@@ -70,9 +89,16 @@ export async function generateMetadata({
 
   const { mes, ano } = parsed;
   const mesDisplay = MONTH_NAMES_DISPLAY[mes] ?? String(mes);
-  const relatorio = await fetchRelatorio(mes, ano);
+  // Issue #1034: swallow transient throws in metadata phase — we still want
+  // to ship a (noindex) <head> for the EmptyStateSEO render below.
+  let relatorio: any = null;
+  try {
+    relatorio = await fetchRelatorio(mes, ano);
+  } catch {
+    relatorio = null;
+  }
 
-  // STORY-431 AC13: missing or empty payload → noindex metadata so an
+  // STORY-431 AC13 + Issue #1034: missing or empty payload → noindex metadata so an
   // accidentally-cached blank page never lands in Google's index.
   // Issue #658: explicit canonical to own URL (não herdar root do layout.tsx).
   if (!relatorio || !relatorio.total_editais) {
@@ -122,22 +148,34 @@ export default async function RelatorioPage({
   if (!parsed) notFound();
 
   const { mes, ano } = parsed;
-  const relatorio = await fetchRelatorio(mes, ano);
-  // STORY-431 AC13: backend null/throw → 404 instead of rendering a blank page.
-  if (!relatorio) notFound();
-
   const mesDisplay = MONTH_NAMES_DISPLAY[mes] ?? String(mes);
+  // Issue #1034: NEVER call notFound() here. Transient throws bubble up so ISR
+  // preserves the last-good cache; null payloads (4xx) and empty periods render
+  // <EmptyStateSEO> with noindex metadata (set in generateMetadata above).
+  const relatorio = await fetchRelatorio(mes, ano);
+
+  if (!relatorio || !Number(relatorio.total_editais ?? 0)) {
+    Sentry.captureMessage('observatorio_empty_period', {
+      level: 'warning',
+      tags: { mes: String(mes), ano: String(ano), slug, render: 'empty_state' },
+    });
+    return (
+      <EmptyStateSEO
+        title={`Raio-X das Licitações — ${mesDisplay} ${ano}`}
+        description={`Ainda não temos um relatório consolidado para ${mesDisplay.toLowerCase()} de ${ano}. Os dados são publicados conforme o PNCP processa os editais do período. Volte em breve ou explore outros meses do observatório.`}
+        ctaHref="/observatorio"
+        ctaLabel="Ver outros meses do observatório"
+        periodLabel={`${mesDisplay} de ${ano}`}
+      />
+    );
+  }
+
   const totalEditais = Number(relatorio.total_editais ?? 0);
   const periodoNonEmpty = typeof relatorio.periodo === 'string' && relatorio.periodo.trim().length > 0;
 
-  // STORY-431 AC14: empty period → Sentry warning so we know how often this
-  // surface degrades to the EmptyStatePeriod CTA.
-  if (totalEditais === 0) {
-    Sentry.captureMessage('observatorio_empty_period', {
-      level: 'warning',
-      tags: { mes: String(mes), ano: String(ano), slug },
-    });
-  }
+  // STORY-431 AC14 + Issue #1034: empty-period Sentry warning is now emitted
+  // inside the early-return EmptyStateSEO branch above (this code path runs
+  // only when totalEditais > 0).
 
   // STORY-431 AC12: only emit the Dataset JSON-LD when the period is real
   // (non-empty + has a periodo string). Avoids polluting Google with an
