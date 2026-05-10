@@ -5,6 +5,7 @@ import { GLOSSARY_TERMS } from '@/lib/glossary-terms';
 import { buildCanonical, SITE_URL } from '@/lib/seo';
 import LandingNavbar from '@/app/components/landing/LandingNavbar';
 import Footer from '@/app/components/Footer';
+import RelatedArticles from '@/components/seo/RelatedArticles';
 import { SECTORS } from '@/lib/sectors';
 
 export const revalidate = 86400;
@@ -361,6 +362,16 @@ export default async function GlossaryTermPage({
               </Link>
             </aside>
           </div>
+
+          {/* SEO-P2-010: Cross-link to questions, articles, peer terms */}
+          <RelatedArticles
+            context={{
+              type: 'glossary',
+              value: termo,
+              currentUrl: `/glossario/${termo}`,
+            }}
+            heading="Saiba mais sobre licitações"
+          />
         </div>
       </main>
 

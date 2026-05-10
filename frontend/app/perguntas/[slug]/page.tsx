@@ -9,6 +9,7 @@ import { buildCanonical, SITE_URL } from '@/lib/seo';
 import { stripMarkdown } from '@/lib/text';
 import LandingNavbar from '@/app/components/landing/LandingNavbar';
 import Footer from '@/app/components/Footer';
+import RelatedArticles from '@/components/seo/RelatedArticles';
 
 export const revalidate = 86400;
 
@@ -234,6 +235,18 @@ export default async function PerguntaPage({
               </ul>
             </div>
           </aside>
+        </div>
+
+        {/* SEO-P2-010: Cross-link to glossary, sibling questions, articles */}
+        <div className="mx-auto max-w-4xl px-4 pb-12">
+          <RelatedArticles
+            context={{
+              type: 'question',
+              value: slug,
+              currentUrl: `/perguntas/${slug}`,
+            }}
+            heading="Continue aprendendo"
+          />
         </div>
 
         {/* JSON-LD */}
