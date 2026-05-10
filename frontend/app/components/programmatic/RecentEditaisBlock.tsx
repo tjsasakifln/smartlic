@@ -82,7 +82,9 @@ export function RecentEditaisBlock({
     const params = new URLSearchParams({ setor });
     if (uf) params.set("uf", uf);
 
-    fetch(`/api/pseo/recent-editais?${params.toString()}`)
+    const promise = fetch(`/api/pseo/recent-editais?${params.toString()}`);
+    if (!promise) { setLoading(false); return; }
+    promise
       .then((res) => (res.ok ? res.json() : null))
       .then((json) => setData(json))
       .catch(() => setData(null))

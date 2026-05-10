@@ -66,7 +66,9 @@ export function TopSuppliersBlock({
     const params = new URLSearchParams({ setor });
     if (uf) params.set("uf", uf);
 
-    fetch(`/api/pseo/top-suppliers?${params.toString()}`)
+    const promise = fetch(`/api/pseo/top-suppliers?${params.toString()}`);
+    if (!promise) { setLoading(false); return; }
+    promise
       .then((res) => (res.ok ? res.json() : null))
       .then((json) => setData(json))
       .catch(() => setData(null))
