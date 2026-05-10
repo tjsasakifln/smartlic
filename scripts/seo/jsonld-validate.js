@@ -209,7 +209,18 @@ function validateLd(obj, fileLabel) {
       findings.push({ level: 'fail', file: fileLabel, msg: 'missing @context' });
     } else {
       const ctxArr = Array.isArray(ctx) ? ctx : [ctx];
-      const ok = ctxArr.some((c) => typeof c === 'string' && c.includes('schema.org'));
+      // Strict match: scheme + exact host (with optional path). Avoids the
+      // "incomplete URL substring sanitization" CodeQL alert — `c.includes`
+      // would let `https://attacker.example/schema.org/...` slip through.
+      const ok = ctxArr.some((c) => {
+        if (typeof c !== 'string') return false;
+        return (
+          c === 'https://schema.org' ||
+          c === 'http://schema.org' ||
+          c.startsWith('https://schema.org/') ||
+          c.startsWith('http://schema.org/')
+        );
+      });
       if (!ok) {
         findings.push({ level: 'fail', file: fileLabel, msg: `@context does not reference schema.org (got ${JSON.stringify(ctx)})` });
       }

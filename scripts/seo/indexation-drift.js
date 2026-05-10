@@ -96,14 +96,21 @@ function readHistory() {
 }
 
 function appendHistory(row) {
-  const exists = fs.existsSync(HISTORY_CSV);
   const header = 'date,generated,indexed,ratio_pct\n';
   const line = `${row.date},${row.generated},${row.indexed},${row.ratio.toFixed(2)}\n`;
-  if (!exists) {
-    fs.mkdirSync(path.dirname(HISTORY_CSV), { recursive: true });
-    fs.writeFileSync(HISTORY_CSV, header + line);
-  } else {
-    fs.appendFileSync(HISTORY_CSV, line);
+  // Avoid TOCTOU race (CodeQL js/file-system-race): don't `existsSync` then act.
+  // Use the file open flag 'ax' (exclusive create) for the first write; on
+  // EEXIST fall through to append. mkdirSync(..., recursive: true) is itself
+  // race-safe (no-op when dir already exists).
+  fs.mkdirSync(path.dirname(HISTORY_CSV), { recursive: true });
+  try {
+    fs.writeFileSync(HISTORY_CSV, header + line, { flag: 'ax' });
+  } catch (err) {
+    if (err && err.code === 'EEXIST') {
+      fs.appendFileSync(HISTORY_CSV, line);
+    } else {
+      throw err;
+    }
   }
 }
 

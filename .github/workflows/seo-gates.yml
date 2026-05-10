@@ -77,12 +77,14 @@ jobs:
 
       - name: Append to step summary
         if: always()
+        env:
+          SUMMARY: ${{ steps.title.outputs.summary }}
         run: |
           {
             echo "## SEO Gate — Title Length"
             echo ""
             echo '```'
-            echo "${{ steps.title.outputs.summary }}"
+            printf '%s\n' "$SUMMARY"
             echo '```'
           } >> "$GITHUB_STEP_SUMMARY"
 
@@ -115,12 +117,14 @@ jobs:
 
       - name: Append to step summary
         if: always()
+        env:
+          SUMMARY: ${{ steps.jsonld.outputs.summary }}
         run: |
           {
             echo "## SEO Gate — JSON-LD Validate"
             echo ""
             echo '```'
-            echo "${{ steps.jsonld.outputs.summary }}"
+            printf '%s\n' "$SUMMARY"
             echo '```'
           } >> "$GITHUB_STEP_SUMMARY"
 
@@ -163,12 +167,14 @@ jobs:
 
       - name: Append to step summary
         if: always()
+        env:
+          SUMMARY: ${{ steps.drift.outputs.summary }}
         run: |
           {
             echo "## SEO Gate — Indexation Drift (warn-only)"
             echo ""
             echo '```'
-            echo "${{ steps.drift.outputs.summary }}"
+            printf '%s\n' "$SUMMARY"
             echo '```'
             echo ""
             echo "_GSC API token not wired into CI yet; gate runs against the most-recent row in \`docs/seo/indexation-history.csv\`. Flip warn-only off after the GSC fetch is automated._"
