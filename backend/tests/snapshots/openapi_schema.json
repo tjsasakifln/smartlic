@@ -11732,6 +11732,43 @@
         "title": "ResumoLicitacoes",
         "type": "object"
       },
+      "RevalidateSEORequest": {
+        "properties": {
+          "paths": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Paths",
+            "type": "array"
+          }
+        },
+        "required": [
+          "paths"
+        ],
+        "title": "RevalidateSEORequest",
+        "type": "object"
+      },
+      "RevalidateSEOResponse": {
+        "properties": {
+          "paths": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Paths",
+            "type": "array"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "status",
+          "paths"
+        ],
+        "title": "RevalidateSEOResponse",
+        "type": "object"
+      },
       "ReverseSyncRequest": {
         "properties": {
           "i_understand_this_modifies_stripe": {
@@ -17447,6 +17484,53 @@
         "summary": "Trigger Reconciliation",
         "tags": [
           "admin"
+        ]
+      }
+    },
+    "/v1/admin/revalidate-seo": {
+      "post": {
+        "description": "Manually trigger ISR revalidation for the given frontend paths.\n\nCalls the Next.js ``POST /api/revalidate`` endpoint (secret-gated).\nFire-and-forget \u2014 the HTTP call is made but result is not awaited for\nuser-facing errors.  Any failure is logged as a warning.\n\nRequires admin role.  Raises HTTP 400 if ``paths`` is empty.",
+        "operationId": "admin_revalidate_seo_v1_admin_revalidate_seo_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RevalidateSEORequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RevalidateSEOResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Admin Revalidate Seo",
+        "tags": [
+          "seo_admin"
         ]
       }
     },
