@@ -23,6 +23,7 @@ from pydantic import BaseModel
 
 from metrics import record_sitemap_count
 from routes._sitemap_cache_headers import SITEMAP_CACHE_HEADERS
+from utils.cnpj_validator import is_valid_cnpj_format
 
 logger = logging.getLogger(__name__)
 router = APIRouter(tags=["sitemap"])
@@ -185,7 +186,7 @@ def _fetch_top_cnpjs() -> dict:
                 raw = resp.data if isinstance(resp.data, list) else []
                 buyer_list = [
                     c for c in raw
-                    if c and isinstance(c, str) and len(c) >= 11
+                    if isinstance(c, str) and is_valid_cnpj_format(c)
                 ]
                 cnpj_list = _merge_with_seed(buyer_list)
                 logger.info(
@@ -223,7 +224,7 @@ def _fetch_top_cnpjs() -> dict:
                 break
             for row in resp.data:
                 cnpj = (row.get("orgao_cnpj") or "").strip()
-                if cnpj and len(cnpj) >= 11:
+                if is_valid_cnpj_format(cnpj):
                     counts[cnpj] = counts.get(cnpj, 0) + 1
             if len(resp.data) < page_size:
                 break
@@ -330,8 +331,7 @@ def _fetch_top_fornecedores_cnpjs() -> dict:
                 break
             for row in resp.data:
                 cnpj = (row.get("ni_fornecedor") or "").strip()
-                # Aceitar apenas CNPJs de 14 digitos numericos
-                if cnpj and len(cnpj) == 14 and cnpj.isdigit():
+                if is_valid_cnpj_format(cnpj):
                     counts[cnpj] = counts.get(cnpj, 0) + 1
             if len(resp.data) < page_size:
                 break
