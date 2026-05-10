@@ -24,6 +24,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/founders/availability": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Founders Availability
+         * @description Public seat counter + countdown feed (issue #1002).
+         */
+        get: operations["founders_availability_api_founders_availability_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/debug/pncp-test": {
         parameters: {
             query?: never;
@@ -8094,6 +8114,75 @@ export interface components {
             uf: string;
         };
         /**
+         * FoundersAvailabilityResponse
+         * @description Response shape for ``GET /api/founders/availability`` (issue #1002).
+         *
+         *     On the happy path all numeric fields are populated and ``fallback=false``.
+         *     On DB/Redis failure ``vagasRestantes=null`` + ``fallback=true`` and the
+         *     frontend renders the conservative copy ("Vagas limitadas — encerra 30/06").
+         */
+        FoundersAvailabilityResponse: {
+            /**
+             * Deadline
+             * @description ISO-8601 deadline (FOUNDERS_DEADLINE env var or default).
+             * @default 2026-06-30T23:59:59-03:00
+             */
+            deadline: string;
+            /**
+             * Diasrestantes
+             * @description Whole days until the deadline.
+             */
+            diasRestantes?: number | null;
+            /**
+             * Fallback
+             * @description TRUE when DB or Redis is unavailable. Frontend should render the conservative copy without a number.
+             * @default false
+             */
+            fallback: boolean;
+            /**
+             * Horasrestantes
+             * @description Whole hours until the deadline.
+             */
+            horasRestantes?: number | null;
+            /**
+             * Message
+             * @description Conservative copy returned when fallback=true.
+             */
+            message?: string | null;
+            /**
+             * Sold Out
+             * @description TRUE when vagasPreenchidas >= cap (50).
+             * @default false
+             */
+            sold_out: boolean;
+            /**
+             * Ultimavagaem
+             * @description ISO-8601 timestamp of the most recent founder_since.
+             */
+            ultimaVagaEm?: string | null;
+            /**
+             * Ultimasvagasoptin
+             * @description Up to 5 most recent founders who explicitly opted in via founder_public_listing_consent=TRUE (LGPD).
+             */
+            ultimasVagasOptIn?: components["schemas"]["UltimaVagaOptIn"][];
+            /**
+             * Vagaspreenchidas
+             * @description Seats already taken (count of is_founder=TRUE profiles).
+             */
+            vagasPreenchidas?: number | null;
+            /**
+             * Vagasrestantes
+             * @description Seats still available (50 - taken). NULL when fallback=true.
+             */
+            vagasRestantes?: number | null;
+            /**
+             * Vagastotal
+             * @description Hard cap (50).
+             * @default 50
+             */
+            vagasTotal: number;
+        };
+        /**
          * FoundingAvailabilityResponse
          * @description Public availability snapshot for landing-page seat counter + countdown.
          */
@@ -11529,6 +11618,27 @@ export interface components {
             uf: string;
         };
         /**
+         * UltimaVagaOptIn
+         * @description LGPD-safe public listing entry (only included when consent=TRUE).
+         */
+        UltimaVagaOptIn: {
+            /**
+             * Empresa
+             * @description Display name (razao_social or 'empresa').
+             */
+            empresa: string;
+            /**
+             * Preenchidaem
+             * @description ISO-8601 timestamp.
+             */
+            preenchidaEm: string;
+            /**
+             * Uf
+             * @description State code, 2 letters.
+             */
+            uf: string;
+        };
+        /**
          * UnreadCountResponse
          * @description Unread message count for badge display.
          */
@@ -12133,6 +12243,26 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["RootResponse"];
+                };
+            };
+        };
+    };
+    founders_availability_api_founders_availability_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FoundersAvailabilityResponse"];
                 };
             };
         };
