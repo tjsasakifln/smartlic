@@ -9,6 +9,7 @@ import { LeadCapture } from '@/components/LeadCapture';
 import { FoundersRibbon } from '@/components/banners/FoundersRibbon';
 import { fetchWithBudget } from '@/lib/safe-fetch';
 import { getBackendUrl } from '@/lib/backend-url';
+import { buildOrgSchema } from './_jsonld';
 
 const BACKEND_URL = getBackendUrl();
 
@@ -129,17 +130,9 @@ export default async function CnpjPerfilPage({
 
   const { empresa } = perfil;
 
-  const orgSchema = {
-    '@context': 'https://schema.org',
-    '@type': 'Organization',
-    name: empresa.razao_social,
-    taxID: empresa.cnpj,
-    address: {
-      '@type': 'PostalAddress',
-      addressRegion: empresa.uf,
-      addressCountry: 'BR',
-    },
-  };
+  // #996 SEO-P2-009: Organization JSON-LD enriched with SmartLic-exclusive data
+  // (contract history, sector classification, areas served) for entity profile SERP.
+  const orgSchema = buildOrgSchema(perfil);
 
   const datasetSchema = {
     '@context': 'https://schema.org',
