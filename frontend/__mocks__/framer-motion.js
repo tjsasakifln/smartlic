@@ -52,4 +52,5 @@ module.exports = {
   useTransform: (value) => value,
   useSpring: (value) => value,
   useInView: () => [null, true],
+  useReducedMotion: () => false,
 };
