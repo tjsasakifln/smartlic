@@ -8,6 +8,7 @@ from fastapi import FastAPI
 # Routers
 from admin import router as admin_router
 from routes.subscriptions import router as subscriptions_router
+from routes.upgrade_to_lifetime import router as upgrade_to_lifetime_router
 from routes.features import router as features_router
 from routes.messages import router as messages_router
 from routes.analytics import router as analytics_router
@@ -80,7 +81,8 @@ from routes.conta import router as conta_router
 from routes.intel_reports import router as intel_reports_router
 
 _v1_routers = [
-    admin_router, subscriptions_router, features_router, messages_router,
+    admin_router, subscriptions_router, upgrade_to_lifetime_router,
+    features_router, messages_router,
     analytics_router, oauth_router, export_sheets_router,
     search_router, user_router, billing_router, sessions_router, plans_router,
     emails_router, pipeline_router, onboarding_router, auth_email_router,
