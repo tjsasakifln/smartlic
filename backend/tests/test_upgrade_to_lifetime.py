@@ -12,6 +12,7 @@ Covers:
 from __future__ import annotations
 
 from unittest.mock import MagicMock, Mock, patch
+from urllib.parse import urlparse
 
 import pytest
 from fastapi.testclient import TestClient
@@ -95,11 +96,14 @@ def _make_sb(*, profile_is_founder=False, has_sub=True, seats_rows=None):
 
 
 class TestUpgradeToLifetimeHappyPath:
-    @patch("routes.subscriptions.os.getenv")
+    @patch("routes.upgrade_to_lifetime.os.getenv")
     @patch("supabase_client.get_supabase")
     def test_happy_path(self, mock_get_sb, mock_getenv, client):
-        import stripe as stripe_lib
-
+        # NOTE: do NOT use `import stripe as stripe_lib` here — earlier suites
+        # (e.g. test_story420_stripe_pix_removed.py) replace
+        # `sys.modules["stripe"]` with a SimpleNamespace, which leaks to any
+        # subsequent fresh import. We patch via the route module which already
+        # holds a reference to the real `stripe` from app startup.
         env = {
             "STRIPE_SECRET_KEY": "sk_test_x",
             "FOUNDING_ONE_TIME_PRICE_ID": "price_x",
@@ -122,11 +126,14 @@ class TestUpgradeToLifetimeHappyPath:
 
         with (
             patch("config.features.get_feature_flag", return_value=True),
-            patch.object(stripe_lib.Subscription, "retrieve", return_value=retrieved),
-            patch.object(stripe_lib.Subscription, "delete", return_value=Mock()) as mock_delete,
-            patch.object(
-                stripe_lib.checkout.Session,
-                "create",
+            patch("routes.upgrade_to_lifetime.stripe_lib.Subscription.retrieve", return_value=retrieved),
+            patch(
+                "routes.upgrade_to_lifetime.stripe_lib.Subscription.delete",
+                return_value=Mock(),
+                create=True,
+            ) as mock_delete,
+            patch(
+                "routes.upgrade_to_lifetime.stripe_lib.checkout.Session.create",
                 return_value=Mock(id="cs_test_001", url="https://checkout.stripe.com/c/cs_test_001"),
             ) as mock_create,
         ):
@@ -135,7 +142,9 @@ class TestUpgradeToLifetimeHappyPath:
         assert r.status_code == 200, r.text
         body = r.json()
         assert body["session_id"] == "cs_test_001"
-        assert body["checkout_url"].startswith("https://checkout.stripe.com")
+        # CodeQL py/incomplete-url-substring-sanitization: parse the URL and
+        # check the host explicitly instead of substring matching.
+        assert urlparse(body["checkout_url"]).hostname == "checkout.stripe.com"
         assert body["net_charge_brl_cents"] <= 99700
         assert body["estimated_credit_brl_cents"] >= 0
 
@@ -152,7 +161,7 @@ class TestUpgradeToLifetimeHappyPath:
 
 
 class TestUpgradeAlreadyFounder:
-    @patch("routes.subscriptions.os.getenv")
+    @patch("routes.upgrade_to_lifetime.os.getenv")
     @patch("supabase_client.get_supabase")
     def test_already_founder_returns_409(self, mock_get_sb, mock_getenv, client):
         env = {"STRIPE_SECRET_KEY": "sk_x", "FOUNDING_ONE_TIME_PRICE_ID": "price_x"}
@@ -170,7 +179,7 @@ class TestUpgradeAlreadyFounder:
 
 
 class TestUpgradeNoActiveSub:
-    @patch("routes.subscriptions.os.getenv")
+    @patch("routes.upgrade_to_lifetime.os.getenv")
     @patch("supabase_client.get_supabase")
     def test_no_active_sub_returns_409(self, mock_get_sb, mock_getenv, client):
         env = {"STRIPE_SECRET_KEY": "sk_x", "FOUNDING_ONE_TIME_PRICE_ID": "price_x"}
@@ -187,7 +196,7 @@ class TestUpgradeNoActiveSub:
 
 
 class TestUpgradeCapReached:
-    @patch("routes.subscriptions.os.getenv")
+    @patch("routes.upgrade_to_lifetime.os.getenv")
     @patch("supabase_client.get_supabase")
     def test_cap_reached_returns_410(self, mock_get_sb, mock_getenv, client):
         env = {"STRIPE_SECRET_KEY": "sk_x", "FOUNDING_ONE_TIME_PRICE_ID": "price_x"}
@@ -204,10 +213,12 @@ class TestUpgradeCapReached:
 
 
 class TestUpgradeStripeCancelFailure:
-    @patch("routes.subscriptions.os.getenv")
+    @patch("routes.upgrade_to_lifetime.os.getenv")
     @patch("supabase_client.get_supabase")
     def test_stripe_cancel_failure_returns_502(self, mock_get_sb, mock_getenv, client):
-        import stripe as stripe_lib
+        # See note in test_happy_path — patch via the route module to dodge
+        # `sys.modules["stripe"]` pollution from earlier suites.
+        from routes.upgrade_to_lifetime import stripe_lib as _real_stripe
 
         env = {"STRIPE_SECRET_KEY": "sk_x", "FOUNDING_ONE_TIME_PRICE_ID": "price_x"}
         mock_getenv.side_effect = lambda k, d=None: env.get(k, d)
@@ -217,12 +228,13 @@ class TestUpgradeStripeCancelFailure:
         retrieved = Mock(items=Mock(data=[]), current_period_start=1, current_period_end=2, customer=None)
         with (
             patch("config.features.get_feature_flag", return_value=True),
-            patch.object(stripe_lib.Subscription, "retrieve", return_value=retrieved),
-            patch.object(
-                stripe_lib.Subscription, "delete",
-                side_effect=stripe_lib.error.StripeError("boom"),
+            patch("routes.upgrade_to_lifetime.stripe_lib.Subscription.retrieve", return_value=retrieved),
+            patch(
+                "routes.upgrade_to_lifetime.stripe_lib.Subscription.delete",
+                side_effect=_real_stripe.error.StripeError("boom"),
+                create=True,
             ),
-            patch.object(stripe_lib.checkout.Session, "create") as mock_create,
+            patch("routes.upgrade_to_lifetime.stripe_lib.checkout.Session.create") as mock_create,
         ):
             r = client.post("/v1/api/subscriptions/upgrade-to-lifetime", json={"confirmed": True})
 
@@ -232,11 +244,9 @@ class TestUpgradeStripeCancelFailure:
 
 
 class TestUpgradePreview:
-    @patch("routes.subscriptions.os.getenv")
+    @patch("routes.upgrade_to_lifetime.os.getenv")
     @patch("supabase_client.get_supabase")
     def test_preview_eligible(self, mock_get_sb, mock_getenv, client):
-        import stripe as stripe_lib
-
         env = {"STRIPE_SECRET_KEY": "sk_x", "FOUNDING_ONE_TIME_PRICE_ID": "price_x"}
         mock_getenv.side_effect = lambda k, d=None: env.get(k, d)
         sb = _make_sb()
@@ -251,7 +261,7 @@ class TestUpgradePreview:
         )
         with (
             patch("config.features.get_feature_flag", return_value=True),
-            patch.object(stripe_lib.Subscription, "retrieve", return_value=retrieved),
+            patch("routes.upgrade_to_lifetime.stripe_lib.Subscription.retrieve", return_value=retrieved),
         ):
             r = client.get("/v1/api/subscriptions/upgrade-to-lifetime/preview")
         assert r.status_code == 200
@@ -260,7 +270,7 @@ class TestUpgradePreview:
         assert body["lifetime_price_brl_cents"] == 99700
         assert body["has_active_subscription"] is True
 
-    @patch("routes.subscriptions.os.getenv")
+    @patch("routes.upgrade_to_lifetime.os.getenv")
     @patch("supabase_client.get_supabase")
     def test_preview_already_founder_not_eligible(self, mock_get_sb, mock_getenv, client):
         env = {"STRIPE_SECRET_KEY": "sk_x", "FOUNDING_ONE_TIME_PRICE_ID": "price_x"}

@@ -68,8 +68,13 @@ describe("UpgradeToLifetimeModal", () => {
       expect(screen.getByTestId("upgrade-preview")).toBeInTheDocument();
     });
     expect(screen.getByTestId("preview-net-charge")).toHaveTextContent("R$");
-    expect(screen.getByTestId("preview-confirm-btn") || screen.getByTestId("upgrade-confirm-btn"))
-      .toBeInTheDocument();
+    // The component renders the confirm CTA with `data-testid="upgrade-confirm-btn"`.
+    // (`preview-confirm-btn` was the originally proposed name in the spec but the
+    // shipped UI uses `upgrade-confirm-btn`; either is acceptable for this assertion.)
+    const confirmBtn =
+      screen.queryByTestId("preview-confirm-btn") ??
+      screen.getByTestId("upgrade-confirm-btn");
+    expect(confirmBtn).toBeInTheDocument();
   });
 
   it("shows ineligible reason when already founder", async () => {
