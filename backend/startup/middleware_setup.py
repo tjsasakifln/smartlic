@@ -16,6 +16,7 @@ from fastapi.responses import JSONResponse
 from config import get_cors_origins, METRICS_TOKEN
 from config.pipeline import REQUEST_SLOW_THRESHOLD_S, ROUTE_TIMEOUT_S
 from middleware import CorrelationIDMiddleware, SecurityHeadersMiddleware, DeprecationMiddleware, RateLimitMiddleware
+from seo_404_middleware import SEO404MetricsMiddleware
 
 logger = logging.getLogger(__name__)
 
@@ -85,6 +86,10 @@ def setup_middleware(app: FastAPI) -> None:
     app.add_middleware(SecurityHeadersMiddleware)
     app.add_middleware(DeprecationMiddleware)
     app.add_middleware(RateLimitMiddleware)
+    # Issue #1041: Increment smartlic_seo_404_total{route_type, reason} on programmatic SEO 404s.
+    # Added AFTER tracing middlewares so this sees the final response status; pure response-side
+    # logic (no route file changes) — avoids races with concurrent route refactors.
+    app.add_middleware(SEO404MetricsMiddleware)
 
     # DEBT-124: Graceful shutdown drain — reject new requests with 503 during shutdown
     @app.middleware("http")

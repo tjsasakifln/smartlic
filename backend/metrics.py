@@ -343,6 +343,16 @@ SSE_FALLBACK_SIMULATED_TOTAL = _create_counter(
     "Times frontend fell back to simulated progress after SSE failure",
 )
 
+# Issue #1041: HTTP 404 responses on programmatic SEO routes.
+# Enables Sentry rate-based alert when seo_404_rate > 0.5%/24h (Google de-indexation risk).
+# route_type: first non-version segment (observatorio, cnpj, orgao, contratos, etc.)
+# reason: malformed_slug | empty_data | timeout | unknown
+SEO_404_TOTAL = _create_counter(
+    "smartlic_seo_404_total",
+    "HTTP 404 responses on programmatic SEO routes",
+    labelnames=["route_type", "reason"],
+)
+
 # TD-004 AC4: Legacy route deprecation tracking
 LEGACY_ROUTE_CALLS = _create_counter(
     "smartlic_legacy_route_calls_total",
