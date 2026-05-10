@@ -50,25 +50,26 @@ def test_check_user_roles_no_time_sleep_import():
     assert "import time" not in source, "authorization.py should not import time"
 
 
-@pytest.mark.xfail(
-    strict=False,
-    reason=(
-        "BTS-012: test expects asyncio.sleep called once with 0.3s retry delay, "
-        "but prod never calls it (0 calls observed). Either retry logic short-circuits "
-        "early (supabase circuit breaker fail-open prevents retry) or the retry delay "
-        "was removed/moved to a different module. Needs investigation of "
-        "authorization._check_user_roles retry flow. Non-critical (roles still resolve "
-        "to safe defaults on failure)."
-    ),
-)
 @pytest.mark.asyncio
 async def test_check_user_roles_uses_asyncio_sleep_on_retry():
-    """AC15: _check_user_roles uses asyncio.sleep for retry delays."""
+    """AC15: _check_user_roles uses asyncio.sleep for retry delays.
+
+    BTS-012 (#971 AC5) RCA: previous version provided only 2 ``side_effect``
+    entries, but the retry path runs ``2 attempts x 2 fallback queries`` (the
+    ``is_admin`` column fallback at authorization.py:78-85). When side_effect
+    exhausts mid-retry, MagicMock raises ``StopIteration`` inside
+    ``asyncio.to_thread``, which asyncio cannot propagate into a Future
+    (TypeError "StopIteration interacts badly with generators"). The Future
+    never resolves and the test hangs — historically misdiagnosed as
+    "0 retries called". Provide 4 exceptions to cover both attempts cleanly.
+    """
     with patch("supabase_client.get_supabase") as mock_sb:
-        # Force retry path by making first call fail
+        # Force retry path: 2 attempts x 2 fallback queries each = 4 failures
         mock_sb.return_value.table.return_value.select.return_value.eq.return_value.single.return_value.execute.side_effect = [
-            Exception("Supabase timeout"),
-            Exception("Still failing"),
+            Exception("attempt 0 / is_admin path"),
+            Exception("attempt 0 / plan_type fallback"),
+            Exception("attempt 1 / is_admin path"),
+            Exception("attempt 1 / plan_type fallback"),
         ]
 
         with patch("authorization.asyncio.sleep", new_callable=AsyncMock) as mock_async_sleep:
@@ -76,7 +77,8 @@ async def test_check_user_roles_uses_asyncio_sleep_on_retry():
 
             result = await _check_user_roles("user-123")
 
-            # asyncio.sleep should have been called once (0.3s retry delay)
+            # asyncio.sleep should have been called once (0.3s retry delay
+            # between attempt 0 and attempt 1).
             mock_async_sleep.assert_called_once_with(0.3)
 
             # Result should be (False, False) after exhausting retries
