@@ -1,17 +1,16 @@
-"""SEO Onda 2: Public endpoint for sitemap órgão expansion.
+"""SEO SITEMAP-MV-001: Materialized View-backed sitemap endpoints.
 
-Returns top órgãos compradores (by orgao_cnpj) from pncp_raw_bids with ≥1 bid,
-enabling the frontend sitemap to generate /orgaos/{cnpj} URLs for
-Google discovery. Public (no auth). Cache: InMemory 24h TTL.
+/sitemap/orgaos: orgao_cnpj de mv_sitemap_orgaos (≥5 bids, < 50ms)
+/sitemap/contratos-orgao-indexable: mantém query ao vivo sobre
+    pncp_supplier_contracts (sem MV específica para contratos por órgão)
 
-Implementation layers:
-1. get_sitemap_orgaos_json RPC (RETURNS json scalar — bypasses PostgREST max-rows=1000)
-2. Fallback: paginated table query (loop 1k/page until exhausted)
+Publico (sem auth). Cache: InMemory 24h TTL.
 """
 
 import asyncio
 import logging
 
+import sentry_sdk
 from pipeline.budget import _run_with_budget
 import time
 from datetime import datetime, timezone
@@ -28,9 +27,9 @@ logger = logging.getLogger(__name__)
 router = APIRouter(tags=["sitemap"])
 
 _CACHE_TTL_SECONDS = 24 * 60 * 60  # 24h success
-# Negative cache TTL — same pattern as PR #529 perfil-b2g hotfix.
 _NEGATIVE_CACHE_TTL_SECONDS = 5 * 60
-_BUDGET_S = 25.0
+# Budget reduzido: MV queries < 50ms, 5s é ampla margem de segurança
+_BUDGET_S = 5.0
 _sitemap_cache: dict[str, tuple[dict, float, float]] = {}  # key -> (data, stored_at, ttl)
 
 _MAX_ORGAOS = 2000
@@ -89,6 +88,8 @@ async def sitemap_orgaos(response: Response):
             "sitemap_orgaos: budget %.0fs exceeded — returning empty negative cache",
             _BUDGET_S,
         )
+        sentry_sdk.capture_message('sitemap_source_timeout', level='warning',
+            tags={'endpoint': 'orgaos', 'outcome': 'timeout'})
         data = _empty_orgaos_response()
         _set_cached("orgaos", data, ttl=_NEGATIVE_CACHE_TTL_SECONDS)
     except Exception as exc:
@@ -96,79 +97,86 @@ async def sitemap_orgaos(response: Response):
         data = _empty_orgaos_response()
         _set_cached("orgaos", data, ttl=_NEGATIVE_CACHE_TTL_SECONDS)
 
-    record_sitemap_count("orgaos", len(data.get("orgaos", [])))
+    orgao_list = data.get("orgaos", [])
+    if len(orgao_list) == 0:
+        try:
+            from supabase_client import get_supabase, sb_execute
+            sb = get_supabase()
+            resp = await sb_execute(
+                sb.table("mv_sitemap_orgaos").select("cnpj", count="exact").limit(0)
+            )
+            mv_count = resp.count if hasattr(resp, 'count') and resp.count is not None else 0
+            if mv_count and mv_count > 0:
+                sentry_sdk.capture_message('sitemap_empty_despite_data', level='error',
+                    tags={'endpoint': 'orgaos', 'mv_count': mv_count})
+        except Exception:
+            pass
+
+    # Alert 3: stale data — check last refresh of MV
+    try:
+        from supabase_client import get_supabase, sb_execute
+        sb = get_supabase()
+        resp = await sb_execute(
+            sb.table("mv_sitemap_orgaos")
+            .select("last_seen")
+            .order("last_seen", desc=True)
+            .limit(1)
+        )
+        if resp.data and len(resp.data) > 0 and resp.data[0].get("last_seen"):
+            last_refresh = resp.data[0]["last_seen"]
+            if isinstance(last_refresh, str):
+                last_refresh = datetime.fromisoformat(last_refresh.replace('Z', '+00:00'))
+            if last_refresh.tzinfo is None:
+                last_refresh = last_refresh.replace(tzinfo=timezone.utc)
+            age_seconds = (datetime.now(timezone.utc) - last_refresh).total_seconds()
+            if age_seconds > 93600:  # 26h
+                sentry_sdk.capture_message('sitemap_mv_stale', level='warning',
+                    tags={'endpoint': 'orgaos', 'age_hours': round(age_seconds/3600, 1)})
+    except Exception:
+        pass
+
+    record_sitemap_count("orgaos", len(orgao_list))
     return SitemapOrgaosResponse(**data)
 
 
 def _fetch_top_orgaos() -> dict:
-    """Query pncp_raw_bids for distinct orgao_cnpj with ≥1 active bid.
+    """Query mv_sitemap_orgaos for orgao_cnpj com ≥5 licitações em 12 meses.
 
-    Uses get_sitemap_orgaos_json RPC (RETURNS json scalar) which bypasses
-    PostgREST max-rows=1000. Falls back to paginated table query if RPC
-    doesn't exist yet.
+    SEO-SITEMAP-MV-001: MV pré-agregada substitui RPC + fallback paginado.
+    Query < 50ms.
     """
     try:
         from supabase_client import get_supabase
 
         sb = get_supabase()
 
-        # Primary: JSON scalar RPC — not subject to max-rows limit
-        try:
-            resp = sb.rpc("get_sitemap_orgaos_json", {"max_results": _MAX_ORGAOS}).execute()
-            if resp.data is not None:
-                raw = resp.data if isinstance(resp.data, list) else []
-                orgao_list = [
-                    c for c in raw
-                    if isinstance(c, str) and is_valid_cnpj_format(c)
-                ][:_MAX_ORGAOS]
-                logger.info(
-                    "sitemap_orgaos (JSON RPC): %d órgãos returned", len(orgao_list)
-                )
-                return {
-                    "orgaos": orgao_list,
-                    "total": len(orgao_list),
-                    "updated_at": datetime.now(timezone.utc).isoformat(),
-                }
-        except Exception as rpc_err:
-            logger.warning(
-                "sitemap_orgaos JSON RPC failed (%s), falling back to paginated query",
-                rpc_err,
-            )
-
-        # Fallback: paginated table query (1k rows/page, full scan)
-        counts: dict[str, int] = {}
+        rows: list[str] = []
         page_size = 1000
         offset = 0
         while True:
             resp = (
-                sb.table("pncp_raw_bids")
-                .select("orgao_cnpj")
-                .eq("is_active", True)
-                .not_.is_("orgao_cnpj", "null")
-                .neq("orgao_cnpj", "")
+                sb.table("mv_sitemap_orgaos")
+                .select("cnpj")
+                .order("cnpj")
                 .range(offset, offset + page_size - 1)
                 .execute()
             )
             if not resp.data:
                 break
-            for row in resp.data:
-                cnpj = (row.get("orgao_cnpj") or "").strip()
+            for r in resp.data:
+                cnpj = (r.get("cnpj") or "").strip()
                 if is_valid_cnpj_format(cnpj):
-                    counts[cnpj] = counts.get(cnpj, 0) + 1
+                    rows.append(cnpj)
             if len(resp.data) < page_size:
                 break
             offset += page_size
 
-        orgao_list = [
-            cnpj
-            for cnpj, _ in sorted(counts.items(), key=lambda x: x[1], reverse=True)
-        ][:_MAX_ORGAOS]
+        orgao_list = rows[:_MAX_ORGAOS]
 
         logger.info(
-            "sitemap_orgaos (paginated): %d órgãos from %d distinct, %d pages",
+            "sitemap_orgaos (MV): %d órgãos from mv_sitemap_orgaos (páginas=%d)",
             len(orgao_list),
-            len(counts),
-            (offset // page_size) + 1,
+            (offset // page_size) if page_size else 0,
         )
 
         return {
@@ -178,7 +186,7 @@ def _fetch_top_orgaos() -> dict:
         }
 
     except Exception as e:
-        logger.error("sitemap_orgaos failed: %s", e)
+        logger.error("sitemap_orgaos MV query failed: %s", e)
         return {
             "orgaos": [],
             "total": 0,
@@ -188,6 +196,11 @@ def _fetch_top_orgaos() -> dict:
 
 # ---------------------------------------------------------------------------
 # SEO-460: /sitemap/contratos-orgao-indexable — órgãos com contratos reais
+#
+# NOTA: Este endpoint NÃO foi convertido para MV porque não há MV específica
+# para orgao_cnpj em pncp_supplier_contracts. O volume (~2k orgaos) e a query
+# com índice idx_psc_orgao_cnpj mantém performance aceitável.
+# Futuro: criar mv_sitemap_contratos_orgao se necessário.
 # ---------------------------------------------------------------------------
 
 _contratos_orgao_cache: dict[str, tuple[dict, float, float]] = {}  # key -> (data, stored_at, ttl)
@@ -208,7 +221,7 @@ class SitemapContratosOrgaoResponse(BaseModel):
 async def sitemap_contratos_orgao_indexable(response: Response):
     """Retorna CNPJs de órgãos com ≥1 contrato ativo em pncp_supplier_contracts.
 
-    Diferente de /sitemap/orgaos (que usa pncp_raw_bids/licitações), este
+    Diferente de /sitemap/orgaos (que usa mv_sitemap_orgaos/pncp_raw_bids), este
     endpoint consulta pncp_supplier_contracts — a tabela que alimenta
     /contratos/orgao/{cnpj}/stats. Garante que o sitemap só inclui URLs
     que retornam 200, eliminando os 794 404s reportados no GSC.
@@ -237,6 +250,8 @@ async def sitemap_contratos_orgao_indexable(response: Response):
             "sitemap_contratos_orgao_indexable: budget %.0fs exceeded — empty negative cache",
             _BUDGET_S,
         )
+        sentry_sdk.capture_message('sitemap_source_timeout', level='warning',
+            tags={'endpoint': 'contratos-orgao-indexable', 'outcome': 'timeout'})
         data = _empty_orgaos_response()
         _contratos_orgao_cache[key] = (data, time.time(), _NEGATIVE_CACHE_TTL_SECONDS)
     except Exception as exc:
@@ -244,12 +259,31 @@ async def sitemap_contratos_orgao_indexable(response: Response):
         data = _empty_orgaos_response()
         _contratos_orgao_cache[key] = (data, time.time(), _NEGATIVE_CACHE_TTL_SECONDS)
 
-    record_sitemap_count("contratos-orgao-indexable", len(data.get("orgaos", [])))
+    contratos_orgao_list = data.get("orgaos", [])
+    if len(contratos_orgao_list) == 0:
+        try:
+            from supabase_client import get_supabase, sb_execute
+            sb = get_supabase()
+            resp = await sb_execute(
+                sb.table("pncp_supplier_contracts").select("orgao_cnpj", count="exact").neq("orgao_cnpj", "").not_.is_("orgao_cnpj", "null").limit(0)
+            )
+            mv_count = resp.count if hasattr(resp, 'count') and resp.count is not None else 0
+            if mv_count and mv_count > 0:
+                sentry_sdk.capture_message('sitemap_empty_despite_data', level='error',
+                    tags={'endpoint': 'contratos-orgao-indexable', 'source_count': mv_count})
+        except Exception:
+            pass
+
+    record_sitemap_count("contratos-orgao-indexable", len(contratos_orgao_list))
     return SitemapContratosOrgaoResponse(**data)
 
 
 def _fetch_contratos_orgao_indexable() -> dict:
-    """Scan pncp_supplier_contracts para distinct orgao_cnpj com is_active=True."""
+    """Scan pncp_supplier_contracts para distinct orgao_cnpj com is_active=True.
+
+    Mantém query ao vivo (sem MV) — não há MV específica para contratos
+    por órgão. Performance aceitável com idx_psc_orgao_cnpj.
+    """
     try:
         from supabase_client import get_supabase
         sb = get_supabase()

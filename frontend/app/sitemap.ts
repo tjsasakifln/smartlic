@@ -38,7 +38,7 @@ async function fetchSitemapJson<T>(
   try {
     const resp = await fetch(url, {
       next: { revalidate: 3600 },
-      signal: AbortSignal.timeout(15000),
+      signal: AbortSignal.timeout(5000),
     });
     statusCode = resp.status;
     if (!resp.ok) {
@@ -101,27 +101,22 @@ async function fetchSitemapJson<T>(
   return result;
 }
 
-// SEN-BE-007 AC12: 1× retry with 2s backoff. Retries on null result (timeout or
-// http_error). Does NOT retry on `empty_data` — an empty array is a valid response
-// from the backend (e.g. no indexable combos yet). Total worst case: 15s + 2s + 15s = 32s.
+// SEO-SITEMAP-MV-001: Backend queries agora são < 50ms via Materialized Views.
+// Retry removido — a fonte de latência era o live aggregate (30-45s), não
+// um problema de rede. 5s timeout via AbortSignal na função base é suficiente.
 async function fetchSitemapJsonWithRetry<T>(
   endpoint: string,
   extract: (data: unknown) => T,
   label: string,
 ): Promise<T | null> {
-  const first = await fetchSitemapJson<T>(endpoint, extract, label);
-  if (first !== null) {
-    return first;
-  }
-  await new Promise((resolve) => setTimeout(resolve, 2000));
-  const second = await fetchSitemapJson<T>(endpoint, extract, `${label}-retry`);
-  if (second === null) {
-    Sentry.captureMessage(`sitemap_retry_exhausted_${label}`, {
+  const result = await fetchSitemapJson<T>(endpoint, extract, label);
+  if (result === null) {
+    Sentry.captureMessage(`sitemap_fetch_failed_${label}`, {
       level: 'warning',
-      tags: { sitemap_endpoint: label, sitemap_outcome: 'retry_exhausted' },
+      tags: { sitemap_endpoint: label, sitemap_outcome: 'fetch_failed' },
     });
   }
-  return second;
+  return result;
 }
 
 /**
