@@ -12,10 +12,12 @@
  * perfil page without restructuring the surrounding form.
  */
 
-import { useState } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { toast } from "sonner";
 import Link from "next/link";
 import { useUser } from "../../../contexts/UserContext";
+
+const PERSIST_DEBOUNCE_MS = 500;
 
 interface ConsentResponse {
   consent: boolean;
@@ -50,6 +52,11 @@ export default function HallOfFoundersConsent({
   const [displayName, setDisplayName] = useState<string>(initialDisplayName ?? "");
   const [logoUrl, setLogoUrl] = useState<string>(initialLogoUrl ?? "");
   const [saving, setSaving] = useState(false);
+
+  // Debounced opt-in field persistence — prevents flooding the backend when
+  // the user blurs both fields in quick succession. Toggle clicks bypass the
+  // debounce so consent flips remain instantaneous.
+  const blurTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   async function persist(nextConsent: boolean) {
     if (!session?.access_token) {
@@ -97,8 +104,36 @@ export default function HallOfFoundersConsent({
   function onToggle(e: React.ChangeEvent<HTMLInputElement>) {
     const next = e.target.checked;
     setConsent(next);
+    // Cancel any pending field-blur flush; the toggle takes precedence.
+    if (blurTimerRef.current) {
+      clearTimeout(blurTimerRef.current);
+      blurTimerRef.current = null;
+    }
     void persist(next);
   }
+
+  const scheduleBlurPersist = useCallback(() => {
+    if (!consent) return;
+    if (blurTimerRef.current) clearTimeout(blurTimerRef.current);
+    blurTimerRef.current = setTimeout(() => {
+      blurTimerRef.current = null;
+      void persist(true);
+    }, PERSIST_DEBOUNCE_MS);
+    // persist closes over current state via setState getters — intentional.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [consent]);
+
+  // Flush any pending debounce on unmount so we don't drop the user's edits.
+  useEffect(() => {
+    return () => {
+      if (blurTimerRef.current) {
+        clearTimeout(blurTimerRef.current);
+        blurTimerRef.current = null;
+        void persist(true);
+      }
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   return (
     <section
@@ -156,7 +191,7 @@ export default function HallOfFoundersConsent({
               maxLength={120}
               value={displayName}
               onChange={(e) => setDisplayName(e.target.value)}
-              onBlur={() => consent && void persist(true)}
+              onBlur={scheduleBlurPersist}
               disabled={saving}
               placeholder="Sua empresa, LTDA"
               className="mt-1 w-full rounded-md border border-[var(--border)] bg-[var(--surface-0)] px-3 py-2 text-sm"
@@ -169,7 +204,7 @@ export default function HallOfFoundersConsent({
               maxLength={500}
               value={logoUrl}
               onChange={(e) => setLogoUrl(e.target.value)}
-              onBlur={() => consent && void persist(true)}
+              onBlur={scheduleBlurPersist}
               disabled={saving}
               placeholder="https://exemplo.com/logo.png"
               className="mt-1 w-full rounded-md border border-[var(--border)] bg-[var(--surface-0)] px-3 py-2 text-sm"

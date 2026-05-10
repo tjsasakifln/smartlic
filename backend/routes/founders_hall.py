@@ -270,6 +270,10 @@ async def get_hall_listing(
         )
     except Exception as exc:
         logger.warning(f"founders.hall: DB query failed → fallback empty. err={exc}")
+        # CRITICAL: do NOT let CDNs cache the fallback. If we serve the
+        # fallback under `public, s-maxage=300`, an opt-out user could keep
+        # showing up (or vice-versa) for up to 5 minutes after the DB recovers.
+        response.headers["Cache-Control"] = "no-store, must-revalidate"
         return FoundersHallResponse(founders=[], count=0, fallback=True)
 
     entries = [_row_to_entry(r) for r in rows]
@@ -314,14 +318,24 @@ async def toggle_consent(
         "founder_public_listing_consent": payload.consent,
         "founder_consent_changed_at": now_iso,
     }
+    # Use Pydantic's `model_fields_set` to distinguish "field omitted" from
+    # "field explicitly set to null". Only fields the client actually sent
+    # are written, and explicit nulls are honored so users can clear their
+    # display_name / logo_url. Opt-out keeps stored values unless the client
+    # passes an override alongside it.
+    sent = payload.model_fields_set
     if payload.consent:
-        # Only persist optional metadata when opting in. Opt-out keeps the
-        # previously stored values so a future opt-in does not lose them, but
-        # we still respect explicit overrides if provided alongside opt-out.
-        if payload.display_name is not None:
+        if "display_name" in sent:
             update_fields["founder_listing_display_name"] = payload.display_name
-        if payload.logo_url is not None:
+        if "logo_url" in sent:
             update_fields["founder_company_logo_url"] = payload.logo_url
+    else:
+        # Opt-out: still allow the client to explicitly clear fields, but do
+        # not auto-overwrite when omitted.
+        if "display_name" in sent and payload.display_name is None:
+            update_fields["founder_listing_display_name"] = None
+        if "logo_url" in sent and payload.logo_url is None:
+            update_fields["founder_company_logo_url"] = None
 
     sb = get_supabase()
 

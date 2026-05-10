@@ -32,8 +32,20 @@ interface FounderEntry {
   founder_since: string | null;
 }
 
+// Escape JSON for safe inline embedding in <script type="application/ld+json">.
+// Even though Next.js puts content inside the tag, an unescaped `</script>` or
+// HTML-special chars in user-controlled fields (display_name, logo_url) could
+// break out of the script context. Belt-and-suspenders against XSS.
+function escapeJsonLd(obj: unknown): string {
+  return JSON.stringify(obj)
+    .replace(/</g, '\\u003c')
+    .replace(/>/g, '\\u003e')
+    .replace(/&/g, '\\u0026')
+    .replace(/'/g, '\\u0027');
+}
+
 interface HallResponse {
-  founders: FounderEntry[];
+  founders: (FounderEntry & { id?: string | null })[];
   count: number;
   fallback: boolean;
 }
@@ -92,9 +104,9 @@ function FounderCard({ f }: { f: FounderEntry }) {
     <li className="rounded-lg border border-[var(--border-subtle)] bg-[var(--surface-card)] p-5 shadow-sm">
       <script
         type="application/ld+json"
-        // Inline JSON-LD: this is a server component, the value is computed at build/ISR time
-        // from the server-side response, no untrusted input ends up here.
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+        // display_name / logo_url come from user-controlled DB fields; escape
+        // HTML-significant chars to prevent <script>-tag breakout XSS.
+        dangerouslySetInnerHTML={{ __html: escapeJsonLd(jsonLd) }}
       />
       <div className="flex items-start gap-4">
         <div className="flex-shrink-0">
@@ -178,8 +190,14 @@ export default async function FundadoresHallPage() {
         </div>
       ) : (
         <ul className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {data.founders.map((f, idx) => (
-            <FounderCard key={`${f.display_name}-${idx}`} f={f} />
+          {data.founders.map((f) => (
+            <FounderCard
+              // Stable composite key: founder_since is the per-user opt-in
+              // timestamp from the DB, unique enough to avoid React key
+              // collisions even with duplicate display_names.
+              key={`${f.founder_since ?? ''}|${f.display_name}|${f.uf ?? ''}`}
+              f={f}
+            />
           ))}
         </ul>
       )}
