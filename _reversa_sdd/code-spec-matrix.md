@@ -213,3 +213,19 @@ Para qualquer mudança em código:
 | `backend/pncp_client.py` | `PNCPRateLimitError` com `retry_after` | TD-BE-014 |
 | `backend/scripts/audit_execute_without_budget.py` | Audit script CI gate | RES-BE-015 |
 | `.github/workflows/audit-execute-without-budget.yml` | CI gate: zero violations mandatório | RES-BE-015 |
+
+## Refs — ADRs governing each area
+
+> Index canonical: [`docs/adr/README.md`](../docs/adr/README.md). Lifecycle assessment: [`docs/adr/LIFECYCLE-REVIEW-2026-05-09.md`](../docs/adr/LIFECYCLE-REVIEW-2026-05-09.md).
+
+| Code area / spec | ADR(s) |
+|------------------|--------|
+| FastAPI routes — `response_model=` mandatory | [`ADR-PARITY-BE-FE-001`](../docs/adr/ADR-PARITY-BE-FE-001-response-model-mandatory.md) |
+| Stripe ↔ DB pricing sync (`plan_billing_periods`, `services/billing.py`) | [`ADR-BILL-SYNC-001`](../docs/adr/ADR-BILL-SYNC-001-bidirectional-strategy.md) |
+| Cron architecture (`backend/cron/` legacy → `backend/jobs/cron/` ARQ) | [`cron-consolidation`](../docs/adr/cron-consolidation.md) |
+| MFA enforcement (`mfa.py`, `routes/mfa.py`) | [`ADR-MFA-EXT-001`](../docs/adr/ADR-MFA-EXT-001-mandatory-policy.md), [`mfa-policy`](../docs/adr/mfa-policy.md) (predecessor) |
+| Organization RBAC (`routes/organizations.py`, `organization_members`) | [`org-rbac`](../docs/adr/org-rbac.md) |
+| Godmodule split execution order (`filter/pipeline.py`, `pipeline/stages/execute.py`, `metrics.py`, etc.) | [`ADR-ARCH-001`](../docs/adr/ADR-ARCH-001-godmodule-split-strategy.md) |
+| `service_role` `statement_timeout=60s` (PostgreSQL role config) | [`ADR-SEN-BE-001b`](../docs/adr/ADR-SEN-BE-001b-service-role-timeout.md) |
+| Founding plan policy (`founding_leads`, `routes/founding.py`, FOUNDING30 coupon) | [`ADR-BIZ-FOUND-002`](../docs/adr/ADR-BIZ-FOUND-002-founding-policy.md), [`founding-plan-canonical`](../docs/adr/founding-plan-canonical.md) (predecessor) |
+| Partner program (`partners`, `partner_referrals`, `routes/partners.py`) | [`partner-program`](../docs/adr/partner-program.md) |
