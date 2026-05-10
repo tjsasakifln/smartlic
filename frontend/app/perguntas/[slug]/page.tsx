@@ -1,6 +1,6 @@
 import { Metadata } from 'next';
-import { notFound } from 'next/navigation';
 import Link from 'next/link';
+import EmptyStateSEO from '@/components/seo/EmptyStateSEO';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { QUESTIONS, getQuestionBySlug, getAllQuestionSlugs, CATEGORY_META, getQuestionsByCategory } from '@/lib/questions';
@@ -18,6 +18,9 @@ import {
   buildArticleLd,
   buildBreadcrumbLd,
   buildFaqPageLd,
+  buildHowToLd,
+  isHowToEligible,
+  extractHowToSteps,
 } from './json-ld';
 
 export const revalidate = 86400;
@@ -47,7 +50,7 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const { slug } = await params;
   const question = getQuestionBySlug(slug);
-  if (!question) return {};
+  if (!question) return { robots: { index: false, follow: true } };
 
   return {
     title: `${question.title}`,
@@ -75,7 +78,20 @@ export default async function PerguntaPage({
 }) {
   const { slug } = await params;
   const question = getQuestionBySlug(slug);
-  if (!question) notFound();
+  if (!question) {
+    return (
+      <>
+        <LandingNavbar />
+        <EmptyStateSEO
+          title="Pergunta não encontrada"
+          description="Esta pergunta pode ter sido removida ou o endereço está incorreto. Consulte todas as perguntas sobre licitações públicas."
+          ctaHref="/perguntas"
+          ctaLabel="Ver todas as perguntas"
+        />
+        <Footer />
+      </>
+    );
+  }
 
   // Related glossary terms
   const relatedTermObjects = question.relatedTerms
@@ -98,6 +114,19 @@ export default async function PerguntaPage({
   const articleLd = buildArticleLd(question, slug, personAuthorLd, ARTICLE_PUBLISHED_AT, ARTICLE_UPDATED_AT);
   const breadcrumbLd = buildBreadcrumbLd(question, slug);
   const faqPageLd = buildFaqPageLd(relatedQuestions);
+
+  /*
+   * #991 — HowTo JSON-LD for procedural questions.
+   *
+   * Google deprecated FAQ rich results in May/2026 for non-gov/health sites.
+   * QAPage-only emission no longer surfaces in SERP — only AI Overviews.
+   * For "como-*" and "*passo-a-passo*" slugs we extract step structure from
+   * the existing answer markdown and emit a HowTo schema. Article +
+   * BreadcrumbList remain the always-present primary schemas; QAPage stays
+   * as secondary for AI Overviews ingestion.
+   */
+  const howToSteps = isHowToEligible(slug) ? extractHowToSteps(question.answer) : null;
+  const howToLd = howToSteps ? buildHowToLd(question, slug, howToSteps) : null;
 
   return (
     <>
@@ -244,6 +273,9 @@ export default async function PerguntaPage({
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(qaPageLd) }} />
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(articleLd) }} />
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbLd) }} />
+        {howToLd && (
+          <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(howToLd) }} />
+        )}
         {faqPageLd && (
           <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(faqPageLd) }} />
         )}
