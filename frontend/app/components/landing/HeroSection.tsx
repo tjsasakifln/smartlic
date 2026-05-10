@@ -8,6 +8,8 @@ import { GradientButton } from '@/app/components/ui/GradientButton';
 import { useScrollAnimation } from '@/lib/animations';
 import { fadeInUp, staggerContainer } from '@/lib/animations';
 import { hero } from '@/lib/copy/valueProps';
+import HeroFounderStrip from './HeroFounderStrip';
+import HeroTrustSignals from './HeroTrustSignals';
 
 interface HeroSectionProps {
   className?: string;
@@ -28,6 +30,10 @@ const HERO_SCREENSHOT_BLUR =
  *  - CTA secundário: ancoragem Plano Fundadores R$997
  *  - Founder-led visível: nome + cargo + LinkedIn (Schema.org Person já em StructuredData.tsx)
  *  - Trust signals 2026: founder + changelog + roadmap + 60d garantia (substitui "Sem dados fabricados")
+ *
+ * Sub-componentes (refactor estrutural #1017 — LOC gate):
+ *  - HeroFounderStrip: avatar + nome + cargo + LinkedIn
+ *  - HeroTrustSignals: 4 trust signals 2026
  */
 export default function HeroSection({ className = '' }: HeroSectionProps) {
   const { ref, isVisible } = useScrollAnimation(0.1);
@@ -138,70 +144,8 @@ export default function HeroSection({ className = '' }: HeroSectionProps) {
             </Link>
           </motion.div>
 
-          {/* COPY-LANDING-004: Founder-led visível — nome + cargo + LinkedIn */}
-          <motion.div
-            className="mt-6 flex items-center justify-center lg:justify-start gap-3 text-sm"
-            variants={fadeInUp}
-            data-testid="hero-founder-strip"
-          >
-            <div
-              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-brand-blue-subtle text-brand-blue font-semibold"
-              aria-hidden="true"
-            >
-              TS
-            </div>
-            <p className="text-ink-secondary text-left leading-snug">
-              Criado por{' '}
-              <a
-                href={hero.founder.linkedinUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="font-semibold text-ink underline-offset-2 hover:underline"
-                data-testid="hero-founder-linkedin"
-              >
-                {hero.founder.name}
-              </a>
-              , {hero.founder.role}.
-            </p>
-          </motion.div>
-
-          {/* COPY-LANDING-004: Trust signals 2026 — substitui "Sem dados fabricados" por sinais positivos verificáveis */}
-          <motion.div
-            className="mt-6 flex flex-wrap items-center justify-center lg:justify-start gap-x-5 gap-y-2 text-xs text-ink-muted"
-            variants={fadeInUp}
-            data-testid="hero-trust-signals"
-          >
-            <Link
-              href="/changelog"
-              className="flex items-center gap-1.5 hover:text-ink-secondary transition-colors"
-              data-testid="hero-trust-changelog"
-            >
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-              Changelog público
-            </Link>
-            <Link
-              href="/roadmap"
-              className="flex items-center gap-1.5 hover:text-ink-secondary transition-colors"
-              data-testid="hero-trust-roadmap"
-            >
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-              Roadmap aberto
-            </Link>
-            <span
-              className="flex items-center gap-1.5"
-              data-testid="hero-trust-guarantee"
-            >
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-              60 dias de garantia · devolução incondicional
-            </span>
-            <span
-              className="flex items-center gap-1.5"
-              data-testid="hero-trust-sources"
-            >
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-              Fontes oficiais verificadas (PNCP, ComprasGov, PCP)
-            </span>
-          </motion.div>
+          <HeroFounderStrip />
+          <HeroTrustSignals />
         </div>
 
         {/* Right column — annotated product screenshot (DEBT-125 AC1-AC8) */}
