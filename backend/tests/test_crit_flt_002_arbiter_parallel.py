@@ -2,7 +2,7 @@
 CRIT-FLT-002: LLM Arbiter Parallelization Tests
 
 Tests that the gray-zone (1-5% density) LLM arbiter runs in parallel
-using ThreadPoolExecutor, matching the zero-match pattern.
+using asyncio.to_thread (STORY-4.1), matching the zero-match pattern.
 
 Coverage:
 - AC1: Parallel execution via ThreadPoolExecutor
