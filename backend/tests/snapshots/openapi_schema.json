@@ -13380,6 +13380,31 @@
         "title": "SitemapFornecedoresCnpjResponse",
         "type": "object"
       },
+      "SitemapHealthResponse": {
+        "description": "Response for GET /health/sitemap endpoint (SEO-SITEMAP-TELEMETRY-001).",
+        "properties": {
+          "checks": {
+            "additionalProperties": true,
+            "title": "Checks",
+            "type": "object"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          },
+          "timestamp": {
+            "title": "Timestamp",
+            "type": "string"
+          }
+        },
+        "required": [
+          "status",
+          "timestamp",
+          "checks"
+        ],
+        "title": "SitemapHealthResponse",
+        "type": "object"
+      },
       "SitemapItensResponse": {
         "properties": {
           "catmats": {
@@ -22385,6 +22410,28 @@
           }
         },
         "summary": "Cache Health",
+        "tags": [
+          "health"
+        ]
+      }
+    },
+    "/v1/health/sitemap": {
+      "get": {
+        "description": "SEO-SITEMAP-TELEMETRY-001: Health check for all sitemap materialized views.\n\nReturns per-MV status (ok/empty/error) and overall status (ok/degraded).\nUsed by Sentry monitors and Railway probes to detect empty sitemap\nresponses before they reach GSC.",
+        "operationId": "sitemap_health_v1_health_sitemap_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SitemapHealthResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Sitemap Health",
         "tags": [
           "health"
         ]

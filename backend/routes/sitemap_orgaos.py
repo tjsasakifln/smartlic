@@ -78,6 +78,7 @@ async def sitemap_orgaos(response: Response):
         record_sitemap_count("orgaos", len(cached.get("orgaos", [])))
         return SitemapOrgaosResponse(**cached)
 
+    _fresh_fetch = True
     try:
         data = await _run_with_budget(
             asyncio.to_thread(_fetch_top_orgaos),
@@ -101,7 +102,7 @@ async def sitemap_orgaos(response: Response):
         _set_cached("orgaos", data, ttl=_NEGATIVE_CACHE_TTL_SECONDS)
 
     orgao_list = data.get("orgaos", [])
-    if len(orgao_list) == 0:
+    if _fresh_fetch and len(orgao_list) == 0:
         try:
             from supabase_client import get_supabase, sb_execute
             sb = get_supabase()
@@ -258,6 +259,7 @@ async def sitemap_contratos_orgao_indexable(response: Response):
             return SitemapContratosOrgaoResponse(**data)
         del _contratos_orgao_cache[key]
 
+    _fresh_fetch = True
     try:
         data = await _run_with_budget(
             asyncio.to_thread(_fetch_contratos_orgao_indexable),
@@ -281,7 +283,7 @@ async def sitemap_contratos_orgao_indexable(response: Response):
         _contratos_orgao_cache[key] = (data, time.time(), _NEGATIVE_CACHE_TTL_SECONDS)
 
     contratos_list = data.get("orgaos", [])
-    if len(contratos_list) == 0:
+    if _fresh_fetch and len(contratos_list) == 0:
         try:
             from supabase_client import get_supabase, sb_execute
             sb = get_supabase()

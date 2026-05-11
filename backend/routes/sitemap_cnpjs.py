@@ -118,6 +118,7 @@ async def sitemap_cnpjs(response: Response):
         record_sitemap_count("cnpjs", len(cached.get("cnpjs", [])))
         return SitemapCnpjsResponse(**cached)
 
+    _fresh_fetch = True
     try:
         data = await _run_with_budget(
             asyncio.to_thread(_fetch_top_cnpjs),
@@ -141,7 +142,7 @@ async def sitemap_cnpjs(response: Response):
         _set_cached("cnpjs", data, ttl=_NEGATIVE_CACHE_TTL_SECONDS)
 
     cnpj_list = data.get("cnpjs", [])
-    if len(cnpj_list) == 0:
+    if _fresh_fetch and len(cnpj_list) == 0:
         try:
             from supabase_client import get_supabase, sb_execute
             sb = get_supabase()
@@ -314,6 +315,7 @@ async def sitemap_fornecedores_cnpj(response: Response):
         record_sitemap_count("fornecedores-cnpj", len(cached.get("cnpjs", [])))
         return SitemapFornecedoresCnpjResponse(**cached)
 
+    _fresh_fetch = True
     try:
         data = await _run_with_budget(
             asyncio.to_thread(_fetch_top_fornecedores_cnpjs),
@@ -337,7 +339,7 @@ async def sitemap_fornecedores_cnpj(response: Response):
         _set_fornecedores_cached("fornecedores_cnpj", data, ttl=_NEGATIVE_CACHE_TTL_SECONDS)
 
     fornecedores_list = data.get("cnpjs", [])
-    if len(fornecedores_list) == 0:
+    if _fresh_fetch and len(fornecedores_list) == 0:
         try:
             from supabase_client import get_supabase, sb_execute
             sb = get_supabase()
