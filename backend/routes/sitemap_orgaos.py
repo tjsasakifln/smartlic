@@ -305,16 +305,17 @@ async def sitemap_contratos_orgao_indexable(response: Response):
             from supabase_client import get_supabase, sb_execute
             sb = get_supabase()
             resp = await sb_execute(
-                sb.table("pncp_supplier_contracts").select("id", count="exact").limit(0)
+                sb.table("pncp_supplier_contracts").select("orgao_cnpj", count="exact").neq("orgao_cnpj", "").not_.is_("orgao_cnpj", "null").limit(0)
             )
-            source_count = resp.count if hasattr(resp, 'count') and resp.count is not None else 0
-            if source_count and source_count > 0:
+            mv_count = resp.count if hasattr(resp, 'count') and resp.count is not None else 0
+            if mv_count and mv_count > 0:
                 sentry_sdk.capture_message('sitemap_empty_despite_data', level='error',
-                    tags={'endpoint': 'contratos-orgao-indexable', 'source_count': source_count})
+                    tags={'endpoint': 'contratos-orgao-indexable', 'source_count': mv_count})
         except Exception:
             pass
 
     record_sitemap_count("contratos-orgao-indexable", len(contratos_list))
+
     return SitemapContratosOrgaoResponse(**data)
 
 

@@ -143,6 +143,7 @@ async def sitemap_cnpjs(response: Response):
         _set_cached("cnpjs", data, ttl=_NEGATIVE_CACHE_TTL_SECONDS)
 
     cnpj_list = data.get("cnpjs", [])
+    # Alert: empty despite data exists in source table (only on fresh fetches)
     if _fresh_fetch and len(cnpj_list) == 0:
         try:
             from supabase_client import get_supabase, sb_execute
@@ -156,13 +157,19 @@ async def sitemap_cnpjs(response: Response):
                     tags={'endpoint': 'cnpjs', 'source_count': source_count})
         except Exception:
             pass
+    # Alert: stale data - check max data_publicacao in source table (only on fresh fetches)
+    if _fresh_fetch:
         try:
-            sb2 = get_supabase()
-            resp2 = await sb_execute(
-                sb2.table("pncp_raw_bids").select("data_publicacao").order("data_publicacao", desc=True).limit(1)
+            from supabase_client import get_supabase, sb_execute
+            sb = get_supabase()
+            resp = await sb_execute(
+                sb.table("pncp_raw_bids")
+                .select("data_publicacao")
+                .order("data_publicacao", desc=True)
+                .limit(1)
             )
-            if resp2.data and len(resp2.data) > 0:
-                raw = resp2.data[0].get("data_publicacao")
+            if resp.data and len(resp.data) > 0:
+                raw = resp.data[0].get("data_publicacao")
                 if raw:
                     last_dt = datetime.fromisoformat(str(raw)[:10]).replace(tzinfo=timezone.utc)
                     age_seconds = (datetime.now(timezone.utc) - last_dt).total_seconds()
@@ -171,7 +178,6 @@ async def sitemap_cnpjs(response: Response):
                             tags={'endpoint': 'cnpjs', 'age_hours': round(age_seconds / 3600, 1)})
         except Exception:
             pass
-
     record_sitemap_count("cnpjs", len(cnpj_list))
     return SitemapCnpjsResponse(**data)
 
@@ -307,6 +313,7 @@ async def sitemap_fornecedores_cnpj(response: Response):
         _set_fornecedores_cached("fornecedores_cnpj", data, ttl=_NEGATIVE_CACHE_TTL_SECONDS)
 
     fornecedores_list = data.get("cnpjs", [])
+    # Alert: empty despite data exists in source table (only on fresh fetches)
     if _fresh_fetch and len(fornecedores_list) == 0:
         try:
             from supabase_client import get_supabase, sb_execute
@@ -320,13 +327,19 @@ async def sitemap_fornecedores_cnpj(response: Response):
                     tags={'endpoint': 'fornecedores-cnpj', 'source_count': source_count})
         except Exception:
             pass
+    # Alert: stale data - check max data_assinatura in source table (only on fresh fetches)
+    if _fresh_fetch:
         try:
-            sb2 = get_supabase()
-            resp2 = await sb_execute(
-                sb2.table("pncp_supplier_contracts").select("data_assinatura").order("data_assinatura", desc=True).limit(1)
+            from supabase_client import get_supabase, sb_execute
+            sb = get_supabase()
+            resp = await sb_execute(
+                sb.table("pncp_supplier_contracts")
+                .select("data_assinatura")
+                .order("data_assinatura", desc=True)
+                .limit(1)
             )
-            if resp2.data and len(resp2.data) > 0:
-                raw = resp2.data[0].get("data_assinatura")
+            if resp.data and len(resp.data) > 0:
+                raw = resp.data[0].get("data_assinatura")
                 if raw:
                     last_dt = datetime.fromisoformat(str(raw)[:10]).replace(tzinfo=timezone.utc)
                     age_seconds = (datetime.now(timezone.utc) - last_dt).total_seconds()

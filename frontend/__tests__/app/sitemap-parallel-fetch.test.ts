@@ -10,10 +10,13 @@
  *    saturavam o backend em produção (todos timeoutavam simultaneamente em ~30s+),
  *    resultando em sitemap/4.xml vazio. Serialização + ISR 1h (revalidate=3600)
  *    move o custo para 1 request/h por shard (amortizado entre crawlers).
+ *  - v4 (SEO-COVERAGE-MANIFEST-001, #1039): Promise.all DE VOLTA — agora busca
+ *    6 entidades + coverageManifest em paralelo. ISR 1h ainda amortiza; backend
+ *    probe /health/live faz fail-open se backend indisponível.
  *
  * Por sub-sitemap:
  *  - id:2 → /v1/sitemap/licitacoes-indexable (1 endpoint)
- *  - id:4 → 6 endpoints de entidades em awaits sequenciais
+ *  - id:4 → 6 endpoints de entidades + coverageManifest em Promise.all
  */
 
 // Mock fetch globally (node env pattern — see __tests__/api/buscar.test.ts)
@@ -82,7 +85,7 @@ function makeFastFetchMock() {
   );
 }
 
-describe('sitemap() — fetch behavior (signal + serialization)', () => {
+describe('sitemap() — fetch behavior (signal + parallelization)', () => {
   beforeEach(() => {
     (global.fetch as jest.Mock).mockReset();
   });
@@ -116,11 +119,11 @@ describe('sitemap() — fetch behavior (signal + serialization)', () => {
     }
   });
 
-  it('sub-sitemap id:4 serializa os 6 fetches (um por vez) para proteger backend de saturação', async () => {
-    // #458: código mudou de Promise.all → awaits sequenciais.
-    // Garantia: no máximo 1 fetch em voo a qualquer momento; o próximo só inicia
-    // após o anterior resolver. Isso previne o 6-way saturation que causava
-    // sitemap/4.xml vazio em produção.
+  it('sub-sitemap id:4 paraleliza os 6 fetches de entidades via Promise.all (SEO-COVERAGE-MANIFEST-001)', async () => {
+    // SEO-COVERAGE-MANIFEST-001 (#1039): código migrou de awaits sequenciais → Promise.all
+    // para buscar as 6 listas de entidades + coverageManifest em paralelo.
+    // Garantia: todos os 6 endpoints de entidade são iniciados antes que qualquer um resolva,
+    // confirmando que o fetch é verdadeiramente paralelo (não serial).
     const initiated: string[] = [];
     const resolvers: Array<() => void> = [];
 
@@ -130,6 +133,10 @@ describe('sitemap() — fetch behavior (signal + serialization)', () => {
         // HOTFIX 2026-04-30: probe /health/live precede entity fetches; resolve sync.
         if (urlStr.includes('/health/live')) {
           return Promise.resolve({ ok: true, json: () => Promise.resolve({ ok: true }) } as Response);
+        }
+        // coverage-manifest resolves sync (not an entity endpoint under test)
+        if (urlStr.includes('/v1/seo/coverage-manifest')) {
+          return Promise.resolve({ ok: true, json: () => Promise.resolve({}) } as Response);
         }
         const endpoint = ENTITY_ENDPOINTS.find((e) => urlStr.includes(e));
         if (endpoint) {
@@ -154,19 +161,12 @@ describe('sitemap() — fetch behavior (signal + serialization)', () => {
       for (let i = 0; i < 20; i++) await Promise.resolve();
     };
 
-    // Serial: após microtasks iniciais, APENAS 1 fetch em voo
+    // Parallel: após microtasks iniciais, TODOS os 6 fetches devem estar em voo
     await flush();
-    expect(initiated.length).toBe(1);
+    expect(initiated.length).toBe(ENTITY_ENDPOINTS.length);
 
-    // Resolve cada um → próximo inicia; contagem avança 1 a 1
-    for (let step = 1; step < ENTITY_ENDPOINTS.length; step++) {
-      resolvers[step - 1]();
-      await flush();
-      expect(initiated.length).toBe(step + 1);
-    }
-
-    // Resolve o último para completar a promise
-    resolvers[ENTITY_ENDPOINTS.length - 1]();
+    // Resolve todos para completar a promise
+    resolvers.forEach((resolve) => resolve());
     await sitemapPromise;
   });
 });

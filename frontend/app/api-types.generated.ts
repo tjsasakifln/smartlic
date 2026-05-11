@@ -4825,6 +4825,30 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/seo/coverage-manifest": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Per-slug coverage status for sitemap gate (SEO-COVERAGE-MANIFEST-001)
+         * @description Return the latest seo_coverage_manifest rows as a keyed dict.
+         *
+         *     AC1: <2s response time (served from 1h in-memory cache after first build).
+         *     AC7: historical_empty slugs are included — sitemap gate uses priority=0.3,
+         *          not excluded, so /observatorio/raio-x-marco-2026 stays accessible.
+         */
+        get: operations["get_coverage_manifest_v1_seo_coverage_manifest_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/sessions": {
         parameters: {
             query?: never;
@@ -7201,6 +7225,29 @@ export interface components {
             conversations: components["schemas"]["ConversationSummary"][];
             /** Total */
             total: number;
+        };
+        /** CoverageEntry */
+        CoverageEntry: {
+            /** Bid Count */
+            bid_count: number;
+            /**
+             * Coverage Status
+             * @enum {string}
+             */
+            coverage_status: "full" | "partial" | "empty" | "historical_empty";
+            /** Last Updated */
+            last_updated: string;
+        };
+        /** CoverageManifestResponse */
+        CoverageManifestResponse: {
+            /** Generated At */
+            generated_at: string;
+            /** Manifest */
+            manifest: {
+                [key: string]: components["schemas"]["CoverageEntry"];
+            };
+            /** Total Entities */
+            total_entities: number;
         };
         /**
          * CoverageMetadata
@@ -18628,6 +18675,26 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_coverage_manifest_v1_seo_coverage_manifest_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CoverageManifestResponse"];
                 };
             };
         };
