@@ -47,7 +47,7 @@ async function fetchSitemapJson<T>(
   try {
     const resp = await fetch(url, {
       next: { revalidate: 3600 },
-      signal: AbortSignal.timeout(15000),
+      signal: AbortSignal.timeout(5000),
     });
     statusCode = resp.status;
     if (resp.status === 503) {
@@ -115,58 +115,23 @@ async function fetchSitemapJson<T>(
   return fetchResult;
 }
 
-// SEO-SITEMAP-CASCADE-001: 503-aware retry with exponential backoff.
-//
-// Previous behaviour (SEN-BE-007 AC12): 1× retry with 2s flat delay, returns null on all
-// failures — callers silently defaulted to [] which ISR cached for 1h.
-//
-// New behaviour:
-//  - 503 (backend DB timeout) → retry up to maxRetries times with 2^attempt * 1000ms backoff.
-//    On exhaustion → THROW so Next.js ISR preserves last known-good sitemap (stale-while-revalidate).
-//  - 200+[] (legitimate empty) → return [] immediately (no retry, valid state).
-//  - Other http_error / timeout → return null (callers default to [], same as before).
-//
-// Worst case: 3 attempts × (15s fetch + backoff) = 15s + (1+2+4)s = ~22s. Within ISR budget.
+// SEO-SITEMAP-MV-001: Backend queries agora são < 50ms via Materialized Views.
+// Retry removido — a fonte de latência era o live aggregate (30-45s), não
+// um problema de rede. 5s timeout via AbortSignal na função base é suficiente.
 async function fetchSitemapJsonWithRetry<T>(
   endpoint: string,
   extract: (data: unknown) => T,
   label: string,
-  maxRetries = 3,
+  _maxRetries = 3,
 ): Promise<T | null> {
-  for (let attempt = 0; attempt < maxRetries; attempt++) {
-    const res = await fetchSitemapJson<T>(endpoint, extract, `${label}${attempt > 0 ? `-retry${attempt}` : ''}`);
-
-    if (res.kind === 'success' || res.kind === 'empty_data') {
-      // 200+data or 200+[] — both are legitimate; return extracted value.
-      return res.data;
-    }
-
-    if (res.kind === 'service_unavailable') {
-      if (attempt < maxRetries - 1) {
-        // Exponential backoff before retry: 1s, 2s, 4s, ... with multiplicative jitter (0.7×–1.3×)
-        // Prevents thundering herd when multiple ISR workers restart simultaneously.
-        const baseDelay = Math.pow(2, attempt) * 1000;
-        const jitter = Math.random() * 0.6 + 0.7; // 0.7x to 1.3x
-        const delayMs = Math.round(baseDelay * jitter);
-        await new Promise((resolve) => setTimeout(resolve, delayMs));
-        continue;
-      }
-      // Final attempt still got 503 — throw so ISR preserves last known-good sitemap.
-      const exhaustedErr = new Error(`sitemap_${label}_503_exhausted`);
-      Sentry.captureException(exhaustedErr, {
-        tags: { sitemap_endpoint: label, sitemap_outcome: 'retry_exhausted_503' },
-        contexts: { sitemap: { endpoint, attempts: maxRetries } },
-      });
-      throw exhaustedErr;
-    }
-
-    // http_error or timeout on non-503 — return null (caller defaults to []).
-    Sentry.captureMessage(`sitemap_retry_exhausted_${label}`, {
-      level: 'warning',
-      tags: { sitemap_endpoint: label, sitemap_outcome: 'retry_exhausted' },
-    });
-    return null;
+  const res = await fetchSitemapJson<T>(endpoint, extract, label);
+  if (res.kind === 'success' || res.kind === 'empty_data') {
+    return res.data;
   }
+  Sentry.captureMessage(`sitemap_fetch_failed_${label}`, {
+    level: 'warning',
+    tags: { sitemap_endpoint: label, sitemap_outcome: 'fetch_failed' },
+  });
   return null;
 }
 
