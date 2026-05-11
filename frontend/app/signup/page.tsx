@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef, useMemo } from "react";
+import { useState, useEffect, useRef, useMemo, Suspense } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as Sentry from "@sentry/nextjs";
@@ -27,7 +27,7 @@ import { tagOnboardingStep } from "../../lib/analytics/clarity_onboarding";
 // STORY-323: Partner name type
 type PartnerInfo = { name: string; slug: string } | null;
 
-export default function SignupPage() {
+function SignupPageContent() {
   const { signUpWithEmail, signInWithGoogle, session: authSession, loading: authLoading } = useAuth();
   const { trackEvent } = useAnalytics();
   const router = useRouter();
@@ -601,6 +601,35 @@ export default function SignupPage() {
               />
             </div>
           )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export default function SignupPage() {
+  return (
+    <Suspense fallback={<SignupSkeleton />}>
+      <SignupPageContent />
+    </Suspense>
+  );
+}
+
+function SignupSkeleton() {
+  return (
+    <div className="min-h-screen flex flex-col md:flex-row">
+      <div className="w-full md:w-1/2 bg-surface-1 animate-pulse" />
+      <div className="w-full md:w-1/2 flex items-center justify-center bg-canvas p-4 py-4 md:py-8">
+        <div className="w-full max-w-md p-8 bg-surface-0 rounded-card shadow-lg space-y-4">
+          <div className="h-8 bg-surface-1 rounded animate-pulse w-48 mx-auto" />
+          <div className="h-4 bg-surface-1 rounded animate-pulse w-64 mx-auto" />
+          <div className="space-y-3">
+            <div className="h-10 bg-surface-1 rounded animate-pulse" />
+            <div className="h-10 bg-surface-1 rounded animate-pulse" />
+            <div className="h-10 bg-surface-1 rounded animate-pulse" />
+            <div className="h-10 bg-surface-1 rounded animate-pulse" />
+          </div>
+          <div className="h-12 bg-surface-1 rounded animate-pulse" />
         </div>
       </div>
     </div>
