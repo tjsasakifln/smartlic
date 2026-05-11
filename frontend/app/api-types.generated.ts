@@ -3345,6 +3345,30 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/health/sitemap": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Sitemap Health
+         * @description SEO-SITEMAP-TELEMETRY-001: Health check for all sitemap materialized views.
+         *
+         *     Returns per-MV status (ok/empty/error) and overall status (ok/degraded).
+         *     Used by Sentry monitors and Railway probes to detect empty sitemap
+         *     responses before they reach GSC.
+         */
+        get: operations["sitemap_health_v1_health_sitemap_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/health/sources": {
         parameters: {
             query?: never;
@@ -4933,7 +4957,7 @@ export interface paths {
          * Órgãos compradores com contratos em pncp_supplier_contracts (para sitemap /contratos/orgao/)
          * @description Retorna CNPJs de órgãos com ≥1 contrato ativo em pncp_supplier_contracts.
          *
-         *     Diferente de /sitemap/orgaos (que usa pncp_raw_bids/licitações), este
+         *     Diferente de /sitemap/orgaos (que usa mv_sitemap_orgaos/pncp_raw_bids), este
          *     endpoint consulta pncp_supplier_contracts — a tabela que alimenta
          *     /contratos/orgao/{cnpj}/stats. Garante que o sitemap só inclui URLs
          *     que retornam 200, eliminando os 794 404s reportados no GSC.
@@ -4959,8 +4983,9 @@ export interface paths {
          * Top CNPJs de fornecedores com contratos no datalake (para sitemap)
          * @description Retorna os CNPJs de fornecedores com mais contratos em pncp_supplier_contracts.
          *
+         *     SEO-SITEMAP-MV-001: agora usa mv_sitemap_fornecedores (MV pré-agregada).
          *     Usado pelo frontend para gerar /fornecedores/{cnpj} no sitemap.xml.
-         *     Limite: 5.000 CNPJs por volume de contratos (mais contratos = maior valor SEO).
+         *     Limite: 5.000 CNPJs por volume de contratos.
          *     Cache: 24h em memoria sucesso, 5min em falha (negative cache PR #529 pattern).
          */
         get: operations["sitemap_fornecedores_cnpj_v1_sitemap_fornecedores_cnpj_get"];
@@ -11368,6 +11393,25 @@ export interface components {
             /** Updated At */
             updated_at: string;
         };
+        /**
+         * SitemapHealthResponse
+         * @description SEO-SITEMAP-TELEMETRY-001: Health envelope for sitemap materialized views.
+         *
+         *     Returns per-MV status (ok/empty/error) and overall status (ok/degraded).
+         *     HTTP 200 when all MVs are ok; HTTP 503 when any MV is empty or errored.
+         */
+        SitemapHealthResponse: {
+            /** Checks */
+            checks?: {
+                [key: string]: components["schemas"]["SitemapMvCheck"];
+            } | null;
+            /** Status */
+            status?: string | null;
+            /** Timestamp */
+            timestamp?: string | null;
+        } & {
+            [key: string]: unknown;
+        };
         /** SitemapItensResponse */
         SitemapItensResponse: {
             /** Catmats */
@@ -11394,6 +11438,20 @@ export interface components {
             total: number;
             /** Updated At */
             updated_at: string;
+        };
+        /**
+         * SitemapMvCheck
+         * @description Per-MV status entry for the sitemap health endpoint.
+         */
+        SitemapMvCheck: {
+            /** Count */
+            count?: number | null;
+            /** Error */
+            error?: string | null;
+            /** Status */
+            status?: string | null;
+        } & {
+            [key: string]: unknown;
         };
         /** SitemapOrgaosResponse */
         SitemapOrgaosResponse: {
@@ -16692,6 +16750,26 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["CacheHealthResponse"];
+                };
+            };
+        };
+    };
+    sitemap_health_v1_health_sitemap_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SitemapHealthResponse"];
                 };
             };
         };
