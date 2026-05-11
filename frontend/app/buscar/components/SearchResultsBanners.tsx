@@ -63,7 +63,7 @@ export function SearchResultsBanners({
   const showDataQuality =
     !loading &&
     result.response_state !== "degraded_expired" &&
-    result.resumo.total_oportunidades > 0;
+    (result.resumo?.total_oportunidades ?? 0) > 0;
 
   if (showDataQuality) {
     banners.push({
@@ -125,7 +125,7 @@ export function SearchResultsBanners({
               : undefined
           }
           originalCount={0}
-          relaxedCount={result.resumo.total_oportunidades}
+          relaxedCount={result.resumo?.total_oportunidades ?? 0}
         />
       ),
     });

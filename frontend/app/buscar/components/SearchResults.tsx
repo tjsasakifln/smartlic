@@ -131,7 +131,7 @@ export default function SearchResults(props: SearchResultsProps) {
 
   // DEBT-FE-023: Move focus to results heading when search completes and results are present
   useEffect(() => {
-    if (!loading && result && result.resumo.total_oportunidades > 0 && resultsHeadingRef.current) {
+    if (!loading && result && result.resumo?.total_oportunidades > 0 && resultsHeadingRef.current) {
       resultsHeadingRef.current.focus();
     }
   }, [loading, result?.resumo?.total_oportunidades]);
@@ -188,11 +188,11 @@ export default function SearchResults(props: SearchResultsProps) {
 
       {/* Empty/error states */}
       {!loading && result && result.response_state === "empty_failure" && <SourcesUnavailable onRetry={onSearch} onLoadLastSearch={onLoadLastSearch || (() => {})} hasLastSearch={!!hasLastSearch} retrying={loading} degradationGuidance={result.degradation_guidance} />}
-      {!loading && result && result.response_state !== "empty_failure" && result.response_state !== "degraded_expired" && result.is_partial && (result.total_raw || 0) === 0 && result.resumo.total_oportunidades === 0 && !result.cached && <SourcesUnavailable onRetry={onSearch} onLoadLastSearch={onLoadLastSearch || (() => {})} hasLastSearch={!!hasLastSearch} retrying={loading} degradationGuidance={result.degradation_guidance} />}
+      {!loading && result && result.response_state !== "empty_failure" && result.response_state !== "degraded_expired" && result.is_partial && (result.total_raw || 0) === 0 && (result.resumo?.total_oportunidades ?? 0) === 0 && !result.cached && <SourcesUnavailable onRetry={onSearch} onLoadLastSearch={onLoadLastSearch || (() => {})} hasLastSearch={!!hasLastSearch} retrying={loading} degradationGuidance={result.degradation_guidance} />}
       {!loading && result && result.response_state === "degraded_expired" && result.cached_at && <ExpiredCacheBanner cachedAt={result.cached_at} onRetry={onSearch} loading={loading} />}
-      {!loading && result && result.is_partial && (result.total_raw || 0) > 0 && result.resumo.total_oportunidades === 0 && <>{renderDataQualityBanner()}<SearchEmptyState onAdjustSearch={() => window.scrollTo({ top: 0, behavior: "smooth" })} rawCount={rawCount} stateCount={ufsSelecionadas.size} filterStats={result.filter_stats} sectorName={sectorName} emptyUfs={result.coverage_metadata?.ufs_empty} /></>}
+      {!loading && result && result.is_partial && (result.total_raw || 0) > 0 && (result.resumo?.total_oportunidades ?? 0) === 0 && <>{renderDataQualityBanner()}<SearchEmptyState onAdjustSearch={() => window.scrollTo({ top: 0, behavior: "smooth" })} rawCount={rawCount} stateCount={ufsSelecionadas.size} filterStats={result.filter_stats} sectorName={sectorName} emptyUfs={result.coverage_metadata?.ufs_empty} /></>}
       {/* CRIT-053 AC5: Contextual zero results — degraded sources get degradation message, not "nenhuma corresponde" */}
-      {!loading && result && result.resumo.total_oportunidades === 0 && result.sources_degraded && result.sources_degraded.length > 0 && result.response_state !== "empty_failure" && (
+      {!loading && result && (result.resumo?.total_oportunidades ?? 0) === 0 && result.sources_degraded && result.sources_degraded.length > 0 && result.response_state !== "empty_failure" && (
         <div className="mt-6 text-center py-10" data-testid="degraded-zero-results">
           {renderDataQualityBanner()}
           <div className="mt-6">
@@ -203,9 +203,9 @@ export default function SearchResults(props: SearchResultsProps) {
           </div>
         </div>
       )}
-      {!loading && result && !result.is_partial && result.response_state !== "empty_failure" && result.resumo.total_oportunidades === 0 && (!result.sources_degraded || result.sources_degraded.length === 0) && (result.total_filtrado === 0 && (result.total_raw || 0) > 0 ? <EmptyResults totalRaw={result.total_raw} sectorName={sectorName} ufCount={ufsSelecionadas.size} onScrollToTop={() => window.scrollTo({ top: 0, behavior: "smooth" })} /> : <ZeroResultsSuggestions sectorName={sectorName} ufCount={ufsSelecionadas.size} ufNames={Array.from(ufsSelecionadas)} dayRange={30} onAdjustPeriod={props.onAdjustPeriod} onAddNeighborStates={props.onAddNeighborStates} onChangeSector={() => window.scrollTo({ top: 0, behavior: "smooth" })} nearbyResultsCount={props.nearbyResultsCount} onViewNearbyResults={props.onViewNearbyResults} totalFromSources={result.total_raw} filterStats={result.filter_stats} />)}
+      {!loading && result && !result.is_partial && result.response_state !== "empty_failure" && (result.resumo?.total_oportunidades ?? 0) === 0 && (!result.sources_degraded || result.sources_degraded.length === 0) && (result.total_filtrado === 0 && (result.total_raw || 0) > 0 ? <EmptyResults totalRaw={result.total_raw} sectorName={sectorName} ufCount={ufsSelecionadas.size} onScrollToTop={() => window.scrollTo({ top: 0, behavior: "smooth" })} /> : <ZeroResultsSuggestions sectorName={sectorName} ufCount={ufsSelecionadas.size} ufNames={Array.from(ufsSelecionadas)} dayRange={30} onAdjustPeriod={props.onAdjustPeriod} onAddNeighborStates={props.onAddNeighborStates} onChangeSector={() => window.scrollTo({ top: 0, behavior: "smooth" })} nearbyResultsCount={props.nearbyResultsCount} onViewNearbyResults={props.onViewNearbyResults} totalFromSources={result.total_raw} filterStats={result.filter_stats} />)}
       {/* DEBT-FE-004: Pre-results info banners consolidated via BannerStack */}
-      {!loading && result && result.resumo.total_oportunidades === 0 && (
+      {!loading && result && (result.resumo?.total_oportunidades ?? 0) === 0 && (
         <SearchResultsBanners
           result={result}
           loading={loading}
@@ -222,7 +222,7 @@ export default function SearchResults(props: SearchResultsProps) {
       )}
 
       {/* === Results === */}
-      {!loading && result && result.resumo.total_oportunidades > 0 && (
+      {!loading && result && (result.resumo?.total_oportunidades ?? 0) > 0 && (
         <div className={`mt-6 sm:mt-8 space-y-4 sm:space-y-6 ${!showGrid ? 'animate-fade-in-up' : ''}`}>
           {trialPhase === "limited_access" && (
             <div className="p-3 rounded-card bg-gradient-to-r from-blue-600 to-purple-600 text-white flex items-center justify-between" data-testid="trial-paywall-banner" role="banner">

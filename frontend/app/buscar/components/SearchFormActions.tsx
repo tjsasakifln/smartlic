@@ -56,7 +56,7 @@ export default function SearchFormActions({
         )}
       </Button>
 
-      {result && result.resumo.total_oportunidades > 0 && (
+      {result && (result.resumo?.total_oportunidades ?? 0) > 0 && (
         <Button
           onClick={handleSaveSearch}
           disabled={isMaxCapacity}

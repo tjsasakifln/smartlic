@@ -252,7 +252,7 @@ export function useSearchSSEHandler(params: UseSearchSSEHandlerParams) {
           if (unique.length === 0) return prev;
           const merged = [...existing, ...unique];
           return {
-            ...(prev || {} as BuscaResult),
+            ...(prev || { resumo: { total_oportunidades: merged.length, resumo_executivo: '', valor_total: 0, outlier_count: 0, valor_sanitizado: false } } as BuscaResult),
             licitacoes: merged,
             total_filtrado: merged.length,
             is_partial: !event.detail?.is_final,

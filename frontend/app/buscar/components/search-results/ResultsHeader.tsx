@@ -33,7 +33,7 @@ export const ResultsHeader = forwardRef<HTMLHeadingElement, ResultsHeaderProps>(
       <div>
         <div className="flex items-center gap-2 flex-wrap">
           <h2 ref={ref} className="text-lg font-semibold text-ink" data-testid="results-header" tabIndex={-1}>
-            {result.resumo.total_oportunidades} {result.resumo.total_oportunidades === 1 ? 'oportunidade selecionada' : 'oportunidades selecionadas'}{rawCount > 0 ? ` de ${rawCount.toLocaleString("pt-BR")} analisadas` : ''}
+            {(result.resumo?.total_oportunidades ?? 0)} {(result.resumo?.total_oportunidades ?? 0) === 1 ? 'oportunidade selecionada' : 'oportunidades selecionadas'}{rawCount > 0 ? ` de ${rawCount.toLocaleString("pt-BR")} analisadas` : ''}
           </h2>
           {/* STORY-5.13 AC3: "Updated X min ago" freshness badge */}
           {(() => {
@@ -43,7 +43,7 @@ export const ResultsHeader = forwardRef<HTMLHeadingElement, ResultsHeaderProps>(
             return <FreshnessIndicator timestamp={ts} freshness={freshness} />;
           })()}
           {/* STORY-260 AC17: "Análise personalizada" badge when profile is complete */}
-          {isProfileComplete && result.resumo.total_oportunidades > 0 && (
+          {isProfileComplete && (result.resumo?.total_oportunidades ?? 0) > 0 && (
             <div
               className="inline-flex items-center gap-1 px-2 py-1 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-400 text-xs rounded-full"
               title="Resultados otimizados para o perfil da sua empresa"
@@ -58,7 +58,7 @@ export const ResultsHeader = forwardRef<HTMLHeadingElement, ResultsHeaderProps>(
         </div>
         {filterSummary && filterSummary.totalRaw > 0 && (
           <p className="text-sm text-ink-secondary mt-0.5" data-testid="filter-context-line">
-            Analisamos {filterSummary.totalRaw.toLocaleString("pt-BR")} oportunidades e selecionamos {result.resumo.total_oportunidades} {result.resumo.total_oportunidades === 1 ? 'compatível' : 'compatíveis'} com seu perfil
+            Analisamos {filterSummary.totalRaw.toLocaleString("pt-BR")} oportunidades e selecionamos {result.resumo?.total_oportunidades ?? 0} {(result.resumo?.total_oportunidades ?? 0) === 1 ? 'compatível' : 'compatíveis'} com seu perfil
             {/* C-02 AC9: Confidence distribution counts */}
             {(() => {
               const counts = { high: 0, medium: 0, low: 0 };
