@@ -84,14 +84,14 @@ export function deriveSearchPhase(input: SearchPhaseInput): SearchPhase {
       result.response_state !== "degraded_expired" &&
       result.is_partial &&
       (result.total_raw || 0) === 0 &&
-      result.resumo.total_oportunidades === 0 &&
+      (result.resumo?.total_oportunidades ?? 0) === 0 &&
       !result.cached
     ) {
       return "all_sources_failed";
     }
 
     // Zero results (legitimate — not source failure)
-    if (result.resumo.total_oportunidades === 0) return "empty_results";
+    if ((result.resumo?.total_oportunidades ?? 0) === 0) return "empty_results";
 
     // Source timeout — has results but some sources failed
     if (result.is_partial || (result.failed_ufs && result.failed_ufs.length > 0)) {

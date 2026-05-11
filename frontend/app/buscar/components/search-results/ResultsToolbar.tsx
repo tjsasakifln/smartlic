@@ -127,7 +127,7 @@ export function ResultsToolbar({
                   <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
                   </svg>
-                  Relatório PDF ({result.resumo.total_oportunidades} {result.resumo.total_oportunidades === 1 ? 'oportunidade' : 'oportunidades'})
+                  Relatório PDF ({(result.resumo?.total_oportunidades ?? 0)} {(result.resumo?.total_oportunidades ?? 0) === 1 ? 'oportunidade' : 'oportunidades'})
                 </>
               )}
             </button>
@@ -136,7 +136,7 @@ export function ResultsToolbar({
 
         {/* Opportunity count — right side */}
         <span className="text-sm text-[var(--ink-secondary)] sm:ml-auto whitespace-nowrap" data-testid="sticky-count">
-          {result.resumo.total_oportunidades} {result.resumo.total_oportunidades === 1 ? 'oportunidade' : 'oportunidades'}
+          {(result.resumo?.total_oportunidades ?? 0)} {(result.resumo?.total_oportunidades ?? 0) === 1 ? 'oportunidade' : 'oportunidades'}
         </span>
       </div>
 
@@ -233,7 +233,7 @@ function ExcelButton({
                  hover:bg-[var(--brand-blue-hover)]
                  disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
       data-testid="excel-download-button"
-      aria-label={`Baixar Excel com ${result.resumo.total_oportunidades} licitações`}
+      aria-label={`Baixar Excel com ${(result.resumo?.total_oportunidades ?? 0)} licitações`}
     >
       {downloadLoading ? (
         <>
@@ -248,7 +248,7 @@ function ExcelButton({
           <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
           </svg>
-          Baixar Excel ({result.resumo.total_oportunidades} {result.resumo.total_oportunidades === 1 ? 'licitação' : 'licitações'})
+          Baixar Excel ({(result.resumo?.total_oportunidades ?? 0)} {(result.resumo?.total_oportunidades ?? 0) === 1 ? 'licitação' : 'licitações'})
         </>
       )}
     </button>

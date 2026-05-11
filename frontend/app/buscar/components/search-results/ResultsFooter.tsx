@@ -92,7 +92,7 @@ export function ResultsFooter({
       <div className="text-xs sm:text-sm text-ink-muted text-center space-y-1">
         {rawCount > 0 && (
           <p>
-            {result.resumo.total_oportunidades} {result.resumo.total_oportunidades === 1 ? 'oportunidade selecionada' : 'oportunidades selecionadas'} de {rawCount.toLocaleString("pt-BR")} analisadas
+            {(result.resumo?.total_oportunidades ?? 0)} {(result.resumo?.total_oportunidades ?? 0) === 1 ? 'oportunidade selecionada' : 'oportunidades selecionadas'} de {rawCount.toLocaleString("pt-BR")} analisadas
             {searchMode === "setor" && sectorName !== "Licitações" ? ` para o setor ${sectorName.toLowerCase()}` : ''}
             {result.sources_used && result.sources_used.length > 1 && (
               <span className="ml-1 cursor-help border-b border-dotted border-ink-faint" title={result.source_stats?.filter((s: { status: string }) => s.status === "success" || s.status === "partial").map((s: { source_code: string; record_count: number }) => `${s.source_code}: ${s.record_count} registros`).join('\n') || ''}>(dados de multiplas fontes)</span>
@@ -125,7 +125,7 @@ export function ResultsFooter({
       </div>
 
       {/* Post-search/download CTAs */}
-      {result.resumo.total_oportunidades >= 10 && <TrialUpsellCTA variant="post-search" planId={planInfo?.plan_id} subscriptionStatus={planInfo?.subscription_status} contextData={{ opportunities: result.resumo.total_oportunidades }} />}
+      {(result.resumo?.total_oportunidades ?? 0) >= 10 && <TrialUpsellCTA variant="post-search" planId={planInfo?.plan_id} subscriptionStatus={planInfo?.subscription_status} contextData={{ opportunities: result.resumo?.total_oportunidades ?? 0 }} />}
       {downloadCompleted && <TrialUpsellCTA variant="post-download" planId={planInfo?.plan_id} subscriptionStatus={planInfo?.subscription_status} contextData={{ exportLimit: planInfo?.capabilities.max_requests_per_month ?? 1000 }} />}
 
       <p className="text-center text-sm text-ink-muted py-2" data-testid="return-invitation">Novas oportunidades são publicadas diariamente. Volte amanhã para conferir.</p>

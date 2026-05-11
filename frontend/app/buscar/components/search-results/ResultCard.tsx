@@ -72,48 +72,48 @@ export function ResultCard({
       <div className="flex flex-col sm:flex-row flex-wrap gap-4 sm:gap-8 mt-4 sm:mt-6">
         <div>
           <span className="text-3xl sm:text-4xl font-bold font-data tabular-nums text-brand-navy dark:text-brand-blue">
-            {result.resumo.total_oportunidades}
+            {(result.resumo?.total_oportunidades ?? 0)}
           </span>
-          <span className="text-sm sm:text-base text-ink-secondary block mt-1">{result.resumo.total_oportunidades === 1 ? 'licitação' : 'licitações'}</span>
+          <span className="text-sm sm:text-base text-ink-secondary block mt-1">{(result.resumo?.total_oportunidades ?? 0) === 1 ? 'licitação' : 'licitações'}</span>
         </div>
         <div>
           <span className="text-3xl sm:text-4xl font-bold font-data tabular-nums text-brand-navy dark:text-brand-blue">
-            {result.resumo.valor_total > 0 ? formatCurrencyBR(result.resumo.valor_total) : "Valor não divulgado"}
+            {(result.resumo?.valor_total ?? 0) > 0 ? formatCurrencyBR((result.resumo?.valor_total ?? 0)) : "Valor não divulgado"}
           </span>
-          <span className="text-sm sm:text-base text-ink-secondary block mt-1">{result.resumo.valor_total > 0 ? "valor total" : "valor não disponível nas fontes"}</span>
+          <span className="text-sm sm:text-base text-ink-secondary block mt-1">{(result.resumo?.valor_total ?? 0) > 0 ? "valor total" : "valor não disponível nas fontes"}</span>
         </div>
       </div>
 
       {/* AC11: Insight Setorial Banner */}
-      {result.resumo.insight_setorial && (
+      {result.resumo?.insight_setorial && (
         <div className="mt-4 sm:mt-6 p-3 sm:p-4 bg-brand-blue-subtle/50 border border-accent/30 rounded-card">
           <p className="text-sm sm:text-base text-ink-secondary leading-relaxed">
             <span className="font-semibold text-brand-navy dark:text-brand-blue">Contexto do setor: </span>
-            {result.resumo.insight_setorial}
+            {result.resumo?.insight_setorial}
           </p>
         </div>
       )}
 
       {/* AC12: Multiple Urgency Alerts */}
-      {result.resumo.alertas_urgencia && result.resumo.alertas_urgencia.length > 0 ? (
+      {result.resumo?.alertas_urgencia && result.resumo?.alertas_urgencia.length > 0 ? (
         <div className="mt-4 sm:mt-6 space-y-2" role="alert">
-          {result.resumo.alertas_urgencia.map((alerta, i) => (
+          {result.resumo?.alertas_urgencia.map((alerta, i) => (
             <div key={i} className="p-3 sm:p-4 bg-warning-subtle border border-warning/20 rounded-card">
               <p className="text-sm sm:text-base font-medium text-warning">{alerta}</p>
             </div>
           ))}
         </div>
-      ) : result.resumo.alerta_urgencia ? (
+      ) : result.resumo?.alerta_urgencia ? (
         <div className="mt-4 sm:mt-6 p-3 sm:p-4 bg-warning-subtle border border-warning/20 rounded-card" role="alert">
           <p className="text-sm sm:text-base font-medium text-warning">
             <span aria-hidden="true">Atenção: </span>
-            {result.resumo.alerta_urgencia}
+            {result.resumo?.alerta_urgencia}
           </p>
         </div>
       ) : null}
 
       {/* AC10 + UX-350 AC5-AC8: Recommendation Cards with strategic context */}
-      {result.resumo.recomendacoes && result.resumo.recomendacoes.length > 0 && (
+      {result.resumo?.recomendacoes && result.resumo?.recomendacoes.length > 0 && (
         <div className="mt-4 sm:mt-6">
           <h4 className="text-base sm:text-lg font-semibold font-display text-ink mb-3 sm:mb-4">Recomendações Estratégicas:</h4>
 
@@ -149,7 +149,7 @@ export function ResultCard({
           </p>
 
           <div className="space-y-3">
-            {result.resumo.recomendacoes.map((rec, i) => {
+            {result.resumo?.recomendacoes.map((rec, i) => {
               const matchedBid = result.licitacoes.find(l =>
                 rec.oportunidade && (
                   l.orgao && rec.oportunidade.includes(l.orgao) ||
@@ -212,11 +212,11 @@ export function ResultCard({
         </div>
       )}
 
-      {result.resumo.destaques && result.resumo.destaques.length > 0 && (
+      {result.resumo?.destaques && result.resumo?.destaques.length > 0 && (
         <div className="mt-4 sm:mt-6">
           <h4 className="text-base sm:text-lg font-semibold font-display text-ink mb-2 sm:mb-3">Destaques:</h4>
           <ul className="list-disc list-inside text-sm sm:text-base space-y-2 text-ink-secondary">
-            {result.resumo.destaques.map((d, i) => (
+            {result.resumo?.destaques.map((d, i) => (
               // eslint-disable-next-line local-rules/no-inline-styles -- DYNAMIC: animationDelay computed from index
               <li key={i} className="animate-fade-in-up" style={{ animationDelay: `${i * 60}ms` }}>{d}</li>
             ))}
