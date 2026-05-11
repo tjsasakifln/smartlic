@@ -86,10 +86,15 @@ describe('fetchSitemapJsonWithRetry — 503 cascade fix (SEO-SITEMAP-CASCADE-001
     // The id:4 sitemap fetches cnpjs first; after 3×503 it should throw
     const sitemapPromise = sitemap({ id: Promise.resolve('4') });
 
+    // Register the rejection handler BEFORE advancing timers to avoid unhandled rejection.
+    // If the handler is registered after runAllTimersAsync(), the promise may already have
+    // rejected by the time the .rejects assertion is attached, causing an UnhandledRejection.
+    const assertion = expect(sitemapPromise).rejects.toThrow('sitemap_cnpjs_503_exhausted');
+
     // Advance timers for exponential backoff: 1s + 2s between retries
     await jest.runAllTimersAsync();
 
-    await expect(sitemapPromise).rejects.toThrow('sitemap_cnpjs_503_exhausted');
+    await assertion;
   });
 
   it('200+[] returns empty array immediately without retry', async () => {
