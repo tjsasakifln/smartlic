@@ -95,7 +95,7 @@ export function buildPSEOFaqs(ctx: PSEOContext) {
   const precoAnswer =
     `O SmartLic tem 14 dias grátis sem cartão. Depois, planos mensais a partir de ` +
     `${ctx.planoMensal ?? "R$ 397"} por mês com cancelamento livre. ` +
-    `Existe também o plano Fundadores: R$ 997 uma vez, acesso vitalício — 50 vagas, encerra 30/06. ` +
+    `Existe também o plano Fundadores: R$ 997 uma vez, acesso vitalício — vagas limitadas, encerra 30/06. ` +
     `Quem usa todo mês sai ganhando no plano vitalício.`;
 
   return [
@@ -257,7 +257,7 @@ export default function PSEOTemplate({ ctx, dataBlock }: Props) {
       <section className="max-w-5xl mx-auto py-8 px-4">
         <div className="rounded-xl border border-amber-300 bg-amber-50 dark:bg-amber-950/30 dark:border-amber-700 p-6 text-center">
           <p className="text-base text-gray-900 dark:text-white mb-3">
-            Vai usar SmartLic todo mês? Existe plano vitalício R$ 997 (50 vagas, encerra 30/06).
+            Vai usar SmartLic todo mês? Existe plano vitalício R$ 997 (vagas limitadas, encerra 30/06).
           </p>
           <Link
             href={`/fundadores?src=${ctaRef}`}

@@ -17,6 +17,7 @@ import {
   HelpCircle,
   LogOut,
   X,
+  Shield,
 } from "lucide-react";
 
 interface BottomNavItem {
@@ -61,7 +62,7 @@ const FOCUSABLE_SELECTOR = 'a[href], button:not([disabled]), [tabindex]:not([tab
 
 export function BottomNav() {
   const pathname = usePathname();
-  const { signOut } = useAuth();
+  const { signOut, isAdmin } = useAuth();
   const { planInfo } = usePlan();
   const [drawerOpen, setDrawerOpen] = useState(false);
   const drawerRef = useRef<HTMLDivElement>(null);
@@ -244,6 +245,23 @@ export function BottomNav() {
                   </Link>
                 );
               })}
+
+              {isAdmin && (
+                <Link
+                  href="/admin"
+                  onClick={closeDrawer}
+                  className={`
+                    flex items-center gap-3 px-4 py-3 rounded-xl text-base font-medium transition-colors
+                    ${pathname.startsWith('/admin')
+                      ? "bg-[var(--brand-blue-subtle)] text-[var(--brand-blue)]"
+                      : "text-[var(--ink)] hover:bg-[var(--surface-1)]"
+                    }
+                  `}
+                >
+                  <Shield className="w-5 h-5" strokeWidth={1.5} />
+                  <span>Admin</span>
+                </Link>
+              )}
 
               <div className="border-t border-[var(--border)] my-2" />
 

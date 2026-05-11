@@ -17,6 +17,7 @@ import {
   LogOut,
   PanelLeftClose,
   Menu,
+  Shield,
 } from "lucide-react";
 
 const STORAGE_KEY = "smartlic-sidebar-collapsed";
@@ -43,7 +44,7 @@ const SECONDARY_NAV: NavItem[] = [
 
 export function Sidebar() {
   const pathname = usePathname();
-  const { signOut } = useAuth();
+  const { signOut, isAdmin } = useAuth();
   const { planInfo } = usePlan();
   const [collapsed, setCollapsed] = useState(false);
 
@@ -139,6 +140,7 @@ export function Sidebar() {
       {/* Divider + Secondary Navigation */}
       <div className="border-t border-[var(--border)] py-3 px-2 space-y-1">
         {SECONDARY_NAV.map(renderNavItem)}
+        {isAdmin && renderNavItem({ href: "/admin", label: "Admin", icon: <Shield className="w-5 h-5" aria-hidden="true" /> })}
 
         {/* Sign Out */}
         <button

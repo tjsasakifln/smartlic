@@ -169,7 +169,7 @@ describe("PSEOTemplate render", () => {
     // R$ 997 aparece também na FAQ de preço (cross-sell duplo); validamos
     // a frase exata do banner rodapé.
     expect(
-      screen.getByText(/Vai usar SmartLic todo mês\?.+R\$ 997.+50 vagas, encerra 30\/06/)
+      screen.getByText(/Vai usar SmartLic todo mês\?.+R\$ 997.+vagas limitadas, encerra 30\/06/)
     ).toBeInTheDocument();
     expect(
       screen.getByRole("link", { name: /Saber mais/ })
