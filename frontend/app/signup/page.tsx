@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as Sentry from "@sentry/nextjs";
@@ -14,6 +14,7 @@ import InstitutionalSidebar from "../components/InstitutionalSidebar";
 import { buttonVariants } from "../../components/ui/button";
 import { safeSetItem, safeGetItem } from "../../lib/storage";
 import { signupSchema, type SignupFormData } from "../../lib/schemas/forms";
+import { useSearchParams } from "next/navigation";
 import { currentDeviceType } from "../../lib/device-type";
 
 import { SignupSuccess } from "./components/SignupSuccess";
@@ -30,6 +31,11 @@ export default function SignupPage() {
   const { signUpWithEmail, signInWithGoogle, session: authSession, loading: authLoading } = useAuth();
   const { trackEvent } = useAnalytics();
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const signupAttribution = useMemo(() => ({
+    source: searchParams.get("source") ?? undefined,
+    ref: searchParams.get("ref") ?? undefined,
+  }), [searchParams]);
 
   // react-hook-form with zod resolver (FE-028)
   const form = useForm<SignupFormData>({
@@ -224,7 +230,13 @@ export default function SignupPage() {
     trackEvent('signup_completed', {
       method: "email",
       rollout_branch: "legacy",
+      ...signupAttribution,
       ...getStoredUTMParams(),
+    });
+    trackEvent('trial_created', {
+      method: "email",
+      rollout_branch: "legacy",
+      ...signupAttribution,
     });
   };
 
@@ -239,6 +251,8 @@ export default function SignupPage() {
         password: data.password,
         full_name: data.fullName,
         stripe_payment_method_id: paymentMethodId,
+        source: signupAttribution.source,
+        ref: signupAttribution.ref,
       }),
     });
     if (!res.ok) {
@@ -250,6 +264,7 @@ export default function SignupPage() {
     trackEvent('signup_completed', {
       method: "email",
       rollout_branch: "card",
+      ...signupAttribution,
       ...getStoredUTMParams(),
     });
     // CONV-003c AC4: capture instrumented funnel event. CNAE is collected
