@@ -128,6 +128,7 @@ function BidCard({
           ? "border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800"
           : "border-brand-blue/20 dark:border-brand-blue/30 bg-white dark:bg-gray-800"
       }`}
+      aria-hidden={isPremium ? "true" : undefined}
     >
       {/* Órgão */}
       <p
@@ -204,7 +205,9 @@ export default function PreviewCTA({
     if (uf) params.set("uf", uf);
 
     try {
-      const res = await fetch(`/api/pseo/recent-editais?${params.toString()}`);
+      const res = await fetch(`/api/pseo/recent-editais?${params.toString()}`, {
+        signal: AbortSignal.timeout(8000),
+      });
       if (!res.ok) throw new Error("Fetch failed");
       const json: RecentEditaisResponse = await res.json();
       setData(json);
@@ -219,8 +222,8 @@ export default function PreviewCTA({
     setIsOpen(true);
 
     // Track click
-    if (typeof window !== "undefined" && (window as unknown as Record<string, unknown>).mixpanel) {
-      (window as unknown as Record<string, unknown>).mixpanel.track("pseo_preview_cta_click", {
+    if (typeof window !== "undefined") {
+      window.mixpanel?.track("pseo_preview_cta_click", {
         setor,
         uf: uf ?? null,
       });
