@@ -93,7 +93,7 @@ psutil>=5.9.8
 mixpanel>=4.11.1
 
 # Async job queue for background LLM + Excel processing (GTM-RESILIENCE-F01)
-arq>=0.26,<1.0
+arq>=0.28.0,<1.0
 
 # Distributed tracing (GTM-RESILIENCE-F02)
 # CRIT-041: Pin ONLY the packages we need. Do NOT install umbrella packages
