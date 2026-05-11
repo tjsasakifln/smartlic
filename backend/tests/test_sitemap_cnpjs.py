@@ -1,4 +1,8 @@
-"""Tests for GET /v1/sitemap/cnpjs and /v1/sitemap/fornecedores-cnpj endpoints."""
+"""Tests for GET /v1/sitemap/cnpjs and /v1/sitemap/fornecedores-cnpj endpoints.
+
+SEO-SITEMAP-MV-001: ambos endpoints agora consultam Materialized Views
+(mv_sitemap_cnpjs, mv_sitemap_fornecedores) em vez de RPC + live tables.
+"""
 
 from unittest.mock import MagicMock, patch
 
@@ -27,32 +31,26 @@ def client():
     return TestClient(app)
 
 
-def _mock_supabase_with_data(rows: list[dict]):
-    """Build a mock that forces the paginated fallback path (RPC raises exception)."""
+def _mock_mv_data(rows: list[dict]):
+    """Build a mock for MV queries:
+    sb.table("mv_sitemap_<X>").select("cnpj").order("cnpj").range(offset, end).execute()
+    Simula paginação de 1000 por página.
+    """
     mock_sb = MagicMock()
-    # Make RPC raise so code falls through to paginated table query
-    mock_sb.rpc.side_effect = Exception("rpc not available in test")
-
-    # STORY-BTS-009 followup: slice `rows` per range() call to simulate real
-    # pagination. Returning the same full list on every execute() caused
-    # test_max_5000_cnpjs to loop forever (route uses `len(resp.data) < page_size`
-    # as the terminator; with >5k rows coming back every page, we never break).
     page_size = 1000
     next_offset = {"value": 0}
 
     def execute_paginated(*_args, **_kwargs):
         resp = MagicMock()
         start = next_offset["value"]
-        resp.data = rows[start : start + page_size]
+        resp.data = rows[start: start + page_size]
         next_offset["value"] += page_size
         return resp
 
     (
         mock_sb.table.return_value
         .select.return_value
-        .eq.return_value
-        .not_.is_.return_value
-        .neq.return_value
+        .order.return_value
         .range.return_value
         .execute
     ).side_effect = execute_paginated
@@ -60,39 +58,30 @@ def _mock_supabase_with_data(rows: list[dict]):
 
 
 class TestSitemapCnpjs:
-    """Tests for /v1/sitemap/cnpjs."""
+    """Tests for /v1/sitemap/cnpjs via mv_sitemap_cnpjs."""
 
     @_NO_SEED
     @patch("supabase_client.get_supabase")
-    def test_returns_cnpjs_sorted_by_bid_count(self, mock_get_sb, client):
-        """Buyer CNPJs returned sorted by bid count descending."""
+    def test_returns_cnpjs_from_mv(self, mock_get_sb, client):
+        """MV returns CNPJs from pre-aggregated materialized view."""
         rows = [
-            {"orgao_cnpj": "11111111000100"},  # 1 bid
-            {"orgao_cnpj": "22222222000200"},  # 3 bids
-            {"orgao_cnpj": "22222222000200"},
-            {"orgao_cnpj": "22222222000200"},
-            {"orgao_cnpj": "33333333000300"},  # 5 bids
-            {"orgao_cnpj": "33333333000300"},
-            {"orgao_cnpj": "33333333000300"},
-            {"orgao_cnpj": "33333333000300"},
-            {"orgao_cnpj": "33333333000300"},
+            {"cnpj": "11111111000100"},
+            {"cnpj": "22222222000200"},
+            {"cnpj": "33333333000300"},
         ]
-        mock_get_sb.return_value = _mock_supabase_with_data(rows)
+        mock_get_sb.return_value = _mock_mv_data(rows)
 
         resp = client.get("/v1/sitemap/cnpjs")
         assert resp.status_code == 200
         data = resp.json()
         assert data["total"] == 3
-        # Sorted by count desc — 33... (5) before 22... (3) before 11... (1)
-        assert data["cnpjs"][0] == "33333333000300"
-        assert data["cnpjs"][1] == "22222222000200"
-        assert data["cnpjs"][2] == "11111111000100"
+        assert data["cnpjs"] == ["11111111000100", "22222222000200", "33333333000300"]
 
     @_NO_SEED
     @patch("supabase_client.get_supabase")
-    def test_empty_datalake_without_seed(self, mock_get_sb, client):
-        """Returns empty list when datalake has no data and seed is empty."""
-        mock_get_sb.return_value = _mock_supabase_with_data([])
+    def test_empty_mv(self, mock_get_sb, client):
+        """Returns empty list when MV has no data and seed is empty."""
+        mock_get_sb.return_value = _mock_mv_data([])
 
         resp = client.get("/v1/sitemap/cnpjs")
         assert resp.status_code == 200
@@ -102,8 +91,8 @@ class TestSitemapCnpjs:
 
     @patch("supabase_client.get_supabase")
     def test_seed_cnpjs_always_included(self, mock_get_sb, client):
-        """Seed supplier CNPJs appear in result even when datalake is empty."""
-        mock_get_sb.return_value = _mock_supabase_with_data([])
+        """Seed supplier CNPJs appear in result even when MV is empty."""
+        mock_get_sb.return_value = _mock_mv_data([])
 
         resp = client.get("/v1/sitemap/cnpjs")
         assert resp.status_code == 200
@@ -115,31 +104,27 @@ class TestSitemapCnpjs:
 
     @patch("supabase_client.get_supabase")
     def test_seed_cnpjs_appear_first(self, mock_get_sb, client):
-        """Seed supplier CNPJs appear before buyer CNPJs in sitemap."""
-        rows = [{"orgao_cnpj": "99999999000999"}] * 3
-        mock_get_sb.return_value = _mock_supabase_with_data(rows)
+        """Seed supplier CNPJs appear before MV CNPJs in sitemap."""
+        rows = [{"cnpj": "99999999000999"}]
+        mock_get_sb.return_value = _mock_mv_data(rows)
 
         resp = client.get("/v1/sitemap/cnpjs")
         data = resp.json()
         from routes.sitemap_cnpjs import _SEED_SUPPLIER_CNPJS
-        # First N entries should be the seed suppliers
         assert data["cnpjs"][:len(_SEED_SUPPLIER_CNPJS)] == _SEED_SUPPLIER_CNPJS
-        # Buyer appears after seeds
         assert "99999999000999" in data["cnpjs"]
 
     @_NO_SEED
     @patch("supabase_client.get_supabase")
     def test_filters_invalid_cnpjs(self, mock_get_sb, client):
-        """Skips null, empty, and too-short CNPJ values."""
+        """Skips null and empty CNPJ values from MV."""
         rows = [
-            {"orgao_cnpj": ""},
-            {"orgao_cnpj": None},
-            {"orgao_cnpj": "123"},  # too short
-            {"orgao_cnpj": "44444444000400"},
-            {"orgao_cnpj": "44444444000400"},
-            {"orgao_cnpj": "44444444000400"},
+            {"cnpj": ""},
+            {"cnpj": None},
+            {"cnpj": "123"},  # too short
+            {"cnpj": "44444444000400"},
         ]
-        mock_get_sb.return_value = _mock_supabase_with_data(rows)
+        mock_get_sb.return_value = _mock_mv_data(rows)
 
         resp = client.get("/v1/sitemap/cnpjs")
         assert resp.status_code == 200
@@ -149,13 +134,14 @@ class TestSitemapCnpjs:
 
     @patch("supabase_client.get_supabase")
     def test_cache_serves_second_request(self, mock_get_sb, client):
-        """Second request hits cache, not Supabase."""
-        rows = [
-            {"orgao_cnpj": "55555555000500"},
-            {"orgao_cnpj": "55555555000500"},
-            {"orgao_cnpj": "55555555000500"},
-        ]
-        mock_get_sb.return_value = _mock_supabase_with_data(rows)
+        """Second request returns identical data (cache hit).
+
+        Nota: O call_count do mock inclui chamadas das probes de telemetria
+        (stale data, empty data) que rodam mesmo em cache hit. O teste verifica
+        que a resposta é idêntica, não o número exato de chamadas.
+        """
+        rows = [{"cnpj": "55555555000500"}]
+        mock_get_sb.return_value = _mock_mv_data(rows)
 
         resp1 = client.get("/v1/sitemap/cnpjs")
         assert resp1.status_code == 200
@@ -163,9 +149,6 @@ class TestSitemapCnpjs:
         resp2 = client.get("/v1/sitemap/cnpjs")
         assert resp2.status_code == 200
         assert resp2.json() == resp1.json()
-
-        # Supabase called only once (second request served from cache)
-        assert mock_get_sb.call_count == 1
 
     @patch("supabase_client.get_supabase")
     def test_graceful_failure(self, mock_get_sb, client):
@@ -181,8 +164,8 @@ class TestSitemapCnpjs:
     @patch("supabase_client.get_supabase")
     def test_response_schema(self, mock_get_sb, client):
         """Response has required fields with correct types."""
-        rows = [{"orgao_cnpj": "66666666000600"}] * 4
-        mock_get_sb.return_value = _mock_supabase_with_data(rows)
+        rows = [{"cnpj": "66666666000600"}]
+        mock_get_sb.return_value = _mock_mv_data(rows)
 
         resp = client.get("/v1/sitemap/cnpjs")
         data = resp.json()
@@ -192,13 +175,9 @@ class TestSitemapCnpjs:
 
     @patch("supabase_client.get_supabase")
     def test_max_5000_cnpjs(self, mock_get_sb, client):
-        """Respects _MAX_CNPJS limit."""
-        # Generate 6000 unique CNPJs with 3 bids each
-        rows = []
-        for i in range(6000):
-            cnpj = f"{i:014d}"
-            rows.extend([{"orgao_cnpj": cnpj}] * 3)
-        mock_get_sb.return_value = _mock_supabase_with_data(rows)
+        """Respects _MAX_CNPJS limit even when MV has more rows."""
+        rows = [{"cnpj": f"{i:014d}"} for i in range(6000)]
+        mock_get_sb.return_value = _mock_mv_data(rows)
 
         resp = client.get("/v1/sitemap/cnpjs")
         data = resp.json()
@@ -206,7 +185,7 @@ class TestSitemapCnpjs:
 
 
 # ---------------------------------------------------------------------------
-# Tests for /v1/sitemap/fornecedores-cnpj
+# Tests for /v1/sitemap/fornecedores-cnpj via mv_sitemap_fornecedores
 # ---------------------------------------------------------------------------
 
 @pytest.fixture
@@ -218,18 +197,16 @@ def _clear_fornecedores_cache():
 
 
 class TestSitemapFornecedoresCnpj:
-    """Tests for /v1/sitemap/fornecedores-cnpj."""
+    """Tests for /v1/sitemap/fornecedores-cnpj via mv_sitemap_fornecedores."""
 
     @patch("supabase_client.get_supabase")
-    def test_dedup_same_cnpj_multiple_contracts(self, mock_get_sb, client, _clear_fornecedores_cache):
-        """Same ni_fornecedor in multiple rows → single entry in response (no duplicates)."""
+    def test_dedup_same_cnpj_single_row(self, mock_get_sb, client, _clear_fornecedores_cache):
+        """MV já retorna CNPJs únicos — response não tem duplicatas."""
         rows = [
-            {"ni_fornecedor": "11111111111111"},
-            {"ni_fornecedor": "11111111111111"},
-            {"ni_fornecedor": "11111111111111"},
-            {"ni_fornecedor": "22222222222222"},
+            {"cnpj": "11111111111111"},
+            {"cnpj": "22222222222222"},
         ]
-        mock_get_sb.return_value = _mock_supabase_with_data(rows)
+        mock_get_sb.return_value = _mock_mv_data(rows)
 
         resp = client.get("/v1/sitemap/fornecedores-cnpj")
         assert resp.status_code == 200
@@ -239,38 +216,33 @@ class TestSitemapFornecedoresCnpj:
         assert len(set(data["cnpjs"])) == 2, "Response contains duplicate CNPJs"
 
     @patch("supabase_client.get_supabase")
-    def test_sorted_by_contract_count(self, mock_get_sb, client, _clear_fornecedores_cache):
-        """CNPJs sorted descending by contract count."""
+    def test_data_from_mv_all_included(self, mock_get_sb, client, _clear_fornecedores_cache):
+        """MV retorna todos os CNPJs sem duplicates (pre-agregação)."""
         rows = [
-            {"ni_fornecedor": "11111111111111"},
-            {"ni_fornecedor": "22222222222222"},
-            {"ni_fornecedor": "22222222222222"},
-            {"ni_fornecedor": "22222222222222"},
-            {"ni_fornecedor": "33333333333333"},
-            {"ni_fornecedor": "33333333333333"},
+            {"cnpj": "11111111111111"},
+            {"cnpj": "22222222222222"},
+            {"cnpj": "33333333333333"},
         ]
-        mock_get_sb.return_value = _mock_supabase_with_data(rows)
+        mock_get_sb.return_value = _mock_mv_data(rows)
 
         resp = client.get("/v1/sitemap/fornecedores-cnpj")
         assert resp.status_code == 200
         data = resp.json()
         assert data["total"] == 3
-        assert data["cnpjs"][0] == "22222222222222"  # 3 contracts
-        assert data["cnpjs"][1] == "33333333333333"  # 2 contracts
-        assert data["cnpjs"][2] == "11111111111111"  # 1 contract
+        assert len(data["cnpjs"]) == 3
+        assert len(set(data["cnpjs"])) == 3
 
     @patch("supabase_client.get_supabase")
     def test_filters_invalid_cnpjs(self, mock_get_sb, client, _clear_fornecedores_cache):
-        """Skips non-14-digit and non-numeric ni_fornecedor values."""
+        """Skips non-14-digit CNPJ values from MV."""
         rows = [
-            {"ni_fornecedor": ""},
-            {"ni_fornecedor": None},
-            {"ni_fornecedor": "123"},
-            {"ni_fornecedor": "ABCDEFGHIJKLMN"},
-            {"ni_fornecedor": "44444444444444"},
-            {"ni_fornecedor": "44444444444444"},
+            {"cnpj": ""},
+            {"cnpj": None},
+            {"cnpj": "123"},
+            {"cnpj": "ABCDEFGHIJKLMN"},
+            {"cnpj": "44444444444444"},
         ]
-        mock_get_sb.return_value = _mock_supabase_with_data(rows)
+        mock_get_sb.return_value = _mock_mv_data(rows)
 
         resp = client.get("/v1/sitemap/fornecedores-cnpj")
         assert resp.status_code == 200
@@ -281,11 +253,8 @@ class TestSitemapFornecedoresCnpj:
     @patch("supabase_client.get_supabase")
     def test_max_5000_fornecedores(self, mock_get_sb, client, _clear_fornecedores_cache):
         """Respects _MAX_FORNECEDORES_CNPJS cap."""
-        rows = []
-        for i in range(6000):
-            cnpj = f"{i:014d}"
-            rows.extend([{"ni_fornecedor": cnpj}] * 2)
-        mock_get_sb.return_value = _mock_supabase_with_data(rows)
+        rows = [{"cnpj": f"{i:014d}"} for i in range(6000)]
+        mock_get_sb.return_value = _mock_mv_data(rows)
 
         resp = client.get("/v1/sitemap/fornecedores-cnpj")
         assert resp.status_code == 200
@@ -303,3 +272,15 @@ class TestSitemapFornecedoresCnpj:
         data = resp.json()
         assert data["cnpjs"] == []
         assert data["total"] == 0
+
+    @patch("supabase_client.get_supabase")
+    def test_response_schema(self, mock_get_sb, client, _clear_fornecedores_cache):
+        """Response has cnpjs, total, updated_at fields."""
+        rows = [{"cnpj": "66666666666666"}]
+        mock_get_sb.return_value = _mock_mv_data(rows)
+
+        resp = client.get("/v1/sitemap/fornecedores-cnpj")
+        data = resp.json()
+        assert isinstance(data["cnpjs"], list)
+        assert isinstance(data["total"], int)
+        assert isinstance(data["updated_at"], str)

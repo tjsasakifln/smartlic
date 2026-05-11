@@ -2,7 +2,7 @@
 CRIT-FLT-002: LLM Arbiter Parallelization Tests
 
 Tests that the gray-zone (1-5% density) LLM arbiter runs in parallel
-using ThreadPoolExecutor, matching the zero-match pattern.
+using asyncio.to_thread (STORY-4.1), matching the zero-match pattern.
 
 Coverage:
 - AC1: Parallel execution via ThreadPoolExecutor
@@ -92,8 +92,10 @@ class TestArbiterParallelExecution:
         elapsed = time.monotonic() - t0
 
         # If sequential, would take >= 1.0s (10 * 0.1s)
-        # If parallel with 10 workers, should take ~0.1-0.3s
-        # Use generous threshold to avoid flaky tests
+        # If parallel, should complete faster due to concurrent thread execution.
+        # Threshold 85%: must finish in <0.85s (at least 15% faster than sequential).
+        # Previous 60% threshold was too tight for 2-CPU CI runners where asyncio.to_thread
+        # overhead (thread pool scheduling on limited cores) can consume 10-20% of the budget.
         sequential_time = num_bids * call_delay
         assert elapsed < sequential_time * 0.85, (
             f"Expected parallel execution to be faster than 85% of sequential. "

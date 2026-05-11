@@ -21,6 +21,7 @@ from schemas.parity import (
     CacheHealthResponse,
     IncidentsResponse,
     PublicStatusResponse,
+    SitemapHealthResponse,
     SourcesHealthMapResponse,
     SystemHealthResponse,
     UptimeHistoryResponse,
@@ -305,7 +306,6 @@ _SITEMAP_MVS = [
     "mv_sitemap_cnpjs",
     "mv_sitemap_orgaos",
     "mv_sitemap_fornecedores",
-    # mv_sitemap_municipios: added when migration ships (SEO-SITEMAP-MV-001)
 ]
 
 
