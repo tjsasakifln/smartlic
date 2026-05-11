@@ -133,6 +133,7 @@ async function fetchSitemapJsonWithRetry<T>(
     tags: { sitemap_endpoint: label, sitemap_outcome: 'fetch_failed' },
   });
   return null;
+
 }
 
 /**
@@ -191,6 +192,73 @@ async function fetchContratosOrgaoIndexable(): Promise<string[]> {
   _contratosOrgaoCache = result;
   _contratosOrgaoFetched = true;
   return _contratosOrgaoCache;
+}
+
+// SEO-COVERAGE-MANIFEST-001 (#1039): Coverage manifest cache
+// Used to gate out slugs with coverage_status='empty' from the sitemap.
+// historical_empty slugs are kept but rendered with priority=0.3.
+// Fail-open: if the manifest fetch fails, all slugs are included.
+interface CoverageEntry {
+  coverage_status: 'full' | 'partial' | 'empty' | 'historical_empty';
+  bid_count: number;
+  last_updated: string;
+}
+type CoverageManifest = Record<string, CoverageEntry>;
+let _coverageManifest: CoverageManifest | null = null;
+let _coverageManifestFetched = false;
+
+async function fetchCoverageManifest(): Promise<CoverageManifest> {
+  if (_coverageManifestFetched && _coverageManifest !== null) return _coverageManifest;
+  const result = await fetchSitemapJson<CoverageManifest>(
+    '/v1/seo/coverage-manifest',
+    (d) => {
+      const data = d as { manifest?: CoverageManifest };
+      return data.manifest ?? {};
+    },
+    'coverage-manifest',
+  );
+  // Fail-open: null/error → return empty object (no filtering applied)
+  if (result.kind !== 'success') return {};
+  _coverageManifest = result.data;
+  _coverageManifestFetched = true;
+  return _coverageManifest;
+}
+
+/**
+ * AC5: Filter slugs based on coverage manifest.
+ * - coverage_status='empty': excluded from sitemap
+ * - coverage_status='historical_empty': included with priority override to 0.3
+ * - anything else (full/partial/not in manifest): included as-is (fail-open)
+ *
+ * AC7: historical_empty slugs stay accessible (/observatorio/raio-x-marco-2026
+ *      pattern — was indexed, now has 0 bids but page still exists).
+ */
+function applyCoverageFilter(
+  urls: MetadataRoute.Sitemap,
+  entityType: string,
+  manifest: CoverageManifest,
+): MetadataRoute.Sitemap {
+  // If manifest is empty (fetch failed), return unmodified (fail-open)
+  if (Object.keys(manifest).length === 0) return urls;
+
+  return urls
+    .filter((entry) => {
+      // Extract slug from the URL (last path segment)
+      const slug = entry.url.split('/').pop() ?? '';
+      const key = `${entityType}/${slug}`;
+      const coverage = manifest[key];
+      // Only exclude explicitly empty slugs; everything else passes through
+      return !coverage || coverage.coverage_status !== 'empty';
+    })
+    .map((entry) => {
+      const slug = entry.url.split('/').pop() ?? '';
+      const key = `${entityType}/${slug}`;
+      const coverage = manifest[key];
+      if (coverage?.coverage_status === 'historical_empty') {
+        return { ...entry, priority: 0.3 };
+      }
+      return entry;
+    });
 }
 
 // Cache for CNPJ list fetched from backend (build-time)
@@ -897,12 +965,25 @@ export default async function sitemap(props: { id: Promise<string> }): Promise<M
         }
       }
 
-      const cnpjList = await fetchSitemapCnpjs();
-      const contratosOrgaoList = await fetchContratosOrgaoIndexable();
-      const orgaoList = await fetchSitemapOrgaos();
-      const fornecedoresCnpjList = await fetchSitemapFornecedoresCnpj();
-      const municipiosList = await fetchSitemapMunicipios();
-      const itensList = await fetchSitemapItens();
+      // SEO-COVERAGE-MANIFEST-001 (#1039): fetch coverage manifest in parallel with entity lists.
+      // Fail-open: if the manifest is unavailable, all slugs are included unchanged.
+      const [
+        cnpjList,
+        contratosOrgaoList,
+        orgaoList,
+        fornecedoresCnpjList,
+        municipiosList,
+        itensList,
+        coverageManifest,
+      ] = await Promise.all([
+        fetchSitemapCnpjs(),
+        fetchContratosOrgaoIndexable(),
+        fetchSitemapOrgaos(),
+        fetchSitemapFornecedoresCnpj(),
+        fetchSitemapMunicipios(),
+        fetchSitemapItens(),
+        fetchCoverageManifest(),
+      ]);
 
       // SEO-PLAYBOOK Onda 1: CNPJ pages from datalake (≥1 bid, ~4k-5k URLs)
       const cnpjRoutes: MetadataRoute.Sitemap = cnpjList.map((cnpj) => ({
@@ -963,13 +1044,21 @@ export default async function sitemap(props: { id: Promise<string> }): Promise<M
       const filteredFornecedoresCnpj = filterNoindexedSitemap(fornecedoresCnpjRoutes, 'fornecedores-cnpj');
       const filteredContratosOrgao = filterNoindexedSitemap(contratosOrgaoRoutes, 'contratos-orgao');
 
+      // SEO-COVERAGE-MANIFEST-001 (#1039): apply coverage gate after noindex filter.
+      // Excludes coverage_status='empty' slugs; demotes 'historical_empty' to priority=0.3.
+      // Fail-open: if coverageManifest is empty (fetch failed), returns unmodified list.
+      const coveredMunicipios = applyCoverageFilter(filteredMunicipios, 'municipio', coverageManifest);
+      const coveredCnpj = applyCoverageFilter(filteredCnpj, 'cnpj', coverageManifest);
+      const coveredOrgaos = applyCoverageFilter(filteredOrgaos, 'cnpj', coverageManifest);
+      const coveredFornecedoresCnpj = applyCoverageFilter(filteredFornecedoresCnpj, 'fornecedor', coverageManifest);
+
       return [
-        ...filteredMunicipios, // Highest priority within entities (geographic, SSG)
-        ...filteredItens,
-        ...filteredCnpj,
-        ...filteredOrgaos,
-        ...filteredFornecedoresCnpj,
-        ...filteredContratosOrgao,
+        ...coveredMunicipios, // Highest priority within entities (geographic, SSG)
+        ...filteredItens,     // CATMAT codes: no coverage gate (no entity_type in manifest yet)
+        ...coveredCnpj,
+        ...coveredOrgaos,
+        ...coveredFornecedoresCnpj,
+        ...filteredContratosOrgao, // contratos orgão: already filtered by supplier_contracts
       ];
     }
 

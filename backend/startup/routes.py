@@ -82,6 +82,7 @@ from routes.founders_hall import router as founders_hall_router
 from routes.conta import router as conta_router
 from routes.intel_reports import router as intel_reports_router
 from routes.pseo_data import router as pseo_data_router
+from routes.seo_coverage_manifest import router as seo_coverage_manifest_router
 
 _v1_routers = [
     admin_router, subscriptions_router, upgrade_to_lifetime_router,
@@ -127,6 +128,7 @@ _v1_routers = [
     survey_router,
     intel_reports_router,
     pseo_data_router,
+    seo_coverage_manifest_router,
 ]
 
 

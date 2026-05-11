@@ -339,11 +339,18 @@ async def sitemap_health():
             }
 
     all_ok = all(v["status"] == "ok" for v in checks.values())
-    return JSONResponse(
-        content={
-            "status": "ok" if all_ok else "degraded",
-            "timestamp": datetime.now(timezone.utc).isoformat(),
-            "checks": checks,
-        },
-        status_code=200 if all_ok else 503,
+    if not all_ok:
+        from fastapi.responses import JSONResponse
+        return JSONResponse(
+            content={
+                "status": "degraded",
+                "timestamp": datetime.now(timezone.utc).isoformat(),
+                "checks": checks,
+            },
+            status_code=503,
+        )
+    return SitemapHealthResponse(
+        status="ok",
+        timestamp=datetime.now(timezone.utc).isoformat(),
+        checks=checks,
     )
