@@ -69,11 +69,11 @@ describe('HeroSection', () => {
     render(<HeroSection />);
     const strip = screen.getByTestId('hero-founder-strip');
     expect(strip).toHaveTextContent(/Tiago Sasaki/i);
-    expect(strip).toHaveTextContent(/Engenheiro civil/i);
-    expect(strip).toHaveTextContent(/10 anos servidor público em pregões/i);
+    expect(strip).toHaveTextContent(/7 anos servidor público/i);
+    expect(strip).toHaveTextContent(/gestão e fiscalização de contratos/i);
 
     const linkedin = screen.getByTestId('hero-founder-linkedin');
-    expect(linkedin).toHaveAttribute('href', 'https://www.linkedin.com/in/tiago-sasaki/');
+    expect(linkedin).toHaveAttribute('href', 'https://www.linkedin.com/in/tiagosasaki');
     expect(linkedin).toHaveAttribute('target', '_blank');
     expect(linkedin).toHaveAttribute('rel', expect.stringContaining('noopener'));
   });
