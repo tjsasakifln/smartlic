@@ -231,6 +231,24 @@ async function fetchSitemapFornecedoresCnpj(): Promise<string[]> {
   return _fornecedoresCnpjCache;
 }
 
+// SEO-COVERAGE-MANIFEST-001: Cache for coverage manifest (municípios + future entities)
+type CoverageEntry = { coverage_status: string; last_activity_at?: string };
+let _coverageManifestCache: Record<string, Record<string, CoverageEntry>> | null = null;
+let _coverageManifestFetched = false;
+
+async function fetchCoverageManifest(): Promise<Record<string, Record<string, CoverageEntry>>> {
+  if (_coverageManifestFetched && _coverageManifestCache !== null) return _coverageManifestCache;
+  const result = await fetchSitemapJsonWithRetry<Record<string, Record<string, CoverageEntry>>>(
+    '/v1/seo/coverage-manifest',
+    (d) => ((d as { entities?: Record<string, Record<string, CoverageEntry>> }).entities ?? {}),
+    'coverage-manifest',
+  );
+  if (result === null) return {};
+  _coverageManifestCache = result;
+  _coverageManifestFetched = true;
+  return _coverageManifestCache;
+}
+
 // Parte 13 Sprint 4: Cache for municípios slugs
 let _municipiosCache: string[] = [];
 let _municipiosFetched = false;
@@ -903,6 +921,9 @@ export default async function sitemap(props: { id: Promise<string> }): Promise<M
       const fornecedoresCnpjList = await fetchSitemapFornecedoresCnpj();
       const municipiosList = await fetchSitemapMunicipios();
       const itensList = await fetchSitemapItens();
+      // SEO-COVERAGE-MANIFEST-001: fetch manifest for coverage-gated entities
+      const coverageManifest = await fetchCoverageManifest();
+      const municipioCoverage = coverageManifest['municipio'] ?? {};
 
       // SEO-PLAYBOOK Onda 1: CNPJ pages from datalake (≥1 bid, ~4k-5k URLs)
       const cnpjRoutes: MetadataRoute.Sitemap = cnpjList.map((cnpj) => ({
@@ -929,12 +950,21 @@ export default async function sitemap(props: { id: Promise<string> }): Promise<M
       }));
 
       // Parte 13 Sprint 4: /municipios/{slug} — licitações por município (200 pré-renderizados)
-      const municipiosRoutes: MetadataRoute.Sitemap = municipiosList.map((slug) => ({
-        url: `${baseUrl}/municipios/${slug}`,
-        lastModified: today,
-        changeFrequency: 'daily' as const,
-        priority: 0.7,
-      }));
+      // SEO-COVERAGE-MANIFEST-001: filter by coverage status
+      //   empty → exclude (never had data)
+      //   historical_empty → include with priority 0.3
+      //   full / partial / unknown → include at priority 0.7
+      const municipiosRoutes: MetadataRoute.Sitemap = municipiosList
+        .filter((slug) => (municipioCoverage[slug]?.coverage_status ?? 'full') !== 'empty')
+        .map((slug) => {
+          const status = municipioCoverage[slug]?.coverage_status ?? 'full';
+          return {
+            url: `${baseUrl}/municipios/${slug}`,
+            lastModified: today,
+            changeFrequency: 'daily' as const,
+            priority: status === 'historical_empty' ? 0.3 : 0.7,
+          };
+        });
 
       // Parte 13 Sprint 6: /itens/{catmat} — benchmark por código CATMAT
       const itensRoutes: MetadataRoute.Sitemap = itensList.map((catmat) => ({
