@@ -143,8 +143,11 @@ async function fetchSitemapJsonWithRetry<T>(
 
     if (res.kind === 'service_unavailable') {
       if (attempt < maxRetries - 1) {
-        // Exponential backoff before retry: 1s, 2s, 4s, ...
-        const delayMs = Math.pow(2, attempt) * 1000;
+        // Exponential backoff before retry: 1s, 2s, 4s, ... with multiplicative jitter (0.7×–1.3×)
+        // Prevents thundering herd when multiple ISR workers restart simultaneously.
+        const baseDelay = Math.pow(2, attempt) * 1000;
+        const jitter = Math.random() * 0.6 + 0.7; // 0.7x to 1.3x
+        const delayMs = Math.round(baseDelay * jitter);
         await new Promise((resolve) => setTimeout(resolve, delayMs));
         continue;
       }

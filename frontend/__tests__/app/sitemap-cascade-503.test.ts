@@ -74,19 +74,20 @@ describe('fetchSitemapJsonWithRetry — 503 cascade fix (SEO-SITEMAP-CASCADE-001
   });
 
   it('503 exhausted after 3 attempts throws error (ISR preserves stale sitemap)', async () => {
-    // Backend returns 503 on all 3 attempts
+    // Import module BEFORE activating fake timers to avoid dynamic import freeze
+    const sitemap = await importFreshFetchHelper();
+
+    // Now set up fetch mock and start the sitemap call
     (global.fetch as jest.Mock).mockImplementation((url: string) => {
       if (url.includes('/health/live')) return makeHealthLiveOk();
       return make503Response();
     });
 
-    const sitemap = await importFreshFetchHelper();
-
     // The id:4 sitemap fetches cnpjs first; after 3×503 it should throw
     const sitemapPromise = sitemap({ id: Promise.resolve('4') });
 
     // Advance timers for exponential backoff: 1s + 2s between retries
-    jest.runAllTimers();
+    await jest.runAllTimersAsync();
 
     await expect(sitemapPromise).rejects.toThrow('sitemap_cnpjs_503_exhausted');
   });
@@ -120,6 +121,9 @@ describe('fetchSitemapJsonWithRetry — 503 cascade fix (SEO-SITEMAP-CASCADE-001
   });
 
   it('503 then 200+data → eventual success after backoff', async () => {
+    // Import module BEFORE activating fake timers to avoid dynamic import freeze
+    const sitemap = await importFreshFetchHelper();
+
     let cnpjsCallCount = 0;
     (global.fetch as jest.Mock).mockImplementation((url: string) => {
       if (url.includes('/health/live')) return makeHealthLiveOk();
@@ -136,9 +140,8 @@ describe('fetchSitemapJsonWithRetry — 503 cascade fix (SEO-SITEMAP-CASCADE-001
       return make200Response({});
     });
 
-    const sitemap = await importFreshFetchHelper();
     const sitemapPromise = sitemap({ id: Promise.resolve('4') });
-    jest.runAllTimers();
+    await jest.runAllTimersAsync();
 
     const result = await sitemapPromise;
     // Should succeed with the CNPJ data from second attempt
