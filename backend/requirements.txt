@@ -59,7 +59,7 @@ google-auth-httplib2==0.4.0        # HTTP transport for Google APIs
 # If workers SIGSEGV, the new version is not fork-safe. Keep --preload disabled (start.sh).
 # DEBT-018 SYS-028: Upgrade path evaluated. Pin >=46.0.5 to allow patch updates
 # while keeping fork-safety guarantee. Major upgrades require manual testing.
-cryptography>=46.0.6,<47.0.0       # CVE-2026-26007 + CVE-2026-34073 fix; 47.x unreleased (DEBT-SYS-002)
+cryptography>=47.0.0,<48.0.0       # CVE-2026-26007 + CVE-2026-34073 fix; 47.x unreleased (DEBT-SYS-002)
 
 # Transactional email (STORY-225)
 resend>=2.30.0,<3.0.0
