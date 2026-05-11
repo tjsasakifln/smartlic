@@ -947,10 +947,10 @@ export const BLOG_ARTICLES: BlogArticleMeta[] = [
   // GUIA-S2
   {
     slug: 'licitacoes-ti-software-2026',
-    title: 'Licitações de TI e Software [Abertas 2026] | SmartLic',
+    title: 'Licitações TI e Software [2026]: Como Vencer | SmartLic',
     h1: 'Editais abertos de TI e Software em 2026: filtre por UF e sub-setor',
     description:
-      'Editais abertos de TI, software, hardware e suporte técnico em 2026 com filtro por UF e sub-setor a partir de dados reais do PNCP. Veja oportunidades.',
+      'Como vencer licitações de TI e software em 2026: modalidades, atestados técnicos, margens e estratégias comprovadas. Editais filtrados por UF e sub-setor.',
     lastModified: '2026-05-08',
     category: 'Guias',
     tags: ['tecnologia', 'software', 'TI', 'licitações 2026', 'guia setorial'],
@@ -1078,10 +1078,10 @@ export const BLOG_ARTICLES: BlogArticleMeta[] = [
   // GUIA-T1
   {
     slug: 'como-participar-primeira-licitacao-2026',
-    title: 'Primeira Licitação Pública [Guia 2026] | SmartLic',
+    title: 'Primeira Licitação [2026]: Guia Passo a Passo | SmartLic',
     h1: 'Editais abertos e oportunidades de licitação por setor em 2026',
     description:
-      'Participe da sua primeira licitação pública em 2026 com este guia passo a passo: cadastro SICAF, escolha do edital e habilitação. Entenda em 5 minutos.',
+      'Guia completo para participar da sua primeira licitação em 2026: cadastro no SICAF, como escolher o edital certo e comprovar habilitação. Em 5 minutos.',
     category: 'Guias',
     tags: ['primeira licitação', 'guia iniciante', 'passo a passo', 'cadastro'],
     publishDate: '2026-04-04',
@@ -1140,10 +1140,10 @@ export const BLOG_ARTICLES: BlogArticleMeta[] = [
   // GUIA-T3
   {
     slug: 'pncp-guia-completo-empresas',
-    title: 'PNCP Guia Completo para Empresas [2026] | SmartLic',
+    title: 'PNCP para Empresas [2026]: Editais e Contratos | SmartLic',
     h1: 'Encontre editais, contratos e fornecedores públicos no PNCP',
     description:
-      'Encontre editais, contratos e fornecedores no PNCP em 2026 sem garimpar manualmente: filtre por setor, UF e modalidade — atualizado todo dia útil agora.',
+      'Aprenda a usar o PNCP para encontrar editais e contratos públicos em 2026: filtre por setor, UF e modalidade. Monitoramento automático, atualizado diariamente.',
     category: 'Guias',
     tags: ['PNCP', 'portal de contratações', 'busca de editais', 'monitoramento'],
     publishDate: '2026-04-04',
@@ -1421,10 +1421,10 @@ export const BLOG_ARTICLES: BlogArticleMeta[] = [
   // P7-07
   {
     slug: 'impugnacao-edital-quando-como-contestar',
-    title: 'Impugnação de Edital [2026]: Prazo e Modelo | SmartLic',
+    title: 'Impugnação de Edital [2026]: Quando Contestar | SmartLic',
     h1: 'Impugnação de Edital: Quando e Como Contestar',
     description:
-      'Impugne edital de licitação em 2026 com prazos legais, fundamentos válidos e modelo de petição pronto. Saiba quando vale contestar e quando não. 5 min.',
+      'Aprenda quando e como impugnar um edital de licitação em 2026: prazos legais, fundamentos válidos e modelo de petição pronto para copiar. Entenda em 5 min.',
     category: 'Guias',
     tags: ['impugnação', 'edital', 'recurso', 'contestação', 'prazos'],
     publishDate: '2026-04-19',
@@ -1874,10 +1874,10 @@ export const BLOG_ARTICLES: BlogArticleMeta[] = [
   // SEO-12.3.3 Art-01: como consultar contratos públicos PNCP
   {
     slug: 'como-consultar-contratos-publicos-pncp',
-    title: 'Consultar Contratos Públicos PNCP [2026] | SmartLic',
+    title: 'Consultar Contratos Públicos no PNCP [2026] | SmartLic',
     h1: 'Busque contratos públicos no PNCP por fornecedor, órgão ou objeto',
     description:
-      'Consulte contratos públicos por CNPJ, órgão ou objeto no PNCP em 2026: mais de 2 milhões de contratos reais com filtros prontos. Veja como em 3 minutos.',
+      'Veja como consultar contratos públicos no PNCP em 3 passos: busque por CNPJ, órgão ou objeto. Mais de 2 milhões de contratos com exportação gratuita em 2026.',
     category: 'Guias',
     tags: ['contratos públicos', 'PNCP', 'consultar contratos', 'fornecedores', 'inteligência de mercado'],
     lastModified: '2026-05-08',
@@ -2072,10 +2072,10 @@ export const BLOG_ARTICLES: BlogArticleMeta[] = [
   // SEO-12.3.3 Art-07: Subcontratação em licitações — contratos cluster
   {
     slug: 'subcontratacao-licitacoes-regras-lei-14133',
-    title: 'Subcontratação Licitações [2026]: Lei 14.133 | SmartLic',
+    title: 'Subcontratação em Licitações [2026]: Lei 14.133 | SmartLic',
     h1: 'Subcontratação em contratos públicos: limites, vedações e como aproveitar oportunidades',
     description:
-      'Regras de subcontratação em licitações públicas pela Lei 14.133 em 2026: limites, vedações, Art. 122 e responsabilidade. Veja como aproveitar em 4 min.',
+      'Entenda as regras de subcontratação em licitações pela Lei 14.133: limites legais, vedações e responsabilidade solidária. Como formalizar corretamente em 2026.',
     category: 'Guias',
     tags: [
       'subcontratação',
