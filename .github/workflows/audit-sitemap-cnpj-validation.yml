@@ -36,8 +36,14 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          # Collect SQL migrations changed in this PR, excluding rollback scripts
+          # (.down.sql) — those legitimately document the old pattern being removed.
+          CHANGED_MIGRATIONS=$(git diff --name-only origin/${{ github.base_ref }}...HEAD \
+            -- 'supabase/migrations/*.sql' 2>/dev/null \
+            | grep -v '\.down\.sql$' || true)
+          SCAN_TARGETS="backend/routes/sitemap*.py $CHANGED_MIGRATIONS"
           HITS=$(grep -rn 'length.*>= *11\|len.*>= *11' \
-            backend/routes/sitemap*.py supabase/migrations/*.sql 2>/dev/null \
+            $SCAN_TARGETS 2>/dev/null \
             | grep -i cnpj || true)
           if [ -n "$HITS" ]; then
             echo "::error::Found length >= 11 in CNPJ context — use is_valid_cnpj_format()"

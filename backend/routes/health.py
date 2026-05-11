@@ -19,6 +19,7 @@ from schemas.parity import (
     CacheHealthResponse,
     IncidentsResponse,
     PublicStatusResponse,
+    SitemapHealthResponse,
     SourcesHealthMapResponse,
     SystemHealthResponse,
     UptimeHistoryResponse,
@@ -305,7 +306,7 @@ _SITEMAP_MVS = [
 ]
 
 
-@router.get("/health/sitemap")
+@router.get("/health/sitemap", response_model=SitemapHealthResponse)
 async def sitemap_health():
     """SEO-SITEMAP-TELEMETRY-001: Health check for all sitemap materialized views.
 
