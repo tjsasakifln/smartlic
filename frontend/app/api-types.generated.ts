@@ -3345,6 +3345,30 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/health/sitemap": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Sitemap Health
+         * @description SEO-SITEMAP-TELEMETRY-001: Health check for all sitemap materialized views.
+         *
+         *     Returns per-MV status (ok/empty/error) and overall status (ok/degraded).
+         *     Used by Sentry monitors and Railway probes to detect empty sitemap
+         *     responses before they reach GSC.
+         */
+        get: operations["sitemap_health_v1_health_sitemap_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/health/sources": {
         parameters: {
             query?: never;
@@ -11368,6 +11392,20 @@ export interface components {
             /** Updated At */
             updated_at: string;
         };
+        /**
+         * SitemapHealthResponse
+         * @description Response for GET /health/sitemap endpoint (SEO-SITEMAP-TELEMETRY-001).
+         */
+        SitemapHealthResponse: {
+            /** Checks */
+            checks: {
+                [key: string]: unknown;
+            };
+            /** Status */
+            status: string;
+            /** Timestamp */
+            timestamp: string;
+        };
         /** SitemapItensResponse */
         SitemapItensResponse: {
             /** Catmats */
@@ -16692,6 +16730,26 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["CacheHealthResponse"];
+                };
+            };
+        };
+    };
+    sitemap_health_v1_health_sitemap_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SitemapHealthResponse"];
                 };
             };
         };

@@ -13,7 +13,9 @@ import time
 from datetime import datetime, timezone
 
 from fastapi import APIRouter
+from fastapi.responses import JSONResponse
 
+from schemas.health import MvCheckResult, SitemapHealthResponse
 from schemas.parity import (
     BackgroundTasksHealthResponse,
     CacheHealthResponse,
@@ -23,6 +25,7 @@ from schemas.parity import (
     SystemHealthResponse,
     UptimeHistoryResponse,
 )
+from supabase_client import get_supabase, sb_execute
 
 logger = logging.getLogger(__name__)
 
@@ -296,3 +299,51 @@ async def _check_cache_degradation() -> dict:
             "priority_distribution": {"hot": 0, "warm": 0, "cold": 0},
             "error": str(e)[:200],
         }
+
+
+_SITEMAP_MVS = [
+    "mv_sitemap_cnpjs",
+    "mv_sitemap_orgaos",
+    "mv_sitemap_fornecedores",
+    "mv_sitemap_municipios",
+]
+
+
+@router.get("/health/sitemap", response_model=SitemapHealthResponse)
+async def sitemap_health():
+    """SEO-SITEMAP-TELEMETRY-001: Health check for all sitemap materialized views.
+
+    Returns per-MV status (ok/empty/error) and overall status (ok/degraded).
+    Used by Sentry monitors and Railway probes to detect empty sitemap
+    responses before they reach GSC.
+    """
+    sb = get_supabase()
+
+    checks: dict = {}
+    for mv_name in _SITEMAP_MVS:
+        try:
+            resp = await sb_execute(
+                sb.table(mv_name).select("*", count="exact").limit(0)
+            )
+            mv_count = resp.count if hasattr(resp, 'count') and resp.count is not None else len(resp.data or [])
+            checks[mv_name] = {
+                "status": "ok" if mv_count and mv_count > 0 else "empty",
+                "count": mv_count,
+            }
+        except Exception as e:
+            error_msg = str(e)[:200]
+            checks[mv_name] = {
+                "status": "error",
+                "count": 0,
+                "error": error_msg,
+            }
+
+    all_ok = all(v["status"] == "ok" for v in checks.values())
+    return JSONResponse(
+        content={
+            "status": "ok" if all_ok else "degraded",
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "checks": checks,
+        },
+        status_code=200 if all_ok else 503,
+    )
