@@ -5,13 +5,13 @@ import FundadoresClient from './FundadoresClient';
 export const metadata: Metadata = {
   title: 'SmartLic Plano Fundadores — Pague R$997 uma vez. Use pra sempre.',
   description:
-    '50 vagas. R$997 pagamento único. Acesso vitalício à plataforma SmartLic — sem mensalidade. 60 dias de garantia incondicional. Encerra 30/06/2026.',
+    'Vagas limitadas. R$997 pagamento único. Acesso vitalício à plataforma SmartLic — sem mensalidade. 60 dias de garantia incondicional. Encerra 30/06/2026 às 23:59.',
   robots: { index: true, follow: true },
   alternates: { canonical: 'https://smartlic.tech/fundadores' },
   openGraph: {
     title: 'SmartLic Plano Fundadores — Pague R$997 uma vez. Use pra sempre.',
     description:
-      '50 vagas. R$997 pagamento único. Acesso vitalício, sem mensalidade. 60 dias de garantia. Encerra 30/06/2026.',
+      'Vagas limitadas. R$997 pagamento único. Acesso vitalício, sem mensalidade. 60 dias de garantia. Encerra 30/06/2026 às 23:59.',
     url: 'https://smartlic.tech/fundadores',
     siteName: 'SmartLic',
     locale: 'pt_BR',
@@ -56,7 +56,7 @@ const jsonLdFaq = {
       name: 'Vocês não vão começar a cobrar mensalidade depois?',
       acceptedAnswer: {
         '@type': 'Answer',
-        text: 'Não para você. Quem entra como fundador paga R$997 uma vez e nunca mais — está escrito no contrato. Os 50 fundadores ficam vitalícios independentemente do que aconteça com o pricing depois de 30/06/2026. Quem entrar pelo plano regular a partir de julho/2026, sim, paga mensal.',
+        text: 'Não para você. Quem entra como fundador paga R$997 uma vez e nunca mais — está escrito no contrato. Os fundadores ficam vitalícios independentemente do que aconteça com o pricing depois de 30/06/2026. Quem entrar pelo plano regular a partir de julho/2026, sim, paga mensal.',
       },
     },
     {
@@ -72,7 +72,7 @@ const jsonLdFaq = {
       name: 'Por que essa oferta existe? Onde está a pegadinha?',
       acceptedAnswer: {
         '@type': 'Answer',
-        text: 'Sem pegadinha. 50 fundadores × R$997 = R$49.850 — aproximadamente 6 meses de runway para terminar o roadmap (alertas WhatsApp, relatório PDF de viabilidade, integração com proposta comercial). Em troca, os 50 ganham acesso vitalício e influência direta no produto. Pre-revenue, runway é tudo.',
+        text: 'Sem pegadinha. Vagas limitadas × R$997 — aproximadamente 6 meses de runway para terminar o roadmap (alertas WhatsApp, relatório PDF de viabilidade, integração com proposta comercial). Em troca, os fundadores ganham acesso vitalício e influência direta no produto. Pre-revenue, runway é tudo.',
       },
     },
   ],

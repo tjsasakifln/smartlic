@@ -99,15 +99,15 @@ export default function FundadoresClient() {
       <section className="bg-slate-900 text-white">
         <div className="mx-auto max-w-3xl px-4 py-16">
           <p className="text-sm uppercase tracking-widest text-blue-400 font-semibold mb-3">
-            Plano Fundadores · 50 vagas · Encerra 30/06/2026
+            Plano Fundadores · Vagas limitadas · Encerra 30/06/2026 às 23:59
           </p>
           <h1 className="text-3xl sm:text-5xl font-bold leading-tight mb-4">
             Pague {price} uma vez. Use o SmartLic pra sempre.
           </h1>
           <p className="text-lg sm:text-xl text-slate-300 mb-8">
-            50 empresas. {price} pagamento único. Acesso vitalício a tudo que existe e tudo
-            que vier. Sem mensalidade. Encerra 30 de junho de 2026 — ou quando as 50 vagas
-            acabarem (faltam {seatsRemainingText}).
+            {price} pagamento único. Acesso vitalício a tudo que existe e tudo
+            que vier. Sem mensalidade. Encerra 30 de junho de 2026 às 23:59 — vagas limitadas
+            (faltam {seatsRemainingText}).
           </p>
 
           <div className="mb-8">
@@ -155,7 +155,7 @@ export default function FundadoresClient() {
           </h2>
           <p className="text-slate-700">
             <strong className="text-blue-700 text-2xl">{seatsRemainingText}</strong>{' '}
-            <span className="text-slate-600">de 50 vagas restantes.</span>
+            <span className="text-slate-600">vagas restantes.</span>
           </p>
           <p className="text-sm text-slate-500 mt-2">
             Contador atualiza a cada minuto direto do banco — não é counter de marketing.

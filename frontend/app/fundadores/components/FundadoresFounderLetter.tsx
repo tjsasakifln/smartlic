@@ -49,8 +49,10 @@ export default function FundadoresFounderLetter() {
           Empresário B2G pagando salário de gente para ler PDF.
         </p>
         <p className="mt-4">
-          Saí em 2025 e construí o SmartLic com a CONFENGE. Hoje a plataforma indexa{' '}
-          <strong>2.187.430 contratos públicos</strong>, monitora{' '}
+          Continuo no serviço público — e é justamente esse posto que me dá os sinais
+          mais honestos para aprimorar o sistema. Enquanto isso, construí o SmartLic com
+          a CONFENGE. Hoje a plataforma indexa{' '}
+          <strong>mais de 3,4 milhões de contratos públicos</strong>, monitora{' '}
           <strong>27 UFs em tempo real</strong>, classifica em{' '}
           <strong>20 setores</strong> com IA, e está em produção (Railway + Supabase,
           não é demo).
@@ -60,10 +62,10 @@ export default function FundadoresFounderLetter() {
           R$397/mês, e tentar bootstrappar do zero. Não vou fazer isso.
         </p>
         <p className="mt-4">
-          Estou abrindo <strong>50 vagas</strong> de acesso vitalício por R$997
-          one-time. Em troca de quê? De runway honesto pros próximos 6 meses (50 ×
-          R$997 = R$49.850, dá pra terminar o roadmap sem captar) e de 50 parceiros
-          que vão usar de verdade, reclamar quando algo quebrar, e me dizer o que falta.
+          Estou abrindo <strong>vagas limitadas</strong> de acesso vitalício por R$997
+          one-time. Em troca de quê? De runway honesto pros próximos 6 meses e de
+          parceiros que vão usar de verdade, reclamar quando algo quebrar, e me dizer o
+          que falta.
         </p>
         <p className="mt-4">
           Não é &quot;early bird&quot; de marketing. É um pacto: você banca a próxima
