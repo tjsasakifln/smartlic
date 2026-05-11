@@ -409,7 +409,7 @@ export const QUESTIONS: Question[] = [
   },
   {
     slug: 'prazo-publicacao-edital',
-    title: 'Prazo Publicação de Edital [Lei 14.133/2026] | SmartLic',
+    title: 'Prazo de Publicação de Edital [2026]: Lei 14.133 por Modalidade | SmartLic',
     h1: 'Prazos mínimos de publicação de edital por modalidade licitatória',
     category: 'prazos-cronogramas',
     answer:
@@ -768,7 +768,7 @@ export const QUESTIONS: Question[] = [
   },
   {
     slug: 'qualificacao-tecnica-lei-14133',
-    title: 'Qualificação Técnica Lei 14.133 [Guia 2026] | SmartLic',
+    title: 'Qualificação Técnica na Lei 14.133 [2026]: O Que Pode Ser Exigido | SmartLic',
     h1: 'O que a Lei 14.133 permite exigir como qualificação técnica em licitações',
     category: 'documentacao-habilitacao',
     answer:
@@ -1266,7 +1266,7 @@ export const QUESTIONS: Question[] = [
   },
   {
     slug: 'indice-reajuste-contrato-publico',
-    title: 'Reajuste Contrato Público [2026]: IPCA ou INPC | SmartLic',
+    title: 'Índice de Reajuste de Contrato Público [2026]: IPCA x INPC | SmartLic',
     h1: 'Como calcular o reajuste do seu contrato público: IPCA, INPC e IGP-M',
     category: 'precos-propostas',
     answer:
@@ -1599,7 +1599,7 @@ export const QUESTIONS: Question[] = [
   /* ================================================================ */
   {
     slug: 'pncp-o-que-e-como-usar',
-    title: 'PNCP: O Que É e Como Buscar Editais [2026] | SmartLic',
+    title: 'PNCP: O Que É e Como Usar para Buscar Editais [2026] | SmartLic',
     h1: 'O que é o PNCP e como consultar licitações?',
     category: 'tecnologia-sistemas',
     answer:

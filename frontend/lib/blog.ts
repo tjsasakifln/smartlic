@@ -914,7 +914,7 @@ export const BLOG_ARTICLES: BlogArticleMeta[] = [
   // GUIA-S1
   {
     slug: 'licitacoes-engenharia-2026',
-    title: 'Licitações de Engenharia 2026: obras, projetos e serviços técnicos por estado',
+    title: 'Licitações de Engenharia [2026]: Obras e Serviços por Estado | SmartLic',
     h1: 'Editais abertos de engenharia em 2026: obras, projetos e serviços por estado',
     description:
       'Editais abertos de obras, projetos de engenharia, manutenção predial e consultoria técnica. Filtre por estado, modalidade e sub-categoria.',
@@ -947,10 +947,10 @@ export const BLOG_ARTICLES: BlogArticleMeta[] = [
   // GUIA-S2
   {
     slug: 'licitacoes-ti-software-2026',
-    title: 'Licitações TI e Software [2026]: Como Vencer | SmartLic',
+    title: 'Licitações de TI e Software [2026]: Como Vencer e Margens | SmartLic',
     h1: 'Editais abertos de TI e Software em 2026: filtre por UF e sub-setor',
     description:
-      'Como vencer licitações de TI e software em 2026: modalidades, atestados técnicos, margens e estratégias comprovadas. Editais filtrados por UF e sub-setor.',
+      'Modalidades, atestados técnicos, margens reais e estratégias comprovadas para vencer licitações de TI e software em 2026. Filtre por UF e sub-setor.',
     lastModified: '2026-05-08',
     category: 'Guias',
     tags: ['tecnologia', 'software', 'TI', 'licitações 2026', 'guia setorial'],
@@ -980,7 +980,7 @@ export const BLOG_ARTICLES: BlogArticleMeta[] = [
   // GUIA-S3
   {
     slug: 'licitacoes-saude-2026',
-    title: 'Licitações de Saúde 2026: editais abertos de medicamentos, equipamentos e serviços',
+    title: 'Licitações de Saúde [2026]: Editais de Medicamentos e Equipamentos | SmartLic',
     h1: 'Editais abertos de saúde em 2026: medicamentos, equipamentos e serviços hospitalares',
     description:
       'Consulte editais abertos na área da saúde: medicamentos, insumos, equipamentos e serviços hospitalares por UF. Dados reais do PNCP.',
@@ -1013,7 +1013,7 @@ export const BLOG_ARTICLES: BlogArticleMeta[] = [
   // GUIA-S4
   {
     slug: 'licitacoes-limpeza-facilities-2026',
-    title: 'Licitações de Limpeza e Facilities 2026 — Guia Completo',
+    title: 'Licitações de Limpeza e Facilities [2026]: Guia Completo | SmartLic',
     description:
       'Guia definitivo sobre licitações de limpeza, conservação e facilities management em 2026: planilha de custos, convenção coletiva, BDI e requisitos de habilitação.',
     category: 'Guias',
@@ -1043,7 +1043,7 @@ export const BLOG_ARTICLES: BlogArticleMeta[] = [
   // GUIA-S5
   {
     slug: 'licitacoes-alimentacao-2026',
-    title: 'Licitações de Alimentação 2026 — Guia Completo',
+    title: 'Licitações de Alimentação [2026]: Guia Completo para Fornecedores | SmartLic',
     description:
       'Guia completo sobre licitações de alimentação em 2026: merenda escolar, refeições hospitalares, PNAE, atas de registro de preço e logística de distribuição.',
     category: 'Guias',
@@ -1078,10 +1078,10 @@ export const BLOG_ARTICLES: BlogArticleMeta[] = [
   // GUIA-T1
   {
     slug: 'como-participar-primeira-licitacao-2026',
-    title: 'Primeira Licitação [2026]: Guia Passo a Passo | SmartLic',
+    title: 'Como Participar da Primeira Licitação [2026]: Guia Completo | SmartLic',
     h1: 'Editais abertos e oportunidades de licitação por setor em 2026',
     description:
-      'Guia completo para participar da sua primeira licitação em 2026: cadastro no SICAF, como escolher o edital certo e comprovar habilitação. Em 5 minutos.',
+      'Cadastro no SICAF, escolha do edital certo e comprovação de habilitação explicados em 5 minutos. Guia definitivo para estreantes em licitação pública.',
     category: 'Guias',
     tags: ['primeira licitação', 'guia iniciante', 'passo a passo', 'cadastro'],
     publishDate: '2026-04-04',
@@ -1110,7 +1110,7 @@ export const BLOG_ARTICLES: BlogArticleMeta[] = [
   // GUIA-T2
   {
     slug: 'lei-14133-guia-fornecedores',
-    title: 'Lei 14.133/2021: O que Mudou para Fornecedores — Guia Prático',
+    title: 'Lei 14.133 Guia para Fornecedores [2026]: O Que Mudou | SmartLic',
     description:
       'Guia prático da Nova Lei de Licitações (14.133/2021) para fornecedores: novas modalidades, prazos, sanções, diálogo competitivo e o que muda na prática.',
     category: 'Guias',
@@ -1140,10 +1140,10 @@ export const BLOG_ARTICLES: BlogArticleMeta[] = [
   // GUIA-T3
   {
     slug: 'pncp-guia-completo-empresas',
-    title: 'PNCP para Empresas [2026]: Editais e Contratos | SmartLic',
+    title: 'PNCP Guia Completo para Empresas [Atualizado 2026] | SmartLic',
     h1: 'Encontre editais, contratos e fornecedores públicos no PNCP',
     description:
-      'Aprenda a usar o PNCP para encontrar editais e contratos públicos em 2026: filtre por setor, UF e modalidade. Monitoramento automático, atualizado diariamente.',
+      'Domine o PNCP em 2026: encontre editais, contratos e fornecedores em um só lugar. Filtros por setor, UF e modalidade com monitoramento automático diário.',
     category: 'Guias',
     tags: ['PNCP', 'portal de contratações', 'busca de editais', 'monitoramento'],
     publishDate: '2026-04-04',
@@ -1177,7 +1177,7 @@ export const BLOG_ARTICLES: BlogArticleMeta[] = [
   // GUIA-T4
   {
     slug: 'inteligencia-artificial-licitacoes-como-funciona',
-    title: 'Inteligência Artificial em Licitações: Como Funciona na Prática',
+    title: 'IA em Licitações [2026]: Como Funciona na Prática | SmartLic',
     description:
       'Como a inteligência artificial está transformando a análise de editais: classificação automática, análise de viabilidade, e o futuro da participação em licitações.',
     category: 'Guias',
@@ -1207,7 +1207,7 @@ export const BLOG_ARTICLES: BlogArticleMeta[] = [
   // GUIA-T5
   {
     slug: 'analise-viabilidade-editais-guia',
-    title: 'Análise de Viabilidade de Editais: O que Considerar antes de Participar',
+    title: 'Análise de Viabilidade de Editais [2026]: O Que Considerar | SmartLic',
     description:
       'Os 4 fatores objetivos para avaliar a viabilidade de um edital antes de investir recursos: modalidade, prazo, valor estimado e localização geográfica.',
     category: 'Guias',
@@ -1241,7 +1241,7 @@ export const BLOG_ARTICLES: BlogArticleMeta[] = [
   // P7-01
   {
     slug: 'checklist-habilitacao-licitacao-2026',
-    title: 'Checklist Completo de Habilitação para Licitação em 2026 (Lei 14.133)',
+    title: 'Checklist de Habilitação para Licitação [2026]: Lei 14.133 | SmartLic',
     description:
       'Lista completa dos documentos de habilitação exigidos na Lei 14.133/2021: jurídica, fiscal, técnica, econômico-financeira e trabalhista — com prazos e armadilhas.',
     category: 'Guias',
@@ -1271,7 +1271,7 @@ export const BLOG_ARTICLES: BlogArticleMeta[] = [
   // P7-02
   {
     slug: 'pregao-eletronico-guia-passo-a-passo',
-    title: 'Pregão Eletrônico: Guia Passo a Passo para Primeira Participação',
+    title: 'Pregão Eletrônico [2026]: Guia Passo a Passo para Iniciantes | SmartLic',
     description:
       'Do cadastro à disputa de lances: guia prático com os 10 passos para participar do primeiro pregão eletrônico em 2026 — tempos, portais e erros fatais.',
     category: 'Guias',
@@ -1421,10 +1421,10 @@ export const BLOG_ARTICLES: BlogArticleMeta[] = [
   // P7-07
   {
     slug: 'impugnacao-edital-quando-como-contestar',
-    title: 'Impugnação de Edital [2026]: Quando Contestar | SmartLic',
+    title: 'Impugnação de Edital [2026]: Quando e Como Contestar | SmartLic',
     h1: 'Impugnação de Edital: Quando e Como Contestar',
     description:
-      'Aprenda quando e como impugnar um edital de licitação em 2026: prazos legais, fundamentos válidos e modelo de petição pronto para copiar. Entenda em 5 min.',
+      'Prazos legais, fundamentos válidos e modelo de petição pronto para copiar. Saiba quando e como impugnar um edital de licitação em 5 minutos.',
     category: 'Guias',
     tags: ['impugnação', 'edital', 'recurso', 'contestação', 'prazos'],
     publishDate: '2026-04-19',
@@ -1874,10 +1874,10 @@ export const BLOG_ARTICLES: BlogArticleMeta[] = [
   // SEO-12.3.3 Art-01: como consultar contratos públicos PNCP
   {
     slug: 'como-consultar-contratos-publicos-pncp',
-    title: 'Consultar Contratos Públicos no PNCP [2026] | SmartLic',
+    title: 'Como Consultar Contratos Públicos no PNCP [2026] | SmartLic',
     h1: 'Busque contratos públicos no PNCP por fornecedor, órgão ou objeto',
     description:
-      'Veja como consultar contratos públicos no PNCP em 3 passos: busque por CNPJ, órgão ou objeto. Mais de 2 milhões de contratos com exportação gratuita em 2026.',
+      'Busque contratos públicos por CNPJ, órgão ou objeto no PNCP em 3 passos. Base de 2 milhões de contratos atualizados com exportação gratuita em 2026.',
     category: 'Guias',
     tags: ['contratos públicos', 'PNCP', 'consultar contratos', 'fornecedores', 'inteligência de mercado'],
     lastModified: '2026-05-08',
@@ -1909,7 +1909,7 @@ export const BLOG_ARTICLES: BlogArticleMeta[] = [
   // SEO-12.3.3 Art-02: contratos públicos por estado
   {
     slug: 'contratos-publicos-por-estado-ranking-gastos',
-    title: 'Ranking: Quais Estados Mais Gastam em Contratos Públicos',
+    title: 'Ranking de Gastos em Contratos Públicos por Estado [2026] | SmartLic',
     description:
       'SP, RJ, MG ou DF? Veja gastos por estado, setores dominantes e onde há mais oportunidade para fornecedores B2G que querem expandir região.',
     category: 'Guias',
@@ -2072,10 +2072,10 @@ export const BLOG_ARTICLES: BlogArticleMeta[] = [
   // SEO-12.3.3 Art-07: Subcontratação em licitações — contratos cluster
   {
     slug: 'subcontratacao-licitacoes-regras-lei-14133',
-    title: 'Subcontratação em Licitações [2026]: Lei 14.133 | SmartLic',
+    title: 'Subcontratação em Licitações [2026]: Regras da Lei 14.133 | SmartLic',
     h1: 'Subcontratação em contratos públicos: limites, vedações e como aproveitar oportunidades',
     description:
-      'Entenda as regras de subcontratação em licitações pela Lei 14.133: limites legais, vedações e responsabilidade solidária. Como formalizar corretamente em 2026.',
+      'Limites legais, vedações e responsabilidade solidária na subcontratação pela Lei 14.133. Veja como formalizar corretamente e evitar penalidades em 2026.',
     category: 'Guias',
     tags: [
       'subcontratação',
