@@ -245,6 +245,7 @@ async def sitemap_contratos_orgao_indexable(response: Response):
             return SitemapContratosOrgaoResponse(**data)
         del _contratos_orgao_cache[key]
 
+    _fresh_fetch = True
     try:
         data = await _run_with_budget(
             asyncio.to_thread(_fetch_contratos_orgao_indexable),
@@ -254,35 +255,38 @@ async def sitemap_contratos_orgao_indexable(response: Response):
         )
         _contratos_orgao_cache[key] = (data, time.time(), _CACHE_TTL_SECONDS)
     except asyncio.TimeoutError:
-        logger.warning(
-            "sitemap_contratos_orgao_indexable: budget %.0fs exceeded — empty negative cache",
+        logger.error(
+            "sitemap_contratos_orgao_indexable: budget %.0fs exceeded — returning 503 (not caching)",
             _BUDGET_S,
         )
         sentry_sdk.capture_message('sitemap_source_timeout', level='warning',
             tags={'endpoint': 'contratos-orgao-indexable', 'outcome': 'timeout'})
-        data = _empty_orgaos_response()
-        _contratos_orgao_cache[key] = (data, time.time(), _NEGATIVE_CACHE_TTL_SECONDS)
+        return JSONResponse(
+            status_code=503,
+            content={"detail": "sitemap_source_timeout"},
+            headers={"Retry-After": "30"},
+        )
     except Exception as exc:
         logger.error("sitemap_contratos_orgao_indexable unexpected error: %s", exc)
         data = _empty_orgaos_response()
         _contratos_orgao_cache[key] = (data, time.time(), _NEGATIVE_CACHE_TTL_SECONDS)
 
-    contratos_orgao_list = data.get("orgaos", [])
-    if len(contratos_orgao_list) == 0:
+    contratos_list = data.get("orgaos", [])
+    if _fresh_fetch and len(contratos_list) == 0:
         try:
             from supabase_client import get_supabase, sb_execute
             sb = get_supabase()
             resp = await sb_execute(
-                sb.table("pncp_supplier_contracts").select("orgao_cnpj", count="exact").neq("orgao_cnpj", "").not_.is_("orgao_cnpj", "null").limit(0)
+                sb.table("pncp_supplier_contracts").select("id", count="exact").limit(0)
             )
-            mv_count = resp.count if hasattr(resp, 'count') and resp.count is not None else 0
-            if mv_count and mv_count > 0:
+            source_count = resp.count if hasattr(resp, 'count') and resp.count is not None else 0
+            if source_count and source_count > 0:
                 sentry_sdk.capture_message('sitemap_empty_despite_data', level='error',
-                    tags={'endpoint': 'contratos-orgao-indexable', 'source_count': mv_count})
+                    tags={'endpoint': 'contratos-orgao-indexable', 'source_count': source_count})
         except Exception:
             pass
 
-    record_sitemap_count("contratos-orgao-indexable", len(contratos_orgao_list))
+    record_sitemap_count("contratos-orgao-indexable", len(contratos_list))
     return SitemapContratosOrgaoResponse(**data)
 
 
