@@ -31,28 +31,27 @@ jest.mock('next/link', () => {
 describe('HeroSection', () => {
   // ---- COPY-LANDING-004 (#1003): Beachhead anti-assessor + trust signals 2026 ----
 
-  it('renders V1 anti-assessor headline (COPY-LANDING-004)', () => {
+  it('renders SEO-aware hybrid headline: "O jeito mais rápido de encontrar editais certos" (COPY-COP-002)', () => {
     render(<HeroSection />);
     const headline = screen.getByTestId('hero-headline');
     expect(headline).toHaveTextContent(
-      /Pare de pagar R\$3\.000\/mês ao assessor que copia o PNCP\./i
+      /O jeito mais rápido de encontrar editais certos para sua empresa\./i
     );
   });
 
-  it('renders sub with mensal + Fundadores price anchor (COPY-LANDING-004)', () => {
+  it('renders benefit-driven subheadline: filtragem inteligente, elimina ruído (COPY-COP-002)', () => {
     render(<HeroSection />);
     const sub = screen.getByTestId('hero-subheadline');
-    expect(sub).toHaveTextContent(/SmartLic lê o edital, mapeia o concorrente/i);
-    expect(sub).toHaveTextContent(/R\$297\/mês/i);
-    expect(sub).toHaveTextContent(/R\$997 vitalício/i);
-    expect(sub).toHaveTextContent(/não R\$3\.000 por PDF no WhatsApp/i);
+    expect(sub).toHaveTextContent(
+      /Filtragem inteligente em 27 estados\. Elimina o ruído\. Mostra onde você tem chance real\./i
+    );
   });
 
-  it('renders primary CTA "Testar 14 dias grátis" with sub "Sem cartão" (COPY-LANDING-004)', () => {
+  it('renders primary CTA "Ver oportunidades do meu setor" with sub "Sem cartão" (COPY-COP-002)', () => {
     render(<HeroSection />);
     const primaryCTA = screen.getByTestId('hero-cta-primary');
     expect(primaryCTA).toHaveAttribute('href', '/signup?source=hero-primary');
-    expect(primaryCTA).toHaveTextContent(/Testar 14 dias grátis/i);
+    expect(primaryCTA).toHaveTextContent(/Ver oportunidades do meu setor/i);
     expect(screen.getByTestId('hero-cta-primary-subtext')).toHaveTextContent(
       /Sem cartão\. Cancele em 1 clique\./i
     );

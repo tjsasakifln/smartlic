@@ -8,6 +8,7 @@ import { GradientButton } from '@/app/components/ui/GradientButton';
 import { useScrollAnimation } from '@/lib/animations';
 import { fadeInUp, staggerContainer } from '@/lib/animations';
 import { hero } from '@/lib/copy/valueProps';
+import { trackCTAClick } from '@/lib/analytics-events';
 import HeroFounderStrip from './HeroFounderStrip';
 import HeroTrustSignals from './HeroTrustSignals';
 
@@ -72,7 +73,19 @@ export default function HeroSection({ className = '' }: HeroSectionProps) {
       >
         {/* Left column — text content */}
         <div className="flex-1 text-center lg:text-left max-w-xl lg:max-w-none">
-          {/* COPY-LANDING-004: Headline anti-assessor (V1) */}
+          {/* COPY-COP-004 (#1125): Beta badge — transparency badge before headline */}
+          <motion.div
+            className="inline-flex items-center gap-1.5 rounded-full border border-amber-300/50 bg-amber-50 dark:bg-amber-900/20 px-3 py-1 mb-4"
+            variants={fadeInUp}
+            data-testid="hero-beta-badge"
+          >
+            <span className="w-2 h-2 rounded-full bg-amber-400" />
+            <span className="text-xs font-semibold text-amber-700 dark:text-amber-300 tracking-wide uppercase">
+              Beta
+            </span>
+          </motion.div>
+
+          {/* COPY-COP-002: Variante C — híbrida SEO-aware */}
           <motion.h1
             className="
               text-4xl sm:text-5xl lg:text-6xl
@@ -85,14 +98,14 @@ export default function HeroSection({ className = '' }: HeroSectionProps) {
             data-testid="hero-headline"
           >
             <span className="text-ink">
-              Pare de pagar R$3.000/mês ao assessor
+              O jeito mais rápido de encontrar
             </span>{' '}
             <span className="text-gradient">
-              que copia o PNCP.
+              editais certos para sua empresa.
             </span>
           </motion.h1>
 
-          {/* COPY-LANDING-004: Sub com ancoragem de preço (mensal + Fundadores vitalício) */}
+          {/* COPY-COP-002: Subtítulo — filtragem inteligente, elimina ruído */}
           <motion.p
             className="
               text-lg sm:text-xl
@@ -106,8 +119,8 @@ export default function HeroSection({ className = '' }: HeroSectionProps) {
             variants={fadeInUp}
             data-testid="hero-subheadline"
           >
-            SmartLic lê o edital, mapeia o concorrente e calcula a chance real.
-            R$297/mês (anual) ou R$997 vitalício — não R$3.000 por PDF no WhatsApp.
+            Filtragem inteligente em 27 estados. Elimina o ruído.
+            Mostra onde você tem chance real.
           </motion.p>
 
           {/* CTA Buttons — AC5: Primary CTA visible above the fold */}
@@ -116,7 +129,18 @@ export default function HeroSection({ className = '' }: HeroSectionProps) {
             variants={fadeInUp}
           >
             <div className="flex flex-col items-center lg:items-start gap-1">
-              <Link href={hero.cta.primaryHref} data-testid="hero-cta-primary">
+              <Link
+                href={hero.cta.primaryHref}
+                data-testid="hero-cta-primary"
+                onClick={() =>
+                  trackCTAClick({
+                    label: 'hero-primary',
+                    source: 'hero',
+                    destination: hero.cta.primaryHref,
+                    cta_type: 'self-service',
+                  })
+                }
+              >
                 <GradientButton
                   variant="primary"
                   size="lg"
@@ -142,6 +166,15 @@ export default function HeroSection({ className = '' }: HeroSectionProps) {
                 {hero.cta.secondary}
               </GradientButton>
             </Link>
+          </motion.div>
+
+          {/* COPY-COP-003: Trust stats line — dados reais do datalink */}
+          <motion.div
+            className="mt-6 text-sm text-ink-muted text-center lg:text-left"
+            variants={fadeInUp}
+            data-testid="hero-trust-stats"
+          >
+            +2 milh&otilde;es de contratos monitorados &bull; 27 estados &bull; 15 setores
           </motion.div>
 
           <HeroFounderStrip />

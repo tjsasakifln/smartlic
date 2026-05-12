@@ -4,6 +4,7 @@ import { motion } from 'framer-motion';
 import { GlassCard } from './ui/GlassCard';
 import { BentoGrid, BentoGridItem } from './ui/BentoGrid';
 import { GradientButton } from './ui/GradientButton';
+import { Zap, Target, Globe, ShieldCheck } from '@/lib/icons';
 import { useScrollAnimation, fadeInUp, staggerContainer } from '@/lib/animations';
 import { valueProps } from '@/lib/copy/valueProps';
 
@@ -20,12 +21,25 @@ import { valueProps } from '@/lib/copy/valueProps';
 export default function ValuePropSection() {
   const { ref, isVisible } = useScrollAnimation(0.1);
 
-  const props = [
-    { ...valueProps.prioritization, size: 'medium' as const }, // 2x1
-    { ...valueProps.analysis, size: 'medium' as const },       // 2x1
-    { ...valueProps.uncertainty, size: 'medium' as const },    // 2x1
-    { ...valueProps.coverage, size: 'medium' as const },       // 2x1
+  const propIcons: Record<string, React.ComponentType<React.SVGProps<SVGSVGElement>>> = {
+    timeSaved: Zap,
+    relevanceRate: Target,
+    nationalCoverage: Globe,
+    zeroWaste: ShieldCheck,
+  };
+
+  const propOrder: (keyof typeof valueProps)[] = [
+    'timeSaved',
+    'relevanceRate',
+    'nationalCoverage',
+    'zeroWaste',
   ];
+
+  const props = propOrder.map((key) => ({
+    ...valueProps[key],
+    icon: propIcons[key],
+    size: 'medium' as const,
+  }));
 
   return (
     <section ref={ref} className="py-20 bg-surface-0" id="value-props">
@@ -41,7 +55,7 @@ export default function ValuePropSection() {
             O que muda no seu resultado
           </h2>
           <p className="text-lg text-ink-secondary max-w-3xl mx-auto">
-            Cada funcionalidade existe para proteger seu tempo e direcionar seu esforço para editais com chance real de retorno.
+            N&uacute;meros reais do nosso datalake de contratos p&uacute;blicos.
           </p>
         </motion.div>
 
@@ -78,16 +92,11 @@ export default function ValuePropSection() {
 
                     {/* Short Description */}
                     <p className="text-sm text-ink-secondary mb-4 font-medium">
-                      {prop.shortDescription}
-                    </p>
-
-                    {/* Long Description */}
-                    <p className="text-sm text-ink-secondary leading-relaxed">
-                      {prop.longDescription}
+                      {prop.description}
                     </p>
 
                     {/* Proof Point (if exists) */}
-                    {prop.proof && (
+                    {'proof' in prop && prop.proof && (
                       <p className="text-xs text-ink-muted mt-4 italic">
                         {prop.proof}
                       </p>
