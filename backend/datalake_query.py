@@ -144,15 +144,28 @@ async def query_datalake(
         )
         return _cached
 
+    _sem_wait_start = time.monotonic()
     try:
         await asyncio.wait_for(_SEO_SEMAPHORE.acquire(), timeout=2.0)
     except asyncio.TimeoutError:
         logger.warning(
             "[DatalakeQuery] Concurrency limit reached — shedding request to protect pool"
         )
+        try:
+            from metrics import DATALAKE_SEMAPHORE_WAIT_SECONDS
+            DATALAKE_SEMAPHORE_WAIT_SECONDS.observe(time.monotonic() - _sem_wait_start)
+        except Exception:
+            pass  # Metrics are optional — never block the main flow
         return []
 
     try:
+        _sem_acquired_at = time.monotonic()
+        try:
+            from metrics import DATALAKE_SEMAPHORE_WAIT_SECONDS
+            DATALAKE_SEMAPHORE_WAIT_SECONDS.observe(_sem_acquired_at - _sem_wait_start)
+        except Exception:
+            pass  # Metrics are optional — never block the main flow
+
         from supabase_client import get_supabase, sb_execute
         sb = get_supabase()
     except Exception as e:
