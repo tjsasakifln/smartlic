@@ -13,7 +13,6 @@ import { formatCurrency, ROI_DISCLAIMER } from '@/lib/copy/roi';
 import { usePlan } from "../../hooks/usePlan";
 import { toast } from "sonner";
 import { MessageCircle, Mail } from "lucide-react";
-import TestimonialSection, { TESTIMONIALS } from "../../components/TestimonialSection";
 import { CaseStudyCard } from "../../components/CaseStudyCard";
 import { safeSetItem, safeGetItem } from "../../lib/storage";
 
@@ -52,7 +51,7 @@ const FEATURES = [
   { text: "1.000 análises por mês", detail: "Avalie oportunidades em todos os 27 estados" },
   { text: "Exportação Excel completa", detail: "Relatórios detalhados para sua equipe" },
   { text: "Pipeline de acompanhamento", detail: "Gerencie oportunidades do início ao fim" },
-  { text: "Resumos executivos com IA avançada", detail: "Análise estratégica de cada oportunidade" },
+  { text: "Análise estratégica com IA avançada", detail: "Avaliação de cada oportunidade" },
   { text: "Histórico completo", detail: "Acesso a oportunidades publicadas nos portais oficiais" },
   { text: "15 setores e 27 estados", detail: "Cobertura nacional integrada de fontes oficiais" },
   { text: "Filtragem com 1.000+ regras", detail: "Precisão setorial para seu mercado" },
@@ -484,9 +483,6 @@ export default function PlanosPage() {
           />
         </div>
 
-        {/* Testimonials */}
-        <div className="mt-16" data-testid="pricing-testimonials">
-          <TestimonialSection testimonials={TESTIMONIALS.slice(0, 3)} heading="Empresas que já usam SmartLic" className="!py-0 !bg-transparent" />
         </div>
 
         {/* STORY-372 AC2: Case studies section */}

@@ -28,7 +28,7 @@ export default function FinalCTA({ className = '' }: FinalCTAProps) {
           {/* SAB-006: Absorbed beta counter */}
           <AnimateOnScroll delay={150} data-testid="beta-counter">
             <p className="text-sm mb-8 text-white/60">
-              Empresas de engenharia, TI, saúde, uniformes e facilities já analisam oportunidades com SmartLic
+              14 dias grátis. Cancele quando quiser.
             </p>
           </AnimateOnScroll>
 

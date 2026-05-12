@@ -75,11 +75,6 @@ jest.mock("../../lib/copy/roi", () => ({
   formatCurrency: (v: number) => `R$ ${v}`,
 }));
 
-jest.mock("../../components/TestimonialSection", () => {
-  const component = () => <div>Testimonials</div>;
-  component.TESTIMONIALS = [];
-  return { __esModule: true, default: component, TESTIMONIALS: [] };
-});
 
 jest.mock("../../app/components/landing/LandingNavbar", () => ({
   __esModule: true,
