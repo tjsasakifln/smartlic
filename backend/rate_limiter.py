@@ -347,7 +347,7 @@ class FlexibleRateLimiter:
 
     async def check_rate_limit(
         self, key: str, max_requests: int, window_seconds: int
-    ) -> tuple[bool, int]:
+    ) -> tuple[bool, int, int]:
         """Check if key is within rate limit.
 
         Args:
@@ -356,7 +356,7 @@ class FlexibleRateLimiter:
             window_seconds: Time window in seconds.
 
         Returns:
-            tuple: (allowed: bool, retry_after_seconds: int)
+            tuple: (allowed: bool, retry_after_seconds: int, remaining: int)
         """
         window_id = int(_time.time()) // window_seconds
         full_key = f"rl:{key}:{window_id}"
@@ -368,18 +368,23 @@ class FlexibleRateLimiter:
 
     async def _check_redis(
         self, redis, key: str, limit: int, window_seconds: int
-    ) -> tuple[bool, int]:
-        """Check rate limit using shared Redis pool."""
+    ) -> tuple[bool, int, int]:
+        """Check rate limit using shared Redis pool.
+
+        Returns (allowed, retry_after_seconds, remaining).
+        """
         try:
             count = await redis.incr(key)
             if count == 1:
                 await redis.expire(key, window_seconds)
 
+            remaining = max(0, limit - count)
+
             if count > limit:
                 ttl = await redis.ttl(key)
-                return (False, max(1, ttl))
+                return (False, max(1, ttl), remaining)
 
-            return (True, 0)
+            return (True, 0, remaining)
 
         except Exception as e:
             logger.error(f"Redis error in flexible rate limiting: {e}")
@@ -387,8 +392,11 @@ class FlexibleRateLimiter:
 
     def _check_memory(
         self, key: str, limit: int, window_seconds: int
-    ) -> tuple[bool, int]:
-        """Check rate limit using in-memory dict (fallback)."""
+    ) -> tuple[bool, int, int]:
+        """Check rate limit using in-memory dict fallback.
+
+        Returns (allowed, retry_after_seconds, remaining).
+        """
         now = _time.time()
 
         # SYS-026: Time-based cleanup every 60s
@@ -405,18 +413,19 @@ class FlexibleRateLimiter:
 
         if key in self._memory_store:
             count, timestamp = self._memory_store[key]
+            remaining = max(0, limit - count)
             if now - timestamp >= window_seconds:
                 self._memory_store[key] = (1, now)
-                return (True, 0)
+                return (True, 0, limit - 1)
             elif count >= limit:
                 retry_after = int(window_seconds - (now - timestamp))
-                return (False, max(1, retry_after))
+                return (False, max(1, retry_after), 0)
             else:
                 self._memory_store[key] = (count + 1, timestamp)
-                return (True, 0)
+                return (True, 0, remaining - 1)
         else:
             self._memory_store[key] = (1, now)
-            return (True, 0)
+            return (True, 0, limit - 1)
 
 
 # Global flexible rate limiter instance
@@ -543,7 +552,7 @@ def require_rate_limit(max_requests: int, window_seconds: int):
         endpoint = request.url.path
         full_key = f"{endpoint}:{limit_key}"
 
-        allowed, retry_after = await _flexible_limiter.check_rate_limit(
+        allowed, retry_after, remaining = await _flexible_limiter.check_rate_limit(
             full_key, max_requests, window_seconds
         )
 
@@ -575,6 +584,7 @@ def require_rate_limit(max_requests: int, window_seconds: int):
             except Exception:
                 pass
 
+            now_ts = int(_time.time())
             # AC2 + AC3: Return 429 with structured body and Retry-After header
             raise HTTPException(
                 status_code=429,
@@ -583,7 +593,20 @@ def require_rate_limit(max_requests: int, window_seconds: int):
                     "retry_after_seconds": retry_after,
                     "correlation_id": correlation_id,
                 },
-                headers={"Retry-After": str(retry_after)},
+                headers={
+                    "Retry-After": str(retry_after),
+                    "X-RateLimit-Limit": str(max_requests),
+                    "X-RateLimit-Remaining": "0",
+                    "X-RateLimit-Reset": str(now_ts + window_seconds),
+                },
             )
+
+        # RBAC-SEC-002: Inject rate limit headers even on successful responses
+        now_ts = int(_time.time())
+        request.state._rate_limit_headers = {
+            "X-RateLimit-Limit": str(max_requests),
+            "X-RateLimit-Remaining": str(remaining),
+            "X-RateLimit-Reset": str(now_ts + window_seconds),
+        }
 
     return _check
