@@ -8,6 +8,8 @@ review-by: 2026-08-01
 deciders: [Tiago Sasaki]
 ---
 
+# ADR-LLM-HARNESS-001: LLM Harness Primary Model — DeepSeek V4 Pro
+
 ## Contexto
 
 DeepSeek V4 Pro foi lançado em 2026-04-24. Claude Code suporta modelos não-Anthropic via `ANTHROPIC_BASE_URL`. Adotado como harness primário por necessidade imediata de custo (runway-critical).
