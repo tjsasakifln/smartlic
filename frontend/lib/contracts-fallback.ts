@@ -90,7 +90,7 @@ export async function fetchContratosSetorUfStats(
       { next: { revalidate: 86400 }, signal: AbortSignal.timeout(10000) },
     );
     if (!res.ok) return null;
-    return res.json();
+    return await res.json();
   } catch {
     return null;
   }
@@ -108,7 +108,7 @@ export async function fetchContratosCidadeStats(
       { next: { revalidate: 86400 }, signal: AbortSignal.timeout(10000) },
     );
     if (!res.ok) return null;
-    return res.json();
+    return await res.json();
   } catch {
     return null;
   }
@@ -128,7 +128,7 @@ export async function fetchContratosCidadeSetorStats(
       { next: { revalidate: 86400 }, signal: AbortSignal.timeout(10000) },
     );
     if (!res.ok) return null;
-    return res.json();
+    return await res.json();
   } catch {
     return null;
   }
