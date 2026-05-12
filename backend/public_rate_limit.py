@@ -145,6 +145,16 @@ def rate_limit_public(
         # Sempre rastreia burst (mesmo requests permitidas contam pro alerta).
         _track_burst_and_alert(key, caller_type, caller_id, ep)
 
+        # RBAC-SEC-002: Estimate remaining from retry_after (0 = allowed, >0 = blocked)
+        remaining = limit if allowed else 0
+        now_ts = int(time.time())
+        window_sec = 60  # RateLimiter usa janela de 1 minuto
+        rl_headers = {
+            "X-RateLimit-Limit": str(limit),
+            "X-RateLimit-Remaining": str(remaining),
+            "X-RateLimit-Reset": str(now_ts + window_sec),
+        }
+
         if not allowed:
             try:
                 from metrics import RATE_LIMIT_HITS
@@ -154,6 +164,7 @@ def rate_limit_public(
                 pass
 
             retry_sec = int(retry_after) if retry_after else 60
+            rl_headers["Retry-After"] = str(retry_sec)
             raise HTTPException(
                 status_code=status.HTTP_429_TOO_MANY_REQUESTS,
                 detail={
@@ -161,8 +172,11 @@ def rate_limit_public(
                     "retry_after_sec": retry_sec,
                     "endpoint": ep,
                 },
-                headers={"Retry-After": str(retry_sec)},
+                headers=rl_headers,
             )
+
+        # RBAC-SEC-002: Store rate limit headers for middleware injection
+        request.state._rate_limit_headers = rl_headers
         return None
 
     return _check

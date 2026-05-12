@@ -86,6 +86,18 @@ def setup_middleware(app: FastAPI) -> None:
     app.add_middleware(SecurityHeadersMiddleware)
     app.add_middleware(DeprecationMiddleware)
     app.add_middleware(RateLimitMiddleware)
+
+    # RBAC-SEC-002: Inject rate limit headers stored in request.state by
+    # require_rate_limit / rate_limit_public dependencies into every response.
+    @app.middleware("http")
+    async def rate_limit_headers_middleware(request: Request, call_next):
+        """Inject X-RateLimit-* headers from request.state into response."""
+        response = await call_next(request)
+        rl_headers = getattr(request.state, "_rate_limit_headers", None)
+        if rl_headers:
+            for key, value in rl_headers.items():
+                response.headers[key] = value
+        return response
     # Issue #1041: Increment smartlic_seo_404_total{route_type, reason} on programmatic SEO 404s.
     # Added AFTER tracing middlewares so this sees the final response status; pure response-side
     # logic (no route file changes) — avoids races with concurrent route refactors.

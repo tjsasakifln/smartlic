@@ -82,7 +82,7 @@ async def buscar_progress_stream(
 
     # HARDEN-020 AC1+AC2: Rate limit SSE reconnections (10/60s per user)
     user_id = user.get("id", "unknown")
-    allowed, retry_after = await _flexible_limiter.check_rate_limit(
+    allowed, retry_after, remaining = await _flexible_limiter.check_rate_limit(
         f"sse_reconnect:user:{user_id}",
         SSE_RECONNECT_RATE_LIMIT,
         SSE_RECONNECT_WINDOW_SECONDS,

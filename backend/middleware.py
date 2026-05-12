@@ -264,6 +264,19 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         "/v1/health/cache": 60,
         "/plans": 30,
         "/v1/plans": 30,
+        # Public SEO routes — observed bot erosion in Stage 5 (OBS-001)
+        "/v1/sitemap/": 30,
+        "/v1/observatorio": 30,
+        "/v1/municipios": 30,
+        "/v1/orgaos": 30,
+        "/v1/empresa": 30,
+        "/v1/contratos": 30,
+        "/v1/itens": 30,
+        "/v1/alertas": 30,
+        "/v1/compliance": 30,
+        "/v1/dados-publicos": 30,
+        "/v1/indice-municipal": 30,
+        "/v1/blog": 30,
     }
 
     EXEMPT: set[str] = {
@@ -275,6 +288,10 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         super().__init__(app)
         self._requests: dict[str, list[float]] = defaultdict(list)
         self._cleanup_counter: int = 0
+        # Build prefix list from LIMITS keys ending with "/" (prefix matches)
+        self._limit_prefixes: list[tuple[str, int]] = [
+            (path, limit) for path, limit in self.LIMITS.items() if path.endswith("/")
+        ]
 
     def _get_client_ip(self, request: Request) -> str:
         forwarded = request.headers.get("x-forwarded-for", "")
@@ -282,19 +299,32 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
             return forwarded.split(",")[0].strip()
         return request.client.host if request.client else "unknown"
 
-    def _is_allowed(self, key: str, limit: int) -> bool:
+    def _get_limit(self, path: str) -> int | None:
+        """Get rate limit for path — exact match first, then prefix match."""
+        limit = self.LIMITS.get(path)
+        if limit is not None:
+            return limit
+        for prefix, val in self._limit_prefixes:
+            if path.startswith(prefix):
+                return val
+        return None
+
+    def _is_allowed(self, key: str, limit: int) -> tuple[bool, int]:
+        """Check rate limit and return (allowed, remaining_count)."""
         now = time.time()
         cutoff = now - 60
         entries = self._requests[key]
         self._requests[key] = [t for t in entries if t > cutoff]
-        if len(self._requests[key]) >= limit:
-            return False
+        current = len(self._requests[key])
+        if current >= limit:
+            return (False, 0)
         self._requests[key].append(now)
+        remaining = limit - current - 1  # after this request
         self._cleanup_counter += 1
         if self._cleanup_counter >= 200:
             self._cleanup_counter = 0
             self._cleanup()
-        return True
+        return (True, max(0, remaining))
 
     def _cleanup(self):
         cutoff = time.time() - 60
@@ -306,15 +336,33 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         path = request.url.path
         if path in self.EXEMPT:
             return await call_next(request)
-        limit = self.LIMITS.get(path)
+        limit = self._get_limit(path)
         if limit is None:
             return await call_next(request)
         ip = self._get_client_ip(request)
         key = f"{ip}:{path}"
-        if not self._is_allowed(key, limit):
+
+        # RBAC-SEC-002: determine remaining before recording this request
+        now = time.time()
+        cutoff = now - 60
+        prev_entries = [t for t in self._requests.get(key, []) if t > cutoff]
+        pre_remaining = max(0, limit - len(prev_entries))
+
+        allowed, remaining = self._is_allowed(key, limit)
+        if not allowed:
             return JSONResponse(
                 {"detail": "Rate limit exceeded. Try again later."},
                 status_code=429,
-                headers={"Retry-After": "60"},
+                headers={
+                    "Retry-After": "60",
+                    "X-RateLimit-Limit": str(limit),
+                    "X-RateLimit-Remaining": "0",
+                    "X-RateLimit-Reset": str(int(now + 60)),
+                },
             )
-        return await call_next(request)
+        response = await call_next(request)
+        # RBAC-SEC-002: Inject rate limit headers into successful responses
+        response.headers["X-RateLimit-Limit"] = str(limit)
+        response.headers["X-RateLimit-Remaining"] = str(pre_remaining)
+        response.headers["X-RateLimit-Reset"] = str(int(now + 60))
+        return response
