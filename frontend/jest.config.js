@@ -49,14 +49,14 @@ const customJestConfig = {
     '!**/jest.config.js',
   ],
 
-  // Coverage thresholds — recalibrado para baseline medido (CI run 24593094865)
-  // EPIC-CI-GREEN-MAIN-2026Q2: fn=52.05%, stmt=54.97% medidos; headroom ~1% abaixo do real
+  // Coverage thresholds — TEST-CI-002 TST-4: raised +1 each metric
+  // Baseline (CI run 24593094865): fn=52.05%, stmt=54.97%
   coverageThreshold: {
     global: {
-      branches: 50,
-      functions: 51,
-      lines: 55,
-      statements: 54,
+      branches: 51,
+      functions: 52,
+      lines: 56,
+      statements: 55,
     },
   },
 

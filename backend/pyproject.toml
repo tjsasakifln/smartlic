@@ -90,8 +90,8 @@ branch = true
 parallel = true
 
 [tool.coverage.report]
-# Coverage threshold - fail if below 70%
-fail_under = 70.0
+# Coverage threshold — TEST-CI-002 TST-4: raise from 70% → 71%
+fail_under = 71.0
 
 # Precision of coverage percentage
 precision = 2

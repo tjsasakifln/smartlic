@@ -70,7 +70,7 @@ jobs:
             --ignore=tests/integration \
             --cov=. \
             --cov-report=term-missing \
-            --cov-fail-under=70 \
+            --cov-fail-under=71 \
             --junitxml=pytest-report.xml \
             -v
           echo "✅ All backend tests passed with coverage ≥ 70%"
