@@ -104,7 +104,7 @@ class TestSSEReconnectRateLimit:
         _exhaust_sse_limit(_flexible_limiter, "user-b", 5)
         # User B's next request should still be allowed (count=5, will become 6, still < 10)
         # We verify by checking the limiter directly instead of making a streaming request
-        allowed, _ = await _flexible_limiter.check_rate_limit(
+        allowed, _, _ = await _flexible_limiter.check_rate_limit(
             "sse_reconnect:user:user-b", 10, 60
         )
         assert allowed
@@ -153,10 +153,10 @@ class TestFlexibleLimiterSSEReconnect:
         limiter = FlexibleRateLimiter()
 
         for i in range(10):
-            allowed, _ = await limiter.check_rate_limit("sse_reconnect:user:u1", 10, 60)
+            allowed, _, _ = await limiter.check_rate_limit("sse_reconnect:user:u1", 10, 60)
             assert allowed, f"Call {i+1} should be allowed"
 
-        allowed, retry_after = await limiter.check_rate_limit("sse_reconnect:user:u1", 10, 60)
+        allowed, retry_after, _ = await limiter.check_rate_limit("sse_reconnect:user:u1", 10, 60)
         assert not allowed
         assert retry_after >= 1
 
@@ -171,9 +171,9 @@ class TestFlexibleLimiterSSEReconnect:
             await limiter.check_rate_limit("sse_reconnect:user:u1", 10, 60)
 
         # user1 blocked
-        allowed, _ = await limiter.check_rate_limit("sse_reconnect:user:u1", 10, 60)
+        allowed, _, _ = await limiter.check_rate_limit("sse_reconnect:user:u1", 10, 60)
         assert not allowed
 
         # user2 should be unaffected
-        allowed, _ = await limiter.check_rate_limit("sse_reconnect:user:u2", 10, 60)
+        allowed, _, _ = await limiter.check_rate_limit("sse_reconnect:user:u2", 10, 60)
         assert allowed
