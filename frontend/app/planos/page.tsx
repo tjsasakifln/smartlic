@@ -13,7 +13,6 @@ import { formatCurrency, ROI_DISCLAIMER } from '@/lib/copy/roi';
 import { usePlan } from "../../hooks/usePlan";
 import { toast } from "sonner";
 import { MessageCircle, Mail } from "lucide-react";
-import TestimonialSection, { TESTIMONIALS } from "../../components/TestimonialSection";
 import { CaseStudyCard } from "../../components/CaseStudyCard";
 import { safeSetItem, safeGetItem } from "../../lib/storage";
 
@@ -482,11 +481,6 @@ export default function PlanosPage() {
             onCheckout={() => { if (!session) { window.location.href = "/login"; return; } handleConsultoriaCheckout(); }}
             couponDiscountPercent={couponDiscountPercent}
           />
-        </div>
-
-        {/* Testimonials */}
-        <div className="mt-16" data-testid="pricing-testimonials">
-          <TestimonialSection testimonials={TESTIMONIALS.slice(0, 3)} heading="Empresas que já usam SmartLic" className="!py-0 !bg-transparent" />
         </div>
 
         {/* STORY-372 AC2: Case studies section */}

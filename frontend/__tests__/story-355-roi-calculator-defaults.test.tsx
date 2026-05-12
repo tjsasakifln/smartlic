@@ -92,12 +92,7 @@ jest.mock("../app/components/landing/LandingNavbar", () => {
   };
 });
 
-// Mock TestimonialSection
-jest.mock("../components/TestimonialSection", () => {
-  const MockTestimonialSection = () => <div data-testid="testimonials">Testimonials</div>;
-  MockTestimonialSection.TESTIMONIALS = [];
-  return MockTestimonialSection;
-});
+// TestimonialSection mock removed (COPY-COP-004)
 
 // Mock fetch
 global.fetch = jest.fn().mockResolvedValue({ ok: false, status: 401 });
