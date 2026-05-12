@@ -95,7 +95,7 @@ def render_founders_welcome_email(user_name: str) -> str:
           </p>
           <p style="color: #555; font-size: 14px; line-height: 1.6; margin: 0;">
             Sem letra miuda: e so responder este email (ou escrever para
-            <a href="mailto:tiago@smartlic.tech" style="color: {SMARTLIC_GREEN};">tiago@smartlic.tech</a>)
+            <a href="mailto:tiago.sasaki@confenge.com.br" style="color: {SMARTLIC_GREEN};">tiago.sasaki@confenge.com.br</a>)
             com o assunto <strong>"reembolso"</strong>. Retorno em ate 5 dias uteis.
           </p>
         </td>
@@ -157,7 +157,7 @@ de pagamento com o desconto aplicado direto para voce.
 
 Garantia de 60 dias - incondicional.
 Voce tem 60 dias pra usar a vontade. Se nao fizer sentido, devolvo R$997 cheios.
-Sem letra miuda: responda este email (ou escreva para tiago@smartlic.tech)
+Sem letra miuda: responda este email (ou escreva para tiago.sasaki@confenge.com.br)
 com o assunto "reembolso". Retorno em ate 5 dias uteis.
 
 Faca sua primeira busca agora: {FRONTEND_URL}/buscar

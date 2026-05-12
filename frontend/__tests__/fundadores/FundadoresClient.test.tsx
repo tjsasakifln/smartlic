@@ -97,9 +97,9 @@ describe('FundadoresClient', () => {
     });
   });
 
-  it('exposes the personal email tiago@smartlic.tech for refund + contact', () => {
+  it('exposes the personal email tiago.sasaki@confenge.com.br for refund + contact', () => {
     render(<FundadoresClient />);
-    const mailtos = screen.getAllByRole('link', { name: /tiago@smartlic\.tech/i });
+    const mailtos = screen.getAllByRole('link', { name: /tiago\.sasaki@confenge\.com\.br/i });
     expect(mailtos.length).toBeGreaterThanOrEqual(1);
   });
 });

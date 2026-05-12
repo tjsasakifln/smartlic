@@ -214,8 +214,8 @@ export function FundadoresObrigadoClient() {
           </p>
           <p className="text-sm text-gray-500 dark:text-gray-500">
             Dúvidas?{' '}
-            <a href="mailto:tiago@smartlic.tech" className="text-blue-600 dark:text-blue-400 hover:underline">
-              tiago@smartlic.tech
+            <a href="mailto:tiago.sasaki@confenge.com.br" className="text-blue-600 dark:text-blue-400 hover:underline">
+              tiago.sasaki@confenge.com.br
             </a>
           </p>
         </div>
@@ -237,8 +237,8 @@ export function FundadoresObrigadoClient() {
           </p>
           <p className="text-sm text-gray-500 dark:text-gray-500">
             Dúvidas? Fale conosco:{' '}
-            <a href="mailto:tiago@smartlic.tech" className="text-blue-600 dark:text-blue-400 hover:underline">
-              tiago@smartlic.tech
+            <a href="mailto:tiago.sasaki@confenge.com.br" className="text-blue-600 dark:text-blue-400 hover:underline">
+              tiago.sasaki@confenge.com.br
             </a>
           </p>
         </div>
@@ -252,8 +252,8 @@ export function FundadoresObrigadoClient() {
       <div className="max-w-md text-center">
         <p className="text-gray-600 dark:text-gray-400">
           Algo deu errado. Entre em contato:{' '}
-          <a href="mailto:tiago@smartlic.tech" className="text-blue-600 hover:underline">
-            tiago@smartlic.tech
+          <a href="mailto:tiago.sasaki@confenge.com.br" className="text-blue-600 hover:underline">
+            tiago.sasaki@confenge.com.br
           </a>
         </p>
       </div>

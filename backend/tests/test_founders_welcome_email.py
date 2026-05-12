@@ -73,7 +73,7 @@ class TestRenderFoundersWelcomeEmail:
         assert "reembolso" in html
         assert "5 dias uteis" in html
         # Contact channel
-        assert "tiago@smartlic.tech" in html
+        assert "tiago.sasaki@confenge.com.br" in html
         # No drift back to the legacy 7-day promise
         assert "garantia de 7 dias" not in html
 
@@ -87,7 +87,7 @@ class TestRenderFoundersWelcomeEmail:
         assert "R$997" in text
         assert "reembolso" in text
         assert "5 dias uteis" in text
-        assert "tiago@smartlic.tech" in text
+        assert "tiago.sasaki@confenge.com.br" in text
         assert "garantia de 7 dias" not in text
 
     def test_subject_constant(self):

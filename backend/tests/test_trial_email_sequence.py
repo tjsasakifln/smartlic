@@ -768,13 +768,13 @@ class TestEmailTrial006FoundersFetch:
 
 
 class TestEmailTrial006PersonalTone:
-    """EMAIL-TRIAL-006 (#1005): personal-tone send — from tiago@smartlic.tech + reply-to gmail."""
+    """EMAIL-TRIAL-006 (#1005): personal-tone send — from tiago.sasaki@confenge.com.br + reply-to gmail."""
 
     def test_constants_use_personal_tone(self):
         """Memory: reference_resend_personal_tone_send."""
         from services import trial_email_sequence
 
-        assert "smartlic.tech" in trial_email_sequence.TRIAL_EMAIL_FROM
+        assert "confenge.com.br" in trial_email_sequence.TRIAL_EMAIL_FROM
         assert "Tiago" in trial_email_sequence.TRIAL_EMAIL_FROM
         # Reply-to is gmail (where the founder actually answers)
         assert "@gmail.com" in trial_email_sequence.TRIAL_EMAIL_REPLY_TO

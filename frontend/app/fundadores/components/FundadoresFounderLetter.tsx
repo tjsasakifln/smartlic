@@ -24,8 +24,8 @@ export default function FundadoresFounderLetter() {
               LinkedIn
             </a>
             {' · '}
-            <a href="mailto:tiago@smartlic.tech" className="text-blue-600 underline">
-              tiago@smartlic.tech
+            <a href="mailto:tiago.sasaki@confenge.com.br" className="text-blue-600 underline">
+              tiago.sasaki@confenge.com.br
             </a>
           </p>
         </div>
@@ -54,8 +54,7 @@ export default function FundadoresFounderLetter() {
           a CONFENGE. Hoje a plataforma indexa{' '}
           <strong>mais de 3,4 milhões de contratos públicos</strong>, monitora{' '}
           <strong>27 UFs em tempo real</strong>, classifica em{' '}
-          <strong>20 setores</strong> com IA, e está em produção (Railway + Supabase,
-          não é demo).
+          <strong>20 setores</strong> com IA, e está em produção.
         </p>
         <p className="mt-4">
           Eu poderia esperar mais 6 meses, dar polimento, lançar com pricing tradicional

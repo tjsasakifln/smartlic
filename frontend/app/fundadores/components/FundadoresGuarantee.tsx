@@ -27,10 +27,10 @@ export default function FundadoresGuarantee() {
             <li>
               Envie um email para{' '}
               <a
-                href="mailto:tiago@smartlic.tech?subject=reembolso"
+                href="mailto:tiago.sasaki@confenge.com.br?subject=reembolso"
                 className="text-blue-700 underline font-medium"
               >
-                tiago@smartlic.tech
+                tiago.sasaki@confenge.com.br
               </a>{' '}
               com assunto <code className="bg-white px-1.5 py-0.5 rounded border border-slate-200">reembolso</code>.
             </li>
