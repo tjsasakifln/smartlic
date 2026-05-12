@@ -82,10 +82,10 @@ describe('UX-344 + SAB-006 — Landing Page Accessible Counters', () => {
 
     it('renders aria-label for discard rate (STORY-351: dynamic fallback)', async () => {
       render(<StatsSection />);
-      // With sample_size=0, fallback to "A maioria dos editais descartados"
+      // With sample_size=0, fallback to "87% de ruído eliminado"
       await waitFor(() => {
         expect(
-          screen.getByRole('text', { name: 'A maioria dos editais descartados' })
+          screen.getByRole('text', { name: '87% de ruído eliminado' })
         ).toBeInTheDocument();
       }, { timeout: 3000 });
     });

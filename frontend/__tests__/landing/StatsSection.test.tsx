@@ -70,7 +70,7 @@ describe('StatsClientIsland (client island)', () => {
     await waitFor(() => {
       expect(screen.getByText('91%')).toBeInTheDocument();
     }, { timeout: 3000 });
-    expect(screen.getByText(/de editais descartados/i)).toBeInTheDocument();
+    expect(screen.getByText(/de ruído eliminado/i)).toBeInTheDocument();
   });
 
   it('shows fallback "A maioria" when API returns no data (STORY-351 AC4)', async () => {
@@ -80,7 +80,7 @@ describe('StatsClientIsland (client island)', () => {
     await waitFor(() => {
       expect(screen.getByText('A maioria')).toBeInTheDocument();
     }, { timeout: 3000 });
-    expect(screen.getByText(/de editais descartados/i)).toBeInTheDocument();
+    expect(screen.getByText(/de ruído eliminado/i)).toBeInTheDocument();
   });
 
   it('shows fallback "A maioria" when API fails (STORY-351 AC4)', async () => {
@@ -110,7 +110,7 @@ describe('StatsClientIsland (client island)', () => {
       expect(screen.getByText('88%')).toBeInTheDocument();
     }, { timeout: 3000 });
 
-    expect(screen.getByText(/de editais descartados/i)).toBeInTheDocument();
+    expect(screen.getByText(/de ruído eliminado/i)).toBeInTheDocument();
 
     expect(screen.getByText('1000+')).toBeInTheDocument();
     expect(screen.getByText(/regras de filtragem/i)).toBeInTheDocument();
@@ -164,7 +164,7 @@ describe('StatsClientIsland (client island)', () => {
     }, { timeout: 3000 });
 
     expect(screen.getByRole('text', { name: '15 setores especializados' })).toBeInTheDocument();
-    expect(screen.getByRole('text', { name: 'A maioria dos editais descartados' })).toBeInTheDocument();
+    expect(screen.getByRole('text', { name: '87% de ruído eliminado' })).toBeInTheDocument();
     expect(screen.getByRole('text', { name: '1000+ regras de filtragem' })).toBeInTheDocument();
     expect(screen.getByRole('text', { name: '27 estados cobertos' })).toBeInTheDocument();
   });
@@ -174,7 +174,7 @@ describe('StatsClientIsland (client island)', () => {
     render(<StatsClientIsland />);
 
     await waitFor(() => {
-      expect(screen.getByRole('text', { name: '92% de editais descartados' })).toBeInTheDocument();
+      expect(screen.getByRole('text', { name: '92% de ruído eliminado' })).toBeInTheDocument();
     }, { timeout: 3000 });
   });
 });
