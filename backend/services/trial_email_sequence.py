@@ -28,9 +28,9 @@ _UNSUBSCRIBE_SECRET = os.getenv("WEBHOOK_SECRET", os.getenv("SECRET_KEY", "smart
 TIMEZONE_SCHEDULING_ENABLED = os.getenv("TIMEZONE_SCHEDULING_ENABLED", "true").lower() == "true"
 
 # EMAIL-TRIAL-006 (#1005): personal-tone send for trial sequence
-# Memory: Resend personal tone — tiago@smartlic.tech (verified domain) + reply-to gmail
+# Memory: Resend personal tone — tiago.sasaki@confenge.com.br (verified domain) + reply-to gmail
 TRIAL_EMAIL_FROM = os.getenv(
-    "TRIAL_EMAIL_FROM", "Tiago do SmartLic <tiago@smartlic.tech>"
+    "TRIAL_EMAIL_FROM", "Tiago do SmartLic <tiago.sasaki@confenge.com.br>"
 )
 TRIAL_EMAIL_REPLY_TO = os.getenv("TRIAL_EMAIL_REPLY_TO", "tiago.sasaki@gmail.com")
 
@@ -504,7 +504,7 @@ async def process_trial_emails(batch_size: int = 50) -> dict:
                         )
 
                         # Fire-and-forget send
-                        # EMAIL-TRIAL-006 (#1005): personal tone — from tiago@smartlic.tech
+                        # EMAIL-TRIAL-006 (#1005): personal tone — from tiago.sasaki@confenge.com.br
                         # + reply-to gmail (memory: reference_resend_personal_tone_send).
                         send_email_async(
                             to=email_addr,

@@ -3,7 +3,7 @@ name: "Health alert (OPS-MTTR-001)"
 # Operationalises AC4 of issue #970: proactive alert when /health/ready returns
 # 5xx for >5min consecutively. Pragmatic implementation — runs every 5min and
 # emails on each failure (memory `reference_resend_personal_tone_send`: domain
-# smartlic.tech verified, from tiago@smartlic.tech).
+# confenge.com.br verified, from tiago.sasaki@confenge.com.br).
 #
 # Production rollout note: requires RESEND_API_KEY secret in repo settings.
 # Without it, the email step is skipped (workflow still flags the failure in logs).
@@ -48,7 +48,7 @@ jobs:
         run: |
           BODY=$(cat <<EOF
           {
-            "from": "tiago@smartlic.tech",
+            "from": "tiago.sasaki@confenge.com.br",
             "to": ["tiago.sasaki@gmail.com"],
             "reply_to": "tiago.sasaki@gmail.com",
             "subject": "[SmartLic] /health/ready returned ${STATUS}",

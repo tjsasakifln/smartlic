@@ -173,7 +173,7 @@ export default function TermosPage() {
                 <li>Você pode cancelar sua assinatura a qualquer momento através das configurações de conta</li>
                 <li>Cancelamentos terão efeito ao final do período de cobrança atual (não há reembolso proporcional)</li>
                 <li><strong>Garantia de Reembolso (assinaturas mensais e anuais):</strong> Planos pagos recorrentes têm garantia de 7 dias (reembolso integral se solicitado dentro deste período)</li>
-                <li><strong>Plano Fundadores (acesso vitalício):</strong> garantia incondicional de 60 dias a partir da data da compra. Para solicitar reembolso, envie um email para <a href="mailto:tiago@smartlic.tech" className="text-brand-blue underline">tiago@smartlic.tech</a> com o assunto <em>&quot;reembolso&quot;</em>. Retorno em até 5 dias úteis com devolução integral de R$ 997.</li>
+                <li><strong>Plano Fundadores (acesso vitalício):</strong> garantia incondicional de 60 dias a partir da data da compra. Para solicitar reembolso, envie um email para <a href="mailto:tiago.sasaki@confenge.com.br" className="text-brand-blue underline">tiago.sasaki@confenge.com.br</a> com o assunto <em>&quot;reembolso&quot;</em>. Retorno em até 5 dias úteis com devolução integral de R$ 997.</li>
                 <li>Fora dos períodos de garantia acima, não oferecemos reembolsos, exceto em casos excepcionais a nosso critério</li>
               </ul>
 
