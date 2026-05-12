@@ -530,3 +530,118 @@ Se reorder de merge ocorrer (#957 antes de #955 ou rebase forçado), os blocos f
 | RBAC/Security | 🟢 **91%** | **+3** (MFA-ENFORCE-EXT-001 wire-up — 5 high-impact endpoints + audit event, sobre §12.4 baseline 88%) |
 
 **Nota:** este bump é incremental sobre §12.4 (RBAC-ORG-002) e §11.1 (SEC-TEST-2026-001). MFA-EXT-001 (enroll/verify TOTP) já contava em §10.4 baseline; MFA-ENFORCE-EXT-001 é a peça de enforcement que faltava para fechar o loop "enroll → challenge → require em high-impact".
+
+---
+
+## §15 — Refresh 2026-05-10/12: SSG Build Fix + SEO massivo + copy alignment + refactors
+
+**Trigger:** `/reversa atualize completamente seus documentos de auditoria`
+**Período:** 2026-05-09 EOD → 2026-05-12 16:40 BRT
+**Delta bruto:** 128 commits, 32+ PRs merged, 2 PRs abertos
+
+### 15.1 Eixos principais
+
+| Eixo | PRs representativos | Impacto |
+|------|---------------------|---------|
+| **SSG Build Fix** (#1146, #1116) | ConcurrencyLimiter + ISR cache alignment + fetch timeout municipios | P0 — 8 deploys falhos resolvidos |
+| **Copy/awareness alignment** (#1140, #1138, #1139) | Microcopy substitutions + hero headline + FounderTransparencySection (CDC art. 37) | Conversão zero epic (#1122) |
+| **SEO massivo** (#1037, #1035, #1038, #1043, #1057, #1077, #1039, #1048, #1046, #989, #991) | ISR revalidate 86400→3600, notFound() ban, sitemap MVs, coverage manifest, canonical+hreflang, pSEO uniqueness audit, on-demand ISR revalidation, JSON-LD upgrades | programmatic SEO sprint |
+| **Refactors back-end** (#1110, #1109, #1108) | LLM arbiter strategy pattern (REF-VAL-002), webhook ABC base (REF-MON-002), DATA-CNAE-001 DB migration | Debt reduction + foundation |
+| **CronMonitor diagnostics** (#1145, `5bb0f1ed4`, `3dde6278b`) | Schedule-aware stale thresholds, false-positive fix | P1 — cron visibility |
+| **CI hardening** (#1143, #1141) | `.down.sql` filter migration check, jq -c flag multi-line JSON | CI green |
+| **ADR LLM Harness** (#1121) | DeepSeek V4 Pro primary model — `ANTHROPIC_BASE_URL` | Infra |
+| **Email change** (#1115) | tiago@smartlic.tech → tiago.sasaki@confenge.com.br | Compliance |
+| **DB fixes** (#1144, `421c99887`) | cleanup-stripe-webhooks batched, unbounded DELETE fix | P1 — cron failure 47x |
+| **SSE crash fix** (#1114) | resumo undefined — optional chaining partial_data | P0 — user-facing crash |
+| **Funnel attribution** (#1113, `f63457c17`) | ref params + trial_created + LeadCapture | CRO tracking |
+| **Dependency bumps** (11 PRs #1080-#1094) | arq 0.28, opentelemetry 1.41, resend 2.30, pyyaml 6.0.3, pyjwt 2.12.1, mixpanel 4.11, hypothesis 6.152.5, python-multipart 0.0.28, CI actions bumps | Maintenance |
+| **Test hardening** (#1131, #1130, `34d558881`, `1d1b2d03d`) | Singleton xfail, parallel timing 60→85%, defensive assertions | CI flake reduction |
+
+### 15.2 Novos módulos e patterns
+
+| Módulo/Pattern | Arquivo(s) | Descrição |
+|----------------|------------|-----------|
+| **ConcurrencyLimiter** | `frontend/lib/concurrency.ts` (109 LOC, NOVO) | Limita fetches paralelos durante SSG/ISR build — previne timeout cascade |
+| **FounderTransparencySection** | `frontend/app/components/landing/FounderTransparencySection.tsx` (69 LOC, NOVO) | Substitui TestimonialSection fabricado — CDC art. 37 compliance |
+| **CredibilitySection** | `frontend/app/components/landing/CredibilitySection.tsx` (79 LOC, NOVO) | Prova social real — sem testemunhais fabricados |
+| **LLM Arbiter Strategy** | `backend/llm/` refatorado | Strategy pattern — keyword > llm_standard > llm_zero_match (REF-VAL-002) |
+| **Webhook ABC Base** | `backend/services/webhooks/` | Idempotency unification — handlers herdam base class (REF-MON-002) |
+| **CNAE DB mapping** | `supabase/migrations/20260511120000_cnae_setor_mapping.sql` | DATA-CNAE-001 — CNAE→setor via tabela (substitui YAML-only) |
+| **Sitemap MVs** | `supabase/migrations/20260510140000_sitemap_materialized_views.sql` | MV para entity pages + pg_cron refresh (#1057) |
+| **SEO Coverage Manifest** | `GET /v1/seo/coverage-manifest` + `supabase/migrations/20260510160000_seo_coverage_manifest.sql` | SEO-CVG-001 — audit trilha de cobertura pSEO |
+| **On-demand ISR revalidation** | `POST /api/revalidate` + ARQ hook (#1037) | ISR sob demanda — complementa revalidate=3600 |
+| **SEO 404 counter** | `backend/middleware/` — `smartlic_seo_404_total` Prometheus counter (#1050) | Telemetria de páginas pSEO vazias |
+| **410 Gone middleware** | `frontend/middleware.ts` — CNPJ malformado → 410 (#1054) | SEO signal — páginas inválidas permanentemente removidas |
+| **CNPJ alfanumérico** | `backend/routes/cnpj.py` + migration regex (#1055) | Suporte CNPJ com letras — ComprasGov edge case |
+| **cleanup batched** | `supabase/migrations/20260512190000_fix_cleanup_stripe_webhooks_batched.sql` (86 LOC) | Substitui DELETE unbounded → batched function (#1144) |
+
+### 15.3 Issues críticas ativas (2026-05-12)
+
+| Issue | Severidade | Descrição | Estado |
+|-------|------------|-----------|--------|
+| #1132 | **P0** | Frontend deploy falhando x8 — SSG build timeout Railway | `fix/1132-ssg-isr-build-fix` aberto (#1146) |
+| #1137 | P2 | SEN-FE-001 recidiva — 2,238x Page changed static→dynamic | Aberto — coberto por #1146 |
+| #1133 | P1 | cleanup-stripe-webhooks pg_cron falhou 47x | PR #1144 aberto (batched fix) |
+| #1136 | P3 | Test flaky: test_get_supabase_singleton | Aberto — xfail applied (#1131) |
+| #1122 | P1 | Epic: Conversão Zero — Plano de Fragilidades Copymasters | Aberto — 6 child issues |
+| #1058 | P1 | Protocolo resubmissão GSC pós-fix sitemaps | Ready |
+| #775 | P0 | Reposicionamento B2G Phase 0 — 22 issues tracker | Em progresso |
+
+### 15.4 Gaps evolução
+
+| Gap | Status pré-refresh | Status pós-refresh | Evidência |
+|-----|-------------------|-------------------|-----------|
+| G5 (HMAC enforcement) | RESOLVED (#954) | **RESOLVED** | `_verify_svix_signature` em `routes/trial_emails.py:89-135` |
+| CRIT-084 AC2 | Aberto | **RESOLVED** (#802 — uvicorn graceful-shutdown 120s) | Verificado em produção |
+| POOL-LEAK-001 | Deferred Sprint 3 | **PARCIAL** — semaphore mitigation (#578) mas root fix deferred | RES-BE-017 Sprint 3 |
+| SMARTLIC-FE-F | Quiescente | **QUIESCENTE** — 0 events desde 2026-04-23; aceito como quiescente (sem fix aplicado) | Sentry 14d query |
+| REPO Phase 0 | Parcial | **EM PROGRESSO** — ~11/22 issues shipped; backend stories pendentes | PRs REPO-* merged |
+| CONV-CTA-002 | Gated 7-14d | **ABERTO** — aguardando sinal CONV-CTA-001 | — |
+| G8 (CNAE prod state) | Parcial | **RESOLVIDO** — DATA-CNAE-001 shipped (#1108) | Migration + admin CRUD live |
+| NOVO: SSG Build Cascade | — | **EM PROGRESSO** — ConcurrencyLimiter + ISR alignment (#1146) | Branch `fix/1132` |
+| NOVO: cleanup cron failure | — | **EM PROGRESSO** — batched function (#1144) | Migration 20260512190000 |
+| NOVO: Epic Conversão Zero | — | **ABERTO** — 6 child issues copy/awareness (#1122) | PRs #1138 #1139 #1140 merged |
+
+### 15.5 Score Evolution 2026-05-12
+
+| Dimensão | Score Anterior (§14) | Score Atual | Delta | Driver |
+|----------|---------------------|-------------|-------|--------|
+| Documentation Coverage | 89% | **91%** | +2 | §15 + ADR-LLM-HARNESS + ADR-SEO-001 |
+| Operational Reliability | 88% | **90%** | +2 | CronMonitor fix + cleanup batched + graceful-shutdown |
+| Architectural Consistency | 92% | **93%** | +1 | Strategy pattern LLM + Webhook ABC base + ConcurrencyLimiter |
+| Test/CI Gates | 89% | **91%** | +2 | .down.sql filter + jq fix + test hardening xfail |
+| RBAC/Security | 91% | **92%** | +1 | MFA-ENFORCE live + SEC-VIEW-001 invoker downgrade |
+| **Composite** | **89.4%** | **91.4%** | **+2.0** | |
+
+### 15.6 Métricas atualizadas
+
+| Métrica | Valor Anterior (§14) | Valor Atual | Delta |
+|---------|----------------------|-------------|-------|
+| Migrations Supabase | ~199 | **208** | +9 |
+| Backend route files | 77 | **83** | +6 |
+| Backend endpoints | 212 | **226** | +14 |
+| Backend tests | 505 | **528** | +23 |
+| Frontend tests | 412 | **433** | +21 |
+| ADRs | 10 | **16** | +6 |
+| Issues abertas | ~60 | **~68** | +8 |
+
+### 15.7 Next actions
+
+**P0 imediato:**
+1. Merge #1146 (SSG build fix) — ConcurrencyLimiter + ISR alignment → destrava deploy frontend
+2. Merge #1144 (cleanup batched) — resolve #1133 (47x cron failure)
+3. Verify #1132 closed pós-merge #1146
+
+**P1 curto prazo:**
+4. Epic #1122 (Conversão Zero) — COPY-COP-002/003/004 execution
+5. GSC resubmission protocol (#1058) — pós sitemap fixes shipped
+6. REPO Phase 0 backend stories restantes
+
+**P2 backlog:**
+7. RES-BE-017 Sprint 3 — pool leak root fix (condicional métricas)
+8. CONV-CTA-002 — pickup pós 7-14d sinal CONV-CTA-001
+9. #1136 flaky test definitive fix (além do xfail)
+
+**Deferred:**
+10. Intel Reports v0.2 — frontend wire-up (gate ≥3 vendas INTEL-001)
+11. REPO Phase 1 — after Phase 0 complete

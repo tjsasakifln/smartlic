@@ -145,12 +145,17 @@ A Fase 2 (Escavação) terá uma tarefa de Archaeologist por módulo principal �
 
 ## 12. Métricas Brutas
 
-| Métrica | Valor |
-|---------|-------|
-| Total de arquivos indexados (excl. caches) | ~8.128 |
-| Workflows de CI | 35 |
-| Frontend routes (App Router top-level) | 56 |
-| Backend route modules | 19 |
-| Backend endpoints (inferido CLAUDE.md) | 49 |
-| Migrations Supabase | 183 |
-| Sectores B2G configurados | 15 (`backend/sectors_data.yaml`) |
+| Métrica | Valor | Data |
+|---------|-------|------|
+| Total de arquivos indexados (excl. caches) | ~8.400 | 2026-05-12 |
+| Workflows de CI | 35 | 2026-05-12 |
+| Frontend routes (App Router top-level) | 56 | 2026-05-12 |
+| Backend route modules (files) | 83 | 2026-05-12 |
+| Backend endpoints (route decorators) | 226 | 2026-05-12 |
+| Backend endpoints (unique routes) | 170 | 2026-05-12 |
+| Backend tests | 528 | 2026-05-12 |
+| Frontend tests | 433 | 2026-05-12 |
+| Migrations Supabase | 208 | 2026-05-12 |
+| ADRs | 16 | 2026-05-12 |
+| Sectores B2G configurados | 20 (`backend/sectors_data.yaml`) | 2026-05-12 |
+| Issues abertas | ~68 | 2026-05-12 |

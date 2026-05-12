@@ -229,3 +229,48 @@ Para qualquer mudança em código:
 | `service_role` `statement_timeout=60s` (PostgreSQL role config) | [`ADR-SEN-BE-001b`](../docs/adr/ADR-SEN-BE-001b-service-role-timeout.md) |
 | Founding plan policy (`founding_leads`, `routes/founding.py`, FOUNDING30 coupon) | [`ADR-BIZ-FOUND-002`](../docs/adr/ADR-BIZ-FOUND-002-founding-policy.md), [`founding-plan-canonical`](../docs/adr/founding-plan-canonical.md) (predecessor) |
 | Partner program (`partners`, `partner_referrals`, `routes/partners.py`) | [`partner-program`](../docs/adr/partner-program.md) |
+| LLM Harness model selection (`llm.py`, main model config) | [`ADR-LLM-HARNESS-001`](../docs/adr/ADR-LLM-HARNESS-001.md) |
+| RLS mandatory policy (all tables) | [`ADR-RLS-MANDATORY-001`](../docs/adr/ADR-RLS-MANDATORY-001-policy.md) |
+| SEO programmatic routes — never notFound() on data gap | [`ADR-SEO-001`](../docs/adr/ADR-SEO-001-programmatic-routes-no-notfound-on-data-gap.md) |
+
+### ADR Lifecycle Review 2026-05-09
+
+| ADR | Status | Última revisão |
+|-----|--------|----------------|
+| All 14 ADRs | ✅ Current | 2026-05-09 |
+| ADR-LLM-HARNESS-001 | ✅ Current | 2026-05-12 (shipped #1121) |
+| ADR-SEO-001 | ✅ Current | 2026-05-11 (shipped #1046) |
+
+### Stories Status 2026-05-12
+
+| Story | Status | PR | Notas |
+|-------|--------|-----|-------|
+| **FIX-SSG-BUILD-001** (ConcurrencyLimiter + ISR alignment) | 🔄 PR #1146 aberto | `fix/1132-ssg-isr-build-fix` | Bloqueia deploy frontend (8× fail) |
+| **FIX-CLEANUP-CRON-001** (batched stripe webhook cleanup) | 🔄 PR #1144 aberto | `fix/1133-cleanup-batched` | 47x cron failure |
+| **REF-VAL-002** (LLM arbiter strategy pattern) | ✅ Done | #1110 merged | Strategy pattern |
+| **REF-MON-002** (webhook ABC base) | ✅ Done | #1109 merged | Idempotency unification |
+| **DATA-CNAE-001** (CNAE mapping → DB) | ✅ Done | #1108 merged | Migration + admin CRUD |
+| **COPY-COP-001** (7 microcopy substitutions) | ✅ Done | #1140 merged | Banned phrases + i18n |
+| **COPY-AWARENESS-001** (hero headline + numeric value props) | ✅ Done | #1138 merged | Hopkins/Schwartz |
+| **COPY-FOUNDER-TRANSPARENCY** (FounderTransparencySection) | ✅ Done | #1139 merged | CDC art. 37 |
+| **PSEO-FUNNEL-001** (attribution ref params + trial_created) | ✅ Done | #1113 merged | LeadCapture |
+| **PSEO-ISR-REVALIDATE** (86400→3600 + on-demand POST) | ✅ Done | #1037 merged | ARQ hook |
+| **PSEO-NOTFOUND-BAN** (EmptyStateSEO + allow markers) | ✅ Done | #1035 merged | ADR-SEO-001 |
+| **PSEO-SITEMAP-MV** (materialized views) | ✅ Done | #1057 merged | pg_cron refresh |
+| **PSEO-COVERAGE-MANIFEST** (GET /v1/seo/coverage-manifest) | ✅ Done | #1039 merged | Cron + sitemap gate |
+| **PSEO-CANONICAL-HREFLANG** (canonical default + geo-target) | ✅ Done | #1019 merged | pt-BR |
+| **PSEO-UNIQUENESS-AUDIT** (noindex/sitemap-exclusion gate) | ✅ Done | #1018 merged | — |
+| **PSEO-CTR-REWRITE** (10 top-CTR<1% titles) | ✅ Done | #1015 merged | 10 deferred |
+| **PSEO-DATA-BLOCKS** (Top 5 fornecedores + 5 últimos editais) | ✅ Done | #1007 merged | DataLake social proof |
+| **FRONTEND-SSE-CRASH** (resumo undefined optional chaining) | ✅ Done | #1114 merged | P0 crash fix |
+| **CRON-MONITOR-DIAG** (schedule-aware thresholds) | ✅ Done | #1145 merged | False-positive fix |
+| **EMAIL-CONFENGE** (tiago@smartlic.tech → tiago.sasaki@confenge.com.br) | ✅ Done | #1115 merged | Compliance |
+| **TEST-FLAKY-SINGLETON** (xfail + defensive assertions) | ✅ Done | #1131 merged | CI race ~1/10k |
+| **CI-DOWNSQL-FILTER** | ✅ Done | #1143 merged | Migration check |
+| **CI-JQ-COMPACT** | ✅ Done | #1141 merged | LOC gate fix |
+| **ADR-LLM-HARNESS** (DeepSeek V4 Pro) | ✅ Done | #1121 merged | — |
+| **DEPS-BATCH-2026-05-11** (11 dependabot PRs) | ✅ Done | #1080-#1094 merged | Maintenance |
+| **FUNDADORES-HALL** (opt-in público + LGPD toggle) | ✅ Done | #1032 merged | — |
+| **FOUNDERS-CROSS-SELL** (/planos + dashboard Day 3+) | ✅ Done | #1022 merged | — |
+| **CNPJ-ALFANUMERICO** (regex + migration + rotas) | ✅ Done | #1055 merged | ComprasGov edge case |
+| **410-GONE-MIDDLEWARE** (CNPJ malformado) | ✅ Done | #1054 merged | SEO signal |
