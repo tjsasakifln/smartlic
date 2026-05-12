@@ -17,10 +17,20 @@ locust -f stage_4_7_pattern.py --host http://localhost:8000 --users 5 --run-time
 ```
 
 ### Weekly CI
-Workflow `.github/workflows/load-test-weekly.yml` cron Sun 02:00 UTC contra `https://api.smartlic.tech`.
+Workflow `.github/workflows/load-test-weekly.yml` cron Sun 08:00 UTC contra `https://api.smartlic.tech` (OPS-RELIABILITY-002).
 
-### Thresholds
-- p95 latency: <5000ms
-- error_rate: <5%
+### Thresholds (OPS-RELIABILITY-002)
+- p95 latency: <500ms
+- error_rate: <1%
 
-Falha CI publica Sentry alert.
+Falha CI publica Sentry alert + PR comment (manual dispatch only).
+
+### Environment Variables
+- `LOCUST_HOST` — Target API URL (default: `https://api.smartlic.tech`)
+- `SUPABASE_ANON_KEY` — Required for authenticated endpoints (`/v1/buscar`, `/v1/user/profile`)
+
+### Running with authenticated endpoints
+```bash
+LOCUST_HOST=https://api.smartlic.tech SUPABASE_ANON_KEY=your_key_here \
+  locust -f stage_4_7_pattern.py --host "$LOCUST_HOST" --users 10 --run-time 60s --headless
+```
