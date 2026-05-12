@@ -27,7 +27,7 @@ from typing import Any, Optional
 # original in-function imports worked at runtime but defeat pytest's
 # monkeypatch.setattr() on the helpers — and the incident response
 # story has high-signal tests we do not want to sacrifice.
-from supabase_client import get_supabase, sb_execute  # noqa: E402
+from supabase_client import CircuitBreakerOpenError, get_supabase, sb_execute  # noqa: E402
 
 logger = logging.getLogger(__name__)
 
@@ -120,6 +120,13 @@ async def reprocess_pending(limit: int = 100) -> dict[str, int]:
         )
         rows = result.data or []
         stats["considered"] = len(rows)
+    except CircuitBreakerOpenError as e:
+        logger.info(
+            "STORY-418: DLQ scan skipped — Supabase circuit breaker[%s] is OPEN: %s",
+            getattr(e, "category", "unknown"),
+            e,
+        )
+        return stats
     except Exception as e:
         logger.error("STORY-418: DLQ scan failed: %s", e)
         return stats

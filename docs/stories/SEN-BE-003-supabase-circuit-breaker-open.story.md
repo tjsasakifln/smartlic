@@ -27,10 +27,10 @@ Impacto:
 
 ## Critérios de Aceite
 
-- [ ] **AC1:** Análise documentada em `docs/investigation/SEN-BE-003-cb-analysis.md`: baseline de disponibilidade real do PNCP upstream (consultar status page ou medir via canary)
-- [ ] **AC2:** Revisar thresholds do circuit breaker `backend/pncp_client.py` (hoje: 15 failures / 60s cooldown). Ajustar se necessário, documentar decisão
-- [ ] **AC3:** Job `dlq_scan` NÃO deve falhar por `CB OPEN` — deve fazer skip gracioso com log INFO (não ERROR). Criar teste unitário em `backend/tests/test_dlq_scan_cb_open.py`
-- [ ] **AC4:** STARTUP GATE fatal deve ter retry exponencial (3 tentativas, 5/10/20s) ANTES de entrar em "staying alive" — evita falha transitória de deploy virar incident. `backend/main.py::startup_supabase_gate`
+- [x] **AC1:** Análise documentada em `docs/investigation/SEN-BE-003-cb-analysis.md`: baseline de disponibilidade real do PNCP upstream (consultar status page ou medir via canary)
+- [x] **AC2:** Revisar thresholds do circuit breaker `backend/pncp_client.py` (hoje: 15 failures / 60s cooldown). Ajustar se necessário, documentar decisão
+- [x] **AC3:** Job `dlq_scan` NÃO deve falhar por `CB OPEN` — deve fazer skip gracioso com log INFO (não ERROR). Criar teste unitário em `backend/tests/test_dlq_scan_cb_open.py`
+- [x] **AC4:** STARTUP GATE fatal deve ter retry exponencial (3 tentativas, 5/10/20s) ANTES de entrar em "staying alive" — evita falha transitória de deploy virar incident. `backend/startup/lifespan.py::lifespan`
 - [ ] **AC5:** Alert Sentry configurado: rate `smartlic_pncp_breaker_open_total` > 3/hora dispara pagerduty (fora do padrão esperado de intermitência)
 - [ ] **AC6:** Issues `7402940322`, `7323248631`, `7355911985`, `7400220880` resolvidos ou reduzidos a <10 eventos/semana após fix
 
@@ -72,3 +72,14 @@ Métrica existente: `smartlic_pncp_breaker_open_total` (Prometheus)
 |------|--------|------|
 | 2026-04-23 | @sm | Story criada — 4 issues correlacionadas, 722 eventos combinados |
 | 2026-04-23 | @po | Validação 10/10 → **GO**. LIVE (health events lastSeen 2026-04-22). Promovida Draft → Ready |
+| 2026-05-12 | @dev | AC1-AC4 implementados. Investigação em docs/investigation/SEN-BE-003-cb-analysis.md. DLQ skip gracioso com INFO. STARTUP GATE retry 5/10/20s. CB thresholds mantidos (apropriados). Testes em test_dlq_scan_cb_open.py |
+
+## File List
+
+| File | Action |
+|------|--------|
+| `docs/investigation/SEN-BE-003-cb-analysis.md` | Added — análise completa (AC1) |
+| `backend/services/trial_email_dlq.py` | Edited — import + except CircuitBreakerOpenError (AC3) |
+| `backend/startup/lifespan.py` | Edited — retry loop STARTUP GATE 5/10/20s (AC4) |
+| `backend/tests/test_dlq_scan_cb_open.py` | Added — 3 testes CB OPEN graceful skip (AC3) |
+| `docs/stories/SEN-BE-003-supabase-circuit-breaker-open.story.md` | Edited — checkboxes AC1-AC4 marcados |

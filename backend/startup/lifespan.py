@@ -317,24 +317,42 @@ async def lifespan(app_instance: FastAPI):
 
     _log_registered_routes(app_instance)
 
-    # Supabase connectivity probe — wrapped in asyncio.wait_for to prevent uvicorn startup hang
-    # when Supabase is slow/overloaded. Degraded startup is preferable to Railway healthcheck rollback.
-    _probe_timeout = int(os.getenv("STARTUP_PROBE_TIMEOUT_S", "10"))
-    try:
-        from supabase_client import get_supabase
-        db = get_supabase()
-        await asyncio.wait_for(
-            asyncio.to_thread(db.table("profiles").select("id").limit(1).execute),
-            timeout=_probe_timeout,
-        )
-        logger.info("STARTUP GATE: Supabase connectivity confirmed")
-    except asyncio.TimeoutError:
+    # Supabase connectivity probe — retry loop prevents transient failures from triggering
+    # degraded startup (SEN-BE-003 AC4). Uses 5/10/20s backoff before falling through to
+    # "staying alive" mode. Degraded startup is preferable to Railway healthcheck rollback.
+    _probe_retry_delays = [5, 10, 20]
+    _probe_success = False
+    for attempt, delay in enumerate(_probe_retry_delays, 1):
+        try:
+            from supabase_client import get_supabase
+            db = get_supabase()
+            await asyncio.wait_for(
+                asyncio.to_thread(db.table("profiles").select("id").limit(1).execute),
+                timeout=delay,
+            )
+            logger.info("STARTUP GATE: Supabase connectivity confirmed (attempt %d/%d)", attempt, len(_probe_retry_delays))
+            _probe_success = True
+            break
+        except asyncio.TimeoutError:
+            logger.warning(
+                "STARTUP GATE: Probe attempt %d/%d timed out after %ds",
+                attempt, len(_probe_retry_delays), delay,
+            )
+            if attempt < len(_probe_retry_delays):
+                await asyncio.sleep(1)
+        except Exception as e:
+            logger.warning(
+                "STARTUP GATE: Probe attempt %d/%d failed — %s",
+                attempt, len(_probe_retry_delays), e,
+            )
+            if attempt < len(_probe_retry_delays):
+                await asyncio.sleep(1)
+
+    if not _probe_success:
         logger.critical(
-            "STARTUP GATE: Supabase probe timed out after %ds — SERVICE DEGRADED but staying alive.",
-            _probe_timeout,
+            "STARTUP GATE: All %d probes failed — SERVICE DEGRADED but staying alive.",
+            len(_probe_retry_delays),
         )
-    except Exception as e:
-        logger.critical(f"STARTUP GATE: Supabase unreachable — {e}. SERVICE DEGRADED but staying alive.")
 
     # Redis connectivity check
     if os.getenv("REDIS_URL"):
