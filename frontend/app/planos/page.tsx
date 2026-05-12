@@ -483,8 +483,6 @@ export default function PlanosPage() {
           />
         </div>
 
-        </div>
-
         {/* STORY-372 AC2: Case studies section */}
         <div className="mt-16 mb-12">
           <div className="text-center mb-8">
