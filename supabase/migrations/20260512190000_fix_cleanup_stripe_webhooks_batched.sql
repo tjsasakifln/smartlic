@@ -71,6 +71,7 @@ COMMENT ON FUNCTION public.cleanup_old_stripe_events(INTEGER, INTEGER) IS
     'SECURITY DEFINER: caller needs only EXECUTE privilege. '
     'Replaces single-shot DELETE that was failing 47x (SMARTLIC-BACKEND-NH).';
 
+REVOKE ALL ON FUNCTION public.cleanup_old_stripe_events(INTEGER, INTEGER) FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION public.cleanup_old_stripe_events(INTEGER, INTEGER) TO service_role;
 
 -- ════════════════════════════════════════════════════════════════════════════
