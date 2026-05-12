@@ -1,6 +1,6 @@
 # Flowchart — Módulo `ingestion-datalake`
 
-> Gerado pelo **Reversa Archaeologist** em 2026-04-27
+> Gerado pelo **Reversa Archaeologist** em 2026-04-27 · **Refresh 2026-05-12 (DOC-COVERAGE-002):** §6 covering indexes para pncp_supplier_contracts
 
 ## 1. Crawl Schedule (UTC → BRT)
 
@@ -82,3 +82,13 @@ UPSERT decide via comparison:
 - `inserted` = nova `numero_controle_pncp`
 - `updated` = mesmo PK, content_hash diferente
 - `unchanged` = mesmo PK, mesmo hash (skip write)
+
+## 6. Covering Indexes para pncp_supplier_contracts
+
+`20260508222200_psc_disk_io_covering_indexes.sql` (2026-05-08) — covering indexes para eliminar heap lookups em queries frequentes do SEO programmatic:
+
+- `idx_psc_data_ni_objeto (data_assinatura DESC, ni_fornecedor, objeto_contrato)` — cobre consultas de timeline por fornecedor
+- `idx_psc_ni_valor (ni_fornecedor, valor_total)` — cobre consultas agregadas de valor por CNPJ
+- `idx_psc_objeto_trgm (objeto_contrato gin_trgm_ops)` — suporte a ILIKE multi-keyword (sector_uf intel)
+
+> **Impacto:** Antes ~30s seq scan em `pncp_supplier_contracts` (2M+ rows). Pós-index <50ms index-only scan.
