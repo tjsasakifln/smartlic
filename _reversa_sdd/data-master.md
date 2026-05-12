@@ -1,9 +1,11 @@
 # Data Master — Análise Completa do Banco
 
 > Gerado pelo **Reversa Data Master** em 2026-04-27
-> Fonte: `supabase/migrations/` (183 arquivos), `backend/migrations/` (12 legacy), `data-dictionary.md`
+> Fonte: `supabase/migrations/` (183+ arquivos), `backend/migrations/` (12 legacy), `data-dictionary.md`
 >
-> **Refresh 2026-05-09 (DOC-COVERAGE-001):** seções §11 (Tabelas novas/estendidas 2026-05-04→09), §12 (Views — pós SEC-VIEW-001), §13 (RPCs novas Intel + DATA-CAP-001), e §14 (ERD delta) appended at bottom. Cita PRs #955 + #957 (UNMERGED em refresh time, documentadas como post-merge canonical state — wave B sequencing) + PR #916 (`plans` capabilities) + PRs #628, #826, #710, #791, #863. Migration source files lidos diretamente (db pull bloqueado por `feedback_supabase_down_sql_schema_conflict`).
+> **Refresh 2026-05-09 (DOC-COVERAGE-001):** seções §11 (Tabelas novas/estendidas 2026-05-04→09), §12 (Views — pós SEC-VIEW-001), §13 (RPCs novas Intel + DATA-CAP-001), e §14 (ERD delta) appended at bottom.
+>
+> **Refresh 2026-05-12 (DOC-COVERAGE-002):** §15 (Tabelas/Views novas 2026-05-09→12) appended. Cobre: sitemap materialized views (SEO-SITEMAP-MV-001), seo_coverage_manifest (SEO-COVERAGE-MANIFEST-001), cnae_setor_mapping (DATA-CNAE-001), profiles.founder_* columns (#1008), cleanup_old_stripe_events batched RPC (SMARTLIC-BACKEND-NH).
 
 ## 1. Stack
 
@@ -15,7 +17,7 @@
 - **pg_cron**: scheduled jobs (purge, cleanup) com `cron_job_health` view monitorada
 - **Migrations**: source of truth em `supabase/migrations/` (CRIT-050 auto-apply em deploy)
 
-## 2. Tables (48 total)
+## 2. Tables (65 total — 48 baseline em §2, +17 documentadas nos deltas §11 e §15)
 
 ### Core User & Auth
 
@@ -153,7 +155,7 @@
 Coverage empírica do schema `public` via `pg_tables` ⨝ `pg_policies` (export Management API):
 
 - **Última auditoria:** 2026-05-09 — `_reversa_sdd/rls-coverage-2026-05-09.md`
-- **Tables totais (`public`):** 60
+- **Tables totais (`public`):** 65
 - **Compliant (RLS on + ≥1 policy):** 59 (98.3%)
 - **Documented exempt (`-- rls-exempt:`):** 0
 - **Gap:** 1 (`auth_attempts` — RLS on, 0 policies; service-role-only por intent, mas precisa policy explícita ou marker `-- rls-exempt:` para passar o gate)
@@ -190,6 +192,10 @@ Exceções:
 | `purge-old-bids` | `0 7 * * *` (07 UTC daily) | `purge_old_bids(400)` | STORY-1.2 |
 | `cleanup-search-cache` | env | `cleanup_search_cache()` | 24h TTL |
 | `cleanup-search-store` | env | `cleanup_search_store()` | 24h TTL |
+| `cleanup-stripe-webhooks` | `30 4 * * *` | `cleanup_old_stripe_events(90, 1000)` — batched, 100ms pause | SMARTLIC-BACKEND-NH, #1049 |
+| `refresh-sitemap-mvs` | `0 7 * * *` | `REFRESH MATERIALIZED VIEW CONCURRENTLY mv_sitemap_cnpjs` | SEO-SITEMAP-MV-001 |
+| `refresh-sitemap-mvs-orgaos` | `0 7 * * *` | `REFRESH MATERIALIZED VIEW CONCURRENTLY mv_sitemap_orgaos` | SEO-SITEMAP-MV-001 |
+| `refresh-sitemap-mvs-fornecedores` | `0 7 * * *` | `REFRESH MATERIALIZED VIEW CONCURRENTLY mv_sitemap_fornecedores` | SEO-SITEMAP-MV-001 |
 
 Monitor: `cron_job_health` view + `get_cron_health()` RPC + ARQ hourly `cron_monitoring_job` (Sentry alert se >25h sem rodar).
 
@@ -551,4 +557,148 @@ erDiagram
 - `plans.id → user_subscriptions.plan_id` (FK pré-existente, ver §2)
 - `cnae_setores ⇏ profiles` é runtime warmup, não FK
 - `founding_leads` é tabela standalone com email-based join lazy (não FK para evitar overhead — pattern consciente)
+
+---
+
+## 15. Tabelas/Views Novas (refresh 2026-05-09 → 2026-05-12)
+
+> Seção aditiva. Documenta deltas desde §11-14 (baseline 2026-05-09).
+
+### 15.1 `profiles` (estendida — #1008 — `20260510045004_profiles_founder_public_listing.sql`)
+
+Colunas opt-in LGPD para o Hall de Fundadores (`/fundadores/hall`). Default FALSE.
+
+| Coluna | Tipo | Descrição |
+|--------|------|-----------|
+| `founder_public_listing_consent` | `BOOLEAN NOT NULL DEFAULT FALSE` | LGPD opt-in flag |
+| `founder_listing_display_name` | `TEXT NULL` | display name no hall (fallback razao_social) |
+| `founder_company_logo_url` | `TEXT NULL` | logo URL |
+| `founder_consent_changed_at` | `TIMESTAMPTZ NULL` | audit trail do toggle |
+
+**Partial index:** `idx_profiles_founders_public_listing (founder_consent_changed_at DESC) WHERE is_founder = TRUE AND founder_public_listing_consent = TRUE`
+
+### 15.2 Sitemap Materialized Views (SEO-SITEMAP-MV-001 — `20260510140000_sitemap_materialized_views.sql`)
+
+Três MVs pré-agregadas que reduzem query de sitemap de 30-45s para <50ms. Substituem agregados GROUP BY ao vivo sobre `pncp_raw_bids` (1.5M+ rows) e `pncp_supplier_contracts` (2M+ rows). Atualizadas via pg_cron 7 UTC daily.
+
+| MV | Query Source | Filter | Index |
+|----|-------------|--------|-------|
+| `mv_sitemap_cnpjs` | `pncp_raw_bids` | CNPJ regex + data > 24m | UNIQUE (cnpj) |
+| `mv_sitemap_orgaos` | `pncp_raw_bids` | CNPJ regex + data > 12m + ≥5 bids; inclui `last_seen` (add #1032) | UNIQUE (cnpj) |
+| `mv_sitemap_fornecedores` | `pncp_supplier_contracts` | CNPJ regex + data > 24m | UNIQUE (cnpj) |
+
+**Regex gate (SEO-CNPJ-ALPHA-001 — `20260510120000_sitemap_cnpj_alpha_validation.sql`):**
+Todas as 3 MVs + RPCs de sitemap (`get_sitemap_cnpjs_json`, `get_sitemap_orgaos_json`, `get_sitemap_cnpjs`) usam `orgao_cnpj ~* '^[A-Z0-9]{12}[0-9]{2}$'` — substitui o antigo `length >= 11` que aceitava CPFs (11 dígitos), causa de ~2.962 páginas 404 no Google Search Console. Compatível com CNPJ alfanumérico futuro (IN 2.229/2024, jul/2026).
+
+### 15.3 `seo_coverage_manifest` (SEO-COVERAGE-MANIFEST-001 / #1039 — `20260510160000_seo_coverage_manifest.sql`)
+
+Coverage manifest: rastreia quais slugs têm dados reais para que o sitemap inclua apenas URLs com conteúdo. Rebuilt daily 06:00 UTC pelo ARQ cron `seo_coverage_manifest.py`.
+
+| Coluna | Tipo | Descrição |
+|--------|------|-----------|
+| `id` | `uuid PK DEFAULT gen_random_uuid()` | |
+| `entity_type` | `text NOT NULL` | tipo do slug (setor, municipio, etc.) |
+| `slug` | `text NOT NULL` | slug do conteúdo |
+| `coverage_status` | `text NOT NULL CHECK (full,partial,empty,historical_empty)` | status de cobertura |
+| `bid_count` | `integer DEFAULT 0` | número de bids/propostas |
+| `last_updated` | `timestamptz DEFAULT now()` | |
+
+**Indexes:** `idx_scm_entity_slug (entity_type, slug)`, `idx_scm_coverage_status`, `idx_scm_entity_status (entity_type, coverage_status)`
+
+**RLS:** `"Public read coverage manifest"` FOR SELECT USING (true) — coverage data não é sensível.
+
+**Sitemap behavior:** slugs `empty` são filtrados do sitemap; `historical_empty` permanecem com priority=0.3 (evita desaparecimento repentino de páginas indexadas).
+
+### 15.4 `cnae_setor_mapping` (DATA-CNAE-001 — `20260511120000_cnae_setor_mapping.sql`)
+
+Tabela separada da pré-existente `cnae_setores` (§11.4). Substitui o hardcoded `CNAE_TO_SETOR` dict em `backend/utils/cnae_mapping.py` como source-of-truth primário. Permite admins alterarem mappings em runtime sem redeploy.
+
+| Coluna | Tipo | Descrição |
+|--------|------|-----------|
+| `cnae_code` | `TEXT PRIMARY KEY` | prefixo CNAE 4 dígitos (e.g. "4120") |
+| `setor_id` | `TEXT NOT NULL` | SmartLic sector id |
+| `confidence` | `NUMERIC(3,2) NOT NULL DEFAULT 1.00` | 0.00-1.00 confidence |
+| `fallback_setor_id` | `TEXT NULL` | secondary sector |
+| `notes` | `TEXT NULL` | rationale / audit trail |
+| `created_at` | `TIMESTAMPTZ NOT NULL DEFAULT NOW()` | |
+| `updated_at` | `TIMESTAMPTZ NOT NULL DEFAULT NOW()` | |
+| `updated_by` | `UUID REFERENCES auth.users(id) ON DELETE SET NULL` | admin who made change |
+
+**Index:** `idx_cnae_setor_mapping_setor (setor_id)`
+
+**RLS:** `cnae_public_read` FOR SELECT USING (true) — público. Admin write via `cnae_admin_write` policy (requires `profiles.is_admin = true`).
+
+**Seed:** 59 entries snapshot 2026-05-07 do `CNAE_TO_SETOR` dict. Lookup function `lookup_cnae_setor()` lê DB primeiro, fallback hardcoded dict em erro transiente.
+
+**Cache invalidation:** admin CRUD endpoints (`GET/POST/PATCH/DELETE /v1/admin/cnae-mapping`) chamam `invalidate_cnae_cache()` para limpar LRU cache.
+
+### 15.5 RPC: `cleanup_old_stripe_events(p_retention_days, p_batch_size)` (fix SMARTLIC-BACKEND-NH — `20260512190000_fix_cleanup_stripe_webhooks_batched.sql`)
+
+Batched deletion function substituindo single-shot DELETE que causava lock contention com webhooks concorrentes. Deleta 1000 rows por batch com 100ms pause entre batches.
+
+| Parâmetro | Default | Descrição |
+|-----------|---------|-----------|
+| `p_retention_days` | 90 | age cutoff |
+| `p_batch_size` | 1000 | rows per batch (max 10000) |
+
+**Security:** `SECURITY DEFINER` + `SET search_path = public`. Executada pelo pg_cron job `cleanup-stripe-webhooks` (04:30 UTC daily).
+
+### 15.6 RPCs de sitemap atualizadas (SEO-CNPJ-ALPHA-001)
+
+Três RPCs tiveram filtro `length(orgao_cnpj) >= 11` → `orgao_cnpj ~* '^[A-Z0-9]{12}[0-9]{2}$'`:
+
+| RPC | Retorna | Uso |
+|-----|---------|-----|
+| `get_sitemap_cnpjs_json(max_results)` | `json` | endpoint `/v1/sitemap/cnpjs` |
+| `get_sitemap_orgaos_json(max_results)` | `json` | endpoint `/v1/sitemap/orgaos` |
+| `get_sitemap_cnpjs(max_results)` | `TABLE(cnpj, bid_count)` | backend helper for sitemap gen |
+
+Todas `STABLE SECURITY DEFINER SET search_path = public`.
+
+### 15.7 ERD Delta (Mermaid — refresh 2026-05-12)
+
+```mermaid
+erDiagram
+    pncp_raw_bids ||--o{ mv_sitemap_cnpjs : "aggregated"
+    pncp_raw_bids ||--o{ mv_sitemap_orgaos : "aggregated"
+    pncp_supplier_contracts ||--o{ mv_sitemap_fornecedores : "aggregated"
+
+    mv_sitemap_cnpjs {
+        text cnpj PK
+        timestamptz last_seen
+    }
+    mv_sitemap_orgaos {
+        text cnpj PK
+        bigint total_licitacoes
+        timestamptz last_seen "ADDED #1032"
+    }
+    mv_sitemap_fornecedores {
+        text cnpj PK
+        timestamptz last_seen
+    }
+    seo_coverage_manifest {
+        uuid id PK
+        text entity_type
+        text slug UK
+        text coverage_status "full|partial|empty|historical_empty"
+        int bid_count
+        timestamptz last_updated
+    }
+    cnae_setor_mapping {
+        text cnae_code PK
+        text setor_id
+        numeric confidence
+        text fallback_setor_id
+        text notes
+        timestamptz created_at
+        timestamptz updated_at
+        uuid updated_by FK "auth.users"
+    }
+    profiles {
+        bool founder_public_listing_consent "NEW #1008"
+        text founder_listing_display_name "NEW"
+        text founder_company_logo_url "NEW"
+        timestamptz founder_consent_changed_at "NEW"
+    }
+```
 
