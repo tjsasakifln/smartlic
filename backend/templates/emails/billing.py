@@ -133,7 +133,7 @@ def render_welcome_to_pro_email(
       <li>Buscas ilimitadas em PNCP + ComprasGov + PCP v2</li>
       <li>Análise de viabilidade 4 fatores com IA</li>
       <li>Pipeline Kanban de oportunidades</li>
-      <li>Relatórios Excel + resumo executivo</li>
+      <li>Relatórios Excel + avaliação por inteligência artificial</li>
     </ul>
 
     <p style="text-align: center; margin: 16px 0;">

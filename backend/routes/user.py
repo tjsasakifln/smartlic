@@ -814,7 +814,7 @@ async def submit_exit_survey(
     user_id = user["id"]
 
     if body.reason not in VALID_EXIT_REASONS:
-        raise HTTPException(status_code=422, detail=f"Reason must be one of: {sorted(VALID_EXIT_REASONS)}")
+        raise HTTPException(status_code=422, detail=f"Motivo inválido. Opções: {sorted(VALID_EXIT_REASONS)}")
 
     # Check for duplicate
     try:
@@ -822,7 +822,7 @@ async def submit_exit_survey(
             db.table("trial_exit_surveys").select("id").eq("user_id", user_id).limit(1)
         )
         if existing.data:
-            raise HTTPException(status_code=409, detail="Survey already submitted for this user")
+            raise HTTPException(status_code=409, detail="Pesquisa já enviada para este usuário")
     except HTTPException:
         raise
     except Exception as e:

@@ -52,7 +52,7 @@ const FEATURES = [
   { text: "1.000 análises por mês", detail: "Avalie oportunidades em todos os 27 estados" },
   { text: "Exportação Excel completa", detail: "Relatórios detalhados para sua equipe" },
   { text: "Pipeline de acompanhamento", detail: "Gerencie oportunidades do início ao fim" },
-  { text: "Resumos executivos com IA avançada", detail: "Análise estratégica de cada oportunidade" },
+  { text: "Análise estratégica com IA avançada", detail: "Avaliação de cada oportunidade" },
   { text: "Histórico completo", detail: "Acesso a oportunidades publicadas nos portais oficiais" },
   { text: "15 setores e 27 estados", detail: "Cobertura nacional integrada de fontes oficiais" },
   { text: "Filtragem com 1.000+ regras", detail: "Precisão setorial para seu mercado" },

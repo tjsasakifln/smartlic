@@ -285,7 +285,7 @@ export default function PipelinePage() {
                   <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" />
                 </svg>
                 <p className="text-sm text-amber-800 dark:text-amber-200">
-                  Seu trial expirou. O pipeline está em modo leitura. Assine para continuar gerenciando suas oportunidades.
+                  {`Seu pipeline tem ${items.length} ${items.length === 1 ? "oportunidade parada" : "oportunidades paradas"}. Assine e retome o acompanhamento.`}
                 </p>
               </div>
               <a
