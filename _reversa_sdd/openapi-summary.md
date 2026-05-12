@@ -1,8 +1,8 @@
 # OpenAPI Summary — SmartLic v0.5
 
-> Gerado pelo **Reversa Writer** em 2026-04-27
+> Gerado pelo **Reversa Writer** em 2026-05-12
 > Source-of-truth: `frontend/app/api-types.generated.ts` (autogen via `npm run generate:api-types` + STORY-2.1 codegen)
-> Total: **187 endpoints** em **65 routers** (registrados em `startup/routes.py`)
+> Total: **226 endpoints** em **78 routers** (registrados em `startup/routes.py`)
 
 ## Versioning
 
@@ -14,10 +14,10 @@
 
 | Tag | Endpoints | Owner |
 |-----|-----------|-------|
-| `search` | 9 | Search team |
+| `search` | 9+ | Search team |
 | `pipeline` | 5 | Pipeline team |
-| `billing` | 5 | Billing team |
-| `auth-signup` / `auth-check` / `auth-email` / `oauth` | 5 | Auth team |
+| `billing` | 5+ | Billing team |
+| `auth-signup` / `auth-check` / `auth-email` / `oauth` | 5+ | Auth team |
 | `user` | 13 | User team |
 | `analytics` | 6 | Analytics |
 | `messages` | 6 | Support |
@@ -25,20 +25,21 @@
 | `alerts` | 7 | Notifications |
 | `onboarding` | 2 | GTM |
 | `health` / `health-core` | 11 | SRE |
-| `admin` | ~25 | Admin/SRE |
+| `admin` | ~35 | Admin/SRE |
 | `MFA` | 4 | Security |
 | `organizations` | 8 | Multi-tenant |
 | `partners` / `referral` | 8 | Growth |
 | `sectors` | 3 | Public |
-| `subscriptions` / `founding` / `conta` / `trial` | 8 | Billing |
+| `subscriptions` / `founding` / `conta` / `trial` | 8+ | Billing |
+| `founders` | 3+ | Growth |
 | `feature-flags` | 4 (admin+public) | DevOps |
 | `metrics` | 3 | SRE |
-| `seo_admin` / `admin-slo` | 3 | SEO/SRE |
-| `observatorio` / `blog-stats` / `*-publicos` | ~30 | SEO programmatic |
+| `seo_admin` / `admin-slo` | 3+ | SEO/SRE |
+| `observatorio` / `blog-stats` / `*-publicos` / `pseo-data` / `seo-coverage` | ~35 | SEO programmatic |
 | `sitemap` | 5 | SEO |
 | `daily_digest` / `weekly_digest` | 4 | Email |
-| `share` / `lead-capture` / `relatorio` / `bid-analysis` / `reports` | 8 | Misc |
-| `export` / `calculadora` / `comparador` / `indice-municipal` / `notifications` / `emails` / `trial-emails` / `feedback` | ~15 | Various |
+| `share` / `lead-capture` / `relatorio` / `bid-analysis` / `reports` / `survey` | 9+ | Misc |
+| `export` / `calculadora` / `comparador` / `indice-municipal` / `notifications` / `emails` / `trial-emails` / `feedback` / `intel_reports` | ~18 | Various |
 
 ## Endpoint Inventory (sumário)
 
@@ -412,3 +413,6 @@ cd backend && uvicorn main:app --port 8000 &
 npm --prefix frontend run generate:api-types
 git add frontend/app/api-types.generated.ts
 ```
+
+---
+*Atualizado em 2026-05-12 (DOC-COVERAGE-002)*

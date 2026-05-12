@@ -1,6 +1,7 @@
 # Flowchart — Módulo `observatory+seo-programmatic`
 
 > Gerado pelo **Reversa Archaeologist** em 2026-04-27 · Confiança 🟢 CONFIRMADO
+> **Refresh 2026-05-12 (DOC-COVERAGE-002):** §2 sitemap atualizado para materialized views (SEO-SITEMAP-MV-001)
 
 ## SEO programmatic page lifecycle (frontend ISR)
 
@@ -21,7 +22,7 @@ flowchart TD
     F --> M
 ```
 
-## Sitemap generation hierarchy
+## Sitemap generation hierarchy (Materialized Views — SEO-SITEMAP-MV-001)
 
 ```mermaid
 flowchart TD
@@ -34,13 +35,21 @@ flowchart TD
     S2 -->|backend| BE2[GET sitemap_orgaos.py]
     S3 -->|backend| BE3[GET sitemap_cnpjs.py]
     S4 -->|backend| BE4[GET sitemap_licitacoes_do_dia.py daily fresh]
-    BE1 --> Q1[query distinct setor_id from pncp_raw_bids]
-    BE2 --> Q2[query distinct cnpj_orgao]
-    BE3 --> Q3[query distinct cnpj_fornecedor from supplier_contracts]
+    BE1 --> Q1[query mv_sitemap_cnpjs · <50ms]
+    BE2 --> Q2[query mv_sitemap_orgaos · <50ms]
+    BE3 --> Q3[query mv_sitemap_fornecedores · <50ms]
     BE4 --> Q4[query bids WHERE data_publicacao = today]
     Q1 & Q2 & Q3 & Q4 --> R[XML render with Cache-Control max-age=3600 swr=86400]
     R -->|cap 50k URLs por arquivo| OUT[response]
+    subgraph pg_cron 7UTC daily
+        REF[REFRESH MATERIALIZED VIEW CONCURRENTLY]
+    end
+    REF -->|mv_sitemap_cnpjs| Q1
+    REF -->|mv_sitemap_orgaos| Q2
+    REF -->|mv_sitemap_fornecedores| Q3
 ```
+
+> **Mudanças desde 2026-04-27:** Antes queries agregadas ao vivo (`SELECT distinct setor_id FROM pncp_raw_bids` — 30-45s). Agora materialized views pré-agregadas (`mv_sitemap_cnpjs`, `mv_sitemap_orgaos`, `mv_sitemap_fornecedores`) refrescadas via pg_cron 7 UTC daily. Queries <50ms. Regex CNPJ alpha validation (`~* '^[A-Z0-9]{12}[0-9]{2}$'`) substituiu `length >= 11` (SEO-CNPJ-ALPHA-001).
 
 ## CNPJ profile flow (/empresa/{cnpj})
 

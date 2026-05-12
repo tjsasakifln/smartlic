@@ -1,6 +1,6 @@
 # Flowchart — Módulo `filter-llm-viability`
 
-> Gerado pelo **Reversa Archaeologist** em 2026-04-27
+> Gerado pelo **Reversa Archaeologist** em 2026-04-27 · **Refresh 2026-05-12 (DOC-COVERAGE-002)**: §3 LLM cache atualizado para SHA-256 + Redis-only (Issue #160)
 
 ## 1. Pipeline de Filtros (fail-fast)
 
@@ -51,19 +51,25 @@ total_terms | min_matches | comportamento
 
 `score = min(1.0, matched/total + 0.15 × phrase_count)`
 
-## 3. LLM Cache 2-Tier
+## 3. LLM Cache 1-Tier Redis (DOC-COVERAGE-002 — Issue #160)
 
 ```mermaid
 flowchart LR
-  Req[Classify request] --> Hash[MD5 do input]
-  Hash --> L1{L1 in-mem hit?}
-  L1 -->|sim| Ret1[return cached]
-  L1 -->|não| L2{L2 Redis hit?}
-  L2 -->|sim| Pop1[populate L1 + return]
-  L2 -->|não| Call[OpenAI gpt-4.1-nano]
-  Call --> Set[L1.set + L2.set + LRU evict if full]
-  Set --> Ret2[return result]
+  Req[get_or_generate_resumo_cached] --> Empty{licitacoes empty?}
+  Empty -->|sim| Gen[gerar_resumo · no cache]
+  Empty -->|não| Key[_build_resumo_cache_key]
+  Key --> Hash[SHA-256 sorted bid IDs + params]
+  Hash --> KeyF[llm:summary:{sha256}]
+  KeyF --> Redis{Redis get OK?}
+  Redis -->|sim| Hit[ResumoLicitacoes.model_validate_json]
+  Hit --> Alert[recompute_temporal_alerts]
+  Alert --> Ret1[return cached]
+  Redis -->|miss/fail| LLM[gerar_resumo · OpenAI]
+  LLM --> Store[Redis SETEX TTL=7d · fire-and-forget]
+  Store --> Ret2[return fresh]
 ```
+
+> **Mudanças desde 2026-04-27:** Antes usava MD5 + L1 in-mem + L2 Redis. Agora SHA-256 + Redis only. L1 in-mem cache removido por complexidade sem ganho mensurável (DataLake p95 <100ms). Falha de Redis faz graceful fallback para chamada OpenAI direta.
 
 ## 4. Viability — 4 Fatores (D-04)
 
