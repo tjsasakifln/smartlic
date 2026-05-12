@@ -243,7 +243,7 @@ function HomePageContent() {
                   ? "text-lg sm:text-3xl"
                   : "text-2xl sm:text-3xl",
               ].join(" ")}>
-                Análise de Licitações
+                {orch.session ? "Oportunidades para sua empresa" : "Encontre oportunidades para sua empresa"}
               </h1>
               {/* AC25: first-time users see full onboarding description */}
               {/* AC24: returning users skip this description entirely */}
@@ -253,7 +253,7 @@ function HomePageContent() {
                   // AC26: hide description on mobile once search is active/done
                   (orch.search.loading || orch.search.result) ? "hidden sm:block" : "",
                 ].join(" ")}>
-                  Encontre oportunidades de contratação pública de acordo com o momento do seu negócio.
+                  Encontre contratos públicos ideais para o seu negócio.
                 </p>
               )}
             </div>

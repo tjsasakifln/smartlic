@@ -308,8 +308,8 @@ describe('PipelinePage', () => {
 
       await waitFor(() => {
         expect(screen.getByRole('alert')).toBeInTheDocument();
-        expect(screen.getByText(/trial expirou/i)).toBeInTheDocument();
-        expect(screen.getByText(/modo leitura/i)).toBeInTheDocument();
+        expect(screen.getByText(/oportunidades paradas/i)).toBeInTheDocument();
+        expect(screen.getByText(/Assine e retome/i)).toBeInTheDocument();
       });
     });
 

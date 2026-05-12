@@ -197,9 +197,8 @@ describe("AC15: Positive framing", () => {
         />
       );
       const msg = screen.getByTestId("empty-state-message");
-      expect(msg.textContent).toContain("Analisamos 150 editais");
-      expect(msg.textContent).toContain("nenhum correspondeu ao seu perfil");
-      expect(msg.textContent).toContain("Volte amanhã");
+      expect(msg.textContent).toContain("Não encontramos editais compatíveis com esse filtro");
+      expect(msg.textContent).toContain("Tente ampliar as UFs ou o período");
     });
 
     it("shows positive framing when rawCount is 0", () => {
@@ -207,8 +206,8 @@ describe("AC15: Positive framing", () => {
         <EmptyState rawCount={0} stateCount={3} sectorName="software" />
       );
       const msg = screen.getByTestId("empty-state-message");
-      expect(msg.textContent).toContain("nenhum correspondeu ao seu perfil");
-      expect(msg.textContent).toContain("Volte amanhã");
+      expect(msg.textContent).toContain("Não encontramos editais compatíveis com esse filtro");
+      expect(msg.textContent).toContain("Tente ampliar as UFs ou o período");
     });
 
     it("never shows 'eliminados' in the message", () => {

@@ -64,7 +64,7 @@ export const GUIDED_TOUR_STEPS: TourStepDef[] = [
   },
   {
     id: 'guided-ia-summary',
-    title: 'Resumo com IA',
+    title: 'Análise estratégica com IA',
     text: 'A IA resume o objeto da licitação e destaca os pontos mais relevantes para sua empresa.',
     attachTo: { selector: '[data-tour="result-card"]', placement: 'bottom' },
     showOn: () => !!document.querySelector('[data-tour="result-card"]'),

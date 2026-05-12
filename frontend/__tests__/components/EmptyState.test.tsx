@@ -19,15 +19,15 @@ describe('EmptyState Component', () => {
   it('should display main message with sector name', () => {
     render(<EmptyState sectorName="Vestuário" />);
 
-    // Title is now static: "Nenhuma Oportunidade Relevante Encontrada"
-    const message = screen.getByText(/Nenhuma Oportunidade Relevante Encontrada/i);
+    // Title is now static: "Nenhum edital compatível com o filtro"
+    const message = screen.getByText(/Nenhum edital compatível com o filtro/i);
     expect(message).toBeInTheDocument();
   });
 
   it('should display default message when no rawCount', () => {
     render(<EmptyState />);
 
-    const message = screen.getByText(/Analisamos os editais disponíveis e nenhum correspondeu ao seu perfil/i);
+    const message = screen.getByText(/Não encontramos editais compatíveis com esse filtro/i);
     expect(message).toBeInTheDocument();
   });
 

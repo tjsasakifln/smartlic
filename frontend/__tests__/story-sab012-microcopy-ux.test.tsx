@@ -182,7 +182,7 @@ describe("SAB-012 AC1-AC3: Search time display in Histórico", () => {
     };
   });
 
-  it("AC1: shows 'Análise profunda' label when duration > 60s", async () => {
+  it("AC1: shows 'Análise completa' label when duration > 60s", async () => {
     mockUseSessionsReturn = {
       sessions: [makeSession({ duration_ms: 93800 })],
       total: 1,
@@ -196,7 +196,7 @@ describe("SAB-012 AC1-AC3: Search time display in Histórico", () => {
     render(<HistoricoPage />);
 
     await waitFor(() => {
-      expect(screen.getByText("Análise profunda")).toBeInTheDocument();
+      expect(screen.getByText("Análise completa")).toBeInTheDocument();
       expect(screen.getByTestId("deep-analysis-label")).toBeInTheDocument();
     });
 
@@ -222,7 +222,7 @@ describe("SAB-012 AC1-AC3: Search time display in Histórico", () => {
       expect(screen.getByText("5.2s")).toBeInTheDocument();
     });
 
-    expect(screen.queryByText("Análise profunda")).not.toBeInTheDocument();
+    expect(screen.queryByText("Análise completa")).not.toBeInTheDocument();
   }, 10000);
 
   it("AC3: hides time completely when duration is 30-60s", async () => {

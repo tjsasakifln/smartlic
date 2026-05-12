@@ -65,7 +65,7 @@ export function SearchEmptyState({
 
       {/* Title (STORY-173 AC3, GTM-FIX-028 AC14) */}
       <h3 className="text-xl font-semibold font-display text-ink mb-2">
-        Nenhuma Oportunidade Relevante Encontrada
+        Nenhum edital compatível com o filtro
       </h3>
 
       {/* GTM-FIX-028 AC14/AC16: LLM zero-match analysis note */}
@@ -84,7 +84,7 @@ export function SearchEmptyState({
       {rawCount > 0 && rejectionBreakdown.length > 0 ? (
         <div className="mb-6">
           <p className="text-ink-secondary mb-4" data-testid="empty-state-message">
-            Analisamos {rawCount.toLocaleString("pt-BR")} editais e nenhum correspondeu ao seu perfil no momento. Volte amanhã para novas oportunidades.
+            Não encontramos editais compatíveis com esse filtro. Tente ampliar as UFs ou o período.
           </p>
           <div className="text-left max-w-md mx-auto space-y-2">
             {rejectionBreakdown.map((item, i) => (
@@ -103,11 +103,11 @@ export function SearchEmptyState({
         </div>
       ) : rawCount > 0 ? (
         <p className="text-ink-secondary mb-4" data-testid="empty-state-message">
-          Analisamos {rawCount.toLocaleString("pt-BR")} editais e nenhum correspondeu ao seu perfil no momento. Volte amanhã para novas oportunidades.
+          Não encontramos editais compatíveis com esse filtro. Tente ampliar as UFs ou o período.
         </p>
       ) : (
         <p className="text-ink-secondary mb-4" data-testid="empty-state-message">
-          Analisamos os editais disponíveis e nenhum correspondeu ao seu perfil no momento. Volte amanhã para novas oportunidades.
+          Não encontramos editais compatíveis com esse filtro. Tente ampliar as UFs ou o período.
         </p>
       )}
 
