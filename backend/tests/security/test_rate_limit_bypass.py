@@ -73,7 +73,7 @@ async def test_authenticated_xff_spoof_does_not_bypass_user_bucket():
 
     async def _capture(full_key, max_req, window):
         keys_seen.append(full_key)
-        return (True, 0)
+        return (True, 0, max_req - 1)
 
     dependency = require_rate_limit(max_requests=10, window_seconds=60)
 
@@ -102,7 +102,7 @@ async def test_different_users_get_different_buckets():
 
     async def _capture(full_key, max_req, window):
         keys_seen.append(full_key)
-        return (True, 0)
+        return (True, 0, max_req - 1)
 
     dependency = require_rate_limit(max_requests=10, window_seconds=60)
     with patch.object(_flexible_limiter, "check_rate_limit", _capture), \
@@ -127,7 +127,7 @@ async def test_unauthenticated_uses_xff_first_value():
 
     async def _capture(full_key, *_args):
         keys_seen.append(full_key)
-        return (True, 0)
+        return (True, 0, 9)
 
     dependency = require_rate_limit(max_requests=10, window_seconds=60)
     with patch.object(_flexible_limiter, "check_rate_limit", _capture), \
@@ -179,7 +179,7 @@ async def test_rate_limit_exceeded_raises_429_not_silently_passes():
     from rate_limiter import require_rate_limit, _flexible_limiter
 
     async def _deny(*_a, **_kw):
-        return (False, 30)
+        return (False, 30, 0)
 
     dependency = require_rate_limit(max_requests=10, window_seconds=60)
     with patch.object(_flexible_limiter, "check_rate_limit", _deny), \
@@ -206,7 +206,7 @@ async def test_rate_limit_disabled_flag_skips_check_only():
 
     async def _record(*_a, **_kw):
         called.append(True)
-        return (True, 0)
+        return (True, 0, 9)
 
     dependency = require_rate_limit(max_requests=10, window_seconds=60)
     with patch.object(_flexible_limiter, "check_rate_limit", _record), \

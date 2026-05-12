@@ -65,8 +65,8 @@ class TestSignupRateLimiting:
             nonlocal call_count
             call_count += 1
             if call_count > 3:
-                return (False, 600)
-            return (True, 0)
+                return (False, 600, 0)
+            return (True, 0, max_req - 1)
 
         with patch("config.get_feature_flag", return_value=True), \
              patch("rate_limiter._flexible_limiter") as mock_limiter:
@@ -89,7 +89,7 @@ class TestSignupRateLimiting:
     def test_rate_limit_429_has_retry_after(self):
         """429 response includes retry_after_seconds and Retry-After header."""
         async def mock_check(key, max_req, window):
-            return (False, 600)
+            return (False, 600, 0)
 
         with patch("config.get_feature_flag", return_value=True), \
              patch("rate_limiter._flexible_limiter") as mock_limiter:
@@ -108,7 +108,7 @@ class TestSignupRateLimiting:
     def test_check_email_rate_limited(self):
         """GET /auth/check-email also rate limited under MED-SEC-001."""
         async def mock_check(key, max_req, window):
-            return (False, 300)
+            return (False, 300, 0)
 
         with patch("config.get_feature_flag", return_value=True), \
              patch("rate_limiter._flexible_limiter") as mock_limiter:

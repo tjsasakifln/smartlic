@@ -105,7 +105,7 @@ class TestCheckEmailEndpoint:
         from unittest.mock import AsyncMock
 
         async def mock_check(key, max_req, window):
-            return (False, 600)
+            return (False, 600, 0)
 
         with patch("config.get_feature_flag", return_value=True), \
              patch("rate_limiter._flexible_limiter") as mock_limiter:
@@ -205,7 +205,7 @@ class TestCheckPhoneEndpoint:
         from unittest.mock import AsyncMock
 
         async def mock_check(key, max_req, window):
-            return (False, 600)
+            return (False, 600, 0)
 
         with patch("config.get_feature_flag", return_value=True), \
              patch("rate_limiter._flexible_limiter") as mock_limiter:
