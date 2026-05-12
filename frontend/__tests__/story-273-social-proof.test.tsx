@@ -107,13 +107,6 @@ jest.mock('../app/components/Footer', () => {
   };
 });
 
-// Mock TestimonialSection (DEBT-122 AC1 re-added to landing page)
-jest.mock('../components/TestimonialSection', () => {
-  return function MockTestimonialSection() {
-    return <section data-testid="testimonial-section">TestimonialSection</section>;
-  };
-});
-
 // Mock TrendingEditais (async Server Component — not renderable in jsdom)
 jest.mock('../app/components/landing/TrendingEditais', () => ({
   TrendingEditais: function MockTrendingEditais() {
@@ -166,11 +159,11 @@ describe('STORY-273 + SAB-006: Landing Page Social Proof Integration', () => {
       expect(screen.queryByTestId('data-sources')).not.toBeInTheDocument();
       expect(screen.queryByTestId('sectors-grid')).not.toBeInTheDocument();
       expect(screen.queryByTestId('trust-criteria')).not.toBeInTheDocument();
-      // DEBT-122 AC1: TestimonialSection re-added to landing page
-      expect(screen.queryByTestId('testimonial-section')).toBeInTheDocument();
+      // COPY-COP-004 (#1125): TestimonialSection removed
+      expect(screen.queryByTestId('testimonial-section')).not.toBeInTheDocument();
     });
 
-    it('should maintain correct section order: Hero → Problema → Solução → Como Funciona → Stats → Testimonials → CTA', () => {
+    it('should maintain correct section order: Hero → Problema → Solução → Como Funciona → Stats → Founder Transparency → Credibility → CTA', () => {
       const main = screen.getByRole('main');
       const html = main.innerHTML;
 
@@ -179,15 +172,17 @@ describe('STORY-273 + SAB-006: Landing Page Social Proof Integration', () => {
       const solucaoIdx = html.indexOf('data-testid="before-after"');
       const comoIdx = html.indexOf('data-testid="how-it-works"');
       const statsIdx = html.indexOf('data-testid="stats-section"');
-      const testimonialIdx = html.indexOf('data-testid="testimonial-section"');
+      const founderIdx = html.indexOf('data-testid="founder-transparency-section"');
+      const credibilityIdx = html.indexOf('data-testid="credibility-section"');
       const ctaIdx = html.indexOf('data-testid="final-cta"');
 
       expect(heroIdx).toBeLessThan(problemaIdx);
       expect(problemaIdx).toBeLessThan(solucaoIdx);
       expect(solucaoIdx).toBeLessThan(comoIdx);
       expect(comoIdx).toBeLessThan(statsIdx);
-      expect(statsIdx).toBeLessThan(testimonialIdx);
-      expect(testimonialIdx).toBeLessThan(ctaIdx);
+      expect(statsIdx).toBeLessThan(founderIdx);
+      expect(founderIdx).toBeLessThan(credibilityIdx);
+      expect(credibilityIdx).toBeLessThan(ctaIdx);
     });
   });
 });

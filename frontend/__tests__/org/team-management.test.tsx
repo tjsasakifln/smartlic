@@ -874,11 +874,7 @@ jest.mock("../../components/subscriptions/PlanToggle", () => ({
   ),
 }));
 
-jest.mock("../../components/TestimonialSection", () => {
-  const T = () => <div data-testid="testimonials" />;
-  T.displayName = "TestimonialSection";
-  return Object.assign(T, { TESTIMONIALS: [], default: T });
-});
+// TestimonialSection mock removed (COPY-COP-004)
 
 jest.mock("../../lib/copy/roi", () => ({
   formatCurrency: (v: number) => `R$${v}`,
