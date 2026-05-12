@@ -2600,3 +2600,270 @@ Story `ARCH-100-001-godmodule-tracker.md` — tracker arquivo único `>1000 LOC`
 - 🟡 Cross-pod cache coherence (Railway com 1 worker) é trivial; se escalar para >1 replica, cada uma terá cache independente — drift máximo 30s (aceitável dado TTL)
 
 ---
+
+## Módulo 21 — `llm-summary-cache` 🟢 (DOC-COVERAGE-002)
+
+> Módulo de cache para resumos executivos LLM (Issue #160). Cacheia o output de `gerar_resumo()` em Redis com TTL=7d, key SHA-256 do payload ordenado. Falha de Redis = graceful — chama OpenAI direto.
+
+**Caminho:** `backend/llm.py:841-909` (`get_or_generate_resumo_cached`), `backend/cache_module.py` (Redis client)
+
+**Propósito:** Evitar chamadas repetidas ao OpenAI para o mesmo conjunto de bids. Cache hit reduz latência de segundos para <50ms p95 e elimina custo OpenAI da chamada repetida.
+
+### Arquivos primários
+
+| Arquivo | Papel |
+|---------|-------|
+| `backend/llm.py` | `get_or_generate_resumo_cached()` — async wrapper com cache-aside |
+| `backend/cache_module.py` | singleton `redis_cache` (Redis client, reexportado) |
+
+### Funções-chave
+
+| Função | Confiança |
+|--------|-----------|
+| `get_or_generate_resumo_cached(licitacoes, ...)` → `ResumoLicitacoes` | 🟢 — cache-aside: try read → hit? return. miss? call OpenAI → store → return |
+| `_build_resumo_cache_key(licitacoes, sector_name, termos_busca, setor_id)` → `str` | 🟢 — SHA-256 do payload sorted JSON |
+| `recompute_temporal_alerts(resumo, licitacoes)` | 🟢 — re-aplica alertas temporais pós-cache hit |
+
+### Algoritmos
+
+1. **Cache key:** `llm:summary:{sha256(sorted bid IDs + search params)}`. Determinístico para o mesmo conjunto de bids.
+2. **Cache-aside:** `redis_cache.get(key)` → hit → `ResumoLicitacoes.model_validate_json()` + recompute temporal alerts. Miss → `gerar_resumo()` → `redis_cache.setex(key, TTL=7d, json)`.
+3. **Graceful degradation:** qualquer exceção Redis (conexão, timeout, OOM) é logada como debug e ignorada — `gerar_resumo()` é chamado direto.
+4. **Empty-input short-circuit:** `if not licitacoes: return gerar_resumo(...)` sem cache (determinístico e rápido).
+
+### Métricas Prometheus
+
+- `smartlic_llm_summary_cache_hits_total` (counter)
+- `smartlic_llm_summary_cache_misses_total` (counter)
+
+### Constantes/Feature Flags
+
+| Constante | Valor | Local |
+|-----------|-------|-------|
+| `_LLM_SUMMARY_CACHE_TTL` | `7 * 24 * 3600` (7 dias) | `backend/llm.py` |
+
+### Dependências
+
+`cache_module` (Redis), `llm.py` (gerar_resumo), `schemas/search.py` (ResumoLicitacoes)
+
+### Lacunas
+
+- 🟢 Cache warming não implementado (intencional — DataLake p95 <100ms torna pre-population waste)
+- 🟢 Redis connection failure cai direto para OpenAI — sem circuit breaker intermediário
+- 🟡 TTL de 7d pode servir summary obsoleto se dados do DataLake forem atualizados retroativamente (não acontece no modelo append-only atual)
+
+---
+
+## Módulo 22 — `bulkhead-concurrency` 🟢 (DOC-COVERAGE-002)
+
+> STORY-296: Per-source bulkhead pattern com semáforos isolados para cada fonte de dados (PNCP, PCP, ComprasGov). Garante que exaustão de uma fonte não degrade as demais.
+
+**Caminho:** `backend/bulkhead.py` (225 LOC)
+
+**Propósito:** Isolamento de concorrência por fonte. Cada fonte tem seu próprio `asyncio.Semaphore` e budget de timeout. Se uma fonte fica lenta, suas conexões não consomem slots das outras.
+
+### Arquivos primários
+
+| Arquivo | Papel |
+|---------|-------|
+| `backend/bulkhead.py` | `SourceBulkhead` class + module-level registry |
+| `backend/config.py` | configurações `PNCP_BULKHEAD_CONCURRENCY`, `PCP_BULKHEAD_CONCURRENCY`, `COMPRASGOV_BULKHEAD_CONCURRENCY` |
+
+### Funções-chave
+
+| Função | Confiança |
+|--------|-----------|
+| `SourceBulkhead.__init__(name, max_concurrent, timeout)` | 🟢 — cria semáforo + contadores |
+| `SourceBulkhead.execute(coro, timeout)` → `T` | 🟢 — acquire semáforo (50% budget) → execute (50% budget) → release |
+| `initialize_bulkheads()` → `dict` | 🟢 — cria e registra bulkheads para PNCP, PCP, ComprasGov |
+| `get_bulkhead(source_name)` → `Optional[SourceBulkhead]` | 🟢 — lookup no registry |
+| `get_all_bulkheads()` → `dict` | 🟢 — snapshot para health/debug endpoints |
+
+### Algoritmos
+
+1. **Timeout bipartido:** `total_timeout / 2` para acquire do semáforo, `total_timeout / 2` para execução. Se acquire excede, `BulkheadAcquireTimeoutError` é raised — caller marca UF como `skipped` (não `error`).
+2. **Pool exhausted tracking:** quando `active >= max_concurrent`, incrementa `_exhausted_count` e emite `SOURCE_POOL_EXHAUSTED` Prometheus + log warning.
+3. **Health status:** `healthy` (<80% utilization), `degraded` (>=80%), `exhausted` (full).
+
+### Estruturas de dados
+
+```python
+class SourceBulkhead:
+    _semaphore: asyncio.Semaphore
+    _active: int       # current active operations
+    _exhausted_count: int  # cumulative exhaustion events
+```
+
+### Constantes/Feature Flags
+
+| Constante | Default | Config |
+|-----------|---------|--------|
+| `PNCP_BULKHEAD_CONCURRENCY` | 5 | `config.py` |
+| `PCP_BULKHEAD_CONCURRENCY` | 3 | `config.py` |
+| `COMPRASGOV_BULKHEAD_CONCURRENCY` | 3 | `config.py` |
+| `PNCP_SOURCE_TIMEOUT` | 70 | `config.py` |
+| `PCP_SOURCE_TIMEOUT` | 40 | `config.py` |
+| `COMPRASGOV_SOURCE_TIMEOUT` | 40 | `config.py` |
+
+### Métricas Prometheus
+
+- `smartlic_bulkhead_acquire_timeout_total{source}` — acquire timeout
+- `smartlic_source_active_requests{source}` — gauge, active operations
+- `smartlic_source_pool_exhausted_total{source}` — pool exhaustion events
+- `smartlic_source_semaphore_wait_seconds{source}` — histogram, wait duration >10ms
+
+### Dependências
+
+`asyncio`, `metrics` (Prometheus counters)
+
+### Lacunas
+
+- 🟢 Registry module-level permite teste via `reset_registry()` + `initialize_bulkheads()`
+- 🟡 `_exhausted_count` é monotônico (nunca reseta) — pode mascarar melhora após deploy
+- 🟡 SRE não tem alerta para `rate(smartlic_source_pool_exhausted_total[5m]) > 0` (TODO)
+
+---
+
+## Módulo 23 — `cnae-db-mapping` 🟢 (DOC-COVERAGE-002)
+
+> DATA-CNAE-001: Sistema de mapeamento CNAE (Classificação Nacional de Atividades Econômicas) para setores SmartLic. Substitui hardcoded dict por DB table + admin CRUD + LRU cache.
+
+**Caminho:** `backend/utils/cnae_mapping.py` (120 LOC), `backend/routes/admin_cnae_mapping.py` (150 LOC), migration `20260511120000_cnae_setor_mapping.sql`
+
+**Propósito:** Permitir admins editarem mapeamentos CNAE→setor em runtime sem redeploy. Source-of-truth primário é `public.cnae_setor_mapping` (DB), com fallback hardcoded.
+
+### Arquivos primários
+
+| Arquivo | Papel |
+|---------|-------|
+| `backend/utils/cnae_mapping.py` | `lookup_cnae_setor()` — DB-first fallback dict + `invalidate_cnae_cache()` |
+| `backend/routes/admin_cnae_mapping.py` | CRUD admin endpoints para `cnae_setor_mapping` |
+| `supabase/migrations/20260511120000_cnae_setor_mapping.sql` | DDL + seed 59 entries |
+| `backend/utils/cnae_mapping.py` (CNAE_TO_SETOR dict) | hardcoded fallback (59 entries, snapshot 2026-05-07) |
+
+### Funções-chave
+
+| Função | Confiança |
+|--------|-----------|
+| `lookup_cnae_setor(cnae_code)` → `Optional[str]` | 🟢 — DB first, fallback dict, LRU cached |
+| `invalidate_cnae_cache()` | 🟢 — limpa `@functools.lru_cache` |
+| `GET /v1/admin/cnae-mapping?setor=<id>` | 🟢 — list filtered by sector |
+| `POST /v1/admin/cnae-mapping` | 🟢 — create entry + invalidate cache |
+| `PATCH /v1/admin/cnae-mapping/{cnae_code}` | 🟢 — update entry + invalidate cache |
+| `DELETE /v1/admin/cnae-mapping/{cnae_code}` | 🟢 — soft delete (notes='deleted') + invalidate cache |
+
+### Algoritmos
+
+1. **DB-first lookup:** `SELECT setor_id FROM cnae_setor_mapping WHERE cnae_code = $1` → cache resultado. Se DB unreachable ou cnae_code não encontrado, fallback hardcoded `CNAE_TO_SETOR` dict.
+2. **Cache invalidation:** admin CRUD endpoints chamam `invalidate_cnae_cache()` (limpa `@functools.lru_cache`). Broadcast entre pods Railway não implementado (1 worker apenas).
+3. **58 IBGE CNAE 2.3 subclasses mapeadas** (coverage ~4.5% de ~1300 ativas). Expansão via admin CRUD.
+
+### Estruturas de dados
+
+Tabela `public.cnae_setor_mapping`:
+- `cnae_code TEXT PK` — prefixo IBGE 4 dígitos
+- `setor_id TEXT NOT NULL` — SmartLic sector id
+- `confidence NUMERIC(3,2) DEFAULT 1.00`
+- `fallback_setor_id TEXT NULL`
+- `notes TEXT NULL` (valor 'deleted' = soft delete)
+
+### Constantes/Feature Flags
+
+| Constante | Local | Notas |
+|-----------|-------|-------|
+| `CNAE_TO_SETOR` dict (59 entries) | `utils/cnae_mapping.py` | Fallback hardcoded, snapshot 2026-05-07 |
+
+### Métricas Prometheus
+
+Nenhuma específica. Erros capturados por logging.
+
+### Dependências
+
+`supabase_client` (SELECT + admin CRUD), `functools` (LRU cache)
+
+### Lacunas
+
+- 🟢 DB migration com seed de 59 entries
+- 🟡 Cross-pod cache invalidation não implementado (1 worker, sem Redis pubsub)
+- 🟡 Soft-delete via `notes='deleted'` é frágil — sem coluna `is_active`
+- 🟡 Coverage ~4.5% IBGE CNAE 2.3 — expansão contínua necessária
+
+---
+
+## Módulo 24 — `webhook-abc` 🟢 (DOC-COVERAGE-002)
+
+> REF-MON-002: ABC base + registry pattern para webhooks Stripe. Unifica 12 eventos Stripe sob um contrato comum com idempotência em dois layers (dispatcher + handler).
+
+**Caminho:** `backend/webhooks/handlers/_base.py` (220 LOC), `backend/webhooks/handlers/_registry.py` (240 LOC), `backend/webhooks/stripe.py` (dispatcher)
+
+**Propósito:** Framework reutilizável para handlers de webhook com template method (`handle()` → `process()`), idempotência in-handler, e registro via decorator `@webhook_handler`.
+
+### Arquivos primários
+
+| Arquivo | Papel |
+|---------|-------|
+| `backend/webhooks/handlers/_base.py` | `WebhookHandler` ABC + `HANDLERS_REGISTRY` + `@webhook_handler` decorator |
+| `backend/webhooks/handlers/_registry.py` | Adapter classes: wraps free-function handlers em `WebhookHandler` subclasses |
+| `backend/webhooks/stripe.py` | Dispatcher: signature → idempotency → routing via `HANDLERS_REGISTRY` |
+| `backend/webhooks/handlers/checkout.py` | checkout.session.completed, async_payment_succeeded/failed |
+| `backend/webhooks/handlers/subscription.py` | customer.subscription.created/updated/deleted/trial_will_end |
+| `backend/webhooks/handlers/invoice.py` | invoice.payment_succeeded/failed/action_required |
+| `backend/webhooks/handlers/founding.py` | founding lead lifecycle side-effects |
+| `backend/webhooks/handlers/stripe_product_price.py` | product.updated, price.created/updated/deleted |
+| `backend/webhooks/handlers/_shared.py` | shared utilities (resolve_user_id) |
+
+### Funções-chave
+
+| Função | Confiança |
+|--------|-----------|
+| `WebhookHandler.handle(sb, event)` | 🟢 — template method: claim idempotency → process() |
+| `WebhookHandler.process(sb, event)` | 🟢 — abstract, implementado por cada handler |
+| `WebhookHandler.idempotency_key(event)` | 🟢 — default: `event.id`, override para chave de negócio (e.g. `invoice.id`) |
+| `webhook_handler(event_type)` decorator | 🟢 — class decorator: instancia + registra em HANDLERS_REGISTRY |
+| `_resolve(attr_name)` | 🟢 — late-binding para patches de teste continuarem funcionando |
+| Stripe dispatcher (`webhooks/stripe.py`) | 🟢 — signature HMAC → INSERT idempotency → dispatch via registry |
+
+### Algoritmos
+
+1. **Dispatcher layer (load-bearing):** `stripe_webhook_events` table com `id` = Stripe event ID. INSERT ON CONFLICT DO NOTHING — duplicatas Stripe são filtradas antes de qualquer handler rodar.
+2. **Handler layer (best-effort):** `WebhookHandler._claim_idempotency()` faz upsert na mesma tabela com `ignore_duplicates=True`. Falha → proceed (fail-open). Útil para handlers invocados fora do dispatcher (reconciliation) ou handlers com idempotency key customizada.
+3. **Template method:** `handle()` → claim idempotency → `process()` (business logic). Subclasses implementam apenas `process()`.
+4. **Backward compatibility:** Adapter classes em `_registry.py` delegam via `_resolve()` às funções existentes em `webhooks.stripe`. Test patches de `webhooks.stripe._handle_*` continuam funcionando.
+5. **12 eventos Stripe registrados:** checkout (4), subscription (4), invoice (3), product/price (4), payment_intent (1) — alguns compartilham handler.
+
+### Estruturas de dados
+
+```python
+class WebhookHandler(ABC):
+    event_type: ClassVar[str] = ""
+    
+    async def handle(self, sb, event) -> None:  # template method
+    async def process(self, sb, event) -> None:  # abstract
+    def idempotency_key(self, event) -> str:      # override point
+
+HANDLERS_REGISTRY: dict[str, WebhookHandler] = {}
+```
+
+### Constantes/Feature Flags
+
+| Constante | Valor | Local |
+|-----------|-------|-------|
+| `_HANDLER_IDEMPOTENCY_BUDGET_S` | 5.0s | `_base.py` |
+| Dispatcher timeout | 30s | `stripe.py` |
+
+### Métricas Prometheus
+
+Nenhuma específica do ABC. Contadores de eventos no dispatcher legado.
+
+### Dependências
+
+`stripe` (SDK), `supabase_client` (idempotency + profiles sync), `asyncio`, `abc`, `pipeline.budget` (timeout)
+
+### Lacunas
+
+- 🟢 In-handler idempotency claim é fail-open — não substitui dispatcher layer
+- 🟢 `_resolve()` late-binding permite monkey-patching em testes
+- 🟡 Cross-pod idempotency não testada (Railway single worker)
+- 🟡 Resend/trial-emails webhook tem HMAC verify separado (não usa este ABC)
+
+---
