@@ -73,7 +73,7 @@ jobs:
             --cov-fail-under=71 \
             --junitxml=pytest-report.xml \
             -v
-          echo "✅ All backend tests passed with coverage ≥ 70%"
+          echo "✅ All backend tests passed with coverage ≥ 71%"
 
       # STORY-6.7: Property-based fuzz tests (Hypothesis) — separate step to isolate timing
       - name: Run fuzz tests (Hypothesis)
