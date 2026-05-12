@@ -8,7 +8,8 @@ import ThreeTiersSection from './components/landing/ThreeTiersSection';
 import BeforeAfter from './components/landing/BeforeAfter';
 import HowItWorks from './components/landing/HowItWorks';
 import StatsSection from './components/landing/StatsSection';
-import TestimonialSection from '../components/TestimonialSection';
+import FounderTransparencySection from './components/landing/FounderTransparencySection';
+import CredibilitySection from './components/landing/CredibilitySection';
 import FinalCTA from './components/landing/FinalCTA';
 import { TrendingEditais } from './components/landing/TrendingEditais';
 import Footer from './components/Footer';
@@ -27,7 +28,8 @@ export default function LandingPage() {
         <BeforeAfter />
         <HowItWorks />
         <StatsSection />
-        <TestimonialSection />
+        <FounderTransparencySection />
+        <CredibilitySection />
         <TrendingEditais />
 
         <section id="suporte">
