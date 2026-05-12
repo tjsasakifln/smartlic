@@ -29,14 +29,14 @@ export default function StatsSection({ className = '' }: StatsSectionProps) {
           </h2>
           <div className="flex flex-col lg:flex-row items-center gap-8 lg:gap-12">
             <div className="flex-shrink-0 text-center p-8 lg:p-12 bg-surface-0 rounded-card border border-[var(--border)] shadow-sm">
-              <div className="text-5xl sm:text-6xl lg:text-7xl font-display tracking-tighter text-brand-navy tabular-nums">15</div>
-              <div className="text-lg text-ink-secondary mt-2 font-medium">setores especializados</div>
+              <div className="text-5xl sm:text-6xl lg:text-7xl font-display tracking-tighter text-brand-navy tabular-nums">87%</div>
+              <div className="text-lg text-ink-secondary mt-2 font-medium">de ru&iacute;do eliminado</div>
               <div className="w-16 h-1 bg-brand-blue mx-auto mt-4 rounded-full" />
             </div>
             <div className="flex-1 grid sm:grid-cols-3 gap-6 w-full">
               <div className="text-center p-6 bg-surface-0 rounded-card border border-[var(--border)]">
-                <div className="text-3xl sm:text-4xl font-bold text-brand-blue tabular-nums">87%</div>
-                <div className="text-sm text-ink-secondary mt-1">de editais descartados</div>
+                <div className="text-3xl sm:text-4xl font-bold text-brand-blue tabular-nums">15</div>
+                <div className="text-sm text-ink-secondary mt-1">setores especializados</div>
               </div>
               <div className="text-center p-6 bg-surface-0 rounded-card border border-[var(--border)]">
                 <div className="text-3xl sm:text-4xl font-bold text-brand-blue tabular-nums">1000+</div>

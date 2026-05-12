@@ -17,7 +17,7 @@ import { useDiscardRate } from '@/hooks/usePublicMetrics';
  * This island overlays on top with animation behavior when JS loads.
  */
 
-const TARGETS = { sectors: 15, rules: 1000, states: 27 };
+const TARGETS = { sectors: 15, rules: 1000, states: 27, discardRate: 87 };
 
 export default function StatsClientIsland() {
   const { ref, isInView } = useInView({ threshold: 0.2 });
@@ -36,7 +36,7 @@ export default function StatsClientIsland() {
 
     const filteredTarget = discardRate ?? 87;
     // Start animation from 0
-    setCounts({ sectors: 0, rules: 0, states: 0 });
+    setCounts({ sectors: 0, rules: 0, states: 0, discardRate: 0 });
     setFilteredCount(0);
 
     const duration = 1200;
@@ -50,6 +50,7 @@ export default function StatsClientIsland() {
         sectors: Math.min(Math.round(TARGETS.sectors * progress), TARGETS.sectors),
         rules: Math.min(Math.round(TARGETS.rules * progress), TARGETS.rules),
         states: Math.min(Math.round(TARGETS.states * progress), TARGETS.states),
+        discardRate: Math.min(Math.round(TARGETS.discardRate * progress), TARGETS.discardRate),
       });
       setFilteredCount(Math.min(Math.round(filteredTarget * progress), filteredTarget));
       if (step >= steps) clearInterval(timer);
@@ -62,8 +63,8 @@ export default function StatsClientIsland() {
   const showFallbackLabel = !discardLoading && discardRate === null;
   const filteredDisplay = showFallbackLabel ? 'A maioria' : `${filteredCount}%`;
   const filteredAriaLabel = showFallbackLabel
-    ? 'A maioria dos editais descartados'
-    : `${discardRate ?? 87}% de editais descartados`;
+    ? '87% de ruído eliminado'
+    : `${discardRate ?? 87}% de ruído eliminado`;
 
   return (
     <section
@@ -80,18 +81,22 @@ export default function StatsClientIsland() {
 
       {/* Layout Hero Number + 3 menores (Assimetrico) */}
       <div className="flex flex-col lg:flex-row items-center gap-8 lg:gap-12">
-        {/* Hero Number -- 15 setores */}
+        {/* Hero Number -- 87% de ruído eliminado */}
         <div
           role="text"
-          aria-label="15 setores especializados"
+          aria-label={filteredAriaLabel}
           className={`flex-shrink-0 text-center p-8 lg:p-12 bg-surface-0 rounded-card border border-[var(--border)] shadow-sm transition-all duration-500 delay-100 ${
             isInView ? 'opacity-100 translate-y-0 scale-100' : 'opacity-0 translate-y-4 scale-95'
           }`}
         >
           <div aria-hidden="true" className="text-5xl sm:text-6xl lg:text-7xl font-display tracking-tighter text-brand-navy tabular-nums">
-            {counts.sectors}
+            {discardLoading ? (
+              <span className="inline-block w-24 h-12 bg-brand-blue-subtle/30 rounded animate-pulse" />
+            ) : (
+              filteredDisplay
+            )}
           </div>
-          <div aria-hidden="true" className="text-lg text-ink-secondary mt-2 font-medium">setores especializados</div>
+          <div aria-hidden="true" className="text-lg text-ink-secondary mt-2 font-medium">de ruído eliminado</div>
           <div className="w-16 h-1 bg-brand-blue mx-auto mt-4 rounded-full" />
         </div>
 
@@ -99,19 +104,13 @@ export default function StatsClientIsland() {
         <div className="flex-1 grid sm:grid-cols-3 gap-6 w-full">
           <div
             role="text"
-            aria-label={filteredAriaLabel}
+            aria-label="15 setores especializados"
             className={`text-center p-6 bg-surface-0 rounded-card border border-[var(--border)] transition-all duration-500 delay-200 hover:-translate-y-0.5 hover:shadow-md ${
               isInView ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'
             }`}
           >
-            <div aria-hidden="true" className="text-3xl sm:text-4xl font-bold text-brand-blue tabular-nums">
-              {discardLoading ? (
-                <span className="inline-block w-16 h-8 bg-brand-blue-subtle/30 rounded animate-pulse" />
-              ) : (
-                filteredDisplay
-              )}
-            </div>
-            <div aria-hidden="true" className="text-sm text-ink-secondary mt-1">de editais descartados</div>
+            <div aria-hidden="true" className="text-3xl sm:text-4xl font-bold text-brand-blue tabular-nums">{counts.sectors}</div>
+            <div aria-hidden="true" className="text-sm text-ink-secondary mt-1">setores especializados</div>
           </div>
 
           <div

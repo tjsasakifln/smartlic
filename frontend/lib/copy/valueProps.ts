@@ -18,6 +18,7 @@ import { Target, Globe, Bot, Search, ShieldCheck } from '@/lib/icons';
 export const hero = {
   // COPY-LANDING-004 (#1003): Beachhead anti-assessor — V1 default ativado
   // Variantes mantidas para A/B test Mixpanel/PostHog (issue #1003 Test Plan).
+  // COPY-COP-002: Variante C (híbrida SEO-aware) como novo default.
   headlines: {
     antiAssessor: "Pare de pagar R$3.000/mês ao assessor que copia o PNCP.",
     aiAssessor: "Seu assessor não é IA. O nosso é.",
@@ -26,24 +27,24 @@ export const hero = {
     financialImpact: "Pare de perder dinheiro com licitações erradas.",
     filterFocus: "Só o que vale a pena chega até você.",
     wasteCut: "Licitações que realmente pagam. O resto, a gente descarta.",
-    default: "Pare de pagar R$3.000/mês ao assessor que copia o PNCP.",
+    default: "O jeito mais rápido de encontrar editais certos para sua empresa.",
   },
 
-  // COPY-LANDING-004 (#1003): Sub anti-assessor com ancoragem de preço (mensal + Fundadores)
+  // COPY-COP-002: Subtítulo — filtragem inteligente, elimina ruído
   subheadlines: {
     antiAssessor: "SmartLic lê o edital, mapeia o concorrente e calcula a chance real. R$297/mês (anual) ou R$997 vitalício — não R$3.000 por PDF no WhatsApp.",
     b2gIntelligence: "SmartLic lê o edital, mapeia o concorrente, calcula a chance real. Sua empresa decide go/no-go em minutos — não em três dias de leitura.",
     mechanism: "O SmartLic analisa cada edital contra o perfil da sua empresa. Elimina o que não faz sentido. Entrega só o que tem chance real de retorno — com justificativa objetiva.",
     filter: "Cada edital passa por análise de compatibilidade com seu perfil. Você só vê o que merece investimento de tempo e proposta.",
-    default: "SmartLic lê o edital, mapeia o concorrente e calcula a chance real. R$297/mês (anual) ou R$997 vitalício — não R$3.000 por PDF no WhatsApp.",
+    default: "Filtragem inteligente em 27 estados. Elimina o ruído. Mostra onde você tem chance real.",
   },
 
-  // GTM-COPY-001 AC3: Trust badges — practical confidence, not abstract metrics
+  // COPY-COP-003: Trust badges — numeric claims
   trustBadges: [
     {
       icon: Target,
-      text: "A maioria descartados",
-      detail: "Editais eliminados por irrelevância ao seu perfil",
+      text: "87% de ruído eliminado",
+      detail: "Taxa média de descarte do algoritmo de classificação",
     },
     {
       icon: Search,
@@ -57,15 +58,15 @@ export const hero = {
     },
   ],
 
-  // COPY-LANDING-004 (#1003): CTA primário trial 14d, secundário ancoragem Fundadores
+  // COPY-COP-002: CTA primário orientado a ação (não trial)
   cta: {
-    primary: "Testar 14 dias grátis →",
+    primary: "Ver oportunidades do meu setor →",
     primarySubtext: "Sem cartão. Cancele em 1 clique.",
     primaryHref: "/signup?source=hero-primary",
     secondary: "Ver Plano Fundadores R$997 →",
     secondaryHref: "/planos#fundadores",
     pricing: "Começar a filtrar oportunidades",
-    default: "Testar 14 dias grátis →",
+    default: "Ver oportunidades do meu setor →",
   },
 
   // COPY-LANDING-004 (#1003): Founder-led visível — nome + cargo + LinkedIn
@@ -85,46 +86,28 @@ export const hero = {
 // VALUE PROPOSITIONS (4 Key Differentiators — Decision Intelligence)
 // ============================================================================
 
-// GTM-COPY-001 AC4: Consequence-focused value props
+// COPY-COP-003: Numeric claims — dados reais do datalake (2M+ contratos, 87% descarte, 27 UFs, 15 setores)
 export const valueProps = {
-  prioritization: {
-    title: "Foque só no que paga",
-    shortDescription: "O sistema cruza cada edital com o perfil da sua empresa e descarta o que não se encaixa",
-    longDescription:
-      "Você para de gastar horas avaliando editais incompatíveis. O SmartLic aplica mais de 1.000 regras por setor para separar o que tem potencial real de retorno do que é ruído. Sobra só o que vale sua proposta.",
-    icon: Target,
-    metric: "Foco",
-    proof: "A maioria dos editais descartados antes de chegar até você",
+  timeSaved: {
+    title: "De horas para minutos",
+    description: "Pesquisa consolidada em 27 estados. O que levava uma tarde inteira agora leva minutos.",
+    metric: "minutos",
   },
-
-  analysis: {
-    title: "Descarte sem ler 100 páginas",
-    shortDescription: "IA avalia setor, valor, prazo e requisitos — e diz se vale a pena ou não",
-    longDescription:
-      "Cada edital recebe avaliação objetiva com justificativa: compatibilidade com seu perfil, faixa de valor, prazo viável, região de atuação. Você decide em segundos, não em horas.",
-    icon: Bot,
-    metric: "Objetiva",
-    proof: "Avaliação automatizada com 4 critérios de viabilidade",
+  relevanceRate: {
+    title: "87% de ruído eliminado",
+    description: "De cada 100 editais publicados, 87 são descartados automaticamente. Você vê só os 13 que importam.",
+    metric: "87%",
+    proof: "Taxa média de descarte do algoritmo de classificação",
   },
-
-  uncertainty: {
-    title: "Saiba por que cada edital foi selecionado",
-    shortDescription: "Cada oportunidade vem com critérios objetivos — não com palpite",
-    longDescription:
-      "Nada de confiar em intuição. Toda recomendação mostra exatamente por que aquele edital é compatível com sua empresa: setor, valor, prazo e região. Decida com dados, não com achismo.",
-    icon: ShieldCheck,
-    metric: "Transparente",
-    proof: "Justificativa objetiva para cada recomendação",
-  },
-
-  coverage: {
-    title: "Nenhuma oportunidade invisível",
-    shortDescription: "Fontes oficiais de 27 estados consolidadas automaticamente",
-    longDescription:
-      "Se um edital compatível com seu perfil é publicado em qualquer estado do Brasil, você sabe. Cobertura nacional de fontes oficiais sem precisar monitorar dezenas de portais manualmente.",
-    icon: Globe,
+  nationalCoverage: {
+    title: "27 estados em 1 busca",
+    description: "Cobertura nacional consolidada. Não precisa consultar portal por portal.",
     metric: "27 UFs",
-    proof: "Consolidação automática de fontes oficiais de todas as esferas",
+  },
+  zeroWaste: {
+    title: "Só o que vale a pena",
+    description: "Filtragem inteligente por setor, valor, prazo e região. O resto, a gente descarta.",
+    metric: "Foco",
   },
 };
 
