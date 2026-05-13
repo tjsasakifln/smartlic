@@ -136,9 +136,24 @@ export default function HeroSection({ className = '' }: HeroSectionProps) {
             Sem cartão. Cancele em 1 clique. Comece em 2 minutos.
           </motion.p>
 
+          {/* COPY-COP-005: Consistência — Microcompromisso antes do CTA principal */}
+          <motion.div
+            className="mt-6 text-center lg:text-left"
+            variants={fadeInUp}
+          >
+            <Link
+              href="/signup?source=hero-preview"
+              className="text-sm text-brand-blue hover:text-brand-blue-hover underline-offset-2 hover:underline transition-colors"
+              data-testid="hero-micro-commitment"
+            >
+              Quer saber quantos editais do seu setor est&atilde;o abertos agora?{' '}
+              <span className="font-semibold whitespace-nowrap">Ver quantidade &rarr;</span>
+            </Link>
+          </motion.div>
+
           {/* CTA Buttons — AC5: Primary CTA visible above the fold */}
           <motion.div
-            className="flex flex-col sm:flex-row items-center lg:items-start justify-center lg:justify-start gap-4 mt-2"
+            className="flex flex-col sm:flex-row items-center lg:items-start justify-center lg:justify-start gap-4 mt-6"
             variants={fadeInUp}
           >
             <div className="flex flex-col items-center lg:items-start gap-1">
@@ -181,9 +196,23 @@ export default function HeroSection({ className = '' }: HeroSectionProps) {
             </Link>
           </motion.div>
 
+          {/* COPY-COP-005: Escassez — Countdown Fundadores visível acima da dobra */}
+          <motion.div
+            className="mt-5 flex items-center justify-center lg:justify-start"
+            variants={fadeInUp}
+            data-testid="hero-scarcity-countdown"
+          >
+            <span className="inline-flex items-center gap-1.5 rounded-full border border-amber-300/50 bg-amber-50 dark:bg-amber-900/20 px-3 py-1.5">
+              <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />
+              <span className="text-xs font-medium text-amber-700 dark:text-amber-300">
+                Vagas do Plano Fundadores se encerram em 30/06 — <span className="font-bold">R$997 vitalício</span>
+              </span>
+            </span>
+          </motion.div>
+
           {/* COPY-COP-003: Trust stats line — dados reais do datalink */}
           <motion.div
-            className="mt-6 text-sm text-ink-muted text-center lg:text-left"
+            className="mt-3 text-sm text-ink-muted text-center lg:text-left"
             variants={fadeInUp}
             data-testid="hero-trust-stats"
           >

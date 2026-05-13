@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { UF_NAMES, UFS } from "../../../lib/constants/uf-names";
 import { Label } from "../../../components/ui/Label";
 import { ValueRangeSelector } from "./ValueRangeSelector";
@@ -10,6 +11,8 @@ interface OnboardingStep2Props {
 }
 
 export function OnboardingStep2({ data, onChange, errors }: OnboardingStep2Props) {
+  // COPY-COP-005: On mobile, collapse value range to show only 4 required fields
+  const [showValueRange, setShowValueRange] = useState(false);
   const toggleUf = (uf: string) => {
     const current = new Set(data.ufs_atuacao);
     if (current.has(uf)) current.delete(uf);
@@ -103,13 +106,28 @@ export function OnboardingStep2({ data, onChange, errors }: OnboardingStep2Props
         </p>
       )}
 
-      {/* Value Range */}
-      <ValueRangeSelector
-        valorMin={data.faixa_valor_min}
-        valorMax={data.faixa_valor_max}
-        onChangeMin={(v) => onChange({ faixa_valor_min: v })}
-        onChangeMax={(v) => onChange({ faixa_valor_max: v })}
-      />
+      {/* COPY-COP-005: Value Range — always visible on desktop, collapsible on mobile */}
+      <div className="block sm:block">
+        <button
+          type="button"
+          onClick={() => setShowValueRange(!showValueRange)}
+          className="flex sm:hidden items-center gap-2 w-full px-3 py-2 text-sm text-ink-secondary hover:text-ink transition-colors"
+          data-testid="value-range-toggle"
+        >
+          <svg className={`w-4 h-4 transition-transform ${showValueRange ? 'rotate-90' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+          </svg>
+          Faixa de valor {showValueRange ? '(ocultar)' : '(opcional — padrão R$ 100k a R$ 500k)'}
+        </button>
+        <div className={`${showValueRange ? 'block' : 'hidden'} sm:block`}>
+          <ValueRangeSelector
+            valorMin={data.faixa_valor_min}
+            valorMax={data.faixa_valor_max}
+            onChangeMin={(v) => onChange({ faixa_valor_min: v })}
+            onChangeMax={(v) => onChange({ faixa_valor_max: v })}
+          />
+        </div>
+      </div>
       {errors.faixa_valor_max && (
         <p id="valor-error" className="text-xs text-[var(--error)] mt-1" role="alert" data-testid="valor-error">
           {errors.faixa_valor_max.message}
