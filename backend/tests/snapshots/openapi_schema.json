@@ -7930,6 +7930,7 @@
         "type": "object"
       },
       "LeadCaptureRequest": {
+        "description": "Body for POST /v1/lead-capture.\n\nSupports both old (backward compat) and new (COPY-COP-006) sources.",
         "properties": {
           "captured_at": {
             "anyOf": [
@@ -8008,6 +8009,17 @@
             ],
             "title": "Nome"
           },
+          "origin_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Origin Url"
+          },
           "referer_path": {
             "anyOf": [
               {
@@ -8019,7 +8031,7 @@
             ],
             "title": "Referer Path"
           },
-          "setor": {
+          "sector": {
             "anyOf": [
               {
                 "type": "string"
@@ -8028,19 +8040,9 @@
                 "type": "null"
               }
             ],
-            "title": "Setor"
+            "title": "Sector"
           },
           "source": {
-            "enum": [
-              "calculadora",
-              "cnpj",
-              "alertas",
-              "consultoria",
-              "radar",
-              "report",
-              "intel",
-              "diagnostico"
-            ],
             "title": "Source",
             "type": "string"
           },
@@ -8097,7 +8099,19 @@
         "type": "object"
       },
       "LeadCaptureResponse": {
+        "description": "Body for POST /v1/lead-capture (201).",
         "properties": {
+          "id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Id"
+          },
           "success": {
             "title": "Success",
             "type": "boolean"
@@ -23426,7 +23440,7 @@
     },
     "/v1/lead-capture": {
       "post": {
-        "description": "Store a lead capture (public, no auth, rate-limited by global middleware).",
+        "description": "Store a lead capture from a non-authenticated visitor.\n\n- New sources (COPY-COP-006): stored in ``lead_captures`` table\n- Old sources (backward compat): stored in ``leads`` table\n- Rate limited to 3 requests/min per IP\n- Fail-open: returns success even if DB storage fails\n\nReturns 201 on success.",
         "operationId": "capture_lead_v1_lead_capture_post",
         "requestBody": {
           "content": {
@@ -23439,7 +23453,7 @@
           "required": true
         },
         "responses": {
-          "200": {
+          "201": {
             "content": {
               "application/json": {
                 "schema": {

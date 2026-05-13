@@ -199,6 +199,13 @@ describe('STORY-273 AC5: LGPD Badge in Portuguese', () => {
   it('should display LGPD badge in Portuguese in Footer', async () => {
     jest.unmock('../app/components/Footer');
 
+    // Mock FooterNewsletterForm (COPY-COP-006) to avoid useState hook error
+    jest.mock('../app/components/FooterNewsletterForm', () => ({
+      FooterNewsletterForm: function MockFooterNewsletterForm() {
+        return <div data-testid="newsletter-form">Newsletter</div>;
+      },
+    }));
+
     // Mock dependencies for real Footer rendering
     jest.mock('../lib/copy/valueProps', () => ({
       footer: {

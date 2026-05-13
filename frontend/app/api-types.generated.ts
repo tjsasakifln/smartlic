@@ -3668,7 +3668,7 @@ export interface paths {
         put?: never;
         /**
          * Capture Lead
-         * @description Store a lead capture (public, no auth, rate-limited by global middleware).
+         * @description Store a lead capture from a non-authenticated visitor. New sources (COPY-COP-006): stored in lead_captures table. Rate limited to 3 requests/min per IP.
          */
         post: operations["capture_lead_v1_lead_capture_post"];
         delete?: never;
@@ -9123,13 +9123,12 @@ export interface components {
             nome?: string | null;
             /** Referer Path */
             referer_path?: string | null;
-            /** Setor */
-            setor?: string | null;
-            /**
-             * Source
-             * @enum {string}
-             */
-            source: "calculadora" | "cnpj" | "alertas" | "consultoria" | "radar" | "report" | "intel" | "diagnostico";
+            /** Origin Url */
+            origin_url?: string | null;
+            /** Sector */
+            sector?: string | null;
+            /** Source */
+            source: string;
             /** Telefone */
             telefone?: string | null;
             /** Uf */
@@ -9141,6 +9140,8 @@ export interface components {
         };
         /** LeadCaptureResponse */
         LeadCaptureResponse: {
+            /** Id */
+            id?: string | null;
             /** Success */
             success: boolean;
         };
@@ -17357,7 +17358,7 @@ export interface operations {
         };
         responses: {
             /** @description Successful Response */
-            200: {
+            201: {
                 headers: {
                     [name: string]: unknown;
                 };
