@@ -445,6 +445,7 @@ async def municipio_profile(slug: str):
                 "data_publicacao,modalidade_nome"
             )
             .eq("uf", uf)
+            .eq("codigo_municipio_ibge", ibge_code)
             .eq("is_active", True)
             .order("data_publicacao", desc=True)
             .limit(500)

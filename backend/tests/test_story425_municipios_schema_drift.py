@@ -84,3 +84,16 @@ def test_schema_does_not_have_data_publicacao_pncp_column():
     assert "data_publicacao_pncp" not in migration, (
         "Drift confirmed: `data_publicacao_pncp` was never in the migration DDL"
     )
+
+
+# ---------------------------------------------------------------------------
+# Regression: IBGE code filter must be present in bids query
+# ---------------------------------------------------------------------------
+
+def test_bids_query_filters_by_codigo_municipio_ibge():
+    """_bids_query_sync must filter by codigo_municipio_ibge, not just uf."""
+    source = (_BACKEND_ROOT / "routes/municipios_publicos.py").read_text(encoding="utf-8")
+    assert '.eq("codigo_municipio_ibge"' in source, (
+        "BUG: _bids_query_sync is missing .eq('codigo_municipio_ibge', ibge_code) — "
+        "without this, municipio pages show licitações from the entire UF, not just the target city."
+    )
