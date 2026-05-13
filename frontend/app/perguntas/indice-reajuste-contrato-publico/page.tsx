@@ -182,12 +182,37 @@ export default function ReajustePage() {
             {/* Calculator — above the explanatory text */}
             <ReajusteCalculator />
 
+            {/* CTA pós-calculadora */}
+            <div className="not-prose mb-6 bg-surface-1 border border-[var(--border)] rounded-xl p-6 sm:p-8">
+              <h2 className="text-xl font-bold text-ink mb-3">
+                Este contrato vai vencer. O que voc&ecirc; vai fazer quando ele for republicado?
+              </h2>
+              <p className="text-sm text-ink-secondary mb-6 leading-relaxed">
+                Contratos p&uacute;blicos s&atilde;o renovados ou relicitados. Se voc&ecirc; n&atilde;o est&aacute; monitorando os contratos do seu setor, outro fornecedor vai estar preparado antes de voc&ecirc;.
+              </p>
+              <div className="flex flex-col sm:flex-row gap-3">
+                <Link
+                  href="/buscar?source=perguntas-reajuste&tab=contratos"
+                  className="inline-flex items-center justify-center px-6 py-3 rounded-lg bg-brand-blue text-white font-semibold text-sm hover:bg-blue-700 transition-colors"
+                >
+                  Monitorar contratos do meu setor
+                </Link>
+                <Link
+                  href="/alertas?source=perguntas-reajuste"
+                  className="inline-flex items-center justify-center px-6 py-3 rounded-lg border border-[var(--border)] text-ink-secondary font-medium text-sm hover:bg-surface-1 transition-colors"
+                >
+                  Criar alerta de vencimento
+                </Link>
+              </div>
+            </div>
+
             {/* Lead capture — after calculator, before explanatory text */}
             <div className="mb-8">
               <LeadCapture
                 source="reajuste-calculadora"
-                heading="Quer receber alertas quando novos contratos do seu setor forem abertos?"
-                description="Monitoramos o PNCP e fontes oficiais diariamente. Sem spam — cancele quando quiser."
+                heading="Receba alertas quando contratos do seu setor estiverem perto do vencimento"
+                description="Antecipe a republicação. Enquanto seus concorrentes esperam o edital sair, você já está se preparando."
+                buttonText="Receber alertas de vencimento"
               />
             </div>
 
@@ -263,6 +288,11 @@ export default function ReajustePage() {
                 <li>
                   <Link href="/calculadora" className="text-sm text-brand-blue hover:underline">
                     Calculadora de Oportunidades →
+                  </Link>
+                </li>
+                <li>
+                  <Link href="/buscar" className="text-sm text-brand-blue hover:underline">
+                    Monitorar contratos do meu setor →
                   </Link>
                 </li>
                 <li>

@@ -1,18 +1,27 @@
 import Link from 'next/link';
+import { getCtaByIntent } from '@/lib/cta-intent';
+import type { CtaPageType, CtaConfig } from '@/lib/cta-intent';
+import { CtaIntent } from '@/components/cta/CtaIntent';
 
 /**
  * MKT-001 AC3: Inline CTA inserted at ~40% of blog post content.
  *
- * Standardized inline CTA: "Teste grátis 14 dias — sem cartão de crédito"
+ * CRO-CTA-000: Accepts intent-based CTA via `pageType` or full override via
+ * `ctaConfig`. Defaults to legacy behaviour when neither is passed.
+ *
  * UTM: utm_source=blog&utm_medium=cta&utm_content=[slug]
  */
 
 interface BlogInlineCTAProps {
   slug: string;
-  campaign?: 'b2g' | 'consultorias' | 'guias' | 'contratos';
+  campaign?: 'b2g' | 'consultorias' | 'guias' | 'contratos' | 'subcontratacao';
   ctaHref?: string;
   ctaText?: string;
   ctaMessage?: string;
+  /** CRO-CTA-000: Page type for intent-based CTA */
+  pageType?: CtaPageType;
+  /** CRO-CTA-000: Full CTA config override (takes precedence over pageType) */
+  ctaConfig?: CtaConfig;
 }
 
 /**
@@ -28,7 +37,21 @@ export default function BlogInlineCTA({
   ctaHref,
   ctaText,
   ctaMessage,
+  pageType,
+  ctaConfig,
 }: BlogInlineCTAProps) {
+  // Priority 1: Direct CtaConfig override
+  if (ctaConfig) {
+    return <CtaIntent config={ctaConfig} variant="inline" />;
+  }
+
+  // Priority 2: Intent-based with explicit page type
+  if (pageType) {
+    const config = getCtaByIntent(pageType, { slug });
+    return <CtaIntent config={config} variant="inline" />;
+  }
+
+  // Priority 3: Legacy fallback
   const defaultHref = `/signup?source=blog&article=${slug}&utm_source=blog&utm_medium=cta&utm_content=${slug}&utm_campaign=${campaign}`;
   const href = ctaHref
     ? `${ctaHref}?utm_source=blog&utm_medium=cta&utm_content=${slug}&utm_campaign=${campaign}`
