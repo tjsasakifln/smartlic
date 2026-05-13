@@ -274,7 +274,7 @@ class TestHttpxPoolConfiguration:
 # ---------------------------------------------------------------------------
 
 class TestConnectionErrorRetry:
-    """AC5: ConnectionError retried once with 1s delay."""
+    """AC5: ConnectionError retried with exponential jitter (SEN-BE-004 AC3)."""
 
     @pytest.mark.asyncio
     async def test_retry_succeeds_on_second_attempt(self):
@@ -293,7 +293,7 @@ class TestConnectionErrorRetry:
         with patch("metrics.SUPABASE_EXECUTE_DURATION"), \
              patch("metrics.SUPABASE_POOL_ACTIVE"), \
              patch("metrics.SUPABASE_RETRY_TOTAL") as mock_retry, \
-             patch("supabase_client._RETRY_DELAY_S", 0.01):  # Fast test
+             patch("supabase_client._RETRY_BASE_DELAY_S", 0.01):  # Fast test
             result = await sb_execute(mock_query)
 
         assert result.data == [{"id": 1}]
@@ -307,7 +307,7 @@ class TestConnectionErrorRetry:
 
     @pytest.mark.asyncio
     async def test_retry_fails_on_second_attempt(self):
-        """ConnectionError on both tries — raises after retry."""
+        """ConnectionError on all tries — raises after 3 attempts (SEN-BE-004)."""
         from supabase_client import sb_execute, supabase_cb
 
         supabase_cb.reset()
@@ -318,11 +318,11 @@ class TestConnectionErrorRetry:
         with patch("metrics.SUPABASE_EXECUTE_DURATION"), \
              patch("metrics.SUPABASE_POOL_ACTIVE"), \
              patch("metrics.SUPABASE_RETRY_TOTAL") as mock_retry, \
-             patch("supabase_client._RETRY_DELAY_S", 0.01):
+             patch("supabase_client._RETRY_BASE_DELAY_S", 0.01):
             with pytest.raises(ConnectionError, match="Pool exhausted"):
                 await sb_execute(mock_query)
 
-        assert mock_query.execute.call_count == 2
+        assert mock_query.execute.call_count == 3  # 3-attempt loop (SEN-BE-004)
 
         mock_retry.labels.assert_any_call(outcome="attempt")
         mock_retry.labels.assert_any_call(outcome="failure")
@@ -366,7 +366,7 @@ class TestConnectionErrorRetry:
         with patch("metrics.SUPABASE_EXECUTE_DURATION"), \
              patch("metrics.SUPABASE_POOL_ACTIVE"), \
              patch("metrics.SUPABASE_RETRY_TOTAL"), \
-             patch("supabase_client._RETRY_DELAY_S", 0.01):
+             patch("supabase_client._RETRY_BASE_DELAY_S", 0.01):
             await sb_execute(mock_query)
 
         # CB should have a success recorded (not a failure)
@@ -387,7 +387,7 @@ class TestConnectionErrorRetry:
         with patch("metrics.SUPABASE_EXECUTE_DURATION"), \
              patch("metrics.SUPABASE_POOL_ACTIVE"), \
              patch("metrics.SUPABASE_RETRY_TOTAL"), \
-             patch("supabase_client._RETRY_DELAY_S", 0.01):
+             patch("supabase_client._RETRY_BASE_DELAY_S", 0.01):
             with pytest.raises(ConnectionError):
                 await sb_execute(mock_query)
 
@@ -412,7 +412,7 @@ class TestConnectionErrorRetry:
         with patch("metrics.SUPABASE_EXECUTE_DURATION"), \
              patch("metrics.SUPABASE_POOL_ACTIVE"), \
              patch("metrics.SUPABASE_RETRY_TOTAL"), \
-             patch("supabase_client._RETRY_DELAY_S", 0.01):
+             patch("supabase_client._RETRY_BASE_DELAY_S", 0.01):
             with pytest.raises(TimeoutError, match="Read timeout"):
                 await sb_execute(mock_query)
 
@@ -436,7 +436,7 @@ class TestConnectionErrorRetry:
         with patch("metrics.SUPABASE_EXECUTE_DURATION"), \
              patch("metrics.SUPABASE_POOL_ACTIVE") as mock_gauge, \
              patch("metrics.SUPABASE_RETRY_TOTAL"), \
-             patch("supabase_client._RETRY_DELAY_S", 0.01):
+             patch("supabase_client._RETRY_BASE_DELAY_S", 0.01):
             await sb_execute(mock_query)
 
         # Gauge should be balanced: 1 inc, 1 dec
@@ -458,7 +458,7 @@ class TestConnectionErrorRetry:
         with patch("metrics.SUPABASE_EXECUTE_DURATION"), \
              patch("metrics.SUPABASE_POOL_ACTIVE") as mock_gauge, \
              patch("metrics.SUPABASE_RETRY_TOTAL"), \
-             patch("supabase_client._RETRY_DELAY_S", 0.01):
+             patch("supabase_client._RETRY_BASE_DELAY_S", 0.01):
             with pytest.raises(ConnectionError):
                 await sb_execute(mock_query)
 
