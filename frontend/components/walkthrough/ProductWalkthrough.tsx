@@ -101,36 +101,6 @@ export function ProductWalkthrough({
     }
   }, [isOpen, stepIndex, currentStep, totalSteps]);
 
-  // ESC key handler
-  useEffect(() => {
-    if (!isOpen) return;
-    const handler = (e: KeyboardEvent) => {
-      if (e.key === "Escape") {
-        handleDismiss();
-      }
-    };
-    window.addEventListener("keydown", handler);
-    return () => window.removeEventListener("keydown", handler);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isOpen, dontShowAgain]);
-
-  // Keyboard navigation (ArrowLeft / ArrowRight)
-  useEffect(() => {
-    if (!isOpen) return;
-    const handler = (e: KeyboardEvent) => {
-      if (e.key === "ArrowRight") {
-        e.preventDefault();
-        handleNext();
-      } else if (e.key === "ArrowLeft") {
-        e.preventDefault();
-        handleBack();
-      }
-    };
-    window.addEventListener("keydown", handler);
-    return () => window.removeEventListener("keydown", handler);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isOpen, stepIndex]);
-
   // Body scroll lock
   useEffect(() => {
     if (!isOpen) return;
@@ -191,6 +161,34 @@ export function ProductWalkthrough({
     },
     [handleDismiss]
   );
+
+  // ESC key handler
+  useEffect(() => {
+    if (!isOpen) return;
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        handleDismiss();
+      }
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [isOpen, handleDismiss]);
+
+  // Keyboard navigation (ArrowLeft / ArrowRight)
+  useEffect(() => {
+    if (!isOpen) return;
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === "ArrowRight") {
+        e.preventDefault();
+        handleNext();
+      } else if (e.key === "ArrowLeft") {
+        e.preventDefault();
+        handleBack();
+      }
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [isOpen, handleNext, handleBack]);
 
   // Do not render on the server
   if (!mounted || !isOpen || !currentStep) return null;
