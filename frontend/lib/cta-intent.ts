@@ -116,7 +116,8 @@ function buildAlertHref(setor?: string, ufCode?: string): string {
   if (setor) params.set('setor', setor);
   if (ufCode) params.set('uf', ufCode);
   const qs = params.toString();
-  return `/alertas-publicos${qs ? `?${qs}` : ''}`;
+  const base = '/alertas-publicos';
+  return qs ? `${base}?${qs}` : base;
 }
 
 // ---------------------------------------------------------------------------
@@ -126,11 +127,11 @@ function buildAlertHref(setor?: string, ufCode?: string): string {
 function ctaPnpGuia(context: CtaContext): CtaConfig {
   return {
     pageType: 'pncp-guia',
-    headline: 'O PNCP nao filtra por setor. O SmartLic filtra.',
-    subtext: 'Encontre editais do seu segmento em segundos com classificacao por inteligencia artificial.',
+    headline: 'O PNCP não filtra por setor. O SmartLic filtra.',
+    subtext: 'Encontre editais do seu segmento em segundos com classificação por inteligência artificial.',
     buttonText: 'Ver editais do meu setor',
     buttonLink: buildSignupHref(context.slug, 'pncp-guia'),
-    socialProof: 'Consultorias e assessorias ja usam para qualificar prospects',
+    socialProof: 'Consultorias e assessorias já usam para qualificar prospects',
     campaign: 'pncp-guia',
   };
 }
@@ -138,8 +139,8 @@ function ctaPnpGuia(context: CtaContext): CtaConfig {
 function ctaPrimeiraLicitacao(context: CtaContext): CtaConfig {
   return {
     pageType: 'primeira-licitacao',
-    headline: 'Encontre sua primeira licitacao viavel',
-    subtext: 'Receba um checklist gratuito e alertas automaticos de oportunidades compativeis com seu perfil.',
+    headline: 'Encontre sua primeira licitação viável',
+    subtext: 'Receba um checklist gratuito e alertas automáticos de oportunidades compatíveis com seu perfil.',
     buttonText: 'Receber material gratuito',
     buttonLink: buildSignupHref(context.slug, 'primeira-licitacao'),
     secondaryText: 'Encontrar minha primeira oportunidade',
@@ -154,8 +155,8 @@ function ctaSetorialComEditais(context: CtaContext): CtaConfig {
   return {
     pageType: 'setorial-com-editais',
     headline: count > 0
-      ? `${count} licitacoes de ${s} abertas agora`
-      : `Licitacoes de ${s} abertas agora`,
+      ? `${count} licitações de ${s} abertas agora`
+      : `Licitações de ${s} abertas agora`,
     subtext: `Filtre por valor, modalidade e prazo. Veja a viabilidade real de cada edital com IA.`,
     buttonText: `Ver editais de ${s} abertos`,
     buttonLink: buildSignupHref(context.slug, 'setorial-editais'),
@@ -177,7 +178,7 @@ function ctaSetorialComEditais(context: CtaContext): CtaConfig {
 function ctaSetorialZeroEditais(context: CtaContext): CtaConfig {
   const s = context.setor || 'o setor';
   const ufPrep = prepFor(context.ufCode);
-  const ufName = context.uf || 'sua regiao';
+  const ufName = context.uf || 'sua região';
   const totalValue = context.totalValue ?? 0;
 
   return {
@@ -200,11 +201,11 @@ function ctaContratos(context: CtaContext): CtaConfig {
     pageType: 'contratos',
     headline: 'Mapeie quem compra do seu setor no governo',
     subtext: count > 0
-      ? `${count.toLocaleString('pt-BR')} contratos indexados por setor, orgao e valor. Descubra compradores recorrentes.`
-      : 'Milhares de contratos indexados por setor, orgao e valor. Descubra compradores recorrentes.',
+      ? `${count.toLocaleString('pt-BR')} contratos indexados por setor, órgão e valor. Descubra compradores recorrentes.`
+      : 'Milhares de contratos indexados por setor, órgão e valor. Descubra compradores recorrentes.',
     buttonText: 'Mapear contratos do meu mercado',
     buttonLink: buildSignupHref(context.slug, 'contratos'),
-    socialProof: 'Dados de 2M+ contratos historicos do PNCP',
+    socialProof: 'Dados de 2M+ contratos históricos do PNCP',
     campaign: 'contratos',
   };
 }
@@ -213,7 +214,7 @@ function ctaJuridicoPerguntas(context: CtaContext): CtaConfig {
   return {
     pageType: 'juridico-perguntas',
     headline: 'Este contrato vai vencer — monitore',
-    subtext: 'Acompanhe vencimentos, termos e aditivos de contratos publicos com alertas inteligentes.',
+    subtext: 'Acompanhe vencimentos, termos e aditivos de contratos públicos com alertas inteligentes.',
     buttonText: 'Monitorar contratos do meu setor',
     buttonLink: buildSignupHref(context.slug, 'juridico-monitoramento'),
     monitoringCta: true,
@@ -225,8 +226,8 @@ function ctaSubcontratacao(context: CtaContext): CtaConfig {
   return {
     pageType: 'subcontratacao',
     headline: 'Encontre contratos que podem precisar da sua empresa',
-    subtext: 'Mapeie vencedores de licitacoes e contratos ativos para identificar oportunidades de subcontratacao.',
-    buttonText: 'Mapear oportunidades de subcontratacao',
+    subtext: 'Mapeie vencedores de licitações e contratos ativos para identificar oportunidades de subcontratação.',
+    buttonText: 'Mapear oportunidades de subcontratação',
     buttonLink: buildSignupHref(context.slug, 'subcontratacao'),
     campaign: 'subcontratacao',
   };
@@ -235,9 +236,9 @@ function ctaSubcontratacao(context: CtaContext): CtaConfig {
 function ctaBlogGenerico(context: CtaContext): CtaConfig {
   return {
     pageType: 'blog-generico',
-    headline: 'Veja licitacoes reais do seu setor',
-    subtext: 'Filtre por viabilidade real, receba alertas automaticos e exporte relatorios.',
-    buttonText: 'Buscar licitacoes agora',
+    headline: 'Veja licitações reais do seu setor',
+    subtext: 'Filtre por viabilidade real, receba alertas automáticos e exporte relatórios.',
+    buttonText: 'Buscar licitações agora',
     buttonLink: buildSignupHref(context.slug, 'blog-generico'),
     campaign: 'blog-generico',
   };
