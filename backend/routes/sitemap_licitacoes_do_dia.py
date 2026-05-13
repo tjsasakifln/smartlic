@@ -85,7 +85,7 @@ async def sitemap_licitacoes_do_dia_indexable(response: Response):
 
     try:
         data = await _run_with_budget(
-            asyncio.to_thread(_fetch_indexable_dates),
+            _fetch_indexable_dates(),
             budget=_BUDGET_S,
             phase="route",
             source="sitemap_licitacoes_do_dia.sitemap_licitacoes_do_dia_indexable",
@@ -127,7 +127,7 @@ async def sitemap_licitacoes_do_dia_indexable(response: Response):
     return SitemapLicitacoesDoDiaResponse(**data)
 
 
-def _fetch_indexable_dates() -> dict:
+async def _fetch_indexable_dates() -> dict:
     """Scan pncp_raw_bids janela 30d, conta por data, filtra HAVING >=5.
 
     Implementa client-side aggregation: paginated fetch de data_publicacao
@@ -137,8 +137,7 @@ def _fetch_indexable_dates() -> dict:
     cache TTL 1h reduz para 1x/h por worker.
     """
     try:
-        from supabase_client import get_supabase
-
+        from supabase_client import get_supabase, sb_execute
         sb = get_supabase()
 
         cutoff = (datetime.now(timezone.utc) - timedelta(days=_WINDOW_DAYS)).date().isoformat()
@@ -149,14 +148,13 @@ def _fetch_indexable_dates() -> dict:
         page_count = 0
 
         while True:
-            resp = (
+            resp = await sb_execute(
                 sb.table("pncp_raw_bids")
                 .select("data_publicacao")
                 .eq("is_active", True)
                 .gte("data_publicacao", cutoff)
                 .not_.is_("data_publicacao", "null")
                 .range(offset, offset + page_size - 1)
-                .execute()
             )
             page_count += 1
             if not resp.data:

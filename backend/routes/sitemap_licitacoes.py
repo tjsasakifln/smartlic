@@ -270,7 +270,7 @@ async def _compute_contracts_combos(threshold: int) -> list[dict]:
     event loop e causam timeout em todos os outros endpoints.
     """
     try:
-        from supabase_client import get_supabase
+        from supabase_client import get_supabase, sb_execute
         from sectors import SECTORS
     except ImportError:
         logger.warning("sitemap_licitacoes: importações de contracts não disponíveis")
@@ -290,12 +290,10 @@ async def _compute_contracts_combos(threshold: int) -> list[dict]:
         """Chama RPC count_contracts_by_setor_uf para um par (setor, uf)."""
         async with _sem:
             try:
-                resp = await asyncio.to_thread(
-                    lambda: sb.rpc(
+                resp = await sb_execute(sb.rpc(
                         "count_contracts_by_setor_uf",
                         {"p_keywords": keywords, "p_uf": uf},
-                    ).execute()
-                )
+                    ))
                 count = resp.data if isinstance(resp.data, int) else 0
                 return setor_id, uf, count
             except Exception as e:
