@@ -100,7 +100,7 @@ function addSecurityHeaders(response: NextResponse): NextResponse {
     // Industry consensus (open issue Feb 2026, no upstream fix): 'unsafe-inline'
     // is unavoidable for Next.js + public CDN caching. CSP still provides real
     // protection via connect-src, object-src 'none', frame-src, default-src.
-    "script-src 'self' 'unsafe-inline' https://js.stripe.com https://static.cloudflareinsights.com https://cdnjs.cloudflare.com https://cdn.sentry.io https://www.clarity.ms https://www.googletagmanager.com",
+    "script-src 'self' 'unsafe-inline' https://js.stripe.com https://static.cloudflareinsights.com https://cdnjs.cloudflare.com https://cdn.sentry.io https://www.clarity.ms https://scripts.clarity.ms https://www.googletagmanager.com",
     // DEBT-116: style-src unsafe-inline is an accepted risk.
     // Tailwind CSS and Next.js inject inline styles at runtime (className -> style).
     // Nonce-based styles would require a custom PostCSS plugin + Next.js config changes
