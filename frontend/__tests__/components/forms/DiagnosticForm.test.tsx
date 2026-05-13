@@ -9,7 +9,7 @@
  * - Shows validation error for missing required fields
  */
 
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import DiagnosticForm from '@/components/forms/DiagnosticForm';
 
@@ -168,16 +168,14 @@ describe('DiagnosticForm', () => {
       render(<DiagnosticForm source="test" />);
       fillRequiredFields();
 
-      fireEvent.click(screen.getByTestId('diagnostic-form-submit'));
-
-      await waitFor(() => {
-        expect(
-          screen.getByTestId('diagnostic-form-success')
-        ).toBeInTheDocument();
+      await act(async () => {
+        fireEvent.click(screen.getByTestId('diagnostic-form-submit'));
       });
 
-      expect(screen.getByTestId('diagnostic-form-success')).toHaveTextContent(
-        'Recebemos seu contato! Retornaremos em até 48 horas.'
+      expect(
+        screen.getByTestId('diagnostic-form-success')
+      ).toHaveTextContent(
+        'Diagnóstico solicitado! Você receberá seu guia personalizado em instantes e nossa equipe retornará em até 48 horas.'
       );
     });
 
