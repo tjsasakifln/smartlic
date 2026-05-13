@@ -30,7 +30,6 @@ Rate limit: 60 req/min per IP (anti-scraping).
 
 from __future__ import annotations
 
-import asyncio
 import json
 import logging
 import os
@@ -42,7 +41,7 @@ from pydantic import BaseModel, Field
 
 from pipeline.budget import _run_with_budget
 from rate_limiter import require_rate_limit
-from supabase_client import get_supabase
+from supabase_client import get_supabase, sb_execute
 
 
 logger = logging.getLogger(__name__)
@@ -162,30 +161,28 @@ def _compute_remaining(deadline_iso: str) -> tuple[int | None, int | None]:
     return (max(0, dias), max(0, horas))
 
 
-def _query_seats_snapshot(sb: Any) -> dict:
-    """Synchronous DB query — count founders + fetch most-recent opt-ins.
+async def _query_seats_snapshot(sb: Any) -> dict:
+    """Async DB query — count founders + fetch most-recent opt-ins.
 
-    Wrapped via ``asyncio.to_thread`` + ``_run_with_budget`` by the caller.
+    Wrapped via ``_run_with_budget`` by the caller.
     Returns a dict consumed by the route. Raises on DB error so the route
     can downgrade to ``fallback=true``.
     """
     # Count seats taken.
-    count_res = (
+    count_res = await sb_execute(
         sb.table("profiles")
         .select("id", count="exact")
         .eq("is_founder", True)
-        .execute()
     )
     seats_taken: int = int(getattr(count_res, "count", None) or len(count_res.data or []))
 
     # Most recent founder_since (any founder, regardless of consent).
-    last_res = (
+    last_res = await sb_execute(
         sb.table("profiles")
         .select("founder_since")
         .eq("is_founder", True)
         .order("founder_since", desc=True)
         .limit(1)
-        .execute()
     )
     last_rows = last_res.data or []
     ultima_vaga_em: str | None = None
@@ -197,14 +194,13 @@ def _query_seats_snapshot(sb: Any) -> dict:
     # PostgREST when founder_public_listing_consent has not been migrated yet).
     opt_in: list[dict] = []
     try:
-        opt_res = (
+        opt_res = await sb_execute(
             sb.table("profiles")
             .select("razao_social,uf,founder_since")
             .eq("is_founder", True)
             .eq("founder_public_listing_consent", True)
             .order("founder_since", desc=True)
             .limit(5)
-            .execute()
         )
         for row in opt_res.data or []:
             empresa = (row.get("razao_social") or "Empresa Fundadora").strip() or "Empresa Fundadora"
@@ -309,7 +305,7 @@ async def founders_availability(
 
     try:
         snapshot = await _run_with_budget(
-            asyncio.to_thread(_query_seats_snapshot, sb),
+            _query_seats_snapshot(sb),
             budget=2.0,
             phase="route",
             source="founders.availability",

@@ -35,17 +35,19 @@ def client():
 class TestCheckResendCooldownDb:
     """Unit tests for _check_resend_cooldown_db helper."""
 
-    def test_no_rows_returns_none(self):
+    @pytest.mark.asyncio
+    async def test_no_rows_returns_none(self):
         """If no DB rows exist, cooldown is not active (allow resend)."""
         from routes.auth_email import _check_resend_cooldown_db
 
         mock_sb = MagicMock()
         mock_sb.table.return_value.select.return_value.eq.return_value.eq.return_value.order.return_value.limit.return_value.execute.return_value.data = []
 
-        result = _check_resend_cooldown_db("test@example.com", mock_sb)
+        result = await _check_resend_cooldown_db("test@example.com", mock_sb)
         assert result is None
 
-    def test_recent_row_returns_remaining_seconds(self):
+    @pytest.mark.asyncio
+    async def test_recent_row_returns_remaining_seconds(self):
         """If last resend was <60s ago, returns remaining cooldown seconds."""
         from routes.auth_email import _check_resend_cooldown_db
 
@@ -59,11 +61,12 @@ class TestCheckResendCooldownDb:
             {"created_at": thirty_seconds_ago}
         ]
 
-        result = _check_resend_cooldown_db("test@example.com", mock_sb)
+        result = await _check_resend_cooldown_db("test@example.com", mock_sb)
         assert result is not None
         assert 25 <= result <= 35  # ~30 seconds remaining (with timing tolerance)
 
-    def test_old_row_returns_none(self):
+    @pytest.mark.asyncio
+    async def test_old_row_returns_none(self):
         """If last resend was >60s ago, cooldown is not active."""
         from routes.auth_email import _check_resend_cooldown_db
 
@@ -76,17 +79,18 @@ class TestCheckResendCooldownDb:
             {"created_at": two_minutes_ago}
         ]
 
-        result = _check_resend_cooldown_db("test@example.com", mock_sb)
+        result = await _check_resend_cooldown_db("test@example.com", mock_sb)
         assert result is None
 
-    def test_db_exception_returns_none_fail_open(self):
+    @pytest.mark.asyncio
+    async def test_db_exception_returns_none_fail_open(self):
         """If DB throws, return None (fail-open = allow resend)."""
         from routes.auth_email import _check_resend_cooldown_db
 
         mock_sb = MagicMock()
         mock_sb.table.side_effect = Exception("DB connection error")
 
-        result = _check_resend_cooldown_db("test@example.com", mock_sb)
+        result = await _check_resend_cooldown_db("test@example.com", mock_sb)
         assert result is None  # fail-open
 
 
@@ -97,14 +101,15 @@ class TestCheckResendCooldownDb:
 class TestRecordResendDb:
     """Unit tests for _record_resend_db helper."""
 
-    def test_records_resend_action(self):
+    @pytest.mark.asyncio
+    async def test_records_resend_action(self):
         """Should insert resend action into user_email_actions."""
         from routes.auth_email import _record_resend_db
 
         mock_sb = MagicMock()
         mock_sb.table.return_value.insert.return_value.execute.return_value = MagicMock()
 
-        result = _record_resend_db("test@example.com", mock_sb)
+        result = await _record_resend_db("test@example.com", mock_sb)
 
         assert result is True
         mock_sb.table.assert_called_once_with("user_email_actions")
@@ -112,14 +117,15 @@ class TestRecordResendDb:
             {"email": "test@example.com", "action_type": "resend"}
         )
 
-    def test_db_exception_returns_false(self):
+    @pytest.mark.asyncio
+    async def test_db_exception_returns_false(self):
         """If DB fails to record, return False (caller falls back to in-memory)."""
         from routes.auth_email import _record_resend_db
 
         mock_sb = MagicMock()
         mock_sb.table.side_effect = Exception("DB error")
 
-        result = _record_resend_db("test@example.com", mock_sb)
+        result = await _record_resend_db("test@example.com", mock_sb)
         assert result is False
 
 
@@ -130,7 +136,8 @@ class TestRecordResendDb:
 class TestRecordConfirmDb:
     """Unit tests for _record_confirm_db helper (idempotency)."""
 
-    def test_first_confirm_inserts_and_returns_true(self):
+    @pytest.mark.asyncio
+    async def test_first_confirm_inserts_and_returns_true(self):
         """First confirmation should insert record and return True."""
         from routes.auth_email import _record_confirm_db
 
@@ -139,10 +146,11 @@ class TestRecordConfirmDb:
         mock_sb.table.return_value.select.return_value.eq.return_value.eq.return_value.limit.return_value.execute.return_value.data = []
         mock_sb.table.return_value.insert.return_value.execute.return_value = MagicMock()
 
-        result = _record_confirm_db("user@example.com", mock_sb)
+        result = await _record_confirm_db("user@example.com", mock_sb)
         assert result is True
 
-    def test_second_confirm_returns_false_no_insert(self):
+    @pytest.mark.asyncio
+    async def test_second_confirm_returns_false_no_insert(self):
         """Second confirmation should return False without inserting."""
         from routes.auth_email import _record_confirm_db
 
@@ -152,19 +160,20 @@ class TestRecordConfirmDb:
             {"id": 42}
         ]
 
-        result = _record_confirm_db("user@example.com", mock_sb)
+        result = await _record_confirm_db("user@example.com", mock_sb)
         assert result is False
         # insert should NOT have been called
         mock_sb.table.return_value.insert.assert_not_called()
 
-    def test_db_exception_returns_false(self):
+    @pytest.mark.asyncio
+    async def test_db_exception_returns_false(self):
         """If DB throws on confirm, return False gracefully."""
         from routes.auth_email import _record_confirm_db
 
         mock_sb = MagicMock()
         mock_sb.table.side_effect = Exception("DB error")
 
-        result = _record_confirm_db("user@example.com", mock_sb)
+        result = await _record_confirm_db("user@example.com", mock_sb)
         assert result is False
 
 

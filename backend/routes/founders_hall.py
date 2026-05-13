@@ -26,7 +26,6 @@ Design notes
 
 from __future__ import annotations
 
-import asyncio
 import json
 import logging
 from datetime import datetime, timezone
@@ -39,7 +38,7 @@ from auth import require_auth
 from audit import audit_logger
 from pipeline.budget import _run_with_budget
 from rate_limiter import require_rate_limit
-from supabase_client import get_supabase
+from supabase_client import get_supabase, sb_execute
 
 
 logger = logging.getLogger(__name__)
@@ -194,13 +193,13 @@ async def _invalidate_listing_cache() -> None:
 # ---------------------------------------------------------------------------
 
 
-def _query_hall_listing(sb: Any) -> list[dict]:
-    """Sync DB query for the Hall listing.
+async def _query_hall_listing(sb: Any) -> list[dict]:
+    """Async DB query for the Hall listing.
 
     Returns a list of dicts ordered by ``founder_consent_changed_at DESC``
     (most recent opt-in first). Caller wraps in ``_run_with_budget``.
     """
-    res = (
+    res = await sb_execute(
         sb.table("profiles")
         .select(
             "razao_social,uf,founder_since,founder_listing_display_name,"
@@ -210,7 +209,6 @@ def _query_hall_listing(sb: Any) -> list[dict]:
         .eq("founder_public_listing_consent", True)
         .order("founder_consent_changed_at", desc=True)
         .limit(HALL_LIST_HARD_CAP)
-        .execute()
     )
     return list(res.data or [])
 
@@ -263,7 +261,7 @@ async def get_hall_listing(
     sb = get_supabase()
     try:
         rows = await _run_with_budget(
-            asyncio.to_thread(_query_hall_listing, sb),
+            _query_hall_listing(sb),
             budget=2.0,
             phase="route",
             source="founders.hall.listing",
@@ -339,23 +337,19 @@ async def toggle_consent(
 
     sb = get_supabase()
 
-    def _do_update() -> dict:
-        res = (
-            sb.table("profiles")
-            .update(update_fields)
-            .eq("id", user_id)
-            .execute()
-        )
-        rows = res.data or []
-        return rows[0] if rows else {}
-
     try:
-        updated = await _run_with_budget(
-            asyncio.to_thread(_do_update),
+        res = await _run_with_budget(
+            sb_execute(
+                sb.table("profiles")
+                .update(update_fields)
+                .eq("id", user_id)
+            ),
             budget=3.0,
             phase="route",
             source="founders.hall.consent",
         )
+        rows = res.data or []
+        updated = rows[0] if rows else {}
     except Exception as exc:
         logger.warning(f"founders.hall.consent: DB update failed: {exc}")
         raise HTTPException(

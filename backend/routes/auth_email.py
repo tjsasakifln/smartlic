@@ -44,20 +44,20 @@ class AuthStatusResponse(BaseModel):
     user_id: str | None = None
 
 
-def _check_resend_cooldown_db(email_lower: str, supabase) -> int | None:
+async def _check_resend_cooldown_db(email_lower: str, supabase) -> int | None:
     """Check resend cooldown from DB. Returns remaining seconds or None if allowed.
 
     Fails open (returns None / allows) if DB query fails.
     """
     try:
-        result = (
+        from supabase_client import sb_execute
+        result = await sb_execute(
             supabase.table("user_email_actions")
             .select("created_at")
             .eq("email", email_lower)
             .eq("action_type", "resend")
             .order("created_at", desc=True)
             .limit(1)
-            .execute()
         )
         rows = getattr(result, "data", []) or []
         if not rows:
@@ -75,36 +75,41 @@ def _check_resend_cooldown_db(email_lower: str, supabase) -> int | None:
         return None
 
 
-def _record_resend_db(email_lower: str, supabase) -> bool:
+async def _record_resend_db(email_lower: str, supabase) -> bool:
     """Record a resend action in DB. Returns True on success."""
     try:
-        supabase.table("user_email_actions").insert(
-            {"email": email_lower, "action_type": "resend"}
-        ).execute()
+        from supabase_client import sb_execute
+        await sb_execute(
+            supabase.table("user_email_actions").insert(
+                {"email": email_lower, "action_type": "resend"}
+            )
+        )
         return True
     except Exception as e:
         logger.warning(f"DB resend record failed: {type(e).__name__}")
         return False
 
 
-def _record_confirm_db(email_lower: str, supabase) -> bool:
+async def _record_confirm_db(email_lower: str, supabase) -> bool:
     """Record an email confirmation in DB (idempotent). Returns True if first confirm."""
     try:
+        from supabase_client import sb_execute
         # Check if already confirmed
-        result = (
+        result = await sb_execute(
             supabase.table("user_email_actions")
             .select("id")
             .eq("email", email_lower)
             .eq("action_type", "confirm")
             .limit(1)
-            .execute()
         )
         rows = getattr(result, "data", []) or []
         if rows:
             return False  # Already recorded — idempotent
-        supabase.table("user_email_actions").insert(
-            {"email": email_lower, "action_type": "confirm"}
-        ).execute()
+        await sb_execute(
+            supabase.table("user_email_actions").insert(
+                {"email": email_lower, "action_type": "confirm"}
+            )
+        )
         return True
     except Exception as e:
         logger.warning(f"DB confirm record failed: {type(e).__name__}")
@@ -164,7 +169,7 @@ async def resend_confirmation(
         from supabase_client import get_supabase
         supabase = get_supabase()
 
-        remaining = _check_resend_cooldown_db(email_lower, supabase)
+        remaining = await _check_resend_cooldown_db(email_lower, supabase)
         if remaining is not None:
             raise HTTPException(
                 status_code=429,
@@ -197,7 +202,7 @@ async def resend_confirmation(
     try:
         from supabase_client import get_supabase
         supabase = get_supabase()
-        if not _record_resend_db(email_lower, supabase):
+        if not await _record_resend_db(email_lower, supabase):
             _resend_timestamps[email_lower] = now
     except Exception:
         _resend_timestamps[email_lower] = now
@@ -245,7 +250,7 @@ async def auth_status(email: str = Query(..., description="Email to check")):
                     try:
                         from supabase_client import get_supabase as _get_sb
                         sb = _get_sb()
-                        is_first_confirm = _record_confirm_db(email_lower, sb)
+                        is_first_confirm = await _record_confirm_db(email_lower, sb)
                         if is_first_confirm:
                             from analytics_events import track_event
                             user_id = getattr(user, "id", None)

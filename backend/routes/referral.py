@@ -8,7 +8,6 @@ Endpoints:
                              is being referred via a code.
 """
 
-import asyncio
 import logging
 import secrets
 import string
@@ -20,6 +19,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
 
 from auth import require_auth
+from supabase_client import sb_execute
 
 logger = logging.getLogger(__name__)
 
@@ -66,33 +66,31 @@ def _generate_code() -> str:
     return "".join(secrets.choice(_CODE_ALPHABET) for _ in range(_CODE_LENGTH))
 
 
-def _get_or_create_code_for_user(sb, user_id: str) -> str:
+async def _get_or_create_code_for_user(sb, user_id: str) -> str:
     """Return existing referral code for *user_id*, or create a new one.
 
     Idempotent: if the user already has a row we return it; otherwise we
     insert a new row, retrying on unique-collision of the generated code.
     """
-    existing = (
+    existing = await sb_execute(
         sb.table("referrals")
         .select("code")
         .eq("referrer_user_id", user_id)
         .is_("referred_user_id", "null")
         .eq("status", "pending")
         .limit(1)
-        .execute()
     )
     if getattr(existing, "data", None):
         return existing.data[0]["code"]
 
     # Fallback: any row owned by the user (if only non-pending rows exist,
     # keep using the same code for display consistency).
-    any_existing = (
+    any_existing = await sb_execute(
         sb.table("referrals")
         .select("code")
         .eq("referrer_user_id", user_id)
         .order("created_at", desc=False)
         .limit(1)
-        .execute()
     )
     if getattr(any_existing, "data", None):
         return any_existing.data[0]["code"]
@@ -101,13 +99,15 @@ def _get_or_create_code_for_user(sb, user_id: str) -> str:
     for _ in range(_MAX_CODE_GENERATION_ATTEMPTS):
         code = _generate_code()
         try:
-            sb.table("referrals").insert(
-                {
-                    "referrer_user_id": user_id,
-                    "code": code,
-                    "status": "pending",
-                }
-            ).execute()
+            await sb_execute(
+                sb.table("referrals").insert(
+                    {
+                        "referrer_user_id": user_id,
+                        "code": code,
+                        "status": "pending",
+                    }
+                )
+            )
             return code
         except Exception as e:  # pragma: no cover — unique collisions rare
             last_error = e
@@ -158,17 +158,13 @@ async def get_referral_code(user: dict = Depends(require_auth)):
     user_id = user["id"]
 
     # Check if a code already exists before we decide to send welcome email
-    def _check_existing():
-        return (
+    pre_existing = await _run_with_budget(
+        sb_execute(
             sb.table("referrals")
             .select("code")
             .eq("referrer_user_id", user_id)
             .limit(1)
-            .execute()
-        )
-
-    pre_existing = await _run_with_budget(
-        asyncio.to_thread(_check_existing),
+        ),
         budget=5.0,
         phase="route",
         source="referral.get_referral_code",
@@ -176,7 +172,7 @@ async def get_referral_code(user: dict = Depends(require_auth)):
     had_code = bool(getattr(pre_existing, "data", None))
 
     try:
-        code = await asyncio.to_thread(_get_or_create_code_for_user, sb, user_id)
+        code = await _get_or_create_code_for_user(sb, user_id)
     except HTTPException:
         raise
     except Exception:
@@ -201,7 +197,7 @@ async def get_referral_stats(user: dict = Depends(require_auth)):
     user_id = user["id"]
 
     try:
-        code = await asyncio.to_thread(_get_or_create_code_for_user, sb, user_id)
+        code = await _get_or_create_code_for_user(sb, user_id)
     except HTTPException:
         raise
     except Exception:
@@ -209,16 +205,12 @@ async def get_referral_stats(user: dict = Depends(require_auth)):
         raise HTTPException(status_code=500, detail="Erro ao obter estatísticas.")
 
     try:
-        def _fetch_stats():
-            return (
+        rows = await _run_with_budget(
+            sb_execute(
                 sb.table("referrals")
                 .select("status")
                 .eq("referrer_user_id", user_id)
-                .execute()
-            )
-
-        rows = await _run_with_budget(
-            asyncio.to_thread(_fetch_stats),
+            ),
             budget=5.0,
             phase="route",
             source="referral.get_referral_stats",
@@ -266,17 +258,13 @@ async def redeem_referral(
         raise HTTPException(status_code=403, detail="Identidade inválida.")
 
     try:
-        def _lookup_code():
-            return (
+        match = await _run_with_budget(
+            sb_execute(
                 sb.table("referrals")
                 .select("id, referrer_user_id, status, referred_user_id")
                 .eq("code", code)
                 .limit(1)
-                .execute()
-            )
-
-        match = await _run_with_budget(
-            asyncio.to_thread(_lookup_code),
+            ),
             budget=5.0,
             phase="route",
             source="referral.redeem_referral",
@@ -302,16 +290,12 @@ async def redeem_referral(
         _row_id = row["id"]
         _referred_uid = body.referred_user_id
 
-        def _update_status():
-            return (
+        await _run_with_budget(
+            sb_execute(
                 sb.table("referrals")
                 .update({"referred_user_id": _referred_uid, "status": "signed_up"})
                 .eq("id", _row_id)
-                .execute()
-            )
-
-        await _run_with_budget(
-            asyncio.to_thread(_update_status),
+            ),
             budget=5.0,
             phase="route",
             source="referral.redeem_referral.update",
