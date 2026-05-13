@@ -79,7 +79,7 @@ async def sitemap_orgaos(response: Response):
     _fresh_fetch = False
     try:
         data = await _run_with_budget(
-            asyncio.to_thread(_fetch_top_orgaos),
+            _fetch_top_orgaos(),
             budget=_BUDGET_S,
             phase="route",
             source="sitemap_orgaos.sitemap_orgaos",
@@ -148,27 +148,25 @@ async def sitemap_orgaos(response: Response):
     return SitemapOrgaosResponse(**data)
 
 
-def _fetch_top_orgaos() -> dict:
+async def _fetch_top_orgaos() -> dict:
     """Query mv_sitemap_orgaos for orgao_cnpj com ≥5 licitações em 12 meses.
 
     SEO-SITEMAP-MV-001: MV pré-agregada substitui RPC + fallback paginado.
     Query < 50ms.
     """
     try:
-        from supabase_client import get_supabase
-
+        from supabase_client import get_supabase, sb_execute
         sb = get_supabase()
 
         rows: list[str] = []
         page_size = 1000
         offset = 0
         while True:
-            resp = (
+            resp = await sb_execute(
                 sb.table("mv_sitemap_orgaos")
                 .select("cnpj")
                 .order("cnpj")
                 .range(offset, offset + page_size - 1)
-                .execute()
             )
             if not resp.data:
                 break
@@ -258,7 +256,7 @@ async def sitemap_contratos_orgao_indexable(response: Response):
 
     try:
         data = await _run_with_budget(
-            asyncio.to_thread(_fetch_contratos_orgao_indexable),
+            _fetch_contratos_orgao_indexable(),
             budget=_CONTRATOS_BUDGET_S,
             phase="route",
             source="sitemap_orgaos.sitemap_contratos_orgao_indexable",
@@ -318,7 +316,7 @@ async def sitemap_contratos_orgao_indexable(response: Response):
     return SitemapContratosOrgaoResponse(**data)
 
 
-def _fetch_contratos_orgao_indexable() -> dict:
+async def _fetch_contratos_orgao_indexable() -> dict:
     """Fetch distinct orgao_cnpj from pncp_supplier_contracts via RPC.
 
     Usa get_sitemap_contratos_orgao_json RPC (SEN-BE-005) para fazer GROUP BY
@@ -329,13 +327,13 @@ def _fetch_contratos_orgao_indexable() -> dict:
     REST) que causava 502 "JSON could not be generated" no PostgREST.
     """
     try:
-        from supabase_client import get_supabase
+        from supabase_client import get_supabase, sb_execute
         sb = get_supabase()
 
-        resp = sb.rpc(
+        resp = await sb_execute(sb.rpc(
             "get_sitemap_contratos_orgao_json",
             {"max_results": _MAX_CONTRATOS_ORGAOS},
-        ).execute()
+        ))
 
         orgao_list = resp.data if isinstance(resp.data, list) else []
         orgao_list = [c for c in orgao_list if is_valid_cnpj_format(c)]
