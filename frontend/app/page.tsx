@@ -13,7 +13,6 @@ import CredibilitySection from './components/landing/CredibilitySection';
 import FinalCTA from './components/landing/FinalCTA';
 import OpportunityPreview from './components/landing/OpportunityPreview';
 import { TrendingEditais } from './components/landing/TrendingEditais';
-import ExitIntentPopup from './components/landing/ExitIntentPopup';
 import Footer from './components/Footer';
 import NewsletterFooter from './components/landing/NewsletterFooter';
 import { HomeFaqStructuredData } from './components/HomeFaqStructuredData';
