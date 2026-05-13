@@ -20,7 +20,7 @@ from typing import Optional
 from fastapi import APIRouter, HTTPException, Query
 from pydantic import BaseModel
 
-from supabase_client import get_supabase
+from supabase_client import get_supabase, sb_execute
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/comparador", tags=["comparador"])
@@ -165,12 +165,10 @@ async def get_bids_by_ids(
     # Query supabase directly for exact pncp_id matches
     try:
         sb = get_supabase()
-
-        def _sync_query():
-            return sb.table("pncp_raw_bids").select("*").in_("pncp_id", id_list).execute()
-
         result = await _run_with_budget(
-            asyncio.to_thread(_sync_query),
+            sb_execute(
+                sb.table("pncp_raw_bids").select("*").in_("pncp_id", id_list)
+            ),
             budget=5.0,
             phase="route",
             source="comparador.comparador_bids",

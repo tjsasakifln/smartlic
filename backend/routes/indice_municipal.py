@@ -256,11 +256,11 @@ async def get_municipio(
 
     # Busca no banco primeiro
     try:
-        from supabase_client import get_supabase
-        sb = get_supabase()
+        from supabase_client import get_supabase, sb_execute
 
-        def _sync_query():
-            return (
+        sb = get_supabase()
+        resp = await _run_with_budget(
+            sb_execute(
                 sb.table("indice_municipal")
                 .select("*")
                 .eq("uf", uf)
@@ -268,11 +268,7 @@ async def get_municipio(
                 .ilike("municipio_nome", f"%{municipio_part.replace('-', '%')}%")
                 .order("score_total", desc=True)
                 .limit(1)
-                .execute()
-            )
-
-        resp = await _run_with_budget(
-            asyncio.to_thread(_sync_query),
+            ),
             budget=5.0,
             phase="route",
             source="indice_municipal.get_indice_municipio",

@@ -171,30 +171,28 @@ async def compliance_profile(cnpj: str):
 
 async def _fetch_razao_social(cnpj: str) -> str:
     """Tenta obter a razao social de enriched_entities (Supabase) ou BrasilAPI."""
-    # 1. enriched_entities — RES-BE-015: ``_run_with_budget`` + ``to_thread``
+    # 1. enriched_entities — RES-BE-015: ``_run_with_budget`` + ``sb_execute``
     # so the sync supabase-py client never blocks the event loop and any
     # saturation increments
     # ``smartlic_pipeline_budget_exceeded_total{phase=route,source=compliance_publicos.razao_social}``.
-    def _sync_query() -> list[dict]:
-        from supabase_client import get_supabase
-        sb = get_supabase()
-        resp = (
-            sb.table("enriched_entities")
-            .select("data")
-            .eq("entity_type", "fornecedor")
-            .eq("entity_id", cnpj)
-            .limit(1)
-            .execute()
-        )
-        return resp.data or []
-
+    # SEN-BE-004: HTTP/2 retry via sb_execute.
     try:
-        rows = await _run_with_budget(
-            asyncio.to_thread(_sync_query),
+        from supabase_client import get_supabase, sb_execute
+
+        sb = get_supabase()
+        resp = await _run_with_budget(
+            sb_execute(
+                sb.table("enriched_entities")
+                .select("data")
+                .eq("entity_type", "fornecedor")
+                .eq("entity_id", cnpj)
+                .limit(1)
+            ),
             budget=_RAZAO_SOCIAL_QUERY_BUDGET_S,
             phase="route",
             source="compliance_publicos.razao_social",
         )
+        rows = resp.data or []
         if rows:
             data = rows[0].get("data") or {}
             nome = data.get("razao_social") or ""

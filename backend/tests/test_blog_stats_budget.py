@@ -53,7 +53,7 @@ class TestContratosBudget:
 
         with patch.object(
             bs,
-            "_query_contratos_sync",
+            "_query_contratos_data",
             side_effect=_slow_sync_execute,
         ):
             # Patch budget down to keep test fast — fix still proves the
@@ -101,7 +101,7 @@ class TestContratosBudget:
             ttl=bs._CACHE_TTL_SECONDS,
         )
 
-        with patch.object(bs, "_query_contratos_sync") as mock_query:
+        with patch.object(bs, "_query_contratos_data") as mock_query:
             resp = client.get("/v1/blog/stats/contratos/informatica")
 
         assert resp.status_code == 200
@@ -116,7 +116,7 @@ class TestComputeContratosStatsAsync:
     def test_timeout_returns_partial_true(self):
         from routes import blog_stats as bs
 
-        with patch.object(bs, "_query_contratos_sync", side_effect=_slow_sync_execute):
+        with patch.object(bs, "_query_contratos_data", side_effect=_slow_sync_execute):
             with patch.object(bs, "_CONTRATOS_QUERY_BUDGET_S", 0.1):
                 data, partial = asyncio.run(bs._compute_contratos_stats())
 
@@ -129,7 +129,7 @@ class TestComputeContratosStatsAsync:
 
         with patch.object(
             bs,
-            "_query_contratos_sync",
+            "_query_contratos_data",
             side_effect=RuntimeError("supabase pool exhausted"),
         ):
             data, partial = asyncio.run(bs._compute_contratos_stats())
@@ -152,7 +152,7 @@ class TestComputeContratosStatsAsync:
                 "uf": "SP",
             },
         ]
-        with patch.object(bs, "_query_contratos_sync", return_value=rows):
+        with patch.object(bs, "_query_contratos_data", return_value=rows):
             data, partial = asyncio.run(bs._compute_contratos_stats())
 
         assert partial is False
