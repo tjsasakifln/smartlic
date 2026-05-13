@@ -36,7 +36,7 @@ async def run_seo_coverage_manifest() -> dict:
     logger.info("%s: starting rebuild at %s", _JOB_NAME, start.isoformat())
 
     try:
-        result = await asyncio.to_thread(_sync_rebuild)
+        result = await _rebuild()
         elapsed = (datetime.now(timezone.utc) - start).total_seconds()
         logger.info(
             "%s: done in %.1fs — %d entities upserted",
@@ -46,7 +46,7 @@ async def run_seo_coverage_manifest() -> dict:
         )
 
         # Record job run in cron_job_health (for AC4 monitoring)
-        await asyncio.to_thread(_record_cron_run, result)
+        await _record_cron_run(result)
 
         return result
 
@@ -60,8 +60,8 @@ async def run_seo_coverage_manifest() -> dict:
         raise
 
 
-def _sync_rebuild() -> dict:
-    """Synchronous rebuild — called via asyncio.to_thread."""
+async def _rebuild() -> dict:
+    """Rebuild manifest — fully async."""
     try:
         from supabase_client import get_supabase
 
@@ -72,7 +72,7 @@ def _sync_rebuild() -> dict:
         # -----------------------------------------------------------------------
         # 1. Aggregate CNPJ bid counts from pncp_raw_bids
         # -----------------------------------------------------------------------
-        cnpj_counts = _aggregate_cnpj_counts(sb)
+        cnpj_counts = await _aggregate_cnpj_counts(sb)
         for cnpj, count in cnpj_counts.items():
             status = _classify_status(count)
             rows_to_upsert.append({
@@ -87,7 +87,7 @@ def _sync_rebuild() -> dict:
         # 2. Aggregate fornecedor CNPJ counts from pncp_supplier_contracts
         #    Uses entity_type='fornecedor' to avoid collision with buyer CNPJs.
         # -----------------------------------------------------------------------
-        fornecedor_counts = _aggregate_fornecedor_counts(sb)
+        fornecedor_counts = await _aggregate_fornecedor_counts(sb)
         for cnpj, count in fornecedor_counts.items():
             status = _classify_status(count)
             rows_to_upsert.append({
@@ -101,7 +101,7 @@ def _sync_rebuild() -> dict:
         # -----------------------------------------------------------------------
         # 3. Aggregate municipio bid counts (slug = municipio name/slug)
         # -----------------------------------------------------------------------
-        municipio_counts = _aggregate_municipio_counts(sb)
+        municipio_counts = await _aggregate_municipio_counts(sb)
         for slug, count in municipio_counts.items():
             status = _classify_status(count)
             rows_to_upsert.append({
@@ -113,26 +113,24 @@ def _sync_rebuild() -> dict:
             })
 
         # -----------------------------------------------------------------------
-        # 3. Preserve historical_empty: if existing status was not empty and new
+        # 4. Preserve historical_empty: if existing status was not empty and new
         #    count is 0, mark as historical_empty instead of empty.
         # -----------------------------------------------------------------------
-        rows_to_upsert = _apply_historical_empty(sb, rows_to_upsert)
+        rows_to_upsert = await _apply_historical_empty(sb, rows_to_upsert)
 
         # -----------------------------------------------------------------------
-        # 4. Upsert in batches of 500 (PostgREST payload limit)
+        # 5. Upsert in batches of 500 (PostgREST payload limit)
         # -----------------------------------------------------------------------
         upserted = 0
         batch_size = 500
         for i in range(0, len(rows_to_upsert), batch_size):
             batch = rows_to_upsert[i:i + batch_size]
-            asyncio.run(
-                sb_execute(
-                    sb.table("seo_coverage_manifest").upsert(
-                        batch,
-                        on_conflict="entity_type,slug",
-                    ),
-                    category="write",
-                )
+            await sb_execute(
+                sb.table("seo_coverage_manifest").upsert(
+                    batch,
+                    on_conflict="entity_type,slug",
+                ),
+                category="write",
             )
             upserted += len(batch)
 
@@ -154,7 +152,7 @@ def _sync_rebuild() -> dict:
         }
 
     except Exception as exc:
-        logger.error("%s _sync_rebuild failed: %s", _JOB_NAME, exc)
+        logger.error("%s _rebuild failed: %s", _JOB_NAME, exc)
         raise
 
 
@@ -167,7 +165,7 @@ def _classify_status(count: int) -> str:
     return "empty"
 
 
-def _aggregate_cnpj_counts(sb) -> dict[str, int]:
+async def _aggregate_cnpj_counts(sb) -> dict[str, int]:
     """Aggregate distinct orgao_cnpj bid counts from pncp_raw_bids.
 
     Uses paginated SELECT to avoid PostgREST 1000-row cap.
@@ -179,7 +177,7 @@ def _aggregate_cnpj_counts(sb) -> dict[str, int]:
 
     try:
         # First try the materialized view if available
-        resp = asyncio.run(sb_execute(sb.table("mv_sitemap_cnpjs").select("cnpj,bid_count")))
+        resp = await sb_execute(sb.table("mv_sitemap_cnpjs").select("cnpj,bid_count"))
         if resp.data:
             for row in resp.data:
                 cnpj = (row.get("cnpj") or "").strip()
@@ -198,13 +196,13 @@ def _aggregate_cnpj_counts(sb) -> dict[str, int]:
 
     # Fallback: paginated scan of pncp_raw_bids
     while True:
-        resp = asyncio.run(sb_execute(
+        resp = await sb_execute(
             sb.table("pncp_raw_bids")
             .select("orgao_cnpj")
             .neq("orgao_cnpj", "")
             .not_.is_("orgao_cnpj", "null")
             .range(offset, offset + page_size - 1)
-        ))
+        )
         if not resp.data:
             break
         for row in resp.data:
@@ -218,7 +216,7 @@ def _aggregate_cnpj_counts(sb) -> dict[str, int]:
     return counts
 
 
-def _aggregate_fornecedor_counts(sb) -> dict[str, int]:
+async def _aggregate_fornecedor_counts(sb) -> dict[str, int]:
     """Aggregate distinct ni_fornecedor contract counts from pncp_supplier_contracts.
 
     Returns: {cnpj: contract_count}
@@ -229,13 +227,13 @@ def _aggregate_fornecedor_counts(sb) -> dict[str, int]:
     offset = 0
 
     while True:
-        resp = asyncio.run(sb_execute(
+        resp = await sb_execute(
             sb.table("pncp_supplier_contracts")
             .select("ni_fornecedor")
             .neq("ni_fornecedor", "")
             .not_.is_("ni_fornecedor", "null")
             .range(offset, offset + page_size - 1)
-        ))
+        )
         if not resp.data:
             break
         for row in resp.data:
@@ -253,12 +251,12 @@ def _aggregate_fornecedor_counts(sb) -> dict[str, int]:
     return counts
 
 
-def _aggregate_municipio_counts(sb) -> dict[str, int]:
+async def _aggregate_municipio_counts(sb) -> dict[str, int]:
     """Aggregate bid counts per municipio slug from mv_sitemap_municipios (if available)."""
     counts: dict[str, int] = {}
 
     try:
-        resp = asyncio.run(sb_execute(sb.table("mv_sitemap_municipios").select("slug,bid_count")))
+        resp = await sb_execute(sb.table("mv_sitemap_municipios").select("slug,bid_count"))
         if resp.data:
             for row in resp.data:
                 slug = (row.get("slug") or "").strip()
@@ -277,7 +275,7 @@ def _aggregate_municipio_counts(sb) -> dict[str, int]:
     return counts
 
 
-def _apply_historical_empty(sb, rows: list[dict]) -> list[dict]:
+async def _apply_historical_empty(sb, rows: list[dict]) -> list[dict]:
     """For rows with coverage_status='empty', check if the entity previously had
     data in the manifest (was 'full' or 'partial'). If so, mark as 'historical_empty'
     instead of 'empty' so the sitemap gate keeps the URL with reduced priority.
@@ -303,12 +301,12 @@ def _apply_historical_empty(sb, rows: list[dict]) -> list[dict]:
             page_size = 500
             for i in range(0, len(slugs), page_size):
                 batch = slugs[i:i + page_size]
-                resp = asyncio.run(sb_execute(
+                resp = await sb_execute(
                     sb.table("seo_coverage_manifest")
                     .select("entity_type,slug,coverage_status")
                     .eq("entity_type", etype)
                     .in_("slug", batch)
-                ))
+                )
                 for row in (resp.data or []):
                     existing_statuses[(row["entity_type"], row["slug"])] = row["coverage_status"]
     except Exception as exc:
@@ -329,7 +327,7 @@ def _apply_historical_empty(sb, rows: list[dict]) -> list[dict]:
     return rows
 
 
-def _record_cron_run(result: dict) -> None:
+async def _record_cron_run(result: dict) -> None:
     """Record this job run in cron_job_health for AC4 monitoring.
 
     cron_job_health is a view/table read by the health endpoint.
@@ -339,7 +337,7 @@ def _record_cron_run(result: dict) -> None:
         from supabase_client import get_supabase
 
         sb = get_supabase()
-        asyncio.run(sb_execute(
+        await sb_execute(
             sb.table("cron_job_health").upsert(
                 {
                     "job_name": _JOB_NAME,
@@ -350,7 +348,7 @@ def _record_cron_run(result: dict) -> None:
                 on_conflict="job_name",
             ),
             category="write",
-        ))
+        )
     except Exception as exc:
         # cron_job_health may not exist yet — don't fail the job
         logger.warning("%s: cron_job_health upsert failed (non-fatal): %s", _JOB_NAME, exc)
