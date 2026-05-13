@@ -47,15 +47,17 @@ async def get_seo_metrics(
 ):
     """Return SEO metrics for the last N days (legacy S14 daily rollup). Admin-only."""
     try:
-        from supabase_client import get_supabase
+        from supabase_client import get_supabase, sb_execute
 
         supabase = get_supabase()
 
-        def _sync_query():
-            return supabase.table("seo_metrics").select("*").order("date", desc=True).limit(days).execute()
+        async def _sync_query():
+            return await sb_execute(
+                supabase.table("seo_metrics").select("*").order("date", desc=True).limit(days)
+            )
 
         response = await _run_with_budget(
-            asyncio.to_thread(_sync_query),
+            _sync_query(),
             budget=5.0,
             phase="route",
             source="seo_admin.get_seo_metrics",
@@ -131,7 +133,7 @@ async def get_gsc_summary(
     STORY-SEO-005 AC4. Populated weekly by backend/jobs/cron/gsc_sync.py.
     """
     try:
-        from supabase_client import get_supabase
+        from supabase_client import get_supabase, sb_execute
     except Exception as exc:
         logger.error("gsc_summary: supabase_client import failed: %s", exc)
         return _fallback_gsc_summary(days, "supabase_import_failed")
@@ -140,15 +142,14 @@ async def get_gsc_summary(
     if supabase is None:
         return _fallback_gsc_summary(days, "supabase_unavailable")
 
-    def _sync_gsc_summary() -> GSCSummaryResponse:
+    async def _sync_gsc_summary() -> GSCSummaryResponse:
         cutoff = (date.today() - timedelta(days=days)).isoformat()
 
         try:
-            probe = (
+            probe = await sb_execute(
                 supabase.table("gsc_metrics")
                 .select("id", count="exact")
                 .limit(1)
-                .execute()
             )
             total = getattr(probe, "count", None)
             if not total:
@@ -163,13 +164,12 @@ async def get_gsc_summary(
         last_sync_at: Optional[str] = None
 
         try:
-            q_resp = (
+            q_resp = await sb_execute(
                 supabase.table("gsc_metrics")
                 .select("query,impressions,clicks,ctr,position")
                 .gte("date", cutoff)
                 .order("impressions", desc=True)
                 .limit(500)
-                .execute()
             )
             agg: dict[str, dict] = {}
             for row in (q_resp.data or []):
@@ -209,7 +209,8 @@ async def get_gsc_summary(
                 .select("page,impressions,clicks,ctr,position")
                 .gte("date", cutoff)
             )
-            p_rows = paginate_full(
+            p_rows = await asyncio.to_thread(
+                paginate_full,
                 p_builder,
                 batch_size=1000,
                 max_total=10_000,
@@ -274,12 +275,11 @@ async def get_gsc_summary(
             logger.warning("gsc_summary: top_pages query failed — %s", exc)
 
         try:
-            sync_resp = (
+            sync_resp = await sb_execute(
                 supabase.table("gsc_metrics")
                 .select("fetched_at")
                 .order("fetched_at", desc=True)
                 .limit(1)
-                .execute()
             )
             if sync_resp.data:
                 last_sync_at = sync_resp.data[0].get("fetched_at")
@@ -296,7 +296,7 @@ async def get_gsc_summary(
         )
 
     return await _run_with_budget(
-        asyncio.to_thread(_sync_gsc_summary),
+        _sync_gsc_summary(),
         budget=10.0,
         phase="route",
         source="seo_admin.get_gsc_summary",

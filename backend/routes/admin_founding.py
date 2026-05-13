@@ -24,7 +24,7 @@ from pydantic import BaseModel, Field
 
 from admin import require_admin
 from pipeline.budget import _run_with_budget
-from supabase_client import get_supabase
+from supabase_client import get_supabase, sb_execute
 
 logger = logging.getLogger(__name__)
 
@@ -97,13 +97,12 @@ def _isoformat(value: Any) -> str | None:
     return str(value)
 
 
-def _fetch_policy_row(sb) -> dict[str, Any]:
-    res = (
+async def _fetch_policy_row(sb) -> dict[str, Any]:
+    res = await sb_execute(
         sb.table("founding_policy")
         .select("*")
         .eq("id", 1)
         .limit(1)
-        .execute()
     )
     rows = res.data or []
     if not rows:
@@ -114,12 +113,11 @@ def _fetch_policy_row(sb) -> dict[str, Any]:
     return rows[0]
 
 
-def _count_completed(sb) -> int:
-    res = (
+async def _count_completed(sb) -> int:
+    res = await sb_execute(
         sb.table("founding_leads")
         .select("id", count="exact")
         .eq("checkout_status", "completed")
-        .execute()
     )
     if hasattr(res, "count") and res.count is not None:
         return int(res.count)
@@ -135,8 +133,8 @@ def _count_completed(sb) -> int:
 async def get_founding_policy(_admin=Depends(require_admin)) -> Any:
     """Snapshot of the canonical policy + live seat usage."""
     sb = get_supabase()
-    row = _fetch_policy_row(sb)
-    seats_taken = _count_completed(sb)
+    row = await _fetch_policy_row(sb)
+    seats_taken = await _count_completed(sb)
     seat_limit = int(row.get("seat_limit") or 0)
     completion_pct = (
         round((seats_taken / seat_limit) * 100, 2) if seat_limit > 0 else 0.0
@@ -176,7 +174,7 @@ async def list_founding_leads(
     sb = get_supabase()
     capped_limit = max(1, min(limit, 500))
 
-    def _sync_query():
+    async def _sync_query():
         query = (
             sb.table("founding_leads")
             .select(
@@ -188,11 +186,11 @@ async def list_founding_leads(
         )
         if status:
             query = query.eq("checkout_status", status)
-        return query.execute()
+        return await sb_execute(query)
 
     try:
         res = await _run_with_budget(
-            asyncio.to_thread(_sync_query),
+            _sync_query(),
             budget=5.0,
             phase="route",
             source="admin_founding.list_founding_leads",
@@ -248,12 +246,15 @@ async def pause_founding(
         "paused_reason": reason,
     }
 
-    def _sync_query():
-        return sb.table("founding_policy").update(update).eq("id", 1).execute()
+    async def _sync_query():
+        return await sb_execute(
+            sb.table("founding_policy").update(update).eq("id", 1),
+            category="write",
+        )
 
     try:
         await _run_with_budget(
-            asyncio.to_thread(_sync_query),
+            _sync_query(),
             budget=3.0,
             phase="route",
             source="admin_founding.pause_founding",
@@ -285,12 +286,15 @@ async def resume_founding(admin: dict = Depends(require_admin)) -> Any:
         "paused_reason": None,
     }
 
-    def _sync_query():
-        return sb.table("founding_policy").update(update).eq("id", 1).execute()
+    async def _sync_query():
+        return await sb_execute(
+            sb.table("founding_policy").update(update).eq("id", 1),
+            category="write",
+        )
 
     try:
         await _run_with_budget(
-            asyncio.to_thread(_sync_query),
+            _sync_query(),
             budget=3.0,
             phase="route",
             source="admin_founding.resume_founding",

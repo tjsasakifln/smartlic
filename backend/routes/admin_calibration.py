@@ -36,7 +36,7 @@ from pydantic import BaseModel, ConfigDict, Field
 
 from admin import require_admin
 from pipeline.budget import _run_with_budget
-from supabase_client import get_supabase
+from supabase_client import get_supabase, sb_execute
 from utils.app_config import (
     DEFAULT_HOURS_SAVED_PER_SEARCH,
     get_hours_saved_per_search,
@@ -395,17 +395,17 @@ async def patch_app_config(
     if body.description is not None:
         update_payload["description"] = body.description
 
-    def _sync_patch():
-        return (
+    async def _sync_patch():
+        return await sb_execute(
             sb.table("app_config")
             .update(update_payload)
-            .eq("key", key)
-            .execute()
+            .eq("key", key),
+            category="write",
         )
 
     try:
         result = await _run_with_budget(
-            asyncio.to_thread(_sync_patch),
+            _sync_patch(),
             budget=3.0,
             phase="route",
             source="admin_calibration.patch_app_config",
@@ -491,17 +491,17 @@ async def recalibrate(
             ),
         }
 
-        def _sync_persist():
-            return (
+        async def _sync_persist():
+            return await sb_execute(
                 sb.table("app_config")
                 .update(update_payload)
-                .eq("key", "hours_saved_per_search")
-                .execute()
+                .eq("key", "hours_saved_per_search"),
+                category="write",
             )
 
         try:
             await _run_with_budget(
-                asyncio.to_thread(_sync_persist),
+                _sync_persist(),
                 budget=3.0,
                 phase="route",
                 source="admin_calibration.recalibrate",
