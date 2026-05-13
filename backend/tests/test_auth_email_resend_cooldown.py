@@ -9,7 +9,7 @@ Verifies that:
 """
 
 import datetime
-from unittest.mock import MagicMock, patch, call
+from unittest.mock import MagicMock, patch
 import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
@@ -18,7 +18,6 @@ from fastapi.testclient import TestClient
 @pytest.fixture
 def client():
     """Create test client with auth_email router and clean in-memory state."""
-    from fastapi import FastAPI
     from routes.auth_email import router, _resend_timestamps
 
     app = FastAPI()
