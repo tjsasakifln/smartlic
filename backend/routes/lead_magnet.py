@@ -123,7 +123,7 @@ def _build_pdf_bytes(magnet_type: str) -> bytes:
     return buf.getvalue()
 
 
-@router.get("/{magnet_type}", responses={200: {"content": {"application/pdf": {}}}})
+@router.get("/{magnet_type}", response_model=None, responses={200: {"content": {"application/pdf": {}}}})
 async def get_lead_magnet(magnet_type: LeadMagnetType):
     """Return a placeholder PDF for the requested lead magnet type.
 
