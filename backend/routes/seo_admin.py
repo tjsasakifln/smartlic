@@ -1,5 +1,6 @@
 """S14 + STORY-SEO-005: SEO metrics API for admin dashboard."""
 
+import asyncio
 import logging
 from typing import Optional
 
@@ -208,7 +209,8 @@ async def get_gsc_summary(
                 .select("page,impressions,clicks,ctr,position")
                 .gte("date", cutoff)
             )
-            p_rows = paginate_full(
+            p_rows = await asyncio.to_thread(
+                paginate_full,
                 p_builder,
                 batch_size=1000,
                 max_total=10_000,
