@@ -85,7 +85,7 @@ export default function ExitIntentPopup() {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             email,
-            source: 'exit_intent',
+            source: 'exit-intent',
           }),
         });
         if (res.ok) {
