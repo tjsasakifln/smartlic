@@ -297,12 +297,37 @@ export default async function LicitacoesSectorUfPage({
               </span>
             )}
 
-            <p className="text-base sm:text-lg text-ink-secondary max-w-2xl leading-relaxed">
-              {stats?.total_editais ?? 0} editais publicados nos últimos 30 dias.
-              {stats?.value_range_min && stats?.value_range_max
-                ? ` Faixa de valores: ${formatBRLCompact(stats.value_range_min)} a ${formatBRLCompact(stats.value_range_max)}.`
-                : ''}
-            </p>
+            {stats?.total_editais === 0 && contractsFallback && contractsFallback.total_contracts > 0 ? (
+              <>
+                <p className="text-base sm:text-lg text-ink-secondary max-w-2xl leading-relaxed">
+                  Nenhum edital de {sector.name} aberto agora no {ufName} — mas não significa que não há oportunidade
+                </p>
+                <p className="text-sm text-ink-secondary mt-2 max-w-2xl leading-relaxed">
+                  Nos últimos 12 meses: {contractsFallback.total_contracts.toLocaleString('pt-BR')} contratos, R$ {formatBRLCompact(contractsFallback.total_value)} movimentados, valor médio de R$ {formatBRLCompact(contractsFallback.avg_value)}. Quem estava preparado levou.
+                </p>
+                <div className="mt-4 flex flex-wrap gap-3">
+                  <Link
+                    href={`/alertas?setor=${encodeURIComponent(sector.name)}&uf=${ufUpper}&source=blog-zero-edital`}
+                    className="inline-flex items-center px-4 py-2 rounded-lg bg-brand-blue text-white text-sm font-semibold hover:bg-blue-700 transition-colors"
+                  >
+                    Criar alerta para {sector.name} no {ufName}
+                  </Link>
+                  <Link
+                    href={`/contratos?setor=${encodeURIComponent(sector.name)}&uf=${ufUpper}`}
+                    className="inline-flex items-center px-4 py-2 rounded-lg border border-[var(--border)] text-ink-secondary text-sm font-medium hover:bg-surface-1 transition-colors"
+                  >
+                    Ver contratos ativos de {sector.name} no {ufName}
+                  </Link>
+                </div>
+              </>
+            ) : (
+              <p className="text-base sm:text-lg text-ink-secondary max-w-2xl leading-relaxed">
+                {stats?.total_editais ?? 0} editais publicados nos últimos 30 dias.
+                {stats?.value_range_min && stats?.value_range_max
+                  ? ` Faixa de valores: ${formatBRLCompact(stats.value_range_min)} a ${formatBRLCompact(stats.value_range_max)}.`
+                  : ''}
+              </p>
+            )}
 
             {/* AC4: Badge "Dados atualizados em {data}" + granular freshness label */}
             {stats && (
@@ -433,6 +458,9 @@ export default async function LicitacoesSectorUfPage({
             ufCode={ufUpper}
             count={stats?.total_editais}
             slug={`${setor}-${uf}`}
+            contractsCount={contractsFallback?.total_contracts}
+            contractsTotalValue={contractsFallback?.total_value}
+            contractsAvgValue={contractsFallback?.avg_value}
           />
 
           {/* SEO-Sprint2 P5.1: Maiores compradores — conteúdo único por setor×UF */}
@@ -514,6 +542,19 @@ export default async function LicitacoesSectorUfPage({
           {/* AC3: Panorama histórico de contratos — permanente quando total_contracts > 0.
               AC4: ContractsPanoramaBlock retorna null automaticamente quando data === null
               ou total_contracts === 0, portanto nenhuma seção vazia é renderizada. */}
+
+          {/* Zero-editais: heading contextual para seção de contratos */}
+          {stats?.total_editais === 0 && contractsFallback && contractsFallback.total_contracts > 0 && (
+            <div className="mb-6">
+              <h2 className="text-xl font-semibold text-ink mb-2">
+                Quem já está contratando {sector.name} no {ufName} — e pode contratar de novo
+              </h2>
+              <p className="text-sm text-ink-secondary leading-relaxed">
+                Contratos ativos e finalizados recentemente. Os mesmos órgãos que contrataram antes vão contratar de novo. Esteja preparado.
+              </p>
+            </div>
+          )}
+
           <ContractsPanoramaBlock
             variant="setor-uf"
             data={contractsFallback}
@@ -637,6 +678,9 @@ export default async function LicitacoesSectorUfPage({
             ufCode={ufUpper}
             count={stats?.total_editais}
             slug={`${setor}-${uf}`}
+            contractsCount={contractsFallback?.total_contracts}
+            contractsTotalValue={contractsFallback?.total_value}
+            contractsAvgValue={contractsFallback?.avg_value}
           />
 
           {/* AC7: Internal linking */}

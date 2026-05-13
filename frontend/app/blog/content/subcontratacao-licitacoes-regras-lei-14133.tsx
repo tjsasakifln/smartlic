@@ -223,7 +223,7 @@ export default function SubcontratacaoLicitacoesRegrasLei14133() {
       </p>
 
       {/* Inline CTA at ~40% */}
-      <BlogInlineCTA slug="subcontratacao-licitacoes-regras-lei-14133" campaign="contratos" />
+      <BlogInlineCTA slug="subcontratacao-licitacoes-regras-lei-14133" campaign="subcontratacao" ctaMessage="Mapeie contratos grandes que aceitam subcontratação" ctaText="Ver vencedores de contratos" />
 
       {/* Section 4 */}
       <h2>Limites: percentual máximo e vedação à subcontratação total</h2>
@@ -274,6 +274,22 @@ export default function SubcontratacaoLicitacoesRegrasLei14133() {
         compreendendo a subcontratação total como desvio de finalidade que
         frauda a licitação (Acórdão 1.187/2013-TCU-Plenário).
       </p>
+
+      {/* CTA Intermediário */}
+      <div className="not-prose my-8 sm:my-10 bg-surface-1 border border-[var(--border)] rounded-xl p-6 sm:p-8">
+        <p className="text-base sm:text-lg font-semibold text-ink mb-3">
+          Voc&ecirc; sabe quais empresas j&aacute; venceram os grandes contratos do seu setor?
+        </p>
+        <p className="text-sm text-ink-secondary mb-4 leading-relaxed">
+          Antes de abordar um contratado para propor subcontrata&ccedil;&atilde;o, voc&ecirc; precisa saber: quem est&aacute; vencendo, quanto cobra, qual o escopo contratado e quando vence.
+        </p>
+        <Link
+          href="/contratos/fornecedores?source=blog-subcontratacao"
+          className="inline-block bg-brand-blue text-white font-semibold px-5 py-2.5 rounded-lg text-sm transition-all hover:bg-blue-700 hover:scale-[1.02] active:scale-[0.98]"
+        >
+          Ver vencedores de contratos no meu setor
+        </Link>
+      </div>
 
       {/* Section 5 */}
       <h2>Casos em que a subcontratação é vedada</h2>
@@ -652,6 +668,33 @@ export default function SubcontratacaoLicitacoesRegrasLei14133() {
         resultam em determinações de ressarcimento ao erário e aplicação de
         sanções às partes envolvidas.
       </p>
+
+      {/* CTA Final */}
+      <div className="not-prose my-8 sm:my-10 bg-gradient-to-br from-brand-navy to-brand-blue rounded-xl p-6 sm:p-8 text-white">
+        <p className="text-base sm:text-lg font-semibold mb-3">
+          Encontre contratos que podem precisar da sua empresa como subcontratada
+        </p>
+        <p className="text-sm text-white/80 mb-4 leading-relaxed">
+          Cruze seu serviço com contratos ativos de grandes fornecedores. Filtre por setor, valor, vigência e órgão. Aborde o contratado com dados, não com achismo.
+        </p>
+        <div className="flex flex-col sm:flex-row gap-3 mb-4">
+          <Link
+            href="/buscar?source=blog-subcontratacao&tab=contratos"
+            className="inline-flex items-center justify-center px-5 py-2.5 rounded-lg bg-white text-brand-navy font-semibold text-sm transition-all hover:scale-[1.02] active:scale-[0.98]"
+          >
+            Mapear oportunidades de subcontratação
+          </Link>
+          <Link
+            href="/buscar?subcontratacao=sim"
+            className="inline-flex items-center justify-center px-5 py-2.5 rounded-lg bg-white/20 text-white font-medium text-sm transition-all hover:bg-white/30 hover:scale-[1.02] active:scale-[0.98]"
+          >
+            Ver editais onde subcontratação é permitida
+          </Link>
+        </div>
+        <p className="text-xs text-white/60">
+          PMEs que atuam como subcontratadas faturam em média 35% do valor do contrato principal — sem precisar disputar o pregão.
+        </p>
+      </div>
 
       {/* Section 13: FAQ */}
       <h2>Perguntas frequentes sobre subcontratação em licitações</h2>

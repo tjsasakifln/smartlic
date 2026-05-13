@@ -8,9 +8,10 @@ interface LeadCaptureProps {
   description?: string;
   setor?: string;         // A2: sector context from parent
   uf?: string;            // A2: UF context from parent
+  buttonText?: string;    // custom button label (default: "Receber Grátis")
 }
 
-export function LeadCapture({ source, heading, description, setor, uf }: LeadCaptureProps) {
+export function LeadCapture({ source, heading, description, setor, uf, buttonText }: LeadCaptureProps) {
   const [email, setEmail] = useState('');
   const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
 
@@ -67,7 +68,7 @@ export function LeadCapture({ source, heading, description, setor, uf }: LeadCap
           disabled={status === 'loading'}
           className="px-6 py-3 bg-brand-blue text-white font-semibold rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 whitespace-nowrap"
         >
-          {status === 'loading' ? 'Enviando...' : 'Receber Grátis'}
+          {status === 'loading' ? 'Enviando...' : buttonText || 'Receber Grátis'}
         </button>
       </form>
       {status === 'error' && (
