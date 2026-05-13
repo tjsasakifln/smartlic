@@ -14,7 +14,7 @@ import logging
 from datetime import datetime, timedelta, timezone
 from typing import Any
 
-from supabase_client import get_supabase
+from supabase_client import get_supabase, sb_execute
 from ingestion.config import INGESTION_UPSERT_BATCH_SIZE
 
 
@@ -100,10 +100,10 @@ async def bulk_upsert(
         try:
             payload = _serialize_batch(batch)
 
-            result = (
+            result = await sb_execute(
                 supabase
-                .rpc("upsert_pncp_raw_bids", {"p_records": payload})
-                .execute()
+                .rpc("upsert_pncp_raw_bids", {"p_records": payload}),
+                category="rpc",
             )
 
             counts = _extract_counts(result, batch_num)
@@ -160,10 +160,10 @@ async def purge_old_bids(retention_days: int = 400) -> int:
     """
     supabase = get_supabase()
     try:
-        result = (
+        result = await sb_execute(
             supabase
-            .rpc("purge_old_bids", {"p_retention_days": retention_days})
-            .execute()
+            .rpc("purge_old_bids", {"p_retention_days": retention_days}),
+            category="rpc",
         )
         deleted = _extract_scalar(result, default=0)
         logger.info("purge_old_bids: deleted %d rows (retention=%d days)", deleted, retention_days)
