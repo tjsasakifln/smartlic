@@ -198,14 +198,14 @@ describe('OnboardingPage', () => {
       expect(continueBtn).toBeDisabled();
     });
 
-    it('Continuar button is disabled when objective is empty but CNAE is filled', () => {
+    it('Continuar button is enabled when CNAE is filled (objective is optional)', () => {
       render(<OnboardingPage />);
 
       const cnaeInput = screen.getByPlaceholderText(/ex: comércio de uniformes/i);
       fireEvent.change(cnaeInput, { target: { value: 'Uniformes escolares' } });
 
       const continueBtn = screen.getByTestId('btn-continuar');
-      expect(continueBtn).toBeDisabled();
+      expect(continueBtn).not.toBeDisabled();
     });
 
     it('Continuar button is enabled when both CNAE and objective are filled', () => {
