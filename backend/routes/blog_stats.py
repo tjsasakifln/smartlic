@@ -25,7 +25,6 @@ from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
 from sectors import SECTORS, SectorConfig
-from utils.postgrest_paginate import paginate_full
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/blog/stats", tags=["blog-stats"])
@@ -907,20 +906,18 @@ def _safe_float_blog(val) -> float:
         return 0.0
 
 
-def _query_contratos_sync(
+async def _query_contratos_data(
     *,
     uf: Optional[str] = None,
     municipio_pattern: Optional[str] = None,
 ) -> list[dict]:
-    """Sync Supabase query against pncp_supplier_contracts.
+    """Async Supabase query against pncp_supplier_contracts with sb_execute.
 
-    Must run inside ``asyncio.to_thread(...)`` — the supabase-py client uses
-    blocking httpx and will wedge the event loop otherwise. The 2026-04-27
-    Stage 3 outage was caused by this function being called directly from
-    an async handler with no thread-offload; a single 30s ``ilike`` on
-    municipio froze ``/health/live`` for every Railway proxy probe.
+    Uses sb_execute for HTTP/2 retry (SEN-BE-004) and circuit breaker
+    (STORY-291/416) instead of the old synchronous paginate_full.
     """
-    from supabase_client import get_supabase
+    from supabase_client import get_supabase, sb_execute
+
     sb = get_supabase()
 
     query = (
@@ -943,14 +940,23 @@ def _query_contratos_sync(
     # silently truncating to 1000 rows, which broke /blog/stats/* pillar
     # pages for high-volume sectors / large UFs (top_orgaos, top_fornecedores
     # and monthly_trend were computed off a 1000-row sample — wrong totals).
+    # SEN-BE-004: async pagination with sb_execute (HTTP/2 retry).
     builder = query.order("data_assinatura", desc=True)
-    return paginate_full(
-        builder,
-        batch_size=1000,
-        max_total=10_000,
-        route="blog_stats.contratos",
-        entity_type="pncp_supplier_contracts",
-    )
+    rows: list[dict] = []
+    batch_size = 1000
+    max_total = 10_000
+    offset = 0
+    while len(rows) < max_total:
+        end = offset + batch_size - 1
+        resp = await sb_execute(builder.range(offset, end))
+        batch = resp.data or []
+        if not batch:
+            break
+        rows.extend(batch)
+        if len(batch) < batch_size:
+            break
+        offset += batch_size
+    return rows[:max_total]
 
 
 def _empty_contratos_stats() -> dict:
@@ -999,8 +1005,7 @@ async def _compute_contratos_stats(
 
     try:
         rows = await _run_with_budget(
-            asyncio.to_thread(
-                _query_contratos_sync,
+            _query_contratos_data(
                 uf=uf,
                 municipio_pattern=municipio_pattern,
             ),

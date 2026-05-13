@@ -25,8 +25,6 @@ from fastapi import APIRouter, HTTPException, Response
 from pipeline.budget import _run_with_budget
 from routes._sitemap_cache_headers import SITEMAP_CACHE_HEADERS
 from pydantic import BaseModel
-from utils.postgrest_paginate import paginate_full
-
 from metrics import record_sitemap_count
 
 logger = logging.getLogger(__name__)
@@ -428,15 +426,16 @@ async def _fetch_price_data(nome_item: str) -> tuple[list[float], list[dict]]:
     """Busca contratos do PNCP que contenham o nome do item no objeto.
 
     Retorna (lista_de_valores, top_10_contratos_referencia).
-    Encapsula o .execute() síncrono em asyncio.to_thread para não bloquear
-    o event loop (vide Stage 8 outage 2026-04-30).
+    Usa sb_execute async com paginação via .range() (DATA-CAP-001) e
+    retry HTTP/2 (SEN-BE-004).
     """
     palavras = [p for p in nome_item.lower().split() if len(p) >= 4][:2]
     if not palavras:
         return [], []
 
-    def _sync_fetch() -> list[dict]:
-        from supabase_client import get_supabase
+    async def _async_fetch() -> list[dict]:
+        from supabase_client import get_supabase, sb_execute
+
         sb = get_supabase()
         # DATA-CAP-001: previously a bare ``.limit(1000).execute()`` which
         # is exactly the silent-cap boundary — for very common keywords
@@ -451,17 +450,26 @@ async def _fetch_price_data(nome_item: str) -> tuple[list[float], list[dict]]:
             .eq("is_active", True)
             .order("data_assinatura", desc=True)
         )
-        return paginate_full(
-            builder,
-            batch_size=1000,
-            max_total=5000,
-            route="itens_publicos.fetch_price_data",
-            entity_type="pncp_supplier_contracts",
-        )
+        # SEN-BE-004: async pagination with sb_execute (HTTP/2 retry).
+        rows: list[dict] = []
+        batch_size = 1000
+        max_total = 5000
+        offset = 0
+        while len(rows) < max_total:
+            end = offset + batch_size - 1
+            resp = await sb_execute(builder.range(offset, end))
+            batch = resp.data or []
+            if not batch:
+                break
+            rows.extend(batch)
+            if len(batch) < batch_size:
+                break
+            offset += batch_size
+        return rows[:max_total]
 
     try:
         rows = await _run_with_budget(
-            asyncio.to_thread(_sync_fetch),
+            _async_fetch(),
             budget=_PRICE_QUERY_BUDGET_S,
             phase="route",
             source="itens_publicos.fetch_price_data",
