@@ -1233,7 +1233,7 @@ def build_rules() -> list[tuple[re.Pattern[str], str]]:
 # A slug is lowercase alphanumeric + hyphens/underscores/dots/digits.
 # ---------------------------------------------------------------------------
 
-SLUG_RE = re.compile(r"^[a-z0-9][a-z0-9._/-]*$")
+SLUG_RE = re.compile(r"^/?[a-z0-9][a-z0-9._/-]*$")
 # Also skip strings that look like CSS class names, URL paths, or identifiers
 IDENT_RE = re.compile(r"^[A-Za-z_$][A-Za-z0-9_$-]*$")
 
