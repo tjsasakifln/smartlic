@@ -69,7 +69,7 @@ def _get_supabase():
     return get_supabase()
 
 
-def _update_profile_with_stripe(
+async def _update_profile_with_stripe(
     sb,
     user_id: str,
     *,
@@ -85,6 +85,8 @@ def _update_profile_with_stripe(
     patch the Stripe columns. We swallow DB errors so billing recon can
     pick up the divergence later (STORY-314) instead of 500-ing the user.
     """
+    from supabase_client import sb_execute
+
     updates: dict = {}
     if customer_id is not None:
         updates["stripe_customer_id"] = customer_id
@@ -101,7 +103,7 @@ def _update_profile_with_stripe(
         return
 
     try:
-        sb.table("profiles").update(updates).eq("id", user_id).execute()
+        await sb_execute(sb.table("profiles").update(updates).eq("id", user_id))
     except Exception:  # noqa: BLE001 — intentional broad catch
         logger.exception(
             "profiles update failed post-signup (user_id=%s***) — billing recon will retry",
@@ -204,7 +206,7 @@ async def signup(
 
     # 2. No card → legacy trial path. Compute local trial_end and return.
     if not body.stripe_payment_method_id:
-        _update_profile_with_stripe(
+        await _update_profile_with_stripe(
             sb,
             user_id,
             customer_id=None,
@@ -257,7 +259,7 @@ async def signup(
             user_id[:8],
             exc.step,
         )
-        _update_profile_with_stripe(
+        await _update_profile_with_stripe(
             sb,
             user_id,
             customer_id=exc.customer_id,  # may be set if failure happened post-customer
@@ -276,7 +278,7 @@ async def signup(
             requires_email_confirmation=True,
         )
 
-    _update_profile_with_stripe(
+    await _update_profile_with_stripe(
         sb,
         user_id,
         customer_id=stripe_result["customer_id"],

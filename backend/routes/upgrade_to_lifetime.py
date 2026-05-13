@@ -18,6 +18,7 @@ import stripe as stripe_lib
 
 from auth import require_auth, require_mfa_high_impact
 from log_sanitizer import mask_user_id, log_user_action
+from supabase_client import sb_execute
 
 logger = logging.getLogger(__name__)
 
@@ -94,14 +95,14 @@ class UpgradeToLifetimeResponse(BaseModel):
 # ---------------------------------------------------------------------------
 
 
-def _check_founding_seats(sb) -> dict:
+async def _check_founding_seats(sb) -> dict:
     """Wrap ``check_founding_availability()`` RPC for the upgrade flow.
 
     Fails closed: any error returns ``available=False`` so we never sell a
     seat that may already be gone (cap is 50 — race-guarded server-side).
     """
     try:
-        res = sb.rpc("check_founding_availability").execute()
+        res = await sb_execute(sb.rpc("check_founding_availability"))
         rows = getattr(res, "data", None) or []
         if not rows:
             return {"available": False, "reason": "unavailable", "seats_total": 0, "seats_remaining": 0}
@@ -118,17 +119,16 @@ def _check_founding_seats(sb) -> dict:
         return {"available": False, "reason": "unavailable", "seats_total": 0, "seats_remaining": 0}
 
 
-def _fetch_active_subscription(sb, user_id: str) -> dict | None:
+async def _fetch_active_subscription(sb, user_id: str) -> dict | None:
     """Return the user's active row from ``user_subscriptions`` or None."""
     try:
-        res = (
+        res = await sb_execute(
             sb.table("user_subscriptions")
             .select("id, stripe_subscription_id, expires_at, plan_id")
             .eq("user_id", user_id)
             .eq("is_active", True)
             .order("created_at", desc=True)
             .limit(1)
-            .execute()
         )
         rows = getattr(res, "data", None) or []
         return rows[0] if rows else None
@@ -137,14 +137,13 @@ def _fetch_active_subscription(sb, user_id: str) -> dict | None:
         return None
 
 
-def _fetch_profile_founder_flag(sb, user_id: str) -> bool:
+async def _fetch_profile_founder_flag(sb, user_id: str) -> bool:
     try:
-        res = (
+        res = await sb_execute(
             sb.table("profiles")
             .select("is_founder")
             .eq("id", user_id)
             .limit(1)
-            .execute()
         )
         rows = getattr(res, "data", None) or []
         return bool(rows[0].get("is_founder")) if rows else False
@@ -202,8 +201,6 @@ async def upgrade_to_lifetime_preview(user: dict = Depends(require_auth)):
     from supabase_client import get_supabase
     from config.features import get_feature_flag
     from pipeline.budget import _run_with_budget
-    import asyncio
-
     user_id = user["id"]
     sb = get_supabase()
     lifetime_price = 99700
@@ -218,7 +215,7 @@ async def upgrade_to_lifetime_preview(user: dict = Depends(require_auth)):
 
     # Founder check (idempotency)
     is_founder = await _run_with_budget(
-        asyncio.to_thread(_fetch_profile_founder_flag, sb, user_id),
+        _fetch_profile_founder_flag(sb, user_id),
         budget=3.0,
         phase="route",
         source="subscriptions.upgrade_preview.profile",
@@ -234,7 +231,7 @@ async def upgrade_to_lifetime_preview(user: dict = Depends(require_auth)):
 
     # Cap check
     seats = await _run_with_budget(
-        asyncio.to_thread(_check_founding_seats, sb),
+        _check_founding_seats(sb),
         budget=3.0,
         phase="route",
         source="subscriptions.upgrade_preview.seats",
@@ -251,7 +248,7 @@ async def upgrade_to_lifetime_preview(user: dict = Depends(require_auth)):
 
     # Active subscription
     sub = await _run_with_budget(
-        asyncio.to_thread(_fetch_active_subscription, sb, user_id),
+        _fetch_active_subscription(sb, user_id),
         budget=3.0,
         phase="route",
         source="subscriptions.upgrade_preview.subscription",
@@ -320,7 +317,6 @@ async def upgrade_to_lifetime(
     from config.features import get_feature_flag
     from pipeline.budget import _run_with_budget
     from audit import audit_logger
-    import asyncio
 
     if not request.confirmed:
         raise HTTPException(status_code=400, detail="Confirmação obrigatória.")
@@ -347,7 +343,7 @@ async def upgrade_to_lifetime(
 
     # Step 1 — idempotency check (already founder?)
     is_founder = await _run_with_budget(
-        asyncio.to_thread(_fetch_profile_founder_flag, sb, user_id),
+        _fetch_profile_founder_flag(sb, user_id),
         budget=3.0,
         phase="route",
         source="subscriptions.upgrade.profile",
@@ -360,7 +356,7 @@ async def upgrade_to_lifetime(
 
     # Step 2 — cap re-check (race-guarded server-side)
     seats = await _run_with_budget(
-        asyncio.to_thread(_check_founding_seats, sb),
+        _check_founding_seats(sb),
         budget=3.0,
         phase="route",
         source="subscriptions.upgrade.seats",
@@ -378,7 +374,7 @@ async def upgrade_to_lifetime(
 
     # Step 3 — fetch active sub
     sub = await _run_with_budget(
-        asyncio.to_thread(_fetch_active_subscription, sb, user_id),
+        _fetch_active_subscription(sb, user_id),
         budget=5.0,
         phase="route",
         source="subscriptions.upgrade.fetch_sub",
