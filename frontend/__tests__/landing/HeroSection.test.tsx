@@ -31,19 +31,19 @@ jest.mock('next/link', () => {
 describe('HeroSection', () => {
   // ---- COPY-LANDING-004 (#1003): Beachhead anti-assessor + trust signals 2026 ----
 
-  it('renders SEO-aware hybrid headline: "O jeito mais rápido de encontrar editais certos" (COPY-COP-002)', () => {
+  it('renders growth-aware headline: "Máquina de receita previsível para empresas B2G" (COPY-COP-002)', () => {
     render(<HeroSection />);
     const headline = screen.getByTestId('hero-headline');
     expect(headline).toHaveTextContent(
-      /O jeito mais rápido de encontrar editais certos para sua empresa\./i
+      /Máquina de receita previsível para empresas B2G\./i
     );
   });
 
-  it('renders benefit-driven subheadline: filtragem inteligente, elimina ruído (COPY-COP-002)', () => {
+  it('renders benefit-driven subheadline: Veja editais que sua empresa perderia (COPY-COP-002)', () => {
     render(<HeroSection />);
     const sub = screen.getByTestId('hero-subheadline');
     expect(sub).toHaveTextContent(
-      /Filtragem inteligente em 27 estados\. Elimina o ruído\. Mostra onde você tem chance real\./i
+      /Veja editais que sua empresa perderia — e os que ela pode vencer\./i
     );
   });
 
