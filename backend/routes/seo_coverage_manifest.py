@@ -15,12 +15,13 @@ import asyncio
 import logging
 import time
 from datetime import datetime, timezone
-from typing import Literal, Optional
+from typing import Literal
 
 from fastapi import APIRouter, Response
 from pydantic import BaseModel
 
 from pipeline.budget import _run_with_budget
+from supabase_client import sb_execute
 
 logger = logging.getLogger(__name__)
 router = APIRouter(tags=["seo-coverage"])
@@ -75,7 +76,7 @@ async def get_coverage_manifest(response: Response):
 
     try:
         data = await _run_with_budget(
-            asyncio.to_thread(_fetch_manifest),
+            _fetch_manifest(),
             budget=_BUDGET_S,
             phase="route",
             source="seo_coverage_manifest.get_coverage_manifest",
@@ -117,8 +118,8 @@ def _empty_manifest_response() -> CoverageManifestResponse:
     )
 
 
-def _fetch_manifest() -> CoverageManifestResponse:
-    """Sync query — supabase-py is sync; caller wraps in asyncio.to_thread."""
+async def _fetch_manifest() -> CoverageManifestResponse:
+    """Async — uses sb_execute. Caller wraps in _run_with_budget."""
     try:
         from supabase_client import get_supabase
 
@@ -129,11 +130,10 @@ def _fetch_manifest() -> CoverageManifestResponse:
         all_rows: list[dict] = []
 
         while True:
-            resp = (
+            resp = await sb_execute(
                 sb.table("seo_coverage_manifest")
                 .select("entity_type,slug,coverage_status,bid_count,last_updated")
                 .range(offset, offset + page_size - 1)
-                .execute()
             )
             if not resp.data:
                 break

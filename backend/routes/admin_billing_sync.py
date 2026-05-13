@@ -29,7 +29,7 @@ from pydantic import BaseModel, ConfigDict, Field
 
 from admin import require_admin
 from pipeline.budget import _run_with_budget
-from supabase_client import get_supabase
+from supabase_client import get_supabase, sb_execute
 
 logger = logging.getLogger(__name__)
 
@@ -146,7 +146,7 @@ def _classify_drift_status(row: dict) -> str:
     return "drift_stale"
 
 
-def _audit_log(
+async def _audit_log(
     sb,
     *,
     plan_billing_period_id: Optional[str],
@@ -161,7 +161,7 @@ def _audit_log(
     payload: Optional[dict] = None,
 ) -> Optional[str]:
     try:
-        result = (
+        result = await sb_execute(
             sb.table("admin_billing_audit_log")
             .insert(
                 {
@@ -176,8 +176,8 @@ def _audit_log(
                     "note": note,
                     "payload": payload,
                 }
-            )
-            .execute()
+            ),
+            category="write",
         )
         rows = result.data or []
         return rows[0]["id"] if rows else None
@@ -207,8 +207,8 @@ async def list_billing_sync_rows(
     """Return every plan_billing_periods row enriched with drift_status."""
     sb = get_supabase()
 
-    def _sync_query():
-        return (
+    async def _sync_query():
+        return await sb_execute(
             sb.table("plan_billing_periods")
             .select(
                 "id, plan_id, billing_period, price_cents, discount_percent, "
@@ -217,12 +217,11 @@ async def list_billing_sync_rows(
             )
             .order("plan_id")
             .order("billing_period")
-            .execute()
         )
 
     try:
         result = await _run_with_budget(
-            asyncio.to_thread(_sync_query),
+            _sync_query(),
             budget=_QUERY_BUDGET_S,
             phase="route",
             source="admin_billing_sync.list_billing_sync_rows",
@@ -254,8 +253,8 @@ async def list_reconciliation_runs(
 ) -> ReconciliationRunsResponse:
     sb = get_supabase()
 
-    def _sync_query():
-        return (
+    async def _sync_query():
+        return await sb_execute(
             sb.table("billing_reconciliation_runs")
             .select(
                 "id, started_at, finished_at, status, dry_run, rows_checked, "
@@ -263,12 +262,11 @@ async def list_reconciliation_runs(
             )
             .order("started_at", desc=True)
             .limit(limit)
-            .execute()
         )
 
     try:
         result = await _run_with_budget(
-            asyncio.to_thread(_sync_query),
+            _sync_query(),
             budget=_QUERY_BUDGET_S,
             phase="route",
             source="admin_billing_sync.list_reconciliation_runs",
@@ -313,8 +311,8 @@ async def sync_to_stripe(
     actor_email = admin.get("email")
 
     # Load row.
-    def _sync_load_row():
-        return (
+    async def _sync_load_row():
+        return await sb_execute(
             sb.table("plan_billing_periods")
             .select(
                 "id, plan_id, billing_period, price_cents, "
@@ -323,12 +321,11 @@ async def sync_to_stripe(
             )
             .eq("id", plan_billing_period_id)
             .limit(1)
-            .execute()
         )
 
     try:
         row_result = await _run_with_budget(
-            asyncio.to_thread(_sync_load_row),
+            _sync_load_row(),
             budget=_QUERY_BUDGET_S,
             phase="route",
             source="admin_billing_sync.sync_to_stripe.load_row",
@@ -353,7 +350,7 @@ async def sync_to_stripe(
     # AC9: race guard.
     last_forward = _parse_pg_timestamp(row.get("last_forward_synced_at"))
     if last_forward is not None and (datetime.now(timezone.utc) - last_forward) < REVERSE_SYNC_RACE_GUARD:
-        audit_id = _audit_log(
+        audit_id = await _audit_log(
             sb,
             plan_billing_period_id=plan_billing_period_id,
             plan_id=row.get("plan_id"),
@@ -390,7 +387,7 @@ async def sync_to_stripe(
             logger.error("BILL-SYNC-001: failed to resolve product for reverse sync: %s", e)
 
     if not product_id:
-        _audit_log(
+        await _audit_log(
             sb,
             plan_billing_period_id=plan_billing_period_id,
             plan_id=row.get("plan_id"),
@@ -424,7 +421,7 @@ async def sync_to_stripe(
         )
     except Exception as e:
         logger.error("BILL-SYNC-001: Stripe Price.create failed: %s", e, exc_info=True)
-        _audit_log(
+        await _audit_log(
             sb,
             plan_billing_period_id=plan_billing_period_id,
             plan_id=row.get("plan_id"),
@@ -449,7 +446,7 @@ async def sync_to_stripe(
             import stripe as stripe_module
 
             stripe_module.Price.modify(old_price_id, active=False)
-            _audit_log(
+            await _audit_log(
                 sb,
                 plan_billing_period_id=plan_billing_period_id,
                 plan_id=row.get("plan_id"),
@@ -471,8 +468,8 @@ async def sync_to_stripe(
     # Update DB pointer + last_reverse_synced_at.
     now_iso = datetime.now(timezone.utc).isoformat()
 
-    def _sync_update_pointer():
-        return (
+    async def _sync_update_pointer():
+        return await sb_execute(
             sb.table("plan_billing_periods")
             .update(
                 {
@@ -482,13 +479,13 @@ async def sync_to_stripe(
                     "is_archived": False,
                 }
             )
-            .eq("id", plan_billing_period_id)
-            .execute()
+            .eq("id", plan_billing_period_id),
+            category="write",
         )
 
     try:
         await _run_with_budget(
-            asyncio.to_thread(_sync_update_pointer),
+            _sync_update_pointer(),
             budget=_QUERY_BUDGET_S,
             phase="route",
             source="admin_billing_sync.sync_to_stripe.update_pointer",
@@ -511,7 +508,7 @@ async def sync_to_stripe(
             detail="DB update failed after Stripe price create; manual reconciliation required",
         )
 
-    audit_id = _audit_log(
+    audit_id = await _audit_log(
         sb,
         plan_billing_period_id=plan_billing_period_id,
         plan_id=row.get("plan_id"),
