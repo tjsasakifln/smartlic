@@ -99,21 +99,20 @@ async def _fetch_stale_fornecedores() -> list[str]:
     cutoff = datetime.now(timezone.utc) - timedelta(days=_ENRICH_STALENESS_DAYS)
     cutoff_iso = cutoff.isoformat()
 
-    from supabase_client import get_supabase
+    from supabase_client import get_supabase, sb_execute
     sb = get_supabase()
 
     # Passo 1: CNPJs distintos no datalake de contratos (is_active=true)
     cnpj_set: set[str] = set()
     offset = 0
     while len(cnpj_set) < _MAX_CNPJS_PER_RUN:
-        resp = (
+        resp = await sb_execute(
             sb.table("pncp_supplier_contracts")
             .select("ni_fornecedor")
             .eq("is_active", True)
             .not_.is_("ni_fornecedor", "null")
             .neq("ni_fornecedor", "")
             .range(offset, offset + _BATCH_SIZE - 1)
-            .execute()
         )
         rows = resp.data or []
         if not rows:
@@ -134,13 +133,12 @@ async def _fetch_stale_fornecedores() -> list[str]:
     cnpj_list = list(cnpj_set)
     for i in range(0, len(cnpj_list), _BATCH_SIZE):
         chunk = cnpj_list[i:i + _BATCH_SIZE]
-        resp = (
+        resp = await sb_execute(
             sb.table("enriched_entities")
             .select("entity_id, enriched_at")
             .eq("entity_type", "fornecedor")
             .in_("entity_id", chunk)
             .gte("enriched_at", cutoff_iso)
-            .execute()
         )
         for row in (resp.data or []):
             fresh_cnpjs.add(row["entity_id"])
@@ -208,17 +206,20 @@ async def _upsert_batch(records: list[dict]) -> None:
 
     Usa upsert com on_conflict=(entity_type, entity_id) para idempotencia.
     """
-    from supabase_client import get_supabase
+    from supabase_client import get_supabase, sb_execute
     sb = get_supabase()
 
     # Chunk para evitar payloads muito grandes (Supabase limite ~1MB por request)
     chunk_size = 200
     for i in range(0, len(records), chunk_size):
         chunk = records[i:i + chunk_size]
-        sb.table("enriched_entities").upsert(
-            chunk,
-            on_conflict="entity_type,entity_id",
-        ).execute()
+        await sb_execute(
+            sb.table("enriched_entities").upsert(
+                chunk,
+                on_conflict="entity_type,entity_id",
+            ),
+            category="write",
+        )
         logger.debug("[Enricher] Upsert de %d registros concluido", len(chunk))
 
 
@@ -318,19 +319,18 @@ async def enrich_municipios_job() -> dict[str, Any]:
     cutoff_iso = cutoff.isoformat()
 
     # Quais ja foram enriquecidos recentemente?
-    from supabase_client import get_supabase
+    from supabase_client import get_supabase, sb_execute
     sb = get_supabase()
 
     ibge_codes = [s[0] for s in _IBGE_SEED]
     fresh: set[str] = set()
     try:
-        resp = (
+        resp = await sb_execute(
             sb.table("enriched_entities")
             .select("entity_id, enriched_at")
             .eq("entity_type", "municipio")
             .in_("entity_id", ibge_codes)
             .gte("enriched_at", cutoff_iso)
-            .execute()
         )
         for row in (resp.data or []):
             fresh.add(row["entity_id"])

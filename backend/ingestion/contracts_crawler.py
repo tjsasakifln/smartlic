@@ -30,7 +30,7 @@ from typing import Any
 
 import httpx
 
-from supabase_client import get_supabase
+from supabase_client import get_supabase, sb_execute
 from ingestion.config import INGESTION_UPSERT_BATCH_SIZE
 from redis_pool import get_redis_pool
 
@@ -298,7 +298,10 @@ async def _upsert_batch(rows: list[dict]) -> dict:
         try:
             # json round-trip coerces non-serialisable types; returns list[dict]
             payload = json.loads(json.dumps(chunk, default=str, ensure_ascii=False))
-            result = sb.rpc("upsert_pncp_supplier_contracts", {"p_records": payload}).execute()
+            result = await sb_execute(
+                sb.rpc("upsert_pncp_supplier_contracts", {"p_records": payload}),
+                category="rpc",
+            )
             if result.data:
                 counts = result.data[0] if isinstance(result.data, list) else result.data
                 totals["inserted"] += counts.get("inserted", 0)
@@ -545,7 +548,9 @@ async def run_full_crawl() -> dict[str, Any]:
     # Pre-flight: verify table exists (migration applied) before making thousands of API calls
     try:
         sb = get_supabase()
-        sb.table("pncp_supplier_contracts").select("id", count="exact").limit(0).execute()
+        await sb_execute(
+            sb.table("pncp_supplier_contracts").select("id", count="exact").limit(0)
+        )
     except Exception as exc:
         logger.error("[ContractsCrawler] Table pncp_supplier_contracts not found — run migration: %s", exc)
         return {"status": "failed", "reason": "table_not_found", "error": str(exc)}
@@ -669,7 +674,9 @@ async def run_incremental_crawl() -> dict[str, Any]:
 
     try:
         sb = get_supabase()
-        sb.table("pncp_supplier_contracts").select("id", count="exact").limit(0).execute()
+        await sb_execute(
+            sb.table("pncp_supplier_contracts").select("id", count="exact").limit(0)
+        )
     except Exception as exc:
         logger.error("[ContractsCrawler] Table pncp_supplier_contracts not found — run migration: %s", exc)
         return {"status": "failed", "reason": "table_not_found", "error": str(exc)}
