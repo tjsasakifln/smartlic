@@ -119,7 +119,7 @@ async def sitemap_cnpjs(response: Response):
     _fresh_fetch = True
     try:
         data = await _run_with_budget(
-            asyncio.to_thread(_fetch_top_cnpjs),
+            _fetch_top_cnpjs(),
             budget=_BUDGET_S,
             phase="route",
             source="sitemap_cnpjs.sitemap_cnpjs",
@@ -207,16 +207,16 @@ def _merge_with_seed(buyer_cnpjs: list[str]) -> list[str]:
     return result[:_MAX_CNPJS]
 
 
-def _fetch_top_cnpjs() -> dict:
+async def _fetch_top_cnpjs() -> dict:
     """Query mv_sitemap_cnpjs for distinct orgao_cnpj com ≥1 licitação ativa.
 
     SEO-SITEMAP-MV-001: MV pré-agregada substitui RPC + fallback paginado.
     Query < 50ms contra < 1ms no MV indexado.
 
-    Sync — supabase-py is sync, so caller wraps this in asyncio.to_thread.
+    Async com sb_execute() para retry HTTP/2 (SEN-BE-004).
     """
     try:
-        from supabase_client import get_supabase
+        from supabase_client import get_supabase, sb_execute
 
         sb = get_supabase()
 
@@ -224,12 +224,11 @@ def _fetch_top_cnpjs() -> dict:
         page_size = 1000
         offset = 0
         while True:
-            resp = (
+            resp = await sb_execute(
                 sb.table("mv_sitemap_cnpjs")
                 .select("cnpj")
                 .order("cnpj")
                 .range(offset, offset + page_size - 1)
-                .execute()
             )
             if not resp.data:
                 break
