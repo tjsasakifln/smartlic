@@ -268,7 +268,7 @@ jobs:
 
     steps:
       - name: Compose and post comment
-        uses: actions/github-script@v7
+        uses: actions/github-script@v9
         with:
           script: |
             const fmtBytes = (n) => {
