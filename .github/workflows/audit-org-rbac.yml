@@ -71,7 +71,7 @@ jobs:
 
       - name: Comment on PR (sticky)
         if: github.event_name == 'pull_request' && always()
-        uses: marocchino/sticky-pull-request-comment@v2
+        uses: marocchino/sticky-pull-request-comment@v3
         with:
           header: rbac-org-audit
           path: /tmp/audit-org-rbac.md
