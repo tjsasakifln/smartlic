@@ -8,7 +8,7 @@ jobs:
   check-backend-url-fallback:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - name: Check BACKEND_URL has fallback
         run: |
           # Find route handlers that assign BACKEND_URL without a fallback chain
