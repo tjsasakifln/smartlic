@@ -11,7 +11,7 @@ fastapi==0.136.1
 # CRIT-SIGSEGV-v2: uvicorn WITHOUT [standard] extras. uvloop causes intermittent
 # SIGSEGV in production (chardet/hiredis/cryptography C extension interaction).
 # Performance diff is negligible for single-worker uvicorn standalone mode.
-uvicorn==0.46.0
+uvicorn==0.47.0
 gunicorn==23.0.0
 pydantic[email]==2.13.4
 pydantic-settings==2.14.1
@@ -26,7 +26,7 @@ openpyxl==3.1.5
 
 # PDF report generation (STORY-325: Diagnostico de Oportunidades)
 # Pure Python — no C extensions, Railway-safe
-reportlab==4.5.0
+reportlab==4.5.1
 
 # JSON Schema validation (STORY-3.4 contract tests + STORY-4.5 PNCP canary shape drift)
 jsonschema==4.26.0
@@ -47,7 +47,7 @@ redis==5.3.1  # Feature flag caching (STORY-171)
 # ACTIVE: Used in oauth.py, google_sheets.py, routes/export_sheets.py
 # Provides: Google OAuth login + export search results to Google Sheets
 google-api-python-client==2.196.0  # Google Sheets API client
-google-auth==2.52.0                # OAuth 2.0 authentication
+google-auth==2.53.0                # OAuth 2.0 authentication
 google-auth-oauthlib==1.4.0        # OAuth flow helpers
 google-auth-httplib2==0.4.0        # HTTP transport for Google APIs
 # cryptography pinned <47.0 due to SIGSEGV with C extensions in some environments.
@@ -73,7 +73,7 @@ python-json-logger>=4.1.0,<5.0.0
 # Error tracking (STORY-211)
 # STORY-413: Pinned exactly to block transitive upgrades — open pin was the transport
 # for the 2026-04-10 crash loop (StarletteIntegration double-wrap regression).
-sentry-sdk[fastapi]==2.59.0
+sentry-sdk[fastapi]==2.60.0
 
 # Prometheus metrics exporter (GTM-RESILIENCE-E03)
 prometheus_client>=0.25.0
