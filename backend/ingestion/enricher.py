@@ -458,3 +458,180 @@ async def _enrich_one_municipio(ibge_code: str, slug: str, sem: asyncio.Semaphor
         "data": data,
         "enriched_at": datetime.now(timezone.utc).isoformat(),
     }
+
+
+# ---------------------------------------------------------------------------
+# IBGE code enricher for pncp_raw_bids.codigo_municipio_ibge
+# ---------------------------------------------------------------------------
+# The PNCP API does NOT return codigoMunicipioIbge in its response payload,
+# so pncp_raw_bids.codigo_municipio_ibge is empty for 100% of rows.
+# This enricher resolves (municipio_name, uf) → IBGE code via the IBGE
+# localidades API and backfills the column so municipio-profile queries
+# (.eq("codigo_municipio_ibge", ...)) can work without the name fallback.
+
+_IBGE_MUNICIPIOS_CACHE: dict[tuple[str, str], str] = {}
+_IBGE_MUNICIPIOS_CACHE_TS: float = 0.0
+_IBGE_MUNICIPIOS_CACHE_TTL = 7 * 24 * 3600  # 7 days — municipios change rarely
+
+
+async def _fetch_ibge_municipio_lookup() -> dict[tuple[str, str], str]:
+    """Fetch full IBGE municipios list and build (nome_lower, uf) → codigo mapping.
+
+    Uses a module-level cache with 7-day TTL because the 5,570+ municipio list
+    changes only when new municipios are created (extremely rare).
+    """
+    global _IBGE_MUNICIPIOS_CACHE, _IBGE_MUNICIPIOS_CACHE_TS
+    now = time.monotonic()
+    if _IBGE_MUNICIPIOS_CACHE and (now - _IBGE_MUNICIPIOS_CACHE_TS) < _IBGE_MUNICIPIOS_CACHE_TTL:
+        return _IBGE_MUNICIPIOS_CACHE
+
+    logger.info("[EnricherIBGE] Fetching full municipios list from IBGE API...")
+    lookup: dict[tuple[str, str], str] = {}
+    async with httpx.AsyncClient(timeout=30.0) as client:
+        resp = await client.get(
+            f"{_IBGE_API_BASE}/v1/localidades/municipios",
+            follow_redirects=True,
+        )
+        if resp.status_code != 200:
+            logger.error(
+                "[EnricherIBGE] IBGE municipios API returned %d — using cached lookup if available",
+                resp.status_code,
+            )
+            return _IBGE_MUNICIPIOS_CACHE  # fallback to stale cache
+
+        municipios = resp.json()
+        for m in municipios:
+            nome = (m.get("nome") or "").strip().lower()
+            uf = (
+                (m.get("microrregiao") or {})
+                .get("mesorregiao", {})
+                .get("UF", {})
+                .get("sigla") or ""
+            ).strip().upper()
+            codigo = str(m.get("id") or "")
+            if nome and uf and codigo:
+                lookup[(nome, uf)] = codigo
+
+    _IBGE_MUNICIPIOS_CACHE = lookup
+    _IBGE_MUNICIPIOS_CACHE_TS = now
+    logger.info(
+        "[EnricherIBGE] Municipios lookup built: %d entries (%.1f KB)",
+        len(lookup), len(str(lookup)) / 1024,
+    )
+    return lookup
+
+
+async def enrich_pncp_ibge_codes_job() -> dict[str, Any]:
+    """ARQ job: backfill pncp_raw_bids.codigo_municipio_ibge from IBGE API.
+
+    Resolves (municipio, uf) → codigo_municipio_ibge for rows where the
+    column is empty. Runs as a scheduled ARQ cron after each crawl wave so
+    newly ingested rows get backfilled promptly.
+
+    Returns: {resolved, skipped, unmatched, duration_s}
+    """
+    start = time.monotonic()
+    logger.info("[EnricherIBGE] Starting IBGE code backfill job")
+
+    try:
+        lookup = await _fetch_ibge_municipio_lookup()
+    except Exception as e:
+        logger.error("[EnricherIBGE] Failed to build lookup: %s", e, exc_info=True)
+        return {"status": "failed", "error": str(e), "duration_s": round(time.monotonic() - start, 1)}
+
+    if not lookup:
+        logger.warning("[EnricherIBGE] Lookup empty — aborting backfill")
+        return {"status": "failed", "error": "empty lookup", "duration_s": round(time.monotonic() - start, 1)}
+
+    # Fetch distinct (municipio, uf) pairs with empty IBGE code
+    from supabase_client import get_supabase, sb_execute
+    sb = get_supabase()
+
+    pairs: set[tuple[str, str]] = set()
+    offset = 0
+    batch_size = 1000
+    while True:
+        resp = await sb_execute(
+            sb.table("pncp_raw_bids")
+            .select("municipio, uf")
+            .is_("codigo_municipio_ibge", "null")
+            .eq("is_active", True)
+            .range(offset, offset + batch_size - 1)
+        )
+        rows = resp.data or []
+        if not rows:
+            break
+        for row in rows:
+            nome = (row.get("municipio") or "").strip().lower()
+            uf = (row.get("uf") or "").strip().upper()
+            if nome and uf:
+                pairs.add((nome, uf))
+        if len(rows) < batch_size:
+            break
+        offset += batch_size
+
+    if not pairs:
+        logger.info("[EnricherIBGE] No rows with empty IBGE code — job done")
+        return {
+            "status": "completed", "resolved": 0, "skipped": 0,
+            "unmatched": 0, "duration_s": round(time.monotonic() - start, 1),
+        }
+
+    # Resolve codes
+    resolved = 0
+    skipped = 0
+    unmatched = 0
+    updates: list[dict] = []
+
+    for nome, uf in pairs:
+        codigo = lookup.get((nome, uf))
+        if codigo:
+            updates.append({"municipio": nome, "uf": uf, "codigo": codigo})
+            resolved += 1
+        else:
+            unmatched += 1
+            if unmatched <= 20:
+                logger.debug("[EnricherIBGE] No match for municipio=%r uf=%r", nome, uf)
+
+    # Apply updates in batches via a single RPC call or batch UPDATE
+    # Use a raw UPDATE for efficiency — 4000+ individual upserts would be too slow
+    if updates:
+        # Build a mapping table via JSONB and update in one pass
+        try:
+            mapping_json = json.dumps([
+                {"nome": u["municipio"], "uf": u["uf"], "codigo": u["codigo"]}
+                for u in updates
+            ])
+            result = await sb_execute(
+                sb.rpc(
+                    "backfill_ibge_codes",
+                    {"p_mapping": mapping_json},
+                ),
+                category="write",
+            )
+            actual_updated = result.data if result.data else 0
+            if isinstance(actual_updated, list):
+                actual_updated = actual_updated[0].get("rows_updated", resolved) if actual_updated else resolved
+            logger.info(
+                "[EnricherIBGE] Backfill RPC returned: %s (expected ~%d rows)",
+                actual_updated, resolved,
+            )
+            resolved = actual_updated if isinstance(actual_updated, int) else resolved
+        except Exception as e:
+            logger.error("[EnricherIBGE] Backfill RPC failed: %s", e, exc_info=True)
+            skipped = resolved
+            resolved = 0
+
+    duration_s = round(time.monotonic() - start, 1)
+    logger.info(
+        "[EnricherIBGE] Job done in %.1fs — resolved=%d, skipped=%d, unmatched=%d/%d",
+        duration_s, resolved, skipped, unmatched, len(pairs),
+    )
+    return {
+        "status": "completed",
+        "resolved": resolved,
+        "skipped": skipped,
+        "unmatched": unmatched,
+        "total_pairs": len(pairs),
+        "duration_s": duration_s,
+    }

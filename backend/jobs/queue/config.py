@@ -98,6 +98,13 @@ try:
             _worker_cron_jobs.append(
                 _arq_cron(enrich_municipios_job, hour={9}, minute=0, timeout=3600),
             )
+            # IBGE code backfill: runs 30min after each crawl wave
+            # (full=5 UTC + 30min, incremental=11/17/23 UTC + 30min)
+            # Backfills pncp_raw_bids.codigo_municipio_ibge for newly ingested rows
+            from ingestion.scheduler import enrich_pncp_ibge_codes_job
+            _worker_cron_jobs.append(
+                _arq_cron(enrich_pncp_ibge_codes_job, hour={5, 11, 17, 23}, minute=30, timeout=1800),
+            )
     except ImportError:
         pass
 except Exception:
@@ -146,14 +153,16 @@ class WorkerSettings:
                 ingestion_backfill_func,
                 contracts_full_crawl_func, contracts_incremental_func,
                 enrich_entities_func,
-                enrich_municipios_job,
+                enrich_municipios_func,
+                enrich_pncp_ibge_codes_func,
             )
             _ingestion_functions = [
                 ingestion_full_crawl_job, ingestion_incremental_job, ingestion_purge_job,
                 ingestion_backfill_func,
                 contracts_full_crawl_func, contracts_incremental_func,
                 enrich_entities_func,
-                enrich_municipios_job,
+                enrich_municipios_func,
+                enrich_pncp_ibge_codes_func,
             ]
     except ImportError:
         pass
