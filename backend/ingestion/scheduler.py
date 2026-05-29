@@ -419,6 +419,43 @@ async def enrich_municipios_job(ctx: dict) -> dict:
     return result
 
 
+enrich_municipios_func = arq_func(
+    enrich_municipios_job, timeout=3600,  # 1h safety
+)
+
+
+async def enrich_pncp_ibge_codes_job(ctx: dict) -> dict:
+    """ARQ job: Backfill pncp_raw_bids.codigo_municipio_ibge via IBGE API.
+
+    Resolves (municipio, uf) → IBGE code for rows where the column is empty.
+    Runs after each crawl wave so newly ingested rows get backfilled.
+
+    Timeout: 30min safety. Expected runtime: < 5min.
+    """
+    from ingestion.config import DATALAKE_ENABLED
+    if not DATALAKE_ENABLED:
+        return {"status": "skipped", "reason": "DATALAKE_ENABLED=false"}
+
+    start = time.monotonic()
+    logger.info("[EnricherIBGE] Iniciando backfill de codigo IBGE")
+
+    try:
+        from ingestion.enricher import enrich_pncp_ibge_codes_job as _run
+        result = await _run()
+    except Exception as e:
+        duration_s = round(time.monotonic() - start, 1)
+        logger.error("[EnricherIBGE] Falha critica: %s", e, exc_info=True)
+        await _notify_failure("EnricherIBGE", f"{type(e).__name__}: {e}", duration_s)
+        return {"status": "failed", "error": str(e), "duration_s": duration_s}
+
+    return result
+
+
+enrich_pncp_ibge_codes_func = arq_func(
+    enrich_pncp_ibge_codes_job, timeout=1800,  # 30min safety
+)
+
+
 async def ingestion_purge_job(ctx: dict) -> dict:
     """ARQ job: Purge closed bids from pncp_raw_bids.
 

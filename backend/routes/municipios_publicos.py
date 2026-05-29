@@ -451,6 +451,24 @@ async def municipio_profile(slug: str):
         )
         return resp.data or []
 
+    async def _bids_query_by_name_async() -> list[dict]:
+        """Fallback: query by municipio name when IBGE code is empty in datalake."""
+        from supabase_client import get_supabase, sb_execute
+        sb = get_supabase()
+        resp = await sb_execute(
+            sb.table("pncp_raw_bids")
+            .select(
+                "objeto_compra,orgao_razao_social,valor_total_estimado,"
+                "data_publicacao,modalidade_nome"
+            )
+            .eq("uf", uf)
+            .ilike("municipio", nome)
+            .eq("is_active", True)
+            .order("data_publicacao", desc=True)
+            .limit(500)
+        )
+        return resp.data or []
+
     try:
         rows = await _run_with_budget(
             _bids_query_async(),
@@ -458,6 +476,18 @@ async def municipio_profile(slug: str):
             phase="route",
             source="municipios_publicos.bids",
         )
+        if not rows:
+            logger.info(
+                "[Municipios] IBGE query returned 0 rows for %s (ibge=%s), "
+                "falling back to name-based query (municipio=%s, uf=%s)",
+                slug_clean, ibge_code, nome, uf,
+            )
+            rows = await _run_with_budget(
+                _bids_query_by_name_async(),
+                budget=_BIDS_QUERY_TIMEOUT_S,
+                phase="route",
+                source="municipios_publicos.bids_fallback",
+            )
         total_licitacoes = len(rows)
         for row in rows:
             v = _safe_float(row.get("valor_total_estimado"))
