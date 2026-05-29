@@ -462,7 +462,7 @@ async def municipio_profile(slug: str):
                 "data_publicacao,modalidade_nome"
             )
             .eq("uf", uf)
-            .ilike("municipio", nome)
+            .ilike("municipio_unaccented", nome)
             .eq("is_active", True)
             .order("data_publicacao", desc=True)
             .limit(500)
