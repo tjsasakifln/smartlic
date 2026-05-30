@@ -131,6 +131,7 @@ from config.features import (
     TERM_SEARCH_VALUE_RANGE_MIN,  # noqa: F401
     TERM_SEARCH_VALUE_RANGE_MAX,  # noqa: F401
     SUBCONTRACT_INTEL_ENABLED,  # noqa: F401  (SUBINTEL-030 EPIC-SUBINTEL #1224)
+    COMPETITIVE_INTEL_ENABLED,  # noqa: F401  (COMPINT-000 EPIC-COMPINT #1261)
     _feature_flag_cache,  # noqa: F401
     _FEATURE_FLAG_TTL,  # noqa: F401
     _FEATURE_FLAG_REGISTRY,  # noqa: F401

@@ -199,6 +199,13 @@ EMBEDDING_THRESHOLD: float = float(os.getenv("EMBEDDING_THRESHOLD", "0.6"))
 # enabled. Strictly additive: no existing feature changes while this is false.
 SUBCONTRACT_INTEL_ENABLED: bool = str_to_bool(os.getenv("SUBCONTRACT_INTEL_ENABLED", "false"))
 
+# COMPINT-000 (EPIC-COMPINT #1261): global kill-switch for the Competitive
+# Intelligence vertical (analise-concorrencia/, /v1/competitive-intel/*
+# endpoints, frontend). Default OFF — the entire vertical stays inert until
+# explicitly enabled. Strictly additive: no existing feature changes while
+# this is false.
+COMPETITIVE_INTEL_ENABLED: bool = str_to_bool(os.getenv("COMPETITIVE_INTEL_ENABLED", "false"))
+
 
 # ============================================
 # Runtime-Reloadable Feature Flags (STORY-226 AC16)
@@ -265,6 +272,8 @@ _FEATURE_FLAG_REGISTRY: dict[str, tuple[str, str]] = {
     "PARTNERS_ENABLED": ("PARTNERS_ENABLED", "false"),
     # SUBINTEL-030 (EPIC-SUBINTEL #1224): subcontracting intelligence vertical
     "SUBCONTRACT_INTEL_ENABLED": ("SUBCONTRACT_INTEL_ENABLED", "false"),
+    # COMPINT-000 (EPIC-COMPINT #1261): competitive intelligence vertical
+    "COMPETITIVE_INTEL_ENABLED": ("COMPETITIVE_INTEL_ENABLED", "false"),
     # --- Infra ---
     "METRICS_ENABLED": ("METRICS_ENABLED", "true"),
     "RATE_LIMITING_ENABLED": ("RATE_LIMITING_ENABLED", "true"),
