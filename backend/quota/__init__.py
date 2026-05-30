@@ -62,6 +62,8 @@ from quota.plan_enforcement import (
     register_search_session,
     require_active_plan,
     requires_subcontract_intel,
+    requires_predictive_intel,
+    get_predictive_intel_dependency,
     save_search_session,
     update_search_session_status,
 )
@@ -116,6 +118,8 @@ __all__ = [
     "register_search_session",
     "require_active_plan",
     "requires_subcontract_intel",
+    "requires_predictive_intel",
+    "get_predictive_intel_dependency",
     "save_search_session",
     "update_search_session_status",
 ]
