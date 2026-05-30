@@ -79,6 +79,8 @@ class TestCoerceCapabilitiesRow:
         "max_history_days": 1825,
         "allow_excel": True,
         "allow_pipeline": True,
+        "allow_subcontract_intel": False,
+        "allow_competitive_intel": False,
         "max_requests_per_month": 1000,
         "max_requests_per_min": 60,
         "max_summary_tokens": 10000,
