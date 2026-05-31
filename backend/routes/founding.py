@@ -293,9 +293,21 @@ async def founding_availability(response: Response) -> Any:
     sb = get_supabase()
     snapshot = await _run_with_budget(
         _check_availability(sb),
-        budget=3.0,
+        budget=5.0,  # 2026-05-31: raised from 3s → 5s (Sentry #8-#10: 115 timeout events in 14d).
+                      # check_founding_availability() uses SELECT FOR UPDATE — under concurrent
+                      # landing-page traffic the lock queue can push latency past 3s.
         phase="route",
         source="founding.availability",
+        fallback={
+            "available": False,
+            "seats_total": 0,
+            "seats_remaining": 0,
+            "deadline_at": None,
+            "paused": False,
+            "reason": "unavailable",
+            "offer_mode": "lifetime",
+            "price_brl_cents": 99700,
+        },
     )
     # Cache-Control for Googlebot fanout — short-lived public cache so the
     # seat counter stays accurate but bursty crawls don't hammer the RPC.
@@ -497,9 +509,12 @@ async def founding_checkout(
     # BIZ-FOUND-002 gate — atomic cap + deadline + paused check.
     # Evaluated BEFORE Stripe config checks so that 410 responses are always
     # returned correctly even in environments without Stripe configured (e.g. tests).
+    # 2026-05-31: raised from 3s → 5s to match availability endpoint budget.
+    # No fallback — checkout MUST have an authoritative answer; failing open
+    # (available=True) would over-sell the cohort.
     snapshot = await _run_with_budget(
         _check_availability(sb),
-        budget=3.0,
+        budget=5.0,
         phase="route",
         source="founding.checkout_gate",
     )

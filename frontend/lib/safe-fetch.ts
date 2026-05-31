@@ -64,11 +64,17 @@ export async function safeFetch(
     statusCode = resp.status;
     if (!resp.ok) {
       outcome = 'http_error';
-      Sentry.captureMessage(`safeFetch ${label} HTTP ${resp.status}`, {
-        level: 'warning',
-        tags: { fetch_label: label, fetch_outcome: 'http_error' },
-        contexts: { fetch: { url, status: resp.status } },
-      });
+      // NETINT-002 fix: 404 is expected for SEO programmatic pages — slugs
+      // in sitemaps may not yet have data in the datalake. The page renders
+      // <EmptyStateSEO> with noindex, so there is nothing to alert on.
+      // Suppress Sentry noise (3012 events/14d from orgao-stats + cnpj-perfil).
+      if (resp.status !== 404) {
+        Sentry.captureMessage(`safeFetch ${label} HTTP ${resp.status}`, {
+          level: 'warning',
+          tags: { fetch_label: label, fetch_outcome: 'http_error' },
+          contexts: { fetch: { url, status: resp.status } },
+        });
+      }
       // ISR stale-while-revalidate: throw on 5xx so Next.js preserves last-good cache
       // instead of caching an empty/error state for the full revalidate window.
       if (throwOn5xx && resp.status >= 500) {

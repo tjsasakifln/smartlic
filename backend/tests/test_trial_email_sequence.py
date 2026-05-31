@@ -701,14 +701,20 @@ class TestEmailTrial006AdminSkip:
         assert "is_master" in source
 
     def test_profile_select_includes_admin_flags(self):
-        """SELECT must pull is_admin/is_master to enable the skip filter."""
+        """SELECT must pull is_admin to enable the admin/master skip filter.
+
+        is_master is NOT a real DB column — it is derived in Python as
+        ``is_admin or plan_type == 'master'`` (authorization.py:94).
+        The skip guard computes it from the fetched fields.
+        """
         import inspect
         from services import trial_email_sequence
 
         source = inspect.getsource(trial_email_sequence.process_trial_emails)
-        # Single-line check on the .select() call (whitespace-flexible)
-        normalized = " ".join(source.split())
-        assert "is_admin" in normalized and "is_master" in normalized
+        # is_admin must be in the SELECT; is_master is computed from it.
+        assert "is_admin" in source
+        # Verify the derivation expression is present (not the column name)
+        assert 'user.get("plan_type") == "master"' in source
 
 
 class TestEmailTrial006FoundersFetch:
