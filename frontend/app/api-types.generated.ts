@@ -4424,6 +4424,28 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/products": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Products
+         * @description List active digital products available for one-time purchase.
+         *
+         *     Public (no auth required). Results cached in Redis for 1 hour.
+         */
+        get: operations["list_products_v1_products_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/profile/alert-preferences": {
         parameters: {
             query?: never;
@@ -7773,6 +7795,34 @@ export interface components {
             /** Search Id */
             search_id: string;
         };
+        /**
+         * DigitalProductOut
+         * @description Public representation of a digital product for checkout.
+         */
+        DigitalProductOut: {
+            /**
+             * Delivery Config
+             * @default {}
+             */
+            delivery_config: {
+                [key: string]: unknown;
+            };
+            /** Description */
+            description?: string | null;
+            /** Name */
+            name: string;
+            /**
+             * Preview Config
+             * @default {}
+             */
+            preview_config: {
+                [key: string]: unknown;
+            };
+            /** Price Brl */
+            price_brl: number;
+            /** Sku */
+            sku: string;
+        };
         /** DimensionItem */
         DimensionItem: {
             /** Count */
@@ -10287,6 +10337,11 @@ export interface components {
          * @enum {string}
          */
         PorteEmpresa: "MEI" | "ME" | "EPP" | "MEDIO" | "GRANDE";
+        /** ProductsResponse */
+        ProductsResponse: {
+            /** Products */
+            products: components["schemas"]["DigitalProductOut"][];
+        };
         /**
          * ProfileCompletenessResponse
          * @description STORY-260 AC3: Response for GET /v1/profile/completeness.
@@ -18372,6 +18427,26 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["BillingPlansResponse"];
+                };
+            };
+        };
+    };
+    list_products_v1_products_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProductsResponse"];
                 };
             };
         };
