@@ -5,14 +5,16 @@ import Link from 'next/link';
 import { motion } from 'framer-motion';
 import { GradientButton } from '@/app/components/ui/GradientButton';
 import { pricingB2G } from '@/lib/copy/b2gIntelCopy';
-import { useScrollAnimation, fadeInUp, staggerContainer } from '@/lib/animations';
+import { useLandingAnimation, fadeInUp, staggerContainer } from '@/lib/animations';
 
 /**
  * REPO-COMMS #1289: Seção de Pricing — placeholder até REPO-TIER-COMMAND
  * Mostra tiers atuais, sem alterar lógica de billing
+ *
+ * Usa useLandingAnimation (scroll trigger + prefers-reduced-motion).
  */
 export default function PricingSectionB2G() {
-  const { ref, isVisible } = useScrollAnimation(0.15);
+  const { ref, shouldAnimate } = useLandingAnimation();
 
   return (
     <section
@@ -24,7 +26,7 @@ export default function PricingSectionB2G() {
         className="text-center mb-16"
         variants={staggerContainer}
         initial="hidden"
-        animate={isVisible ? 'visible' : 'hidden'}
+        animate={shouldAnimate ? 'visible' : 'hidden'}
       >
         <motion.h2
           className="text-3xl sm:text-4xl font-display font-bold tracking-tight text-[var(--ink)]"
@@ -44,7 +46,7 @@ export default function PricingSectionB2G() {
         className="flex flex-col items-center gap-6"
         variants={staggerContainer}
         initial="hidden"
-        animate={isVisible ? 'visible' : 'hidden'}
+        animate={shouldAnimate ? 'visible' : 'hidden'}
       >
         <motion.div variants={fadeInUp}>
           <Link href="/planos" data-testid="pricing-cta">

@@ -41,9 +41,11 @@ jest.mock('framer-motion', () => {
   return { motion, AnimatePresence: ({ children }: { children: React.ReactNode }) => children };
 });
 
-// Mock animations lib
+// Mock animations lib (REPO-COMMS #1289: added useLandingAnimation + usePrefersReducedMotion)
 jest.mock('../lib/animations', () => ({
   useScrollAnimation: () => ({ ref: { current: null }, isVisible: true }),
+  useLandingAnimation: () => ({ ref: { current: null }, isVisible: true, shouldAnimate: true }),
+  usePrefersReducedMotion: () => false,
   fadeInUp: {},
   staggerContainer: {},
   scaleIn: {},

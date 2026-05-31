@@ -3,14 +3,16 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { antecipeDecidaExecute } from '@/lib/copy/b2gIntelCopy';
-import { useScrollAnimation, fadeInUp, staggerContainer } from '@/lib/animations';
+import { useLandingAnimation, fadeInUp, staggerContainer } from '@/lib/animations';
 
 /**
  * REPO-COMMS #1289: Seção "O que o SmartLic realmente faz"
  * 3 colunas: Antecipe, Decida, Execute — com métricas visíveis
+ *
+ * Usa useLandingAnimation (scroll trigger + prefers-reduced-motion).
  */
 export default function AntecipeDecidaExecute() {
-  const { ref, isVisible } = useScrollAnimation(0.15);
+  const { ref, shouldAnimate } = useLandingAnimation();
 
   return (
     <section
@@ -22,7 +24,7 @@ export default function AntecipeDecidaExecute() {
         className="text-center mb-16"
         variants={staggerContainer}
         initial="hidden"
-        animate={isVisible ? 'visible' : 'hidden'}
+        animate={shouldAnimate ? 'visible' : 'hidden'}
       >
         <motion.h2
           className="text-3xl sm:text-4xl font-display font-bold tracking-tight text-[var(--ink)]"
@@ -36,7 +38,7 @@ export default function AntecipeDecidaExecute() {
         className="grid grid-cols-1 md:grid-cols-3 gap-8"
         variants={staggerContainer}
         initial="hidden"
-        animate={isVisible ? 'visible' : 'hidden'}
+        animate={shouldAnimate ? 'visible' : 'hidden'}
       >
         {antecipeDecidaExecute.columns.map((col) => (
           <motion.div

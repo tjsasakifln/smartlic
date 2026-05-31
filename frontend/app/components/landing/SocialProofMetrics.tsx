@@ -3,14 +3,16 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { socialProof } from '@/lib/copy/b2gIntelCopy';
-import { useScrollAnimation, fadeInUp, staggerContainer } from '@/lib/animations';
+import { useLandingAnimation, fadeInUp, staggerContainer } from '@/lib/animations';
 
 /**
  * REPO-COMMS #1289: Seção de Prova Social — métricas reais do datalake
  * 4 métricas: contratos, órgãos, setores, UFs
+ *
+ * Usa useLandingAnimation (scroll trigger + prefers-reduced-motion).
  */
 export default function SocialProofMetrics() {
-  const { ref, isVisible } = useScrollAnimation(0.15);
+  const { ref, shouldAnimate } = useLandingAnimation();
 
   return (
     <section
@@ -22,7 +24,7 @@ export default function SocialProofMetrics() {
         className="text-center mb-16"
         variants={staggerContainer}
         initial="hidden"
-        animate={isVisible ? 'visible' : 'hidden'}
+        animate={shouldAnimate ? 'visible' : 'hidden'}
       >
         <motion.h2
           className="text-3xl sm:text-4xl font-display font-bold tracking-tight text-[var(--ink)]"
@@ -36,7 +38,7 @@ export default function SocialProofMetrics() {
         className="grid grid-cols-2 lg:grid-cols-4 gap-6 max-w-4xl mx-auto"
         variants={staggerContainer}
         initial="hidden"
-        animate={isVisible ? 'visible' : 'hidden'}
+        animate={shouldAnimate ? 'visible' : 'hidden'}
       >
         {socialProof.metrics.map((m) => (
           <motion.div

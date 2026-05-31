@@ -3,13 +3,99 @@
  *
  * Migração de "monitoramento de licitações com IA" para "vantagem competitiva".
  * Tom: terminal de inteligência. Sem IA, algoritmo, plataforma, monitoramento.
+ *
+ * Design validation: 3 opções apresentadas via AskUserQuestion (2026-05-31):
+ *   1. Bloomberg Terminal (dark, monospace, dados densos)
+ *   2. Palantir Gotham (dark, mapas, redes)
+ *   3. Linear/Supabase (light, minimal, moderna)
+ * Opção escolhida: #1 Bloomberg Terminal — melhor alinhamento com
+ * "terminal de inteligência" e diferenciação de SaaS genérico.
  */
+
+// ============================================================================
+// TypeScript interfaces for copy objects (IDE autocomplete + type safety)
+// ============================================================================
+
+export interface B2GHeroCopy {
+  headline: string;
+  subheadlines: string[];
+  cta: {
+    primary: string;
+    primaryHref: string;
+    secondary: string;
+    secondaryHref: string;
+  };
+  trustLine: string;
+}
+
+export interface AntecipeColumn {
+  title: string;
+  description: string;
+  metric: string;
+  metricLabel: string;
+}
+
+export interface AntecipeDecidaExecuteCopy {
+  sectionId: string;
+  headline: string;
+  columns: AntecipeColumn[];
+}
+
+export interface TerminalComparisonCopy {
+  sectionId: string;
+  kicker: string;
+  headline: string;
+  before: { title: string; items: string[] };
+  after: { title: string; items: string[] };
+}
+
+export interface SocialProofMetric {
+  value: string;
+  label: string;
+  detail: string;
+}
+
+export interface SocialProofCopy {
+  sectionId: string;
+  headline: string;
+  metrics: SocialProofMetric[];
+}
+
+export interface PersonaGroup {
+  title: string;
+  description: string;
+}
+
+export interface PersonasCopy {
+  sectionId: string;
+  headline: string;
+  groups: PersonaGroup[];
+}
+
+export interface PricingB2GCopy {
+  sectionId: string;
+  headline: string;
+  subheadline: string;
+  note: string;
+}
+
+export interface MarketSocialQuote {
+  text: string;
+  author: string;
+  role: string;
+}
+
+export interface MarketSocialCopy {
+  sectionId: string;
+  headline: string;
+  quotes: MarketSocialQuote[];
+}
 
 // ============================================================================
 // HERO — Terminal de Inteligência B2G
 // ============================================================================
 
-export const b2gHero = {
+export const b2gHero: B2GHeroCopy = {
   headline: "SmartLic transforma dados públicos em vantagem competitiva.",
 
   subheadlines: [
@@ -24,13 +110,15 @@ export const b2gHero = {
     secondary: "Falar com especialista",
     secondaryHref: "/consultoria-b2g",
   },
+
+  trustLine: "Acesso completo. Sem cartão. Cancele em 1 clique.",
 };
 
 // ============================================================================
 // SEÇÃO 2 — Antecipe, Decida, Execute (3 colunas)
 // ============================================================================
 
-export const antecipeDecidaExecute = {
+export const antecipeDecidaExecute: AntecipeDecidaExecuteCopy = {
   sectionId: "o-que-faz",
   headline: "O que o SmartLic realmente faz",
   columns: [
@@ -62,7 +150,7 @@ export const antecipeDecidaExecute = {
 // SEÇÃO 3 — Terminal Comparison (antes/depois)
 // ============================================================================
 
-export const terminalComparison = {
+export const terminalComparison: TerminalComparisonCopy = {
   sectionId: "terminal",
   kicker: "Não é um alerta de edital. É um terminal de inteligência.",
   headline: "De planilha, Trello e WhatsApp para um sistema operacional B2G",
@@ -92,7 +180,7 @@ export const terminalComparison = {
 // SEÇÃO 4 — Prova Social (métricas do datalake)
 // ============================================================================
 
-export const socialProof = {
+export const socialProof: SocialProofCopy = {
   sectionId: "numeros",
   headline: "Números que sustentam sua vantagem",
   metrics: [
@@ -107,7 +195,7 @@ export const socialProof = {
 // SEÇÃO 5 — Personas
 // ============================================================================
 
-export const personas = {
+export const personas: PersonasCopy = {
   sectionId: "para-quem",
   headline: "Para quem é o SmartLic",
   groups: [
@@ -138,7 +226,7 @@ export const personas = {
 // SEÇÃO 6 — Pricing (placeholder até REPO-TIER-COMMAND)
 // ============================================================================
 
-export const pricingB2G = {
+export const pricingB2G: PricingB2GCopy = {
   sectionId: "planos",
   headline: "Comece com o plano que cabe no seu momento",
   subheadline: "Todos os planos incluem acesso completo. Sem limite de busca. Sem surpresa.",
@@ -149,7 +237,7 @@ export const pricingB2G = {
 // SEÇÃO 7 — Social Proof / Depoimentos
 // ============================================================================
 
-export const marketSocial = {
+export const marketSocial: MarketSocialCopy = {
   sectionId: "mercado",
   headline: "O que o mercado diz",
   quotes: [
