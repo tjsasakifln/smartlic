@@ -73,6 +73,7 @@ All commands listed below activate their corresponding agent with full persona a
 | `/review-pr` | `.claude/commands/review-pr.md` | Universal automated PR governance & merge |
 | `/audit-roadmap` | `.claude/commands/audit-roadmap.md` | Roadmap integrity audit |
 | `/pick-next-issue` | `.claude/commands/pick-next-issue.md` | Select next issue from backlog |
+| `/pre-push` | `.claude/commands/pre-push.md` | Pre-push validation gate — executa gates do CI localmente |
 | `/check-gtm` | `.claude/commands/check-gtm.md` | GTM Production Verification (stop-on-fail) |
 | `/beta-team` | `.claude/commands/beta-team.md` | Silicon Valley Beta Testing Squad (5 personas, Playwright) |
 
