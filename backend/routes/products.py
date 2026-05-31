@@ -126,12 +126,14 @@ async def list_products():
 
     # Fallback: query Supabase directly
     try:
-        from supabase_client import get_supabase
+        from supabase_client import get_supabase, sb_execute
 
         sb = get_supabase()
-        result = sb.table("digital_products").select(
-            "sku, name, description, price_brl, preview_config, delivery_config"
-        ).eq("active", True).execute()
+        result = await sb_execute(
+            sb.table("digital_products").select(
+                "sku, name, description, price_brl, preview_config, delivery_config"
+            ).eq("active", True)
+        )
 
         products = result.data if result.data else []
     except Exception as exc:
