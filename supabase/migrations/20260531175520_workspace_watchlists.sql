@@ -146,3 +146,5 @@ COMMENT ON FUNCTION public.ops_match_watchlist(UUID)
 
 GRANT EXECUTE ON FUNCTION public.ops_match_watchlist(UUID) TO authenticated;
 GRANT EXECUTE ON FUNCTION public.ops_match_watchlist(UUID) TO service_role;
+
+
