@@ -361,12 +361,15 @@ async def process_trial_emails(batch_size: int = 50) -> dict:
                 # not the "your access expires — subscribe now" legacy copy.
                 # `created_at` is included to compute the concrete charge date
                 # (trial_end = created_at + 14d) displayed to the user.
+                # NOTE: is_master is NOT a real column — it is derived as
+                # is_admin OR plan_type == 'master' (backend/authorization.py:94).
+                # Including it in the SELECT would fail with 42703.
                 users_result = await sb_execute(
                     sb.table("profiles")
                     .select(
                         "id, email, full_name, plan_type, marketing_emails_enabled, "
                         "trial_conversion_emails_enabled, timezone, "
-                        "stripe_default_pm_id, created_at, is_admin, is_master"
+                        "stripe_default_pm_id, created_at, is_admin"
                     )
                     .eq("plan_type", "free_trial")
                     .gte("created_at", target_start)
@@ -406,7 +409,10 @@ async def process_trial_emails(batch_size: int = 50) -> dict:
                     # they're internal accounts, not real trial users — so trial-
                     # nurture sequence is noise to them and their stats are bogus
                     # (admin accounts run staff testing searches, not real trials).
-                    if user.get("is_admin") or user.get("is_master"):
+                    # NOTE: is_master is derived (is_admin OR plan_type=='master')
+                    # per backend/authorization.py:94 — it is NOT a DB column.
+                    is_master = user.get("is_admin") or user.get("plan_type") == "master"
+                    if user.get("is_admin") or is_master:
                         skipped += 1
                         continue
 
