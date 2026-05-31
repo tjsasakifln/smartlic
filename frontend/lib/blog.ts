@@ -1078,10 +1078,10 @@ export const BLOG_ARTICLES: BlogArticleMeta[] = [
   // GUIA-T1
   {
     slug: 'como-participar-primeira-licitacao-2026',
-    title: 'Primeira Licitação [2026]: Guia Passo a Passo | SmartLic',
+    title: 'Primeira licitação em 2026: encontre editais compatíveis com sua empresa',
     h1: 'Editais abertos e oportunidades de licitação por setor em 2026',
     description:
-      'Guia completo para participar da sua primeira licitação em 2026: cadastro no SICAF, como escolher o edital certo e comprovar habilitação. Em 5 minutos.',
+      'Descubra oportunidades reais no PNCP filtrando por setor, UF e valor. Checklist gratuito + alertas de editais novos no seu segmento.',
     category: 'Guias',
     tags: ['primeira licitação', 'guia iniciante', 'passo a passo', 'cadastro'],
     publishDate: '2026-04-04',
@@ -1140,10 +1140,10 @@ export const BLOG_ARTICLES: BlogArticleMeta[] = [
   // GUIA-T3
   {
     slug: 'pncp-guia-completo-empresas',
-    title: 'PNCP para Empresas [2026]: Editais e Contratos | SmartLic',
+    title: 'PNCP para empresas: encontre órgãos que já compram o que você vende',
     h1: 'Encontre editais, contratos e fornecedores públicos no PNCP',
     description:
-      'Aprenda a usar o PNCP para encontrar editais e contratos públicos em 2026: filtre por setor, UF e modalidade. Monitoramento automático, atualizado diariamente.',
+      'Busque editais, contratos e fornecedores no PNCP filtrando por setor, UF e valor. Descubra quais órgãos compram seu produto e quanto pagam.',
     category: 'Guias',
     tags: ['PNCP', 'portal de contratações', 'busca de editais', 'monitoramento'],
     publishDate: '2026-04-04',
@@ -1874,10 +1874,10 @@ export const BLOG_ARTICLES: BlogArticleMeta[] = [
   // SEO-12.3.3 Art-01: como consultar contratos públicos PNCP
   {
     slug: 'como-consultar-contratos-publicos-pncp',
-    title: 'Consultar Contratos Públicos no PNCP [2026] | SmartLic',
+    title: 'Contratos públicos no PNCP: veja quem compra, quanto paga e com que frequência',
     h1: 'Busque contratos públicos no PNCP por fornecedor, órgão ou objeto',
     description:
-      'Veja como consultar contratos públicos no PNCP em 3 passos: busque por CNPJ, órgão ou objeto. Mais de 2 milhões de contratos com exportação gratuita em 2026.',
+      'Consulte contratos por órgão, fornecedor, setor e valor. Descubra padrões de compra, ticket médio e sazonalidade dos órgãos públicos.',
     category: 'Guias',
     tags: ['contratos públicos', 'PNCP', 'consultar contratos', 'fornecedores', 'inteligência de mercado'],
     lastModified: '2026-05-08',
@@ -2072,10 +2072,10 @@ export const BLOG_ARTICLES: BlogArticleMeta[] = [
   // SEO-12.3.3 Art-07: Subcontratação em licitações — contratos cluster
   {
     slug: 'subcontratacao-licitacoes-regras-lei-14133',
-    title: 'Subcontratação em Licitações [2026]: Lei 14.133 | SmartLic',
+    title: 'Subcontratação em licitações: descubra quem vence contratos e pode comprar de você',
     h1: 'Subcontratação em contratos públicos: limites, vedações e como aproveitar oportunidades',
     description:
-      'Entenda as regras de subcontratação em licitações pela Lei 14.133: limites legais, vedações e responsabilidade solidária. Como formalizar corretamente em 2026.',
+      'Mapeie empresas que vencem contratos públicos e precisam de fornecedores. Veja pontes de subcontratação por setor, UF e valor.',
     category: 'Guias',
     tags: [
       'subcontratação',
