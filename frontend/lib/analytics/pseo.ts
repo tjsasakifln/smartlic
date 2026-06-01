@@ -1,14 +1,18 @@
 /**
  * Typed Mixpanel analytics wrappers for pSEO micro-conversion events.
- * PSEO-CONV-001 (#884)
+ * PSEO-CONV-001 (#884) / CONV-009 (#1318).
  *
  * All functions respect LGPD cookie consent (same gate as analytics-events.ts).
  * All functions are SSR-safe: they return early when window is unavailable.
  * All functions never throw — errors are swallowed silently.
+ *
+ * CONV-009 alignment: Added pseo_contrato_viewed event (9th event) and
+ * standardized ConversionContext params (entity_id, setor, uf).
  */
 
 import mixpanel from 'mixpanel-browser';
 import { getCookieConsent } from '@/app/components/CookieConsentBanner';
+import type { ConversionContext } from './conversion-tracker';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -17,6 +21,7 @@ import { getCookieConsent } from '@/app/components/CookieConsentBanner';
 export type PseoEventName =
   | 'pseo_search_performed'
   | 'pseo_edital_viewed'
+  | 'pseo_contrato_viewed'
   | 'pseo_alert_signup'
   | 'pseo_supplier_viewed'
   | 'pseo_organ_viewed'
@@ -34,7 +39,7 @@ export type PseoSourceTemplate =
   | 'licitacoes_hub'
   | 'calculadora_reajuste';
 
-export type PseoEventProperties = {
+export type PseoEventProperties = ConversionContext & {
   source_template: PseoSourceTemplate;
   page_url?: string;
   [key: string]: unknown;
@@ -59,6 +64,8 @@ function isTrackingEnabled(): boolean {
  * Track a pSEO micro-conversion event.
  *
  * Requires LGPD consent and Mixpanel token. SSR-safe.
+ * Carries standardized ConversionContext params (entity_id, setor, uf)
+ * for downstream attribution in dashboards.
  */
 export function trackPseoEvent(
   event: PseoEventName,
