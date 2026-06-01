@@ -182,7 +182,6 @@ from config.pipeline import (
     HEALTH_CHECKS_RETENTION_DAYS,  # noqa: F401
     ORGANIZATIONS_ENABLED,  # noqa: F401
     MESSAGES_ENABLED,  # noqa: F401
-    ALERTS_SYSTEM_ENABLED,  # noqa: F401
     PARTNERS_ENABLED,  # noqa: F401
     BUSINESS_HOURS_START,  # noqa: F401
     BUSINESS_HOURS_END,  # noqa: F401

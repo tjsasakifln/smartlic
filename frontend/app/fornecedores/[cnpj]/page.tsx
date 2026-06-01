@@ -8,6 +8,7 @@ import LandingNavbar from '@/app/components/landing/LandingNavbar';
 import Footer from '@/app/components/Footer';
 import FornecedorPseoCTA from './FornecedorPseoCTA';
 import { isNoindexed } from '@/lib/seo/noindex';
+import AlertEntityCta from '@/components/seo/AlertEntityCta';
 
 // Sprint 3 Parte 13: paginas de perfil de fornecedor por CNPJ
 // ISR 24h — dados do PNCP atualizados diariamente
@@ -472,6 +473,13 @@ export default async function FornecedorCnpjPage({ params }: Props) {
               ))}
             </div>
           </section>
+
+          {/* CONV-014: Alert CTA — monitorar contratos desta empresa */}
+          <AlertEntityCta
+            entityType="cnpj"
+            entityId={cnpj}
+            entityLabel={profile.razao_social}
+          />
 
           {/* Lead Capture — client component fires pseo_supplier_viewed + pseo_checkout_click */}
           <FornecedorPseoCTA cnpj={cnpj} razaoSocial={profile.razao_social} />

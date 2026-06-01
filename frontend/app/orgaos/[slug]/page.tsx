@@ -5,6 +5,7 @@ import OrgaoPerfilClient from './OrgaoPerfilClient';
 import EmptyStateSEO from '@/components/seo/EmptyStateSEO';
 import InlineTrialCTA from '../../components/InlineTrialCTA';
 import { LeadCapture } from '@/components/LeadCapture';
+import AlertEntityCta from '@/components/seo/AlertEntityCta';
 import { FoundersRibbon } from '@/components/banners/FoundersRibbon';
 import { fetchWithBudget } from '@/lib/safe-fetch';
 import { getBackendUrl } from '@/lib/backend-url';
@@ -215,6 +216,15 @@ export default async function OrgaoPerfilPage({
           uf={stats.uf}
           heading="Receba alertas de editais deste órgão"
           description={`Novos editais de ${stats.nome}, toda semana no seu email.`}
+        />
+      </div>
+
+      {/* CONV-014: Alert CTA — monitorar editais deste órgão */}
+      <div className="mt-6">
+        <AlertEntityCta
+          entityType="orgao"
+          entityId={slug}
+          entityLabel={stats.nome}
         />
       </div>
 

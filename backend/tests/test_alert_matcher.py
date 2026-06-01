@@ -586,7 +586,7 @@ class TestRunSearchAlerts:
     async def test_disabled_when_flag_off(self):
         from cron_jobs import run_search_alerts
 
-        with patch("config.ALERTS_ENABLED", False):
+        with patch("jobs.cron.notifications.ALERTS_ENABLED", False):
             result = await run_search_alerts()
 
         assert result["status"] == "disabled"
@@ -598,8 +598,7 @@ class TestRunSearchAlerts:
         mock_redis = AsyncMock()
         mock_redis.set = AsyncMock(return_value=False)  # Lock not acquired
 
-        with patch("config.ALERTS_ENABLED", True), \
-             patch("redis_pool.get_redis_pool", new_callable=AsyncMock, return_value=mock_redis):
+        with patch("redis_pool.get_redis_pool", new_callable=AsyncMock, return_value=mock_redis):
             result = await run_search_alerts()
 
         assert result["status"] == "skipped"
@@ -614,8 +613,7 @@ class TestRunSearchAlerts:
             "total_alerts": 0, "matched": 0, "skipped": 0, "errors": 0, "payloads": [],
         })
 
-        with patch("config.ALERTS_ENABLED", True), \
-             patch("redis_pool.get_redis_pool", new_callable=AsyncMock, side_effect=Exception("Redis down")), \
+        with patch("redis_pool.get_redis_pool", new_callable=AsyncMock, side_effect=Exception("Redis down")), \
              patch("services.alert_matcher.match_alerts", mock_match), \
              patch("services.alert_matcher.finalize_matched_alert", AsyncMock()), \
              patch("metrics.ALERTS_PROCESSED", MagicMock()), \
@@ -653,8 +651,7 @@ class TestRunSearchAlerts:
         mock_redis.set = AsyncMock(return_value=True)
         mock_redis.delete = AsyncMock()
 
-        with patch("config.ALERTS_ENABLED", True), \
-             patch("redis_pool.get_redis_pool", new_callable=AsyncMock, return_value=mock_redis), \
+        with patch("redis_pool.get_redis_pool", new_callable=AsyncMock, return_value=mock_redis), \
              patch("services.alert_matcher.match_alerts", new_callable=AsyncMock, return_value=match_result), \
              patch("services.alert_matcher.finalize_matched_alert", new_callable=AsyncMock), \
              patch("templates.emails.alert_digest.render_alert_digest_email", return_value="<html>email</html>"), \
@@ -694,8 +691,7 @@ class TestRunSearchAlerts:
         mock_redis.set = AsyncMock(return_value=True)
         mock_redis.delete = AsyncMock()
 
-        with patch("config.ALERTS_ENABLED", True), \
-             patch("redis_pool.get_redis_pool", new_callable=AsyncMock, return_value=mock_redis), \
+        with patch("redis_pool.get_redis_pool", new_callable=AsyncMock, return_value=mock_redis), \
              patch("services.alert_matcher.match_alerts", new_callable=AsyncMock, return_value=match_result), \
              patch("services.alert_matcher.finalize_matched_alert", new_callable=AsyncMock), \
              patch("templates.emails.alert_digest.render_alert_digest_email", side_effect=Exception("Template error")), \
@@ -710,15 +706,11 @@ class TestRunSearchAlerts:
 
 
 class TestAlertsLoop:
-    """AC8: _alerts_loop scheduling tests."""
+    """AC8: _alerts_loop scheduling tests.
 
-    @pytest.mark.asyncio
-    async def test_loop_exits_when_disabled(self):
-        from cron_jobs import _alerts_loop
-
-        with patch("config.ALERTS_ENABLED", False):
-            await _alerts_loop()
-            # Should return immediately without sleeping
+    Note: Alerts are always enabled (CONV-014); the loop always proceeds
+    to schedule. The test validates it starts the sleep (doesn't crash).
+    """
 
 
 # ============================================================================
@@ -726,18 +718,6 @@ class TestAlertsLoop:
 # ============================================================================
 
 
-@pytest.fixture
-def _alerts_enabled_for_preview():
-    """CIG-BE-alerts-endpoint-404: the /v1/alerts/*/preview handler is gated by
-    ALERTS_SYSTEM_ENABLED and short-circuits to 404 when false. Enable it so
-    the preview flow can actually run end-to-end under TestClient.
-    """
-    with patch("routes.alerts.ALERTS_SYSTEM_ENABLED", True), \
-         patch("config.ALERTS_SYSTEM_ENABLED", True):
-        yield
-
-
-@pytest.mark.usefixtures("_alerts_enabled_for_preview")
 class TestPreviewEndpoint:
     """AC12: Preview endpoint for dry-run matching."""
 

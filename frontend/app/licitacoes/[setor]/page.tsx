@@ -25,6 +25,7 @@ import { TrackedCTALink } from "@/app/components/seo/TrackedCTALink";
 import { SeoOpportunityBanner } from "@/app/components/seo/SeoOpportunityBanner";
 import { LeadCapture } from "@/components/LeadCapture";
 import SeoBannerCta from "@/app/components/landing/SeoBannerCta";
+import AlertEntityCta from "@/components/seo/AlertEntityCta";
 
 /**
  * STORY-324 AC5: SSG with ISR 6h for sector landing pages.
@@ -247,6 +248,15 @@ export default async function SectorPage({
           </p>
         </div>
       </section>
+
+      {/* CONV-014: Alert CTA — criar alerta de setor */}
+      <div className="max-w-5xl mx-auto px-4 mt-8">
+        <AlertEntityCta
+          entityType="setor"
+          entityId={setor}
+          entityLabel={sector.name}
+        />
+      </div>
 
       {/* #1007: Top 5 fornecedores — social proof DataLake */}
       <TopSuppliersBlock

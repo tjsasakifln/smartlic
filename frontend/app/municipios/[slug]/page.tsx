@@ -10,6 +10,7 @@ import Footer from '@/app/components/Footer';
 import StickyTrialCTA from '@/app/components/StickyTrialCTA';
 import { AdvisoryDisclaimer } from '@/components/legal/AdvisoryDisclaimer';
 import { LeadCapture } from '@/components/LeadCapture';
+import AlertEntityCta from '@/components/seo/AlertEntityCta';
 
 // Sprint 4 Parte 13: páginas de municípios com licitações abertas
 // ISR 24h — dados do PNCP atualizados diariamente
@@ -388,6 +389,15 @@ export default async function MunicipioSlugPage({ params }: Props) {
               uf={profile.uf}
               heading={`Receba alertas semanais de editais em ${profile.nome}-${profile.uf}`}
               description="Novos editais toda semana no seu email. Sem spam — cancele a qualquer momento."
+            />
+          </div>
+
+          {/* CONV-014: Alert CTA — receber editais do município */}
+          <div className="mt-6">
+            <AlertEntityCta
+              entityType="municipio"
+              entityId={slug}
+              entityLabel={`${profile.nome}-${profile.uf}`}
             />
           </div>
 

@@ -197,7 +197,6 @@ _FLAG_DESCRIPTIONS: dict[str, str] = {
     # Cron & Operations
     "HEALTH_CANARY_ENABLED": "PNCP health canary checks (5-min interval)",
     "DIGEST_ENABLED": "Email digest cron job",
-    "ALERTS_ENABLED": "Alert notifications cron job",
     "RECONCILIATION_ENABLED": "Stripe reconciliation cron job",
     # Trial & Billing
     "TRIAL_EMAILS_ENABLED": "Automated trial lifecycle emails",
@@ -205,7 +204,6 @@ _FLAG_DESCRIPTIONS: dict[str, str] = {
     # Feature Gates (unreleased)
     "ORGANIZATIONS_ENABLED": "Organizations feature (unreleased)",
     "MESSAGES_ENABLED": "Messaging system",
-    "ALERTS_SYSTEM_ENABLED": "Alerts system feature (unreleased)",
     "PARTNERS_ENABLED": "Partners feature (unreleased)",
     "SUBCONTRACT_INTEL_ENABLED": "Subcontracting / supply-chain intelligence vertical (EPIC-SUBINTEL #1224, unreleased)",
     "PREDICTIVE_INTEL_ENABLED": "Predictive intelligence vertical (EPIC-PREDINT #1260, unreleased)",
@@ -267,7 +265,6 @@ _FLAG_LIFECYCLE: dict[str, dict] = {
     # Cron & Operations
     "HEALTH_CANARY_ENABLED": {"owner": "infra", "category": "ops", "lifecycle": "permanent", "created": "2025-11"},
     "DIGEST_ENABLED": {"owner": "email", "category": "ops", "lifecycle": "experimental", "created": "2025-12"},
-    "ALERTS_ENABLED": {"owner": "email", "category": "ops", "lifecycle": "permanent", "created": "2025-12"},
     "RECONCILIATION_ENABLED": {"owner": "billing", "category": "ops", "lifecycle": "permanent", "created": "2025-12"},
     # Trial & Billing
     "TRIAL_EMAILS_ENABLED": {"owner": "billing", "category": "trial", "lifecycle": "permanent", "created": "2025-12"},
@@ -275,7 +272,6 @@ _FLAG_LIFECYCLE: dict[str, dict] = {
     # Feature Gates
     "ORGANIZATIONS_ENABLED": {"owner": "product", "category": "gate", "lifecycle": "gate", "created": "2026-01"},
     "MESSAGES_ENABLED": {"owner": "product", "category": "gate", "lifecycle": "gate", "created": "2025-12"},
-    "ALERTS_SYSTEM_ENABLED": {"owner": "product", "category": "gate", "lifecycle": "gate", "created": "2026-01"},
     "PARTNERS_ENABLED": {"owner": "product", "category": "gate", "lifecycle": "gate", "created": "2026-01"},
     # Infra
     "METRICS_ENABLED": {"owner": "infra", "category": "infra", "lifecycle": "permanent", "created": "2025-11"},

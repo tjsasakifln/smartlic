@@ -175,7 +175,6 @@ def _enable_feature_gated_routes(monkeypatch):
     import config
     monkeypatch.setattr(config, "ORGANIZATIONS_ENABLED", True)
     monkeypatch.setattr(config, "MESSAGES_ENABLED", True)
-    monkeypatch.setattr(config, "ALERTS_SYSTEM_ENABLED", True)
     monkeypatch.setattr(config, "PARTNERS_ENABLED", True)
 
 

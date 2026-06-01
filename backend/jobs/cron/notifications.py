@@ -3,6 +3,7 @@ import asyncio
 import logging
 from datetime import datetime, timezone, timedelta
 
+from config import ALERTS_ENABLED, ALERTS_HOUR_UTC
 from jobs.cron.canary import _is_cb_or_connection_error
 
 logger = logging.getLogger(__name__)
@@ -25,9 +26,6 @@ def _next_utc_hour(target_hour: int) -> float:
 
 async def run_search_alerts() -> dict:
     import time as _time
-    from config import ALERTS_ENABLED, ALERTS_SYSTEM_ENABLED
-    if not ALERTS_SYSTEM_ENABLED:
-        return {"status": "disabled", "reason": "ALERTS_SYSTEM_ENABLED=false"}
     if not ALERTS_ENABLED:
         return {"status": "disabled"}
     lock_acquired = False
@@ -89,10 +87,6 @@ async def run_search_alerts() -> dict:
 
 
 async def _alerts_loop() -> None:
-    from config import ALERTS_ENABLED, ALERTS_SYSTEM_ENABLED, ALERTS_HOUR_UTC
-    if not ALERTS_SYSTEM_ENABLED or not ALERTS_ENABLED:
-        logger.info("STORY-315: Alerts disabled")
-        return
     await asyncio.sleep(_next_utc_hour(ALERTS_HOUR_UTC))
     while True:
         try:
