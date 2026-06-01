@@ -1,4 +1,9 @@
 # =============================================================================
+# Claude Code — Pre-Push Gate state file
+# =============================================================================
+.claude/.pre-push-passed
+
+# =============================================================================
 # Python
 # =============================================================================
 __pycache__/
@@ -364,6 +369,7 @@ docker-compose.*.override.yml
 .claude/hooks/*
 !.claude/hooks/smart-router.cjs
 !.claude/hooks/squads-briefing.cjs
+!.claude/hooks/pre-push-gate.cjs
 
 # .aios-core/ — whitelist agent-teams and workflows only
 .aios-core/*

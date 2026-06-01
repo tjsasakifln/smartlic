@@ -210,7 +210,7 @@ Sempre que o usuário pedir uma aplicação ou solução nova:
 - **Use CLI tools (Supabase, Railway, gh) instead of web dashboards when possible**
 - **Before writing any `.story.md` file: invoke `Skill(skill: "sm")` first** — mesmo em continuação de sessão
 - **Before running any story GO/NO-GO verdict: invoke `Skill(skill: "po")` first**
-- **Before any `git commit` or `git push`: invoke `Skill(skill: "pre-push")` first** — valida lint + tests + build localmente (mesmos gates do CI)
+- **Before any `git commit` or `git push`: invoke `Skill(skill: "pre-push")` first** — valida lint + tests + build localmente (mesmos gates do CI). **Enforced by `.claude/hooks/pre-push-gate.cjs` — git commit/push são BLOQUEADOS sem validação recente.**
 
 ## Web Search & Industry Validation
 
@@ -434,16 +434,32 @@ Supabase Auth with RLS on all tables. Input validation via Pydantic (backend) an
 
 **Commits:** Use conventional commits: `feat(backend):`, `fix(frontend):`, `docs:`, `chore:`
 
-**Before Committing — Contrato Pre-Push (NON-NEGOTIABLE):**
+**Before Committing — Contrato Pre-Push (NON-NEGOTIABLE, ENFORCED BY HOOK):**
 
-O custo de feedback mais caro é round-trip até o CI remoto. O agente **NUNCA** faz push de código que não validou localmente contra os mesmos gates do CI.
+O custo de feedback mais caro é round-trip até o CI remoto. O hook `.claude/hooks/pre-push-gate.cjs` **BLOQUEIA** `git commit` e `git push` se a validação local não foi concluída nos últimos 5 minutos. O agente **NUNCA** faz push de código que não validou localmente contra os mesmos gates do CI.
 
-1. **Pre-Push Validation obrigatório.** Antes de `git commit` ou `git push`, execute localmente os mesmos comandos que o CI executa. Se o pipeline roda `npm run lint && npm run test && npm run build`, isso é regra não-negociável. O agente invoca `/pre-push` sozinho, sem o usuário precisar lembrar.
-2. **Falha local = sem push.** Se qualquer gate falhar localmente, corrija antes de commitar. Nunca empurre código quebrado esperando o CI pegar.
-3. **PR Review com contexto.** Agentes revisores de PR (`/review-pr`) devem consultar o histórico de falhas do branch (git log, issues relacionadas, CI runs anteriores) antes de propor merge. Sem isso, o review avalia o diff no vácuo.
-4. **Hook git pre-push com SDK.** Camada adicional de gate local: usar o SDK com `--output-format=json` em um hook `.git/hooks/pre-push` real, barrando o push se o agente detectar violações. O Claude age como camada de gate local antes do CI remoto sequer ver o código.
+**Matriz determinística de validação — comandos exatos por tipo de alteração:**
 
-**Resumo do fluxo:** `code → /pre-push (lint+test+build) → commit → PR review com histórico → push → CI`. O feedback é deslocado para a esquerda. O que antes era capturado em minutos no CI agora é capturado em segundos localmente.
+| Arquivos alterados | Comando obrigatório | Exit code |
+|---|---|---|
+| `backend/**` | `cd backend && ruff check . && pytest tests/ -m "not benchmark and not external" --ignore=tests/fuzz --ignore=tests/integration --cov=. --cov-fail-under=71 -v && python scripts/check_module_coverage.py` | **`$? -eq 0`** |
+| `frontend/**` | `cd frontend && npx tsc --noEmit --pretty && npm test -- --coverage --ci --no-cache && npm run build` | **`$? -eq 0`** |
+| `supabase/migrations/**` | `cd backend && pytest tests/ -k "migration" -v` | **`$? -eq 0`** |
+| `backend/**` + `frontend/**` | Ambos os comandos acima (backend + frontend) | **`$? -eq 0`** |
+| Apenas docs/config (`*.md`, `.github/**`, `docs/**`) | Nenhum — toque `.claude/.pre-push-passed` para registrar skip | — |
+
+**Regras de verificação de exit code:**
+1. Após **CADA** comando, verifique `$?` explicitamente. Nunca assuma que passou porque não viu erro no stdout.
+2. Se `$? -ne 0`: **CORRIJA antes de prosseguir.** Não commite, não faça push, não re-triggere CI.
+3. Apenas após `$? -eq 0` em todos os gates aplicáveis: toque `.claude/.pre-push-passed` e prossiga.
+
+**Política anti-re-run (ZERO TOLERÂNCIA):**
+- `chore: trigger CI re-run` é **PROIBIDO**. Se CI falhar, corrija localmente e faça commit de fix real (`fix:`).
+- CI falhou por flaky test ou timeout? (1) Investigue causa raiz, (2) corrija o teste ou aumente timeout, (3) commit com `fix:`.
+- **Máximo de 1 re-run manual por PR.** No segundo, pare tudo e investigue a causa raiz.
+- CI quebrado never é "normal". Zero-failure policy: todo failure tem causa determinística.
+
+**Fluxo completo:** `code → /pre-push (matriz acima) → touch .claude/.pre-push-passed → git commit → git push → CI`. Feedback deslocado para a esquerda. O que antes era capturado em minutos no CI agora é capturado em segundos localmente.
 
 ### Migration Policy (STORY-6.3 EPIC-TD-2026Q2)
 
