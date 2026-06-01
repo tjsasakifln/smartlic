@@ -10,6 +10,7 @@ import FornecedorPseoCTA from './FornecedorPseoCTA';
 import { isNoindexed } from '@/lib/seo/noindex';
 import AlertEntityCta from '@/components/seo/AlertEntityCta';
 import WhatsAppCTA from '@/app/components/whatsapp/WhatsAppCTA';
+import { PseoPageTracker } from '@/app/components/seo/PseoPageTracker';
 
 // Sprint 3 Parte 13: paginas de perfil de fornecedor por CNPJ
 // ISR 24h — dados do PNCP atualizados diariamente
@@ -253,6 +254,11 @@ export default async function FornecedorCnpjPage({ params }: Props) {
 
   return (
     <>
+      {/* CONV-009b (#1325): scroll depth + engagement tracking (view event handled by FornecedorPseoCTA) */}
+      <PseoPageTracker
+        sourceTemplate="fornecedor_page"
+        entityId={cnpj}
+      />
       <LandingNavbar />
       <main className="min-h-screen bg-gray-50 pt-20 pb-16">
         {jsonLd.map((ld, i) => (

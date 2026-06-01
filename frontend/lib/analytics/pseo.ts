@@ -28,6 +28,10 @@ export type PseoEventName =
   | 'pseo_calculator_result'
   | 'pseo_lead_captured'
   | 'pseo_checkout_click'
+  // CONV-009b (#1325): Scroll depth and time-on-page tracking
+  | 'pseo_scroll_depth'
+  | 'pseo_engagement'
+  | 'pseo_preview_cta_click'
   // CONV-014: Alert system tracking events
   | 'alert_created'
   | 'alert_matched'

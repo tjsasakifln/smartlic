@@ -27,6 +27,8 @@ import { LeadCapture } from "@/components/LeadCapture";
 import SeoBannerCta from "@/app/components/landing/SeoBannerCta";
 import AlertEntityCta from "@/components/seo/AlertEntityCta";
 import WhatsAppCTA from "@/app/components/whatsapp/WhatsAppCTA";
+import { PseoPageTracker } from "@/app/components/seo/PseoPageTracker";
+import { PseoLink } from "@/app/components/seo/PseoLink";
 
 /**
  * STORY-324 AC5: SSG with ISR 6h for sector landing pages.
@@ -116,6 +118,13 @@ export default async function SectorPage({
 
   return (
     <>
+      {/* CONV-009b (#1325): pSEO analytics — view event + scroll depth + engagement */}
+      <PseoPageTracker
+        sourceTemplate="licitacoes_hub"
+        entityId={setor}
+        setor={setor}
+        viewEventName="pseo_edital_viewed"
+      />
       <StickyTrialCTA refParam="sticky-licitacoes" />
       <main id="main-content" className="min-h-screen bg-white dark:bg-gray-950">
       {/* AC6: Hero */}
@@ -498,13 +507,16 @@ export default async function SectorPage({
           <p className="text-sm text-slate-600 dark:text-slate-400 mb-4">
             Diagnóstico gratuito. Sem compromisso.
           </p>
-          <Link
+          <PseoLink
             href={`/consultoria-b2g?modalidade=radar&setor=${setor}`}
             className="inline-block rounded-lg bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-blue-700 transition-colors"
             data-cta-source="pseo-licitacoes"
+            eventName="pseo_alert_signup"
+            sourceTemplate="licitacoes_hub"
+            setor={setor}
           >
             Receber radar da minha empresa
-          </Link>
+          </PseoLink>
         </div>
       </section>
 

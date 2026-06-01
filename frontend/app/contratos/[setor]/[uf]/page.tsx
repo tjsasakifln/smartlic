@@ -17,6 +17,8 @@ import Footer from '@/app/components/Footer';
 import StickyTrialCTA from '@/app/components/StickyTrialCTA';
 import SeoBannerCta from '@/app/components/landing/SeoBannerCta';
 import AlertEntityCta from '@/components/seo/AlertEntityCta';
+import { PseoPageTracker } from '@/app/components/seo/PseoPageTracker';
+import { PseoLink } from '@/app/components/seo/PseoLink';
 
 export const revalidate = 14400; // 4h ISR (reduzido de 24h para melhorar freshness dos dados)
 
@@ -198,6 +200,13 @@ export default async function ContratosSetorUfPage({ params }: Props) {
 
   return (
     <>
+      {/* CONV-009b (#1325): pSEO analytics — scroll depth + engagement */}
+      <PseoPageTracker
+        sourceTemplate="contrato_page"
+        entityId={`${setor}/${uf}`}
+        setor={setor}
+        uf={ufUpper}
+      />
       <LandingNavbar />
       <StickyTrialCTA refParam="sticky-contratos" />
       <main className="min-h-screen bg-gray-50 pt-20 pb-16">
@@ -338,12 +347,16 @@ export default async function ContratosSetorUfPage({ params }: Props) {
                       )}
                       .
                     </p>
-                    <Link
+                    <PseoLink
                       href={`/signup?ref=contratos-mid&setor=${setor}&uf=${uf}`}
                       className="text-sm font-bold text-white bg-green-600 hover:bg-green-700 px-4 py-2 rounded-md whitespace-nowrap w-full sm:w-auto text-center"
+                      eventName="pseo_alert_signup"
+                      sourceTemplate="contrato_page"
+                      setor={setor}
+                      uf={ufUpper}
                     >
                       Ver editais agora →
-                    </Link>
+                    </PseoLink>
                   </div>
 
                   {/* Sample Contracts */}
@@ -420,12 +433,16 @@ export default async function ContratosSetorUfPage({ params }: Props) {
                         </div>
                       )}
                     </div>
-                    <Link
+                    <PseoLink
                       href={`/signup?ref=contratos-mid&setor=${setor}&uf=${uf}`}
                       className="inline-block px-5 py-2.5 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition-colors text-sm"
+                      eventName="pseo_alert_signup"
+                      sourceTemplate="contrato_page"
+                      setor={setor}
+                      uf={ufUpper}
                     >
                       Ver todos os editais de {sector.name} em {ufName} →
-                    </Link>
+                    </PseoLink>
                   </div>
                 </section>
               )}
@@ -472,12 +489,16 @@ export default async function ContratosSetorUfPage({ params }: Props) {
             <p className="text-gray-600 mb-4">
               Receba alertas quando novos contratos forem publicados nas fontes oficiais.
             </p>
-            <Link
+            <PseoLink
               href="/signup?ref=contratos-bot"
               className="inline-block px-6 py-3 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition-colors"
+              eventName="pseo_lead_captured"
+              sourceTemplate="contrato_page"
+              setor={setor}
+              uf={ufUpper}
             >
               Testar 14 dias grátis →
-            </Link>
+            </PseoLink>
           </section>
 
           {/* CONV-014: Alert CTA — criar alerta de setor em UF */}
