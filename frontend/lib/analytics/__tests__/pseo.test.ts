@@ -168,6 +168,15 @@ describe('event forwarding', () => {
     );
   });
 
+  it('forwards pseo_contrato_viewed with source_template and entity_id', () => {
+    const props = { source_template: 'contrato_page' as const, entity_id: 'pncp-contrato-456', setor: 'pavimentacao-asfaltica', uf: 'SC' };
+    trackPseoEvent('pseo_contrato_viewed', props);
+    expect(mockTrack).toHaveBeenCalledWith(
+      'pseo_contrato_viewed',
+      expect.objectContaining({ source_template: 'contrato_page', entity_id: 'pncp-contrato-456', setor: 'pavimentacao-asfaltica', uf: 'SC' }),
+    );
+  });
+
   it('includes timestamp and environment in every tracked event', () => {
     trackPseoEvent('pseo_lead_captured', { source_template: 'orgao_page' as const });
     const callArgs = mockTrack.mock.calls[0][1];
