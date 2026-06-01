@@ -8734,6 +8734,68 @@
         "title": "MemorySnapshot",
         "type": "object"
       },
+      "MesCalendario": {
+        "description": "Single month entry in the seasonal calendar.",
+        "properties": {
+          "indice_sazonalidade": {
+            "description": "Seasonality index: 0 = at average, >0 = detectable seasonality",
+            "title": "Indice Sazonalidade",
+            "type": "number"
+          },
+          "mes": {
+            "description": "Month number (1-12)",
+            "maximum": 12.0,
+            "minimum": 1.0,
+            "title": "Mes",
+            "type": "integer"
+          },
+          "orgaos_principais": {
+            "description": "Top 5 public buyers in this month",
+            "items": {
+              "type": "string"
+            },
+            "title": "Orgaos Principais",
+            "type": "array"
+          },
+          "quantidade_media": {
+            "description": "Average number of contracts/opportunities for this month",
+            "title": "Quantidade Media",
+            "type": "number"
+          },
+          "setor_dominante": {
+            "description": "Most frequent sector in this month",
+            "title": "Setor Dominante",
+            "type": "string"
+          },
+          "tendencia": {
+            "description": "Trend direction: crescimento | estabilidade | declinio",
+            "title": "Tendencia",
+            "type": "string"
+          },
+          "variacao_anual": {
+            "description": "Year-over-year relative change in average volume",
+            "title": "Variacao Anual",
+            "type": "number"
+          },
+          "volume_medio": {
+            "description": "Average total contract value for this month",
+            "title": "Volume Medio",
+            "type": "number"
+          }
+        },
+        "required": [
+          "mes",
+          "volume_medio",
+          "quantidade_media",
+          "setor_dominante",
+          "orgaos_principais",
+          "indice_sazonalidade",
+          "tendencia",
+          "variacao_anual"
+        ],
+        "title": "MesCalendario",
+        "type": "object"
+      },
       "MessageResponse": {
         "description": "Single message in a conversation thread.",
         "properties": {
@@ -12856,6 +12918,84 @@
           "data"
         ],
         "title": "SearchesOverTimeResponse",
+        "type": "object"
+      },
+      "SeasonalCalendarResponse": {
+        "description": "Full response from predict_seasonal_calendar RPC.",
+        "properties": {
+          "calendario": {
+            "description": "Array of 12 monthly entries (one per month)",
+            "items": {
+              "$ref": "#/components/schemas/MesCalendario"
+            },
+            "title": "Calendario",
+            "type": "array"
+          },
+          "stats": {
+            "$ref": "#/components/schemas/SeasonalCalendarStats",
+            "description": "Aggregate statistics"
+          }
+        },
+        "required": [
+          "calendario",
+          "stats"
+        ],
+        "title": "SeasonalCalendarResponse",
+        "type": "object"
+      },
+      "SeasonalCalendarStats": {
+        "description": "Aggregate statistics for the seasonal calendar.",
+        "properties": {
+          "anos_analisados": {
+            "description": "Number of years analyzed",
+            "title": "Anos Analisados",
+            "type": "integer"
+          },
+          "mes_pico": {
+            "anyOf": [
+              {
+                "maximum": 12.0,
+                "minimum": 1.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Month with highest average volume",
+            "title": "Mes Pico"
+          },
+          "mes_vale": {
+            "anyOf": [
+              {
+                "maximum": 12.0,
+                "minimum": 1.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Month with lowest average volume",
+            "title": "Mes Vale"
+          },
+          "total_contratos_base": {
+            "description": "Total number of contracts/bids in the analysis base",
+            "title": "Total Contratos Base",
+            "type": "integer"
+          },
+          "uf": {
+            "description": "UF code (uppercase)",
+            "title": "Uf",
+            "type": "string"
+          }
+        },
+        "required": [
+          "uf",
+          "anos_analisados",
+          "total_contratos_base"
+        ],
+        "title": "SeasonalCalendarStats",
         "type": "object"
       },
       "SectorAggregate": {
@@ -24961,6 +25101,89 @@
         "summary": "Get Plans",
         "tags": [
           "billing"
+        ]
+      }
+    },
+    "/v1/predict/seasonal-calendar": {
+      "get": {
+        "description": "Retorna um calendario sazonal de 12 meses com base no historico de contratos e licitacoes da UF. Inclui volume medio, quantidade, setor dominante, orgaos principais, indice de sazonalidade, tendencia e variacao anual para cada mes.",
+        "operationId": "get_seasonal_calendar_v1_predict_seasonal_calendar_get",
+        "parameters": [
+          {
+            "description": "UF (ex: SP, RJ, SC)",
+            "in": "query",
+            "name": "uf",
+            "required": true,
+            "schema": {
+              "description": "UF (ex: SP, RJ, SC)",
+              "maxLength": 2,
+              "minLength": 2,
+              "pattern": "^[A-Za-z]{2}$",
+              "title": "Uf",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Optional filter by sector slugs (e.g. engenharia, saude)",
+            "in": "query",
+            "name": "setores",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Optional filter by sector slugs (e.g. engenharia, saude)",
+              "title": "Setores"
+            }
+          },
+          {
+            "description": "Number of historical years to analyze (1-20)",
+            "in": "query",
+            "name": "anos_historico",
+            "required": false,
+            "schema": {
+              "default": 5,
+              "description": "Number of historical years to analyze (1-20)",
+              "maximum": 20,
+              "minimum": 1,
+              "title": "Anos Historico",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SeasonalCalendarResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Calendario sazonal de compras por UF",
+        "tags": [
+          "predictive"
         ]
       }
     },
