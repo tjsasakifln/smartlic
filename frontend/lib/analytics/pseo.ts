@@ -27,7 +27,11 @@ export type PseoEventName =
   | 'pseo_organ_viewed'
   | 'pseo_calculator_result'
   | 'pseo_lead_captured'
-  | 'pseo_checkout_click';
+  | 'pseo_checkout_click'
+  // CONV-014: Alert system tracking events
+  | 'alert_created'
+  | 'alert_matched'
+  | 'alert_upgrade_cta_click';
 
 export type PseoSourceTemplate =
   | 'fornecedor_page'
@@ -37,7 +41,11 @@ export type PseoSourceTemplate =
   | 'blog_hub'
   | 'perguntas'
   | 'licitacoes_hub'
-  | 'calculadora_reajuste';
+  | 'calculadora_reajuste'
+  | 'alerta_fornecedor_page'
+  | 'alerta_orgao_page'
+  | 'alerta_setor_page'
+  | 'alerta_municipio_page';
 
 export type PseoEventProperties = ConversionContext & {
   source_template: PseoSourceTemplate;

@@ -7,6 +7,7 @@ import os
 import time as _time
 from datetime import datetime, timedelta, timezone
 
+from config import ALERTS_ENABLED, ALERTS_HOUR_UTC
 from cron._loop import (
     acquire_redis_lock, release_redis_lock,
     cron_loop, daily_loop, is_cb_or_connection_error,
@@ -95,9 +96,6 @@ async def start_session_cleanup_task() -> asyncio.Task:
 
 async def run_search_alerts() -> dict:
     """Execute a single search alerts run with lock protection."""
-    from config import ALERTS_ENABLED, ALERTS_SYSTEM_ENABLED
-    if not ALERTS_SYSTEM_ENABLED:
-        return {"status": "disabled", "reason": "ALERTS_SYSTEM_ENABLED=false"}
     if not ALERTS_ENABLED:
         return {"status": "disabled"}
 
@@ -161,18 +159,10 @@ async def run_search_alerts() -> dict:
 
 async def _alerts_loop() -> None:
     """STORY-315 AC8: Run search alerts daily at configured hour. Exposed for tests."""
-    from config import ALERTS_ENABLED, ALERTS_SYSTEM_ENABLED, ALERTS_HOUR_UTC
-    if not ALERTS_SYSTEM_ENABLED or not ALERTS_ENABLED:
-        return
     await daily_loop("STORY-315 alerts", run_search_alerts, ALERTS_HOUR_UTC)
 
 
 async def start_alerts_task() -> asyncio.Task:
-    from config import ALERTS_ENABLED, ALERTS_SYSTEM_ENABLED, ALERTS_HOUR_UTC
-    if not ALERTS_SYSTEM_ENABLED or not ALERTS_ENABLED:
-        logger.info("STORY-315: Alerts disabled")
-        return asyncio.create_task(asyncio.sleep(0), name="alerts_noop")
-
     task = asyncio.create_task(_alerts_loop(), name="search_alerts")
     logger.info("STORY-315: Search alerts task started (daily at 08:00 BRT)")
     return task

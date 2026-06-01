@@ -264,7 +264,6 @@ _FEATURE_FLAG_REGISTRY: dict[str, tuple[str, str]] = {
     # --- Cron & Operations ---
     "HEALTH_CANARY_ENABLED": ("HEALTH_CANARY_ENABLED", "true"),
     "DIGEST_ENABLED": ("DIGEST_ENABLED", "false"),
-    "ALERTS_ENABLED": ("ALERTS_ENABLED", "true"),
     "RECONCILIATION_ENABLED": ("RECONCILIATION_ENABLED", "true"),
     # --- Trial & Billing ---
     "TRIAL_EMAILS_ENABLED": ("TRIAL_EMAILS_ENABLED", "true"),
@@ -276,7 +275,6 @@ _FEATURE_FLAG_REGISTRY: dict[str, tuple[str, str]] = {
     # --- Feature Gates (unreleased features) ---
     "ORGANIZATIONS_ENABLED": ("ORGANIZATIONS_ENABLED", "false"),
     "MESSAGES_ENABLED": ("MESSAGES_ENABLED", "true"),
-    "ALERTS_SYSTEM_ENABLED": ("ALERTS_SYSTEM_ENABLED", "false"),
     "PARTNERS_ENABLED": ("PARTNERS_ENABLED", "false"),
     # SUBINTEL-030 (EPIC-SUBINTEL #1224): subcontracting intelligence vertical
     "SUBCONTRACT_INTEL_ENABLED": ("SUBCONTRACT_INTEL_ENABLED", "false"),

@@ -20,7 +20,6 @@ from fastapi.responses import HTMLResponse
 from pydantic import BaseModel, Field
 
 from auth import require_auth
-from config import ALERTS_SYSTEM_ENABLED
 from log_sanitizer import mask_user_id
 from schemas.common import SuccessMessageResponse
 
@@ -34,7 +33,34 @@ router = APIRouter(tags=["alerts"])
 
 UNSUBSCRIBE_SECRET = os.getenv("UNSUBSCRIBE_SECRET", "smartlic-unsub-default-key")
 FRONTEND_URL = os.getenv("FRONTEND_URL", "https://smartlic.tech")
-MAX_ALERTS_PER_USER = int(os.getenv("MAX_ALERTS_PER_USER", "20"))
+
+# Plan-based alert limits (CONV-014: free=0, trial=5, pro=20)
+_PLAN_ALERT_LIMITS: dict[str, int] = {
+    "free": 0,
+    "free_trial": 5,
+    "smartlic_pro": 20,
+    "consultoria": 20,
+    "master": 20,
+}
+
+
+async def _get_alert_limit(user_id: str) -> int:
+    """Get max alerts allowed for user based on their plan type."""
+    from supabase_client import get_supabase, sb_execute
+    try:
+        sb = get_supabase()
+        result = await sb_execute(
+            sb.table("profiles")
+            .select("plan_type")
+            .eq("id", user_id)
+            .single()
+        )
+        plan_type = (result.data or {}).get("plan_type", "free")
+        return _PLAN_ALERT_LIMITS.get(plan_type, _PLAN_ALERT_LIMITS["free"])
+    except Exception:
+        logger.warning(f"Failed to get plan for user {mask_user_id(user_id)}, defaulting to trial limit")
+        return _PLAN_ALERT_LIMITS["free_trial"]
+
 
 # ---------------------------------------------------------------------------
 # Pydantic models (inline per codebase convention)
@@ -162,8 +188,6 @@ async def create_alert(
     AC1: Persists alert definition with filter criteria.
     Enforces a per-user limit to prevent abuse.
     """
-    if not ALERTS_SYSTEM_ENABLED:
-        raise HTTPException(status_code=404, detail="Feature not available")
     from supabase_client import get_supabase, sb_execute
 
     user_id = user["id"]
@@ -171,7 +195,14 @@ async def create_alert(
 
     _validate_filters(body.filters)
 
-    # Enforce per-user alert limit
+    # Enforce per-user alert limit based on plan (CONV-014)
+    max_alerts = await _get_alert_limit(user_id)
+    if max_alerts <= 0:
+        raise HTTPException(
+            status_code=403,
+            detail="Seu plano não permite criar alertas. Faça upgrade para continuar.",
+        )
+
     try:
         count_result = await sb_execute(
             sb.table("alerts")
@@ -179,10 +210,10 @@ async def create_alert(
             .eq("user_id", user_id)
         )
         current_count = count_result.count if count_result.count is not None else 0
-        if current_count >= MAX_ALERTS_PER_USER:
+        if current_count >= max_alerts:
             raise HTTPException(
                 status_code=409,
-                detail=f"Limite de {MAX_ALERTS_PER_USER} alertas atingido. Remova um alerta existente.",
+                detail=f"Limite de {max_alerts} alertas atingido para seu plano. Remova um alerta existente ou faça upgrade.",
             )
     except HTTPException:
         raise
@@ -231,8 +262,6 @@ async def list_alerts(
 
     AC2: Includes sent_count (number of items sent for each alert).
     """
-    if not ALERTS_SYSTEM_ENABLED:
-        raise HTTPException(status_code=404, detail="Feature not available")
     from supabase_client import get_supabase, sb_execute
 
     user_id = user["id"]
@@ -296,8 +325,6 @@ async def update_alert(
     AC3: Only name, filters, and active status can be updated.
     Validates that the alert belongs to the authenticated user.
     """
-    if not ALERTS_SYSTEM_ENABLED:
-        raise HTTPException(status_code=404, detail="Feature not available")
     from supabase_client import get_supabase, sb_execute
 
     user_id = user["id"]
@@ -361,8 +388,6 @@ async def delete_alert(
     AC4: Cascading delete removes associated alert_sent_items.
     Validates that the alert belongs to the authenticated user.
     """
-    if not ALERTS_SYSTEM_ENABLED:
-        raise HTTPException(status_code=404, detail="Feature not available")
     from supabase_client import get_supabase, sb_execute
 
     user_id = user["id"]
@@ -507,8 +532,6 @@ async def preview_alert(
     STORY-315 AC12: Executes matching without sending email.
     Returns opportunities that would be sent, useful for validating filters.
     """
-    if not ALERTS_SYSTEM_ENABLED:
-        raise HTTPException(status_code=404, detail="Feature not available")
     from supabase_client import get_supabase, sb_execute
 
     user_id = user["id"]
@@ -595,8 +618,6 @@ async def alert_history(
     AC13: Returns alert_sent_items ordered by sent_at desc.
     Only accessible if the alert belongs to the authenticated user.
     """
-    if not ALERTS_SYSTEM_ENABLED:
-        raise HTTPException(status_code=404, detail="Feature not available")
     from supabase_client import get_supabase, sb_execute
 
     user_id = user["id"]

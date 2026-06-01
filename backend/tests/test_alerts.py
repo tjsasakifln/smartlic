@@ -19,7 +19,7 @@ Key mock patterns (from CLAUDE.md):
 """
 
 import pytest
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch, MagicMock, AsyncMock
 from datetime import datetime, timezone
 
 import sys
@@ -112,18 +112,13 @@ def setup_auth():
 
 
 @pytest.fixture(autouse=True)
-def _alerts_system_enabled():
-    """The alerts router is feature-gated by ``ALERTS_SYSTEM_ENABLED`` (default
-    false in production). Without the gate the handlers short-circuit to 404,
-    hiding the real CRUD/validation contract. Force the flag on at both the
-    import site (``routes.alerts``) and the config module.
+def _mock_alert_limit():
+    """Mock the plan-based alert limit to return 20 (pro) for all tests.
 
-    CIG-BE-alerts-endpoint-404: previous suite assumed the flag was on by
-    default; it is now gated, so every endpoint returned 404 before any
-    validation could run.
+    CONV-014: _get_alert_limit queries the user's plan via profiles table.
+    This fixture avoids needing to mock the profile query in every test.
     """
-    with patch("routes.alerts.ALERTS_SYSTEM_ENABLED", True), \
-         patch("config.ALERTS_SYSTEM_ENABLED", True):
+    with patch("routes.alerts._get_alert_limit", new_callable=AsyncMock, return_value=20):
         yield
 
 
@@ -220,22 +215,15 @@ class TestCreateAlert:
         assert resp.status_code == 422
 
     def test_create_alert_per_user_limit_returns_409(self, client):
-        """When user already has MAX_ALERTS_PER_USER, returns 409."""
+        """When user already has reached plan limit (20 for pro), returns 409."""
         sb = _mock_sb()
 
-        call_count = 0
-
         async def fake_sb_execute(query):
-            nonlocal call_count
-            call_count += 1
-            if call_count == 1:
-                # count check returns limit reached
-                return MockResponse(data=[], count=20)
-            return MockResponse(data=[_alert_row()])
+            # Count check returns limit reached (20 alerts, pro limit is 20)
+            return MockResponse(data=[], count=20)
 
         with patch("supabase_client.get_supabase", return_value=sb), \
-             patch("supabase_client.sb_execute", side_effect=fake_sb_execute), \
-             patch("routes.alerts.MAX_ALERTS_PER_USER", 20):
+             patch("supabase_client.sb_execute", side_effect=fake_sb_execute):
             resp = client.post(
                 "/v1/alerts",
                 json={"name": "One too many", "filters": {"setor": "vestuario"}},

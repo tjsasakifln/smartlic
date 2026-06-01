@@ -16,6 +16,7 @@ import LandingNavbar from '@/app/components/landing/LandingNavbar';
 import Footer from '@/app/components/Footer';
 import StickyTrialCTA from '@/app/components/StickyTrialCTA';
 import SeoBannerCta from '@/app/components/landing/SeoBannerCta';
+import AlertEntityCta from '@/components/seo/AlertEntityCta';
 
 export const revalidate = 14400; // 4h ISR (reduzido de 24h para melhorar freshness dos dados)
 
@@ -478,6 +479,16 @@ export default async function ContratosSetorUfPage({ params }: Props) {
               Testar 14 dias grátis →
             </Link>
           </section>
+
+          {/* CONV-014: Alert CTA — criar alerta de setor em UF */}
+          <div className="mt-8">
+            <AlertEntityCta
+              entityType="setor"
+              entityId={setor}
+              entityLabel={sector.name}
+              uf={ufUpper}
+            />
+          </div>
 
           <p className="text-xs text-gray-400 mt-8">{data?.aviso_legal || 'Dados das fontes oficiais. Atualização diária.'}</p>
         </div>
