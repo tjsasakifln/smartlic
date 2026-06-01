@@ -38,6 +38,9 @@ export interface PreviewCTAProps {
   setorLabel: string; // Human label, e.g. "Pavimentacao asfaltica"
   ufLabel: string; // Human label, e.g. "Santa Catarina"
   totalOpen?: number; // Total open editais for the banner label
+  /** Pre-fetched items — when provided, skips API fetch and renders data immediately.
+   *  Used by entity pages (fornecedores, orgaos, municipios) that have their own data. */
+  items?: EditalItem[];
 }
 
 /* ------------------------------------------------------------------ */
@@ -191,6 +194,7 @@ export default function PreviewCTA({
   setorLabel,
   ufLabel,
   totalOpen,
+  items: preFetchedItems,
 }: PreviewCTAProps) {
   const [isOpen, setIsOpen] = useState(hasPreviewParam);
   const [data, setData] = useState<RecentEditaisResponse | null>(null);
@@ -229,13 +233,23 @@ export default function PreviewCTA({
       });
     }
 
+    // If pre-fetched items provided, use them directly — skip API fetch
+    if (preFetchedItems) {
+      setData({ items: preFetchedItems, total: preFetchedItems.length });
+      return;
+    }
+
     fetchData();
-  }, [setor, uf, fetchData]);
+  }, [setor, uf, fetchData, preFetchedItems]);
 
   // Auto-open if ?preview=true was in the URL on mount
   useEffect(() => {
     if (hasPreviewParam() && !data && !loading && !error) {
-      fetchData();
+      if (preFetchedItems) {
+        setData({ items: preFetchedItems, total: preFetchedItems.length });
+      } else {
+        fetchData();
+      }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);

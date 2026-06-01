@@ -3,7 +3,6 @@ import Link from 'next/link';
 import ContentPageLayout from '../../components/ContentPageLayout';
 import OrgaoPerfilClient from './OrgaoPerfilClient';
 import EmptyStateSEO from '@/components/seo/EmptyStateSEO';
-import InlineTrialCTA from '../../components/InlineTrialCTA';
 import { LeadCapture } from '@/components/LeadCapture';
 import AlertEntityCta from '@/components/seo/AlertEntityCta';
 import { FoundersRibbon } from '@/components/banners/FoundersRibbon';
@@ -11,6 +10,7 @@ import { fetchWithBudget } from '@/lib/safe-fetch';
 import { getBackendUrl } from '@/lib/backend-url';
 import { AdvisoryDisclaimer } from '@/components/legal/AdvisoryDisclaimer';
 import WhatsAppCTA from '@/app/components/whatsapp/WhatsAppCTA';
+import PreviewCTA from '@/app/components/programmatic/PreviewCTA';
 
 const BACKEND_URL = getBackendUrl();
 
@@ -172,6 +172,16 @@ export default async function OrgaoPerfilPage({
     },
   };
 
+  // CONV-002b: preview items for PreviewCTA — 3 últimas licitações + 3 blurred
+  const previewItems = stats.ultimas_licitacoes.slice(0, 6).map((l) => ({
+    orgao: stats.nome,
+    objeto: l.objeto_compra,
+    valor_estimado: l.valor_total_estimado,
+    data_limite: null as string | null,
+    data_publicacao: l.data_publicacao,
+    link_interno: `/orgaos/${slug}`,
+  }));
+
   // SEO-P1-007 (#993): Visual breadcrumb derived from same trail as JSON-LD.
   // ContentPageLayout's BreadcrumbNav emits the BreadcrumbList JSON-LD when
   // breadcrumbItems is provided (suppressSchema=false), so we no longer need
@@ -183,6 +193,24 @@ export default async function OrgaoPerfilPage({
   ];
 
   return (
+    <>
+    {/* CONV-002b: Sticky bottom mobile CTA — contextual */}
+    <div
+      className="fixed bottom-0 left-0 right-0 z-40 sm:hidden bg-brand-navy text-white px-4 py-3 shadow-lg"
+      data-testid="pseo-sticky-cta"
+    >
+      <div className="flex items-center justify-between gap-3">
+        <span className="text-sm font-medium">
+          {stats.licitacoes_30d} editais · {stats.nome}
+        </span>
+        <Link
+          href={`/signup?ref=orgao-${slug}-sticky`}
+          className="px-4 py-2 bg-brand-blue rounded-lg text-sm font-semibold whitespace-nowrap"
+        >
+          Receber alertas →
+        </Link>
+      </div>
+    </div>
     <ContentPageLayout
       breadcrumbLabel={stats.nome}
       breadcrumbItems={breadcrumbItems}
@@ -204,12 +232,41 @@ export default async function OrgaoPerfilPage({
 
       <OrgaoPerfilClient stats={stats} />
 
-      {/* #652: Inline trial CTA after licitações list */}
-      <InlineTrialCTA
-        page="orgao"
-        source="orgao-page"
-        extraParam={{ name: 'slug', value: slug }}
-      />
+      {/* CONV-002b: PreviewCTA — 3 últimas licitações + 3 blurred (degustação) */}
+      {stats.ultimas_licitacoes.length >= 3 && (
+        <div className="mt-8">
+          <PreviewCTA
+            setor="orgao-licitacoes"
+            setorLabel={stats.nome}
+            ufLabel={stats.uf}
+            totalOpen={stats.licitacoes_30d}
+            items={previewItems}
+          />
+        </div>
+      )}
+
+      {/* CONV-002b: Contextual CTA — trial + "Só quero ver os dados" */}
+      <section className="max-w-5xl mx-auto px-4 py-8">
+        <div className="rounded-2xl border border-brand-blue/30 bg-brand-blue/5 dark:bg-brand-blue/10 p-6 sm:p-8">
+          <p className="text-lg text-gray-900 dark:text-white mb-4">
+            Quer receber os próximos editais de <strong>{stats.nome}</strong>?
+          </p>
+          <div className="flex flex-col sm:flex-row gap-3">
+            <Link
+              href={`/signup?ref=orgao-${slug}`}
+              className="inline-block px-6 py-3 bg-brand-blue text-white font-semibold rounded-lg hover:bg-blue-700 transition-colors text-center"
+            >
+              Receber alertas grátis 14 dias →
+            </Link>
+            <Link
+              href="/observatorio"
+              className="inline-block px-6 py-3 bg-white dark:bg-gray-900 text-brand-navy dark:text-white font-medium rounded-lg border border-gray-300 dark:border-gray-700 hover:border-brand-blue transition-colors text-center"
+            >
+              Só quero ver os dados
+            </Link>
+          </div>
+        </div>
+      </section>
 
       <div className="mt-10">
         <LeadCapture
@@ -266,5 +323,6 @@ export default async function OrgaoPerfilPage({
       {/* REPO-020 (#772): Advisory disclaimer for algorithmic data aggregations */}
       <AdvisoryDisclaimer variant="full" />
     </ContentPageLayout>
+    </>
   );
 }
