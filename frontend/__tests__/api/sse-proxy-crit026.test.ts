@@ -43,10 +43,13 @@ describe("CRIT-026: SSE Proxy Retry + Observability", () => {
   }
 
   // --------------------------------------------------------------------------
-  // AC5: Undici diagnostic logging
+  // AC5: Diagnostic logging on each SSE request
   // --------------------------------------------------------------------------
+  // Nota (2026-06-01): undici dynamic import removido (webpack nao resolve
+  // modulo built-in do Node 20). Log mudou de `undici_dispatcher=custom|default`
+  // para `dispatcher=built-in`.
 
-  it("AC5: logs undici dispatcher status on each request", async () => {
+  it("AC5: logs dispatcher info on each request", async () => {
     const consoleSpy = jest
       .spyOn(console, "log")
       .mockImplementation(() => {});
@@ -67,15 +70,15 @@ describe("CRIT-026: SSE Proxy Retry + Observability", () => {
     });
 
     const GET = await getHandler();
-    await GET(makeRequest("test-undici-log"));
+    await GET(makeRequest("test-dispatcher-log"));
 
-    const undiciLogs = consoleSpy.mock.calls.filter(
+    const dispatcherLogs = consoleSpy.mock.calls.filter(
       (call) =>
         typeof call[0] === "string" &&
         call[0].includes("[SSE-PROXY]") &&
-        call[0].includes("undici_dispatcher")
+        call[0].includes("dispatcher=built-in")
     );
-    expect(undiciLogs.length).toBeGreaterThanOrEqual(1);
+    expect(dispatcherLogs.length).toBeGreaterThanOrEqual(1);
 
     consoleSpy.mockRestore();
   });
