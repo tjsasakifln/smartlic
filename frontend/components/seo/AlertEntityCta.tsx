@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { trackPseoEvent } from '@/lib/analytics/pseo';
+import type { PseoSourceTemplate } from '@/lib/analytics/pseo';
 
 interface AlertEntityCtaProps {
   /** Entity type: cnpj | orgao | setor | municipio */
@@ -48,7 +49,7 @@ export default function AlertEntityCta({
     }
   };
 
-  const getSourceTemplate = (): string => {
+  const getSourceTemplate = (): PseoSourceTemplate => {
     switch (entityType) {
       case 'cnpj': return 'alerta_fornecedor_page';
       case 'orgao': return 'alerta_orgao_page';
@@ -74,7 +75,7 @@ export default function AlertEntityCta({
             source_template: getSourceTemplate(),
             entity_type: entityType,
             entity_id: entityId,
-            uf: uf || null,
+            uf: uf || undefined,
           })
         }
         className="inline-block rounded-lg bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-blue-700 transition-colors"
