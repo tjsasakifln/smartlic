@@ -4424,6 +4424,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/predict/seasonal-calendar": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Calendario sazonal de compras por UF
+         * @description Retorna um calendario sazonal de 12 meses com base no historico de contratos e licitacoes da UF. Inclui volume medio, quantidade, setor dominante, orgaos principais, indice de sazonalidade, tendencia e variacao anual para cada mes.
+         */
+        get: operations["get_seasonal_calendar_v1_predict_seasonal_calendar_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/products": {
         parameters: {
             query?: never;
@@ -9540,6 +9560,52 @@ export interface components {
             tracemalloc_top_25: components["schemas"]["TraceMallocEntry"][];
         };
         /**
+         * MesCalendario
+         * @description Single month entry in the seasonal calendar.
+         */
+        MesCalendario: {
+            /**
+             * Indice Sazonalidade
+             * @description Seasonality index: 0 = at average, >0 = detectable seasonality
+             */
+            indice_sazonalidade: number;
+            /**
+             * Mes
+             * @description Month number (1-12)
+             */
+            mes: number;
+            /**
+             * Orgaos Principais
+             * @description Top 5 public buyers in this month
+             */
+            orgaos_principais: string[];
+            /**
+             * Quantidade Media
+             * @description Average number of contracts/opportunities for this month
+             */
+            quantidade_media: number;
+            /**
+             * Setor Dominante
+             * @description Most frequent sector in this month
+             */
+            setor_dominante: string;
+            /**
+             * Tendencia
+             * @description Trend direction: crescimento | estabilidade | declinio
+             */
+            tendencia: string;
+            /**
+             * Variacao Anual
+             * @description Year-over-year relative change in average volume
+             */
+            variacao_anual: number;
+            /**
+             * Volume Medio
+             * @description Average total contract value for this month
+             */
+            volume_medio: number;
+        };
+        /**
          * MessageResponse
          * @description Single message in a conversation thread.
          */
@@ -11269,6 +11335,50 @@ export interface components {
             data: components["schemas"]["TimeSeriesDataPoint"][];
             /** Period */
             period: string;
+        };
+        /**
+         * SeasonalCalendarResponse
+         * @description Full response from predict_seasonal_calendar RPC.
+         */
+        SeasonalCalendarResponse: {
+            /**
+             * Calendario
+             * @description Array of 12 monthly entries (one per month)
+             */
+            calendario: components["schemas"]["MesCalendario"][];
+            /** @description Aggregate statistics */
+            stats: components["schemas"]["SeasonalCalendarStats"];
+        };
+        /**
+         * SeasonalCalendarStats
+         * @description Aggregate statistics for the seasonal calendar.
+         */
+        SeasonalCalendarStats: {
+            /**
+             * Anos Analisados
+             * @description Number of years analyzed
+             */
+            anos_analisados: number;
+            /**
+             * Mes Pico
+             * @description Month with highest average volume
+             */
+            mes_pico?: number | null;
+            /**
+             * Mes Vale
+             * @description Month with lowest average volume
+             */
+            mes_vale?: number | null;
+            /**
+             * Total Contratos Base
+             * @description Total number of contracts/bids in the analysis base
+             */
+            total_contratos_base: number;
+            /**
+             * Uf
+             * @description UF code (uppercase)
+             */
+            uf: string;
         };
         /** SectorAggregate */
         SectorAggregate: {
@@ -18427,6 +18537,42 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["BillingPlansResponse"];
+                };
+            };
+        };
+    };
+    get_seasonal_calendar_v1_predict_seasonal_calendar_get: {
+        parameters: {
+            query: {
+                /** @description UF (ex: SP, RJ, SC) */
+                uf: string;
+                /** @description Optional filter by sector slugs (e.g. engenharia, saude) */
+                setores?: string[] | null;
+                /** @description Number of historical years to analyze (1-20) */
+                anos_historico?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SeasonalCalendarResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };
