@@ -11683,6 +11683,54 @@
         "title": "ReconciliationRunsResponse",
         "type": "object"
       },
+      "RecordEventRequest": {
+        "properties": {
+          "dimensao_tipo": {
+            "description": "Tipo da dimensao: setor, uf, modalidade, orgao",
+            "title": "Dimensao Tipo",
+            "type": "string"
+          },
+          "dimensao_valor": {
+            "description": "Valor da dimensao (ex: saude, SP, pregao)",
+            "title": "Dimensao Valor",
+            "type": "string"
+          },
+          "evento_tipo": {
+            "description": "Tipo do evento: search_query, sector_view, org_view, cnpj_lookup",
+            "title": "Evento Tipo",
+            "type": "string"
+          },
+          "metadados": {
+            "additionalProperties": true,
+            "description": "Metadados adicionais (setores, ufs, modalidades). NUNCA PII.",
+            "title": "Metadados",
+            "type": "object"
+          }
+        },
+        "required": [
+          "evento_tipo",
+          "dimensao_tipo",
+          "dimensao_valor"
+        ],
+        "title": "RecordEventRequest",
+        "type": "object"
+      },
+      "RecordEventResponse": {
+        "properties": {
+          "message": {
+            "default": "Evento registrado com sucesso",
+            "title": "Message",
+            "type": "string"
+          },
+          "success": {
+            "default": true,
+            "title": "Success",
+            "type": "boolean"
+          }
+        },
+        "title": "RecordEventResponse",
+        "type": "object"
+      },
       "RecoveryCodesResponse": {
         "properties": {
           "codes": {
@@ -14814,6 +14862,24 @@
         "title": "TopEntry",
         "type": "object"
       },
+      "TopItem": {
+        "properties": {
+          "contagem": {
+            "title": "Contagem",
+            "type": "integer"
+          },
+          "dimensao_valor": {
+            "title": "Dimensao Valor",
+            "type": "string"
+          }
+        },
+        "required": [
+          "dimensao_valor",
+          "contagem"
+        ],
+        "title": "TopItem",
+        "type": "object"
+      },
       "TopOpportunity": {
         "properties": {
           "data_encerramento": {
@@ -14907,6 +14973,37 @@
           "value"
         ],
         "title": "TopOpportunity",
+        "type": "object"
+      },
+      "TopResponse": {
+        "properties": {
+          "evento_tipo": {
+            "title": "Evento Tipo",
+            "type": "string"
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/TopItem"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "periodo_fim": {
+            "title": "Periodo Fim",
+            "type": "string"
+          },
+          "periodo_inicio": {
+            "title": "Periodo Inicio",
+            "type": "string"
+          }
+        },
+        "required": [
+          "evento_tipo",
+          "periodo_inicio",
+          "periodo_fim",
+          "items"
+        ],
+        "title": "TopResponse",
         "type": "object"
       },
       "TopSupplierItem": {
@@ -24155,6 +24252,138 @@
         "summary": "Perfil de municipio com licitacoes abertas (por slug)",
         "tags": [
           "municipios-publicos"
+        ]
+      }
+    },
+    "/v1/network-events/record": {
+      "post": {
+        "description": "Record an anonymized network event.\n\nOnly collects data if user has explicitly opted in\n(profiles.allow_network_analytics = true). LGPD Art. 6, I.",
+        "operationId": "record_network_event_v1_network_events_record_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RecordEventRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RecordEventResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Record Network Event",
+        "tags": [
+          "network-events"
+        ]
+      }
+    },
+    "/v1/network-events/top": {
+      "get": {
+        "description": "Get top dimension values for a given event type.\n\nPublic endpoint \u2014 returns only anonymized aggregated data.",
+        "operationId": "get_top_network_events_v1_network_events_top_get",
+        "parameters": [
+          {
+            "description": "Tipo de evento para filtrar",
+            "in": "query",
+            "name": "evento_tipo",
+            "required": true,
+            "schema": {
+              "description": "Tipo de evento para filtrar",
+              "title": "Evento Tipo",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Dimensao para agregar",
+            "in": "query",
+            "name": "dimensao_tipo",
+            "required": false,
+            "schema": {
+              "default": "setor",
+              "description": "Dimensao para agregar",
+              "title": "Dimensao Tipo",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Janela em dias",
+            "in": "query",
+            "name": "dias",
+            "required": false,
+            "schema": {
+              "default": 30,
+              "description": "Janela em dias",
+              "maximum": 365,
+              "minimum": 1,
+              "title": "Dias",
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Maximo de resultados",
+            "in": "query",
+            "name": "limite",
+            "required": false,
+            "schema": {
+              "default": 20,
+              "description": "Maximo de resultados",
+              "maximum": 100,
+              "minimum": 1,
+              "title": "Limite",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TopResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Top Network Events",
+        "tags": [
+          "network-events"
         ]
       }
     },
