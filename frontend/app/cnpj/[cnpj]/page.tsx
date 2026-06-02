@@ -10,6 +10,10 @@ import { FoundersRibbon } from '@/components/banners/FoundersRibbon';
 import WhatsAppCTA from '@/app/components/whatsapp/WhatsAppCTA';
 import { fetchWithBudget } from '@/lib/safe-fetch';
 import { getBackendUrl } from '@/lib/backend-url';
+import {
+  buildOperationalTitle,
+  buildOperationalDescription,
+} from '@/lib/seo';
 import { buildOrgSchema } from './_jsonld';
 import { isNoindexed } from '@/lib/seo/noindex';
 import { OpportunitySignalsPanel } from '@/app/components/OpportunitySignalsPanel';
@@ -92,9 +96,23 @@ export async function generateMetadata({
     minimumFractionDigits: 0,
   }).format(valor_total_24m);
 
+  // CONV-006b: operational promise title/description
+  const title = buildOperationalTitle('cnpj', {
+    cnpj,
+    subject: empresa.razao_social,
+    count: total_contratos_24m,
+    value: valorFormatado,
+  });
+  const description = buildOperationalDescription('cnpj', {
+    cnpj,
+    subject: empresa.razao_social,
+    count: total_contratos_24m,
+    value: valorFormatado,
+  });
+
   return {
-    title: `Quanto ${empresa.razao_social} fatura com o governo? | SmartLic`,
-    description: `${empresa.razao_social} (CNPJ ${cnpj}) firmou ${total_contratos_24m} contratos públicos nos últimos 24 meses, totalizando ${valorFormatado}. Histórico completo no PNCP via SmartLic.`,
+    title,
+    description,
     alternates: {
       canonical: `https://smartlic.tech/cnpj/${cnpj}`,
     },

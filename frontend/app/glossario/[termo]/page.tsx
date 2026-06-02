@@ -2,7 +2,12 @@ import { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import { GLOSSARY_TERMS } from '@/lib/glossary-terms';
-import { buildCanonical, SITE_URL } from '@/lib/seo';
+import {
+  buildCanonical,
+  SITE_URL,
+  buildOperationalTitle,
+  buildOperationalDescription,
+} from '@/lib/seo';
 import LandingNavbar from '@/app/components/landing/LandingNavbar';
 import Footer from '@/app/components/Footer';
 import RelatedArticles from '@/components/seo/RelatedArticles';
@@ -24,11 +29,16 @@ export async function generateMetadata({
   const term = GLOSSARY_TERMS.find((t) => t.slug === termo);
   if (!term) return {};
 
-  const title = `${term.term}: O que é e como funciona em licitações`;
-  const description =
-    term.definition.length > 155
-      ? term.definition.slice(0, 152) + '...'
-      : term.definition;
+  // CONV-006b: operational promise title/description
+  const relatedSectors = TERM_SECTOR_MAP[termo] ?? [];
+  const firstSector = relatedSectors[0]
+    ? SECTORS.find((s) => s.slug === relatedSectors[0])?.name
+    : undefined;
+  const title = buildOperationalTitle('glossario', { subject: term.term });
+  const description = buildOperationalDescription('glossario', {
+    subject: term.term,
+    sector: firstSector,
+  });
 
   return {
     title,

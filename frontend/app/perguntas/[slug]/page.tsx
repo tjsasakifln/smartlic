@@ -6,7 +6,11 @@ import remarkGfm from 'remark-gfm';
 import ValuePropositionAboveFold from '@/app/components/ValuePropositionAboveFold';
 import { QUESTIONS, getQuestionBySlug, getAllQuestionSlugs, CATEGORY_META, getQuestionsByCategory } from '@/lib/questions';
 import { GLOSSARY_TERMS } from '@/lib/glossary-terms';
-import { buildCanonical } from '@/lib/seo';
+import {
+  buildCanonical,
+  buildOperationalTitle,
+  buildOperationalDescription,
+} from '@/lib/seo';
 import { stripMarkdown } from '@/lib/text';
 import LandingNavbar from '@/app/components/landing/LandingNavbar';
 import Footer from '@/app/components/Footer';
@@ -53,9 +57,17 @@ export async function generateMetadata({
   const question = getQuestionBySlug(slug);
   if (!question) return { robots: { index: false, follow: true } };
 
+  // CONV-006b: operational promise title/description
+  const firstSector = question.relatedSectors?.[0];
+  const title = buildOperationalTitle('pergunta', { question: question.title, subject: question.title });
+  const description = buildOperationalDescription('pergunta', {
+    subject: question.title,
+    sector: firstSector,
+  });
+
   return {
-    title: `${question.title}`,
-    description: question.metaDescription,
+    title,
+    description,
     alternates: { canonical: buildCanonical(`/perguntas/${slug}`) },
     openGraph: {
       title: `${question.title} | SmartLic`,
