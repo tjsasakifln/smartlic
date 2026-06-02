@@ -35,7 +35,10 @@ export type PseoEventName =
   // CONV-014: Alert system tracking events
   | 'alert_created'
   | 'alert_matched'
-  | 'alert_upgrade_cta_click';
+  | 'alert_upgrade_cta_click'
+  // CONV-002 (#1311): Opportunity signal view and CTA click tracking
+  | 'opportunity_signal_view'
+  | 'opportunity_cta_click';
 
 export type PseoSourceTemplate =
   | 'fornecedor_page'

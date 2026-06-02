@@ -12,6 +12,7 @@ import AlertEntityCta from '@/components/seo/AlertEntityCta';
 import WhatsAppCTA from '@/app/components/whatsapp/WhatsAppCTA';
 import { PseoPageTracker } from '@/app/components/seo/PseoPageTracker';
 import PreviewCTA from '@/app/components/programmatic/PreviewCTA';
+import { OpportunitySignalsPanel } from '@/app/components/OpportunitySignalsPanel';
 
 // Sprint 3 Parte 13: paginas de perfil de fornecedor por CNPJ
 // ISR 24h — dados do PNCP atualizados diariamente
@@ -263,6 +264,48 @@ export default async function FornecedorCnpjPage({ params }: Props) {
     link_interno: `/fornecedores/${cnpj}`,
   }));
 
+  // CONV-002 (#1311): Build signal data from existing profile data (no new fetches)
+  const fornecedorSignals: Array<{ icon: string; label: string; value: string; description: string }> = [];
+  const numOrgaos = profile.top_compradores?.length ?? 0;
+  const anosRange = profile.anos_atividade?.length ?? 0;
+
+  fornecedorSignals.push({
+    icon: '💰',
+    label: 'Valor Total Contratado',
+    value: formatBRL(profile.valor_total),
+    description: `${profile.total_contratos} contratos públicos firmados`,
+  });
+  if (numOrgaos > 0) {
+    fornecedorSignals.push({
+      icon: '🏛️',
+      label: 'Órgãos Compradores',
+      value: String(numOrgaos),
+      description: `${numOrgaos} órgãos compram regularmente desta empresa`,
+    });
+  }
+  fornecedorSignals.push({
+    icon: '📊',
+    label: 'Categoria Principal',
+    value: profile.cnae_descricao || 'N/I',
+    description: 'Classificação CNAE das atividades',
+  });
+  if (profile.ufs_atuantes?.length > 0) {
+    fornecedorSignals.push({
+      icon: '📍',
+      label: 'Regiões de Atuação',
+      value: `${profile.ufs_atuantes.length} estados`,
+      description: profile.ufs_atuantes.slice(0, 5).join(', '),
+    });
+  }
+  if (anosRange > 0) {
+    fornecedorSignals.push({
+      icon: '📅',
+      label: 'Frequência',
+      value: `${anosRange} anos de contratos`,
+      description: 'Histórico contínuo de contratações com o governo',
+    });
+  }
+
   return (
     <>
       {/* CONV-009b (#1325): scroll depth + engagement tracking (view event handled by FornecedorPseoCTA) */}
@@ -366,6 +409,28 @@ export default async function FornecedorCnpjPage({ params }: Props) {
               </div>
             </div>
           </div>
+
+          {/* CONV-002 (#1311): OpportunitySignalsPanel — sinais de oportunidade acima da dobra */}
+          {fornecedorSignals.length > 0 && (
+            <div className="mb-8">
+              <OpportunitySignalsPanel
+                sourceTemplate="fornecedor_page"
+                entityId={cnpj}
+                uf={profile.uf_sede}
+                heading={`Oportunidades em ${profile.razao_social}`}
+                subheading="Dados consolidados dos contratos públicos desta empresa"
+                signals={fornecedorSignals}
+                cta={{
+                  label: 'Gerar análise comercial',
+                  href: `/signup?ref=fornecedor&cnpj=${cnpj}&utm_source=pseo&utm_medium=organic&utm_content=fornecedor_page`,
+                  secondaryLabel: 'Ver editais do segmento',
+                  secondaryHref: profile.cnae_descricao
+                    ? `/licitacoes/${encodeURIComponent(profile.cnae_descricao.toLowerCase().replace(/\s+/g, '-'))}`
+                    : '/buscar',
+                }}
+              />
+            </div>
+          )}
 
           {/* Contratos Recentes */}
           <section className="mb-8">

@@ -12,6 +12,7 @@ import { fetchWithBudget } from '@/lib/safe-fetch';
 import { getBackendUrl } from '@/lib/backend-url';
 import { buildOrgSchema } from './_jsonld';
 import { isNoindexed } from '@/lib/seo/noindex';
+import { OpportunitySignalsPanel } from '@/app/components/OpportunitySignalsPanel';
 
 const BACKEND_URL = getBackendUrl();
 
@@ -169,6 +170,52 @@ export default async function CnpjPerfilPage({
   // ContentPageLayout's BreadcrumbNav emits the BreadcrumbList JSON-LD when
   // breadcrumbItems is provided (suppressSchema=false), so we no longer need
   // an inline breadcrumbSchema script — single source of truth.
+  // CONV-002 (#1311): Build signal data from existing perfil data
+  const cnpjSignals: Array<{ icon: string; label: string; value: string; description: string }> = [];
+  const valorTotalCnpj = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', minimumFractionDigits: 0 }).format(perfil.valor_total_24m);
+  const orgaosUnicos = new Set(perfil.contratos.map((c) => c.orgao)).size;
+
+  if (perfil.total_contratos_24m > 0) {
+    cnpjSignals.push({
+      icon: '💰',
+      label: 'Total Contratado com Governo',
+      value: valorTotalCnpj,
+      description: `${perfil.total_contratos_24m} contratos nos últimos 24 meses`,
+    });
+  }
+  if (orgaosUnicos > 0) {
+    cnpjSignals.push({
+      icon: '🏛️',
+      label: 'Órgãos Contratantes',
+      value: `${orgaosUnicos} órgãos`,
+      description: 'Entidades que contrataram esta empresa no período',
+    });
+  }
+  if ((perfil.ufs_atuacao ?? []).length > 0) {
+    cnpjSignals.push({
+      icon: '📍',
+      label: 'Regiões de Atuação',
+      value: `${perfil.ufs_atuacao.length} ${perfil.ufs_atuacao.length === 1 ? 'estado' : 'estados'}`,
+      description: perfil.ufs_atuacao.join(', '),
+    });
+  }
+  if (perfil.editais_abertos_setor > 0) {
+    cnpjSignals.push({
+      icon: '🎯',
+      label: 'Editais Abertos no Setor',
+      value: `${perfil.editais_abertos_setor} ${perfil.editais_abertos_setor === 1 ? 'edital' : 'editais'}`,
+      description: `Oportunidades em ${perfil.setor_nome || 'setor detectado'}`,
+    });
+  }
+  if (perfil.contratos.length > 0) {
+    cnpjSignals.push({
+      icon: '📊',
+      label: 'Score B2G',
+      value: perfil.score || 'N/I',
+      description: 'Indicador de maturidade em contratações públicas',
+    });
+  }
+
   const breadcrumbItems = [
     { label: 'Início', href: '/' },
     { label: 'Consulta CNPJ', href: '/cnpj' },
@@ -197,6 +244,28 @@ export default async function CnpjPerfilPage({
       />
 
       <CnpjPerfilClient perfil={perfil} />
+
+      {/* CONV-002 (#1311): OpportunitySignalsPanel — investigação competitiva */}
+      {cnpjSignals.length > 0 && (
+        <div className="mt-8">
+          <OpportunitySignalsPanel
+            sourceTemplate="cnpj_page"
+            entityId={cnpj}
+            setor={perfil.setor_detectado}
+            uf={empresa.uf}
+            heading={`Inteligência competitiva de ${empresa.razao_social}`}
+            subheading="Padrão de contratações públicas e oportunidades do setor"
+            signals={cnpjSignals}
+            compact
+            cta={{
+              label: 'Analisar padrão de vitórias',
+              href: `/signup?ref=cnpj-${cnpj}&utm_source=pseo&utm_medium=organic&utm_content=cnpj_page`,
+              secondaryLabel: 'Mapear possíveis contratantes',
+              secondaryHref: `/fornecedores/${cnpj}`,
+            }}
+          />
+        </div>
+      )}
 
       {/* PSEO-TMPL-001 (#882): Link bidirecional para /fornecedores/{cnpj} quando empresa tem contratos */}
       {perfil.total_contratos_24m > 0 && (
