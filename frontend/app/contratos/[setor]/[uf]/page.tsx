@@ -19,6 +19,7 @@ import AlertEntityCta from '@/components/seo/AlertEntityCta';
 import { PseoPageTracker } from '@/app/components/seo/PseoPageTracker';
 import { PseoLink } from '@/app/components/seo/PseoLink';
 import PreviewCTA from '@/app/components/programmatic/PreviewCTA';
+import { OpportunitySignalsPanel } from '@/app/components/OpportunitySignalsPanel';
 import { resolveJourney } from '@/lib/seo/relatedResolver';
 import { JourneyLinks } from '@/app/components/navigation/JourneyLinks';
 
@@ -132,6 +133,45 @@ export default async function ContratosSetorUfPage({ params }: Props) {
   const year = new Date().getFullYear();
   const totalContracts = data?.total_contracts ?? 0;
   const totalEditais = blogStats?.total_editais ?? 0;
+
+  // CONV-002 (#1311): Build signal data from existing contratos stats
+  const contratosSignals: Array<{ icon: string; label: string; value: string; description: string }> = [];
+  if (data && totalContracts > 0) {
+    contratosSignals.push({
+      icon: '📊',
+      label: 'Total de Contratos',
+      value: totalContracts.toLocaleString('pt-BR'),
+      description: `Contratos de ${sector.name} ${getUfPrep(ufUpper)} ${ufName}`,
+    });
+    contratosSignals.push({
+      icon: '💰',
+      label: 'Valor Total',
+      value: formatBRL(data.total_value),
+      description: 'Montante global contratado no período',
+    });
+    contratosSignals.push({
+      icon: '💵',
+      label: 'Valor Médio',
+      value: formatBRL(data.avg_value),
+      description: 'Ticket médio por contrato firmado',
+    });
+    if (data.top_orgaos.length > 0) {
+      contratosSignals.push({
+        icon: '🏛️',
+        label: 'Principais Órgãos',
+        value: `${data.top_orgaos.length} órgãos compradores`,
+        description: data.top_orgaos.slice(0, 3).map((o) => o.nome).join(', '),
+      });
+    }
+    if (data.top_fornecedores.length > 0) {
+      contratosSignals.push({
+        icon: '🏢',
+        label: 'Fornecedores Recorrentes',
+        value: `${data.top_fornecedores.length} fornecedores`,
+        description: data.top_fornecedores.slice(0, 3).map((f) => f.nome).join(', '),
+      });
+    }
+  }
 
   // CONV-017 (#1332): Build intent-progressive journey for this contrato page.
   const journey = resolveJourney({
@@ -300,6 +340,28 @@ export default async function ContratosSetorUfPage({ params }: Props) {
                       <p className="text-2xl font-bold text-gray-900">{formatBRL(data.avg_value)}</p>
                     </div>
                   </div>
+
+                  {/* CONV-002 (#1311): OpportunitySignalsPanel — sinais do mercado de contratos */}
+                  {contratosSignals.length > 0 && (
+                    <div className="mb-8">
+                      <OpportunitySignalsPanel
+                        sourceTemplate="contrato_page"
+                        entityId={`${setor}/${uf}`}
+                        setor={setor}
+                        uf={ufUpper}
+                        heading={`Mercado de ${sector.name} ${getUfPrep(ufUpper)} ${ufName}`}
+                        subheading="Visão consolidada dos contratos públicos"
+                        signals={contratosSignals}
+                        compact
+                        cta={{
+                          label: 'Explorar contratos similares',
+                          href: `/signup?ref=contratos-${setor}-${uf}&utm_source=pseo&utm_medium=organic&utm_content=contrato_page`,
+                          secondaryLabel: 'Desbloquear órgãos compradores do segmento',
+                          secondaryHref: `/signup?ref=contratos-orgaos-${setor}`,
+                        }}
+                      />
+                    </div>
+                  )}
 
                   {/* Top Orgaos */}
                   {data.top_orgaos.length > 0 && (

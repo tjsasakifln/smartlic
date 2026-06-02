@@ -32,6 +32,12 @@ export type CtaPageType =
   | 'juridico-perguntas'
   | 'subcontratacao'
   | 'blog-generico'
+  // CONV-002 (#1311): Entity page CTAs — NEVER "Ver planos" or "Teste grátis"
+  | 'fornecedor-perfil'
+  | 'orgao-perfil'
+  | 'contrato-detalhe'
+  | 'cnpj-investigacao'
+  // CONV-001 (#1310): pSEO informational page CTAs
   | 'guia-geral'
   | 'perguntas-juridicas'
   | 'glossario';
@@ -87,6 +93,8 @@ export interface CtaContext {
   slug: string;
   /** Total contract value (used for zero-editais pages) */
   totalValue?: number;
+  /** Entity name for entity page CTAs (e.g. company name, agency name) */
+  entityName?: string;
 }
 
 // ---------------------------------------------------------------------------
@@ -248,6 +256,82 @@ function ctaBlogGenerico(context: CtaContext): CtaConfig {
 }
 
 // ---------------------------------------------------------------------------
+// CONV-002 (#1311): Entity page CTA factories — NEVER "Ver planos" / "Teste grátis"
+// ---------------------------------------------------------------------------
+
+/**
+ * Fornecedor perfil page — CTA continues investigation into commercial analysis.
+ */
+function ctaFornecedorPerfil(context: CtaContext): CtaConfig {
+  const name = context.entityName || 'esta empresa';
+  return {
+    pageType: 'fornecedor-perfil',
+    headline: `Análise comercial de ${name}`,
+    subtext: 'Descubra oportunidades de subcontratação, concorrentes em licitações similares e órgãos que compram do mesmo segmento.',
+    buttonText: 'Gerar análise comercial',
+    buttonLink: buildSignupHref(context.slug, 'fornecedor-analise'),
+    secondaryText: 'Ver editais do segmento',
+    secondaryLink: context.setor ? `/licitações/${context.setor}` : '/buscar',
+    campaign: 'fornecedor-analise',
+  };
+}
+
+/**
+ * Órgão perfil page — CTA leads to monitoring + active bids.
+ */
+function ctaOrgaoPerfil(context: CtaContext): CtaConfig {
+  const name = context.entityName || 'este órgão';
+  return {
+    pageType: 'orgao-perfil',
+    headline: `Acompanhe as licitações de ${name}`,
+    subtext: 'Veja os editais abertos agora, históricos de compras e receba alertas automáticos de novas oportunidades.',
+    buttonText: 'Ver editais deste órgão',
+    buttonLink: buildSignupHref(context.slug, 'orgao-editais'),
+    secondaryText: 'Criar alerta de novos editais',
+    secondaryLink: `/alertas-públicos?órgão=${encodeURIComponent(name)}`,
+    monitoringCta: true,
+    campaign: 'orgao-editais',
+  };
+}
+
+/**
+ * Contrato detalhe page — CTA leads to similar contracts discovery.
+ */
+function ctaContratoDetalhe(context: CtaContext): CtaConfig {
+  const count = context.count ?? 0;
+  return {
+    pageType: 'contrato-detalhe',
+    headline: 'Encontre contratos semelhantes',
+    subtext: count > 0
+      ? `Mapeie ${count.toLocaleString('pt-BR')} contratos similares por setor, órgão comprador e região. Identifique padrões de compra.`
+      : 'Mapeie contratos similares por setor, órgão comprador e região. Identifique padrões de compra.',
+    buttonText: 'Explorar contratos similares',
+    buttonLink: buildSignupHref(context.slug, 'contratos-similares'),
+    secondaryText: 'Desbloquear órgãos compradores do segmento',
+    secondaryLink: '/signup?ref=contratos-órgãos',
+    socialProof: 'Dados de 2M+ contratos históricos do PNCP',
+    campaign: 'contratos-similares',
+  };
+}
+
+/**
+ * CNPJ investigação page — CTA leads to competitive intelligence report.
+ */
+function ctaCnpjInvestigacao(context: CtaContext): CtaConfig {
+  const name = context.entityName || 'esta empresa';
+  return {
+    pageType: 'cnpj-investigacao',
+    headline: `Inteligência competitiva de ${name}`,
+    subtext: 'Análise o padrão de vitórias, mapeie possíveis contratantes e identifique oportunidades de subcontratação.',
+    buttonText: 'Analisar padrão de vitórias',
+    buttonLink: buildSignupHref(context.slug, 'cnpj-intel'),
+    secondaryText: 'Mapear possíveis contratantes',
+    secondaryLink: `/cnpj/${context.slug}/contratantes`,
+    campaign: 'cnpj-intel',
+  };
+}
+
+// ---------------------------------------------------------------------------
 // Crude helpers (no external deps to keep this file self-contained)
 // ---------------------------------------------------------------------------
 
@@ -325,6 +409,16 @@ export function getCtaByIntent(pageType: CtaPageType, context: CtaContext): CtaC
       return ctaSubcontratacao(context);
     case 'blog-generico':
       return ctaBlogGenerico(context);
+    // CONV-002 (#1311): Entity page CTAs
+    case 'fornecedor-perfil':
+      return ctaFornecedorPerfil(context);
+    case 'orgao-perfil':
+      return ctaOrgaoPerfil(context);
+    case 'contrato-detalhe':
+      return ctaContratoDetalhe(context);
+    case 'cnpj-investigacao':
+      return ctaCnpjInvestigacao(context);
+    // CONV-001 (#1310): pSEO informational page CTAs
     case 'guia-geral':
       return ctaGuiaGeral(context);
     case 'perguntas-juridicas':

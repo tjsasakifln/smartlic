@@ -11,6 +11,7 @@ import { getBackendUrl } from '@/lib/backend-url';
 import { AdvisoryDisclaimer } from '@/components/legal/AdvisoryDisclaimer';
 import WhatsAppCTA from '@/app/components/whatsapp/WhatsAppCTA';
 import PreviewCTA from '@/app/components/programmatic/PreviewCTA';
+import { OpportunitySignalsPanel } from '@/app/components/OpportunitySignalsPanel';
 import AhaMomentPanel from '@/app/components/AhaMomentPanel';
 import type { InsightCard } from '@/app/components/AhaMomentPanel';
 import { resolveJourney } from '@/lib/seo/relatedResolver';
@@ -195,6 +196,50 @@ export default async function OrgaoPerfilPage({
     { label: stats.nome },
   ];
 
+  // CONV-002 (#1311): Build signal data from existing stats (no new fetches)
+  const orgaoSignals: Array<{ icon: string; label: string; value: string; description: string }> = [];
+  const valorMedioSignal = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', minimumFractionDigits: 0 }).format(stats.valor_medio_estimado);
+  const valorTotalSignal = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', minimumFractionDigits: 0 }).format(stats.valor_total_estimado);
+
+  if ((stats.top_setores ?? []).length > 0) {
+    orgaoSignals.push({
+      icon: '🏛️',
+      label: 'Categorias Mais Compradas',
+      value: stats.top_setores.slice(0, 3).join(', '),
+      description: 'Principais setores de contratação deste órgão',
+    });
+  }
+  orgaoSignals.push({
+    icon: '💰',
+    label: 'Ticket Médio',
+    value: valorMedioSignal,
+    description: `Valor médio estimado por licitação`,
+  });
+  orgaoSignals.push({
+    icon: '📊',
+    label: 'Volume de Compras',
+    value: `${stats.total_licitacoes} licitações`,
+    description: `${stats.licitacoes_30d} nos últimos 30 dias · ${stats.licitacoes_90d} em 90 dias · ${stats.licitacoes_365d} em 365 dias`,
+  });
+  if (stats.total_contratos_24m) {
+    orgaoSignals.push({
+      icon: '📋',
+      label: 'Contratos Firmados',
+      value: `${stats.total_contratos_24m} em 24 meses`,
+      description: stats.valor_total_contratos_24m
+        ? `Total: ${new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', minimumFractionDigits: 0 }).format(stats.valor_total_contratos_24m)}`
+        : 'Fornecedores recorrentes no período',
+    });
+  }
+  if ((stats.top_modalidades ?? []).length > 0) {
+    orgaoSignals.push({
+      icon: '📌',
+      label: 'Modalidades',
+      value: stats.top_modalidades.slice(0, 3).map(m => m.nome).join(', '),
+      description: 'Principais modalidades de licitação utilizadas',
+    });
+  }
+
   // CONV-017 (#1332): Build intent-progressive journey for this órgão.
   const journey = resolveJourney({
     type: 'orgao',
@@ -244,6 +289,26 @@ export default async function OrgaoPerfilPage({
       />
 
       <OrgaoPerfilClient stats={stats} />
+
+      {/* CONV-002 (#1311): OpportunitySignalsPanel — categorias + ticket médio + sazonalidade */}
+      {orgaoSignals.length > 0 && (
+        <div className="mt-8">
+          <OpportunitySignalsPanel
+            sourceTemplate="orgao_page"
+            entityId={slug}
+            uf={stats.uf}
+            heading={`Padrão de compras de ${stats.nome}`}
+            subheading="Análise do histórico de licitações e contratos"
+            signals={orgaoSignals}
+            cta={{
+              label: 'Ver editais deste órgão',
+              href: `/signup?ref=orgao-${slug}&utm_source=pseo&utm_medium=organic&utm_content=orgao_page`,
+              secondaryLabel: 'Criar alerta de novos editais',
+              secondaryHref: `/alertas-publicos?orgao=${encodeURIComponent(stats.nome)}`,
+            }}
+          />
+        </div>
+      )}
 
       {/* CONV-004 (#1313): AhaMomentPanel — insights com blur progressivo */}
       <AhaMomentPanel

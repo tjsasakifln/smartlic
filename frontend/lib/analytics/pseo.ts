@@ -36,6 +36,9 @@ export type PseoEventName =
   | 'alert_created'
   | 'alert_matched'
   | 'alert_upgrade_cta_click'
+  // CONV-002 (#1311): Opportunity signal view and CTA click tracking
+  | 'opportunity_signal_view'
+  | 'opportunity_cta_click'
   // CONV-004 (#1313): Aha moment panel events
   | 'aha_panel_view'
   | 'aha_unlock_start'
