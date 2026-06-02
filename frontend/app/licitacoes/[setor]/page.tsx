@@ -15,7 +15,6 @@ import { getSectorFaqs } from "@/data/sector-faqs";
 import { getFreshnessLabel } from "@/lib/seo";
 import { MicroDemo } from "@/components/seo/MicroDemo";
 import { MicroDemoSchema } from "@/components/seo/MicroDemoSchema";
-import StickyTrialCTA from "@/app/components/StickyTrialCTA";
 import { buildDatasetJsonLd } from "./_jsonld";
 import { FoundersRibbon } from "@/components/banners/FoundersRibbon";
 import { AdvisoryDisclaimer } from "@/components/legal/AdvisoryDisclaimer";
@@ -29,6 +28,7 @@ import AlertEntityCta from "@/components/seo/AlertEntityCta";
 import WhatsAppCTA from "@/app/components/whatsapp/WhatsAppCTA";
 import { PseoPageTracker } from "@/app/components/seo/PseoPageTracker";
 import { PseoLink } from "@/app/components/seo/PseoLink";
+import PreviewCTA from "@/app/components/programmatic/PreviewCTA";
 
 /**
  * STORY-324 AC5: SSG with ISR 6h for sector landing pages.
@@ -125,7 +125,23 @@ export default async function SectorPage({
         setor={setor}
         viewEventName="pseo_edital_viewed"
       />
-      <StickyTrialCTA refParam="sticky-licitacoes" />
+      {/* CONV-002b: Sticky bottom mobile CTA — contextual */}
+      <div
+        className="fixed bottom-0 left-0 right-0 z-40 sm:hidden bg-brand-navy text-white px-4 py-3 shadow-lg"
+        data-testid="pseo-sticky-cta"
+      >
+        <div className="flex items-center justify-between gap-3">
+          <span className="text-sm font-medium">
+            {stats?.total_open ?? 0} editais abertos · {sector.name}
+          </span>
+          <Link
+            href={`/signup?ref=licitacoes-${sector.slug}-sticky`}
+            className="px-4 py-2 bg-brand-blue rounded-lg text-sm font-semibold whitespace-nowrap"
+          >
+            Receber alertas →
+          </Link>
+        </div>
+      </div>
       <main id="main-content" className="min-h-screen bg-white dark:bg-gray-950">
       {/* AC6: Hero */}
       <section className="bg-gradient-to-br from-brand-blue to-blue-700 text-white py-16 px-4">
@@ -234,6 +250,16 @@ export default async function SectorPage({
         ufLabel="Brasil"
         totalOpen={stats?.total_open}
       />
+
+      {/* CONV-002b: PreviewCTA — 3 editais grátis + 3 blurred (degustação) */}
+      <div className="max-w-5xl mx-auto py-8 px-4">
+        <PreviewCTA
+          setor={setor}
+          setorLabel={sector.name}
+          ufLabel="Brasil"
+          totalOpen={stats?.total_open}
+        />
+      </div>
 
       {/* AC6: CTA (inline — catches users who don't scroll) */}
       <section className="bg-brand-blue/5 dark:bg-brand-blue/10 py-12 px-4">

@@ -14,11 +14,11 @@ import { buildCanonical, getFreshnessLabel } from '@/lib/seo';
 import { ssgLimitedFetch } from '@/lib/concurrency';
 import LandingNavbar from '@/app/components/landing/LandingNavbar';
 import Footer from '@/app/components/Footer';
-import StickyTrialCTA from '@/app/components/StickyTrialCTA';
 import SeoBannerCta from '@/app/components/landing/SeoBannerCta';
 import AlertEntityCta from '@/components/seo/AlertEntityCta';
 import { PseoPageTracker } from '@/app/components/seo/PseoPageTracker';
 import { PseoLink } from '@/app/components/seo/PseoLink';
+import PreviewCTA from '@/app/components/programmatic/PreviewCTA';
 
 export const revalidate = 14400; // 4h ISR (reduzido de 24h para melhorar freshness dos dados)
 
@@ -208,7 +208,23 @@ export default async function ContratosSetorUfPage({ params }: Props) {
         uf={ufUpper}
       />
       <LandingNavbar />
-      <StickyTrialCTA refParam="sticky-contratos" />
+      {/* CONV-002b: Sticky bottom mobile CTA — contextual */}
+      <div
+        className="fixed bottom-0 left-0 right-0 z-40 sm:hidden bg-brand-navy text-white px-4 py-3 shadow-lg"
+        data-testid="pseo-sticky-cta"
+      >
+        <div className="flex items-center justify-between gap-3">
+          <span className="text-sm font-medium">
+            {totalContracts} contratos · {sector.name} {ufName}
+          </span>
+          <Link
+            href={`/signup?ref=contratos-${setor}-${uf}-sticky`}
+            className="px-4 py-2 bg-brand-blue rounded-lg text-sm font-semibold whitespace-nowrap"
+          >
+            Receber alertas →
+          </Link>
+        </div>
+      </div>
       <main className="min-h-screen bg-gray-50 pt-20 pb-16">
         {jsonLd.map((ld, i) => (
           <script
@@ -405,6 +421,19 @@ export default async function ContratosSetorUfPage({ params }: Props) {
                       </div>
                     </section>
                   )}
+
+                  {/* CONV-002b: PreviewCTA — 3 contratos reais + 3 blurred (degustação) */}
+                  {data.sample_contracts.length > 0 && (
+                    <section className="mb-8">
+                      <PreviewCTA
+                        setor={setor}
+                        uf={ufUpper.toLowerCase()}
+                        setorLabel={sector.name}
+                        ufLabel={ufName}
+                        totalOpen={totalContracts}
+                      />
+                    </section>
+                  )}
                 </>
               )}
 
@@ -481,24 +510,29 @@ export default async function ContratosSetorUfPage({ params }: Props) {
             </div>
           </section>
 
-          {/* Lead Capture */}
-          <section className="mt-12 bg-blue-50 rounded-lg p-6 text-center">
-            <h2 className="text-xl font-bold text-gray-900 mb-2">
-              Monitore contratos de {sector.name} {getUfPrep(ufUpper)} {ufName}
-            </h2>
-            <p className="text-gray-600 mb-4">
-              Receba alertas quando novos contratos forem publicados nas fontes oficiais.
+          {/* CONV-002b: Lead Capture — contextual CTA + "Só quero ver os dados" */}
+          <section className="mt-12 rounded-2xl border border-brand-blue/30 bg-brand-blue/5 dark:bg-brand-blue/10 p-6 sm:p-8">
+            <p className="text-lg text-gray-900 dark:text-white mb-4">
+              Quer receber os próximos contratos de {sector.name} em {ufName}?
             </p>
-            <PseoLink
-              href="/signup?ref=contratos-bot"
-              className="inline-block px-6 py-3 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition-colors"
-              eventName="pseo_lead_captured"
-              sourceTemplate="contrato_page"
-              setor={setor}
-              uf={ufUpper}
-            >
-              Testar 14 dias grátis →
-            </PseoLink>
+            <div className="flex flex-col sm:flex-row gap-3">
+              <PseoLink
+                href={`/signup?ref=contratos-${setor}-${uf}`}
+                className="inline-block px-6 py-3 bg-brand-blue text-white font-semibold rounded-lg hover:bg-blue-700 transition-colors text-center"
+                eventName="pseo_alert_signup"
+                sourceTemplate="contrato_page"
+                setor={setor}
+                uf={ufUpper}
+              >
+                Receber alertas grátis 14 dias →
+              </PseoLink>
+              <Link
+                href={`/observatorio/${setor}`}
+                className="inline-block px-6 py-3 bg-white dark:bg-gray-900 text-brand-navy dark:text-white font-medium rounded-lg border border-gray-300 dark:border-gray-700 hover:border-brand-blue transition-colors text-center"
+              >
+                Só quero ver os dados
+              </Link>
+            </div>
           </section>
 
           {/* CONV-014: Alert CTA — criar alerta de setor em UF */}

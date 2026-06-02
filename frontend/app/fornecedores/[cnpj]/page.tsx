@@ -11,6 +11,7 @@ import { isNoindexed } from '@/lib/seo/noindex';
 import AlertEntityCta from '@/components/seo/AlertEntityCta';
 import WhatsAppCTA from '@/app/components/whatsapp/WhatsAppCTA';
 import { PseoPageTracker } from '@/app/components/seo/PseoPageTracker';
+import PreviewCTA from '@/app/components/programmatic/PreviewCTA';
 
 // Sprint 3 Parte 13: paginas de perfil de fornecedor por CNPJ
 // ISR 24h — dados do PNCP atualizados diariamente
@@ -252,6 +253,16 @@ export default async function FornecedorCnpjPage({ params }: Props) {
       : []),
   ];
 
+  // CONV-002b: preview items for PreviewCTA — 3 contratos recentes + 3 blurred
+  const previewItems = profile.contratos_recentes.slice(0, 6).map((c) => ({
+    orgao: c.orgao,
+    objeto: c.objeto,
+    valor_estimado: c.valor,
+    data_limite: null as string | null,
+    data_publicacao: c.data_assinatura,
+    link_interno: `/fornecedores/${cnpj}`,
+  }));
+
   return (
     <>
       {/* CONV-009b (#1325): scroll depth + engagement tracking (view event handled by FornecedorPseoCTA) */}
@@ -296,18 +307,26 @@ export default async function FornecedorCnpjPage({ params }: Props) {
             {' · Fonte: Portal Nacional de Contratacoes Publicas'}
           </p>
 
-          {/* PSEO-MOBILE-001 #886: Primary CTA above the fold — visible on mobile 375px without scroll */}
+          {/* CONV-002b: Primary CTA above the fold — contextual + "Só quero ver os dados" */}
           <div className="mb-6 rounded-lg bg-blue-600 px-4 py-4 text-center sm:text-left sm:flex sm:items-center sm:justify-between sm:gap-4">
             <p className="text-sm text-blue-100 mb-3 sm:mb-0">
               Monitore editais do setor de <span className="font-semibold text-white">{profile.razao_social}</span> e receba alertas automáticos.
             </p>
-            <Link
-              href={`/signup?ref=fornecedor&cnpj=${cnpj}`}
-              data-testid="pseo-cta-primary"
-              className="inline-block whitespace-nowrap rounded-lg bg-white px-5 py-2.5 text-sm font-semibold text-blue-700 hover:bg-blue-50 transition-colors min-h-[44px] leading-[44px] sm:leading-normal sm:py-2.5"
-            >
-              Testar 14 dias grátis →
-            </Link>
+            <div className="flex flex-col sm:flex-row gap-2">
+              <Link
+                href={`/signup?ref=fornecedor&cnpj=${cnpj}`}
+                data-testid="pseo-cta-primary"
+                className="inline-block whitespace-nowrap rounded-lg bg-white px-5 py-2.5 text-sm font-semibold text-blue-700 hover:bg-blue-50 transition-colors min-h-[44px] leading-[44px] sm:leading-normal sm:py-2.5"
+              >
+                Receber alertas grátis →
+              </Link>
+              <Link
+                href="/observatorio"
+                className="inline-block whitespace-nowrap rounded-lg border border-white/30 px-5 py-2.5 text-sm font-medium text-white hover:bg-white/10 transition-colors"
+              >
+                Só quero ver os dados
+              </Link>
+            </div>
           </div>
 
           {/* KPI Cards */}
@@ -396,6 +415,19 @@ export default async function FornecedorCnpjPage({ params }: Props) {
               </table>
             </div>
           </section>
+
+          {/* CONV-002b: PreviewCTA — 3 contratos reais + 3 blurred, "degustação" */}
+          {profile.contratos_recentes.length >= 3 && (
+            <div className="mb-8">
+              <PreviewCTA
+                setor="contratos-fornecedor"
+                setorLabel={profile.razao_social}
+                ufLabel="Brasil"
+                totalOpen={profile.total_contratos}
+                items={previewItems}
+              />
+            </div>
+          )}
 
           {/* Top Compradores */}
           {profile.top_compradores.length > 0 && (
@@ -504,6 +536,24 @@ export default async function FornecedorCnpjPage({ params }: Props) {
         </div>
       </main>
       <Footer />
+
+      {/* CONV-002b: Sticky bottom mobile CTA — contextual */}
+      <div
+        className="fixed bottom-0 left-0 right-0 z-40 sm:hidden bg-brand-navy text-white px-4 py-3 shadow-lg"
+        data-testid="pseo-sticky-cta"
+      >
+        <div className="flex items-center justify-between gap-3">
+          <span className="text-sm font-medium">
+            {profile.total_contratos} contratos · {profile.razao_social}
+          </span>
+          <Link
+            href={`/signup?ref=fornecedor-${cnpj}-sticky`}
+            className="px-4 py-2 bg-brand-blue rounded-lg text-sm font-semibold whitespace-nowrap"
+          >
+            Receber alertas →
+          </Link>
+        </div>
+      </div>
     </>
   );
 }

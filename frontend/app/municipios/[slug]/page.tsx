@@ -7,10 +7,10 @@ import EmptyStateSEO from '@/components/seo/EmptyStateSEO';
 import { getUfPrep } from '@/lib/programmatic';
 import LandingNavbar from '@/app/components/landing/LandingNavbar';
 import Footer from '@/app/components/Footer';
-import StickyTrialCTA from '@/app/components/StickyTrialCTA';
 import { AdvisoryDisclaimer } from '@/components/legal/AdvisoryDisclaimer';
 import { LeadCapture } from '@/components/LeadCapture';
 import AlertEntityCta from '@/components/seo/AlertEntityCta';
+import PreviewCTA from '@/app/components/programmatic/PreviewCTA';
 
 // Sprint 4 Parte 13: páginas de municípios com licitações abertas
 // ISR 24h — dados do PNCP atualizados diariamente
@@ -166,6 +166,16 @@ export default async function MunicipioSlugPage({ params }: Props) {
     (f: { question: string; answer: string }) => f.answer.replace(/<[^>]*>/g, '').length >= 300
   );
 
+  // CONV-002b: preview items for PreviewCTA — 3 licitações reais + 3 blurred
+  const previewItems = profile.licitacoes_recentes.slice(0, 6).map((l) => ({
+    orgao: l.orgao,
+    objeto: l.objeto,
+    valor_estimado: l.valor,
+    data_limite: null as string | null,
+    data_publicacao: l.data_publicacao,
+    link_interno: `/municipios/${slug}`,
+  }));
+
   const jsonLd = [
     {
       // SEO-Sprint2 P6.4: AdministrativeArea (was City) with containedInPlace hierarchy
@@ -221,7 +231,23 @@ export default async function MunicipioSlugPage({ params }: Props) {
   return (
     <>
       <LandingNavbar />
-      <StickyTrialCTA refParam="sticky-municipio" />
+      {/* CONV-002b: Sticky bottom mobile CTA — contextual */}
+      <div
+        className="fixed bottom-0 left-0 right-0 z-40 sm:hidden bg-brand-navy text-white px-4 py-3 shadow-lg"
+        data-testid="pseo-sticky-cta"
+      >
+        <div className="flex items-center justify-between gap-3">
+          <span className="text-sm font-medium">
+            {profile.total_licitacoes_abertas} editais · {profile.nome}-{profile.uf}
+          </span>
+          <Link
+            href={`/signup?ref=municipios-${slug}-sticky`}
+            className="px-4 py-2 bg-brand-blue rounded-lg text-sm font-semibold whitespace-nowrap"
+          >
+            Receber alertas →
+          </Link>
+        </div>
+      </div>
       <main className="min-h-screen bg-gray-50 pt-20 pb-16">
         {jsonLd.map((ld, i) => (
           <script
@@ -331,6 +357,19 @@ export default async function MunicipioSlugPage({ params }: Props) {
             </section>
           )}
 
+          {/* CONV-002b: PreviewCTA — 3 editais reais + 3 blurred (degustação) */}
+          {profile.licitacoes_recentes.length >= 3 && (
+            <div className="mb-8">
+              <PreviewCTA
+                setor="municipio-editais"
+                setorLabel={`${profile.nome}-${profile.uf}`}
+                ufLabel={profile.uf}
+                totalOpen={profile.total_licitacoes_abertas}
+                items={previewItems}
+              />
+            </div>
+          )}
+
           {/* FAQ */}
           {profile.faq_items.length > 0 && (
             <section className="mb-8">
@@ -365,21 +404,25 @@ export default async function MunicipioSlugPage({ params }: Props) {
             </div>
           </section>
 
-          {/* CTA */}
-          <section className="mt-4 bg-blue-50 rounded-lg p-6 text-center">
-            <h2 className="text-xl font-bold text-gray-900 mb-2">
-              Monitore editais em {profile.nome}-{profile.uf}
-            </h2>
-            <p className="text-gray-600 mb-4">
-              O SmartLic rastreia licitações abertas nas fontes oficiais e avisa quando surgem
-              oportunidades relevantes para sua empresa no município e região.
+          {/* CONV-002b: Contextual CTA — trial + "Só quero ver os dados" */}
+          <section className="mt-4 rounded-2xl border border-brand-blue/30 bg-brand-blue/5 dark:bg-brand-blue/10 p-6 sm:p-8">
+            <p className="text-lg text-gray-900 dark:text-white mb-4">
+              Quer receber alertas de editais em {profile.nome}-{profile.uf}?
             </p>
-            <Link
-              href={`/signup?ref=municipios-${slug}&source=municipio-page`}
-              className="inline-block px-6 py-3 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition-colors"
-            >
-              Teste grátis por 14 dias
-            </Link>
+            <div className="flex flex-col sm:flex-row gap-3">
+              <Link
+                href={`/signup?ref=municipios-${slug}&source=municipio-page`}
+                className="inline-block px-6 py-3 bg-brand-blue text-white font-semibold rounded-lg hover:bg-blue-700 transition-colors text-center"
+              >
+                Receber alertas grátis 14 dias →
+              </Link>
+              <Link
+                href="/observatorio"
+                className="inline-block px-6 py-3 bg-white dark:bg-gray-900 text-brand-navy dark:text-white font-medium rounded-lg border border-gray-300 dark:border-gray-700 hover:border-brand-blue transition-colors text-center"
+              >
+                Só quero ver os dados
+              </Link>
+            </div>
           </section>
 
           {/* Lead magnet — email capture before hard trial gate */}
