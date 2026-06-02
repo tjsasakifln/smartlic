@@ -14,6 +14,10 @@ import PreviewCTA from '@/app/components/programmatic/PreviewCTA';
 import AhaMomentPanel from '@/app/components/AhaMomentPanel';
 import type { InsightCard } from '@/app/components/AhaMomentPanel';
 import { resolveJourney } from '@/lib/seo/relatedResolver';
+import {
+  buildOperationalTitle,
+  buildOperationalDescription,
+} from '@/lib/seo';
 
 const BACKEND_URL = getBackendUrl();
 
@@ -97,13 +101,19 @@ export async function generateMetadata({
     minimumFractionDigits: 0,
   }).format(stats.valor_medio_estimado);
 
-  const contratosDesc = stats.total_contratos_24m
-    ? ` ${stats.total_contratos_24m} contratos firmados (24 meses).`
-    : '';
+  // CONV-006b: operational promise title/description
+  const title = buildOperationalTitle('orgao', {
+    subject: stats.nome,
+    value: valorMedioFormatado,
+  });
+  const description = buildOperationalDescription('orgao', {
+    subject: stats.nome,
+    count: stats.total_licitacoes,
+  });
 
   return {
-    title: `Como ${stats.nome} compra e quais oportunidades publica? | SmartLic`,
-    description: `${stats.nome} publicou ${stats.total_licitacoes} licitações. ${stats.licitacoes_30d} nos últimos 30 dias. Valor médio: ${valorMedioFormatado}.${contratosDesc}`,
+    title,
+    description,
     alternates: {
       canonical: `https://smartlic.tech/orgaos/${slug}`,
     },

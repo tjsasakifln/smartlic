@@ -53,9 +53,9 @@ export const BLOG_ARTICLES: BlogArticleMeta[] = [
   // B2G-01
   {
     slug: 'como-aumentar-taxa-vitoria-licitacoes',
-    title: 'Taxa de Vitória em Licitações: Como Passar de 8% para 25%',
+    title: 'Taxa de Vitória em Licitações: Identifique editais viáveis e dispute 50% menos para ganhar mais',
     description:
-      'Descubra como empresas B2G triplicam adjudicações usando análise de viabilidade — sem ampliar o time. Dados reais de clientes SmartLic.',
+      'Empresas que triplicam adjudicações não disputam mais — disputam melhor. Aprenda o filtro de 4 fatores que elimina 60% dos editais antes da proposta.',
     category: 'Empresas B2G',
     tags: ['taxa de vitória', 'triagem inteligente', 'viabilidade', 'estratégia'],
     publishDate: '2026-02-24',
@@ -82,9 +82,9 @@ export const BLOG_ARTICLES: BlogArticleMeta[] = [
   // B2G-02
   {
     slug: 'erro-operacional-perder-contratos-publicos',
-    title: 'O Erro Operacional que Faz Empresas Perderem Contratos Públicos de R$ 150 mil',
+    title: 'Erro Operacional que Custa Contratos de R$ 150 mil: Diagnóstico e Correção',
     description:
-      'Empresas B2G perdem contratos de seis dígitos por falhas de triagem. Conheça o erro operacional mais comum e como corrigi-lo antes do próximo pregão.',
+      'Empresas perdem contratos de seis dígitos por falha de triagem. Identifique o erro antes do próximo pregão e pare de perder oportunidades viáveis.',
     category: 'Empresas B2G',
     tags: ['erros operacionais', 'contratos públicos', 'triagem', 'viabilidade'],
     publishDate: '2026-02-24',
@@ -914,10 +914,10 @@ export const BLOG_ARTICLES: BlogArticleMeta[] = [
   // GUIA-S1
   {
     slug: 'licitacoes-engenharia-2026',
-    title: 'Licitações de Engenharia 2026: obras, projetos e serviços técnicos por estado',
+    title: 'Licitações de Engenharia 2026: Obras, projetos e serviços abertos por estado',
     h1: 'Editais abertos de engenharia em 2026: obras, projetos e serviços por estado',
     description:
-      'Editais abertos de obras, projetos de engenharia, manutenção predial e consultoria técnica. Filtre por estado, modalidade e sub-categoria.',
+      'Consulte editais de engenharia abertos agora — obras, manutenção predial e consultoria técnica. Filtre por estado, valor e modalidade. Veja os mais viáveis.',
     category: 'Guias',
     tags: ['engenharia', 'construção civil', 'licitações 2026', 'guia setorial'],
     publishDate: '2026-04-04',
@@ -947,12 +947,12 @@ export const BLOG_ARTICLES: BlogArticleMeta[] = [
   // GUIA-S2
   {
     slug: 'licitacoes-ti-software-2026',
-    title: 'Licitações TI e Software [2026]: Como Vencer | SmartLic',
+    title: 'Licitações de TI e Software 2026: Editais abertos por UF — encontre os viáveis',
     h1: 'Editais abertos de TI e Software em 2026: filtre por UF e sub-setor',
     description:
-      'Como vencer licitações de TI e software em 2026: modalidades, atestados técnicos, margens e estratégias comprovadas. Editais filtrados por UF e sub-setor.',
-    lastModified: '2026-05-08',
+      'Encontre editais de TI e software abertos agora. Filtre por estado, modalidade e valor. Atestados técnicos, margens por sub-setor e editais com maior chance de retorno.',
     category: 'Guias',
+    lastModified: '2026-05-08',
     tags: ['tecnologia', 'software', 'TI', 'licitações 2026', 'guia setorial'],
     publishDate: '2026-04-04',
     readingTime: calculateReadingTime(3400),
@@ -980,10 +980,10 @@ export const BLOG_ARTICLES: BlogArticleMeta[] = [
   // GUIA-S3
   {
     slug: 'licitacoes-saude-2026',
-    title: 'Licitações de Saúde 2026: editais abertos de medicamentos, equipamentos e serviços',
+    title: 'Licitações de Saúde 2026: Editais abertos de medicamentos, equipamentos e serviços por UF',
     h1: 'Editais abertos de saúde em 2026: medicamentos, equipamentos e serviços hospitalares',
     description:
-      'Consulte editais abertos na área da saúde: medicamentos, insumos, equipamentos e serviços hospitalares por UF. Dados reais do PNCP.',
+      'Consulte editais de saúde abertos agora — medicamentos, equipamentos e serviços hospitalares. Filtre por estado e valor. Veja quais oportunidades têm maior viabilidade.',
     category: 'Guias',
     tags: ['saúde', 'medicamentos', 'equipamentos médicos', 'licitações 2026', 'guia setorial'],
     publishDate: '2026-04-04',
@@ -1013,9 +1013,9 @@ export const BLOG_ARTICLES: BlogArticleMeta[] = [
   // GUIA-S4
   {
     slug: 'licitacoes-limpeza-facilities-2026',
-    title: 'Licitações de Limpeza e Facilities 2026 — Guia Completo',
+    title: 'Licitações de Limpeza e Facilities 2026: Editais, planilha de custos e BDI',
     description:
-      'Guia definitivo sobre licitações de limpeza, conservação e facilities management em 2026: planilha de custos, convenção coletiva, BDI e requisitos de habilitação.',
+      'Consulte editais de limpeza e facilities abertos por estado. Planilha de custos, convenção coletiva e BDI para precificar propostas competitivas.',
     category: 'Guias',
     tags: ['limpeza', 'facilities', 'serviços prediais', 'licitações 2026', 'guia setorial'],
     publishDate: '2026-04-04',
@@ -1043,9 +1043,9 @@ export const BLOG_ARTICLES: BlogArticleMeta[] = [
   // GUIA-S5
   {
     slug: 'licitacoes-alimentacao-2026',
-    title: 'Licitações de Alimentação 2026 — Guia Completo',
+    title: 'Licitações de Alimentação 2026: Merenda escolar, PNAE e refeições hospitalares',
     description:
-      'Guia completo sobre licitações de alimentação em 2026: merenda escolar, refeições hospitalares, PNAE, atas de registro de preço e logística de distribuição.',
+      'Editais de alimentação abertos por estado — merenda escolar, refeições hospitalares e PNAE. Filtre por valor, veja exigências logísticas e margens típicas do setor.',
     category: 'Guias',
     tags: ['alimentação', 'merenda escolar', 'PNAE', 'licitações 2026', 'guia setorial'],
     publishDate: '2026-04-04',
@@ -1078,10 +1078,10 @@ export const BLOG_ARTICLES: BlogArticleMeta[] = [
   // GUIA-T1
   {
     slug: 'como-participar-primeira-licitacao-2026',
-    title: 'Primeira licitação em 2026: encontre editais compatíveis com sua empresa',
+    title: 'Primeira Licitação em 2026: Encontre editais compatíveis com seu perfil em 5 minutos',
     h1: 'Editais abertos e oportunidades de licitação por setor em 2026',
     description:
-      'Descubra oportunidades reais no PNCP filtrando por setor, UF e valor. Checklist gratuito + alertas de editais novos no seu segmento.',
+      'Filtre editais do PNCP por setor, UF e valor sem sair desta página. Checklist de documentos grátis + alertas automáticos de oportunidades no seu segmento.',
     category: 'Guias',
     tags: ['primeira licitação', 'guia iniciante', 'passo a passo', 'cadastro'],
     publishDate: '2026-04-04',
@@ -1110,9 +1110,9 @@ export const BLOG_ARTICLES: BlogArticleMeta[] = [
   // GUIA-T2
   {
     slug: 'lei-14133-guia-fornecedores',
-    title: 'Lei 14.133/2021: O que Mudou para Fornecedores — Guia Prático',
+    title: 'Lei 14.133/2021: O que mudou para fornecedores — prazos, modalidades e sanções',
     description:
-      'Guia prático da Nova Lei de Licitações (14.133/2021) para fornecedores: novas modalidades, prazos, sanções, diálogo competitivo e o que muda na prática.',
+      'A Nova Lei de Licitações muda prazos, modalidades e sanções para fornecedores. Saiba o que fazer para se adequar antes do próximo edital que você disputar.',
     category: 'Guias',
     tags: ['Lei 14.133', 'nova lei de licitações', 'fornecedores', 'guia prático'],
     publishDate: '2026-04-04',
@@ -1140,10 +1140,10 @@ export const BLOG_ARTICLES: BlogArticleMeta[] = [
   // GUIA-T3
   {
     slug: 'pncp-guia-completo-empresas',
-    title: 'PNCP para empresas: encontre órgãos que já compram o que você vende',
+    title: 'PNCP para Empresas: Busque editais e descubra órgãos que compram o que você vende',
     h1: 'Encontre editais, contratos e fornecedores públicos no PNCP',
     description:
-      'Busque editais, contratos e fornecedores no PNCP filtrando por setor, UF e valor. Descubra quais órgãos compram seu produto e quanto pagam.',
+      'Filtre editais do PNCP por setor, UF e valor. Descubra quais órgãos compram seu produto, quanto pagam e quem são os concorrentes — em 2 minutos.',
     category: 'Guias',
     tags: ['PNCP', 'portal de contratações', 'busca de editais', 'monitoramento'],
     publishDate: '2026-04-04',
@@ -1241,9 +1241,9 @@ export const BLOG_ARTICLES: BlogArticleMeta[] = [
   // P7-01
   {
     slug: 'checklist-habilitacao-licitacao-2026',
-    title: 'Checklist Completo de Habilitação para Licitação em 2026 (Lei 14.133)',
+    title: 'Checklist de Habilitação 2026: Documentos que sua empresa precisa ter (Lei 14.133)',
     description:
-      'Lista completa dos documentos de habilitação exigidos na Lei 14.133/2021: jurídica, fiscal, técnica, econômico-financeira e trabalhista — com prazos e armadilhas.',
+      'Lista completa dos documentos de habilitação — jurídica, fiscal, técnica e trabalhista — exigidos pela Lei 14.133. Baixe o checklist e evite desclassificação.',
     category: 'Guias',
     tags: ['habilitação', 'documentos', 'Lei 14.133', 'checklist', 'compliance'],
     publishDate: '2026-04-07',
@@ -1271,9 +1271,9 @@ export const BLOG_ARTICLES: BlogArticleMeta[] = [
   // P7-02
   {
     slug: 'pregao-eletronico-guia-passo-a-passo',
-    title: 'Pregão Eletrônico: Guia Passo a Passo para Primeira Participação',
+    title: 'Pregão Eletrônico: 10 passos para participar do primeiro pregão em 2026',
     description:
-      'Do cadastro à disputa de lances: guia prático com os 10 passos para participar do primeiro pregão eletrônico em 2026 — tempos, portais e erros fatais.',
+      'Do cadastro à disputa de lances: os 10 passos para participar do seu primeiro pregão eletrônico. Portais, prazos e os erros que mais eliminam iniciantes.',
     category: 'Guias',
     tags: ['pregão eletrônico', 'passo a passo', 'ComprasNet', 'disputa de lances'],
     publishDate: '2026-04-09',
@@ -1361,9 +1361,9 @@ export const BLOG_ARTICLES: BlogArticleMeta[] = [
   // P7-05
   {
     slug: 'sicaf-como-cadastrar-manter-ativo-2026',
-    title: 'SICAF: Como se Cadastrar e Manter Ativo em 2026',
+    title: 'SICAF 2026: Cadastre-se e mantenha seu registro ativo para não perder editais',
     description:
-      'Passo a passo do cadastro no SICAF em 2026: níveis, documentos, prazos de validade, renovação e como resolver pendências que bloqueiam sua habilitação.',
+      'Passo a passo do cadastro SICAF: níveis, documentos, renovação e como resolver pendências. Empresas com SICAF vencido perdem até 60% das oportunidades.',
     category: 'Guias',
     tags: ['SICAF', 'cadastro', 'renovação', 'habilitação', 'gov.br'],
     publishDate: '2026-04-15',

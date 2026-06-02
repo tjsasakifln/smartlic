@@ -1,7 +1,7 @@
 import { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import { buildCanonical, getFreshnessLabel } from '@/lib/seo';
+import { buildCanonical, buildOperationalTitle, buildOperationalDescription, getFreshnessLabel } from '@/lib/seo';
 import { ssgLimitedFetch } from '@/lib/concurrency';
 import EmptyStateSEO from '@/components/seo/EmptyStateSEO';
 import LandingNavbar from '@/app/components/landing/LandingNavbar';
@@ -121,9 +121,21 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     ? `R$ ${(profile.valor_total / 1_000_000).toFixed(1)} mi`
     : `R$ ${(profile.valor_total / 1_000).toFixed(0)} mil`;
 
+  // CONV-006b: operational promise title/description
+  const title = buildOperationalTitle('fornecedor', {
+    subject: profile.razao_social,
+    count: profile.total_contratos,
+    value: valorFmt,
+  });
+  const description = buildOperationalDescription('fornecedor', {
+    subject: profile.razao_social,
+    count: profile.total_contratos,
+    value: valorFmt,
+  });
+
   return {
-    title: `Contratos públicos de ${profile.razao_social} — CNPJ ${cnpj} | SmartLic`,
-    description: `${profile.razao_social} (CNPJ ${cnpj}) acumula ${profile.total_contratos} contratos públicos em fontes oficiais, totalizando ${valorFmt}, atuando em ${profile.ufs_atuantes.length} estado(s). Dados atualizados diariamente.`,
+    title,
+    description,
     alternates: { canonical: buildCanonical(`/fornecedores/${cnpj}`) },
     openGraph: {
       title: `${profile.razao_social} — Contratos com o Governo`,

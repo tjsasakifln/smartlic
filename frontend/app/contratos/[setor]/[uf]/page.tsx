@@ -10,7 +10,12 @@ import {
   fetchSectorUfBlogStats,
 } from '@/lib/programmatic';
 import { formatBRL } from '@/lib/sectors';
-import { buildCanonical, getFreshnessLabel } from '@/lib/seo';
+import {
+  buildCanonical,
+  buildOperationalTitle,
+  buildOperationalDescription,
+  getFreshnessLabel,
+} from '@/lib/seo';
 import { ssgLimitedFetch } from '@/lib/concurrency';
 import LandingNavbar from '@/app/components/landing/LandingNavbar';
 import Footer from '@/app/components/Footer';
@@ -80,19 +85,25 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const shouldIndex = totalContracts >= 1 || totalEditais >= 1;
 
   // AC7: description dinâmica — menciona editais quando disponíveis
-  let description: string;
-  if (totalContracts > 0 && totalEditais > 0) {
-    description = `${totalContracts.toLocaleString('pt-BR')} contratos firmados em ${sector.name} ${getUfPrep(ufUpper)} ${ufName} — ${totalEditais} editais abertos agora. Dados das fontes oficiais atualizados.`;
-  } else if (totalContracts > 0) {
-    description = `Quanto o governo gasta em ${sector.name} ${getUfPrep(ufUpper)} ${ufName}? Veja ${totalContracts.toLocaleString('pt-BR')} contratos firmados, principais órgãos compradores e fornecedores. Dados das fontes oficiais atualizados.`;
-  } else if (totalEditais > 0) {
-    description = `${totalEditais} editais abertos em ${sector.name} ${getUfPrep(ufUpper)} ${ufName} agora. Acompanhe oportunidades de licitação e o histórico de contratos públicos.`;
-  } else {
-    description = `Dados de contratos públicos de ${sector.name} ${getUfPrep(ufUpper)} ${ufName}. Fonte: Portal Nacional de Contratações Públicas.`;
-  }
+  // CONV-006b: operational promise title/description
+  const totalValue = data ? `R$ ${(data.total_value / 1_000_000).toFixed(1)} mi` : undefined;
+  const ufLabel = `${getUfPrep(ufUpper)} ${ufName}`;
+  const sectorUf = `${sector.name} ${ufLabel}`;
+
+  const ctx = {
+    subject: sectorUf,
+    sector: sector.name,
+    uf: ufUpper,
+    ufName,
+    count: totalContracts,
+    value: totalValue,
+    orgao: data?.top_orgaos?.[0]?.nome,
+    objeto: data?.sample_contracts?.[0]?.objeto,
+  };
+  const description = buildOperationalDescription('contrato', ctx);
 
   return {
-    title: `Contratos Públicos de ${sector.name} ${getUfPrep(ufUpper)} ${ufName} ${year} — SmartLic`,
+    title: buildOperationalTitle('contrato', ctx),
     description,
     alternates: { canonical: buildCanonical(`/contratos/${setor}/${uf}`) }, // AC6
     openGraph: {
