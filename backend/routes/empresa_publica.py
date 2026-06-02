@@ -17,6 +17,7 @@ import httpx
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
+from routes._recency_helpers import AtividadeRecenteData, build_recency_from_records
 from sectors import SECTORS
 from utils.cnae_mapping import map_cnae_to_setor, get_setor_name
 
@@ -144,6 +145,8 @@ class PerfilB2GResponse(BaseModel):
     # STORY-417 AC3: True when one or more data sources were unavailable
     # and the response contains only partial information.
     partial: bool = False
+    # CONV-016: temporal urgency signals for pSEO pages
+    atividade_recente: AtividadeRecenteData = AtividadeRecenteData()
 
 
 # ---------------------------------------------------------------------------
@@ -208,6 +211,15 @@ def _build_unavailable_response(cnpj: str) -> dict:
         "aviso_legal": "Dados temporariamente indisponíveis. Tente novamente em alguns minutos.",
         "brasilapi_status": "unavailable",
         "partial": True,
+        "atividade_recente": {
+            "contagem_30d": 0,
+            "contagem_90d": 0,
+            "valor_total_30d": 0.0,
+            "tendencia_12m": "stable",
+            "tendencia_percentual": 0.0,
+            "ultimo_evento_data": None,
+            "sazonalidade_mes_pico": None,
+        },
     }
 
 
@@ -639,6 +651,13 @@ async def _build_perfil(cnpj: str) -> dict:
 
     editais_amostra = [_to_edital_amostra(b) for b in editais_raw[:5]]
 
+    # CONV-016: compute recency/urgency data from contracts
+    atividade_recente = build_recency_from_records(
+        contratos_all,
+        date_field="data_assinatura",
+        value_field="valor_global",
+    )
+
     return {
         "empresa": {
             "razao_social": razao_social,
@@ -665,4 +684,6 @@ async def _build_perfil(cnpj: str) -> dict:
         # STORY-417 AC3: partial=True signals one or more upstream sources
         # were unavailable; frontend should render a degraded card.
         "partial": brasilapi_status != "ok",
+        # CONV-016: recency/urgency indicators for frontend badges
+        "atividade_recente": atividade_recente,
     }

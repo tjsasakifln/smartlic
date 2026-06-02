@@ -17,6 +17,7 @@ import AhaMomentPanel from '@/app/components/AhaMomentPanel';
 import type { InsightCard } from '@/app/components/AhaMomentPanel';
 import { resolveJourney } from '@/lib/seo/relatedResolver';
 import { JourneyLinks } from '@/app/components/navigation/JourneyLinks';
+import { FornecedorUrgency } from '@/components/pseo/FornecedorUrgency';
 
 // Sprint 3 Parte 13: paginas de perfil de fornecedor por CNPJ
 // ISR 24h — dados do PNCP atualizados diariamente
@@ -48,6 +49,16 @@ interface FaqItem {
   answer: string;
 }
 
+interface AtividadeRecente {
+  contagem_30d: number;
+  contagem_90d: number;
+  valor_total_30d: number;
+  tendencia_12m: string;
+  tendencia_percentual: number;
+  ultimo_evento_data: string | null;
+  sazonalidade_mes_pico: number | null;
+}
+
 interface FornecedorProfile {
   cnpj: string;
   razao_social: string;
@@ -65,6 +76,7 @@ interface FornecedorProfile {
   faq_items: FaqItem[];
   last_updated: string;
   aviso_legal: string;
+  atividade_recente: AtividadeRecente;
 }
 
 async function fetchProfile(cnpj: string): Promise<FornecedorProfile | null> {
@@ -436,6 +448,12 @@ export default async function FornecedorCnpjPage({ params }: Props) {
               </div>
             </div>
           </div>
+
+          {/* CONV-016: urgency signal — recent contract activity */}
+          <FornecedorUrgency
+            atividade_recente={profile.atividade_recente}
+            razao_social={profile.razao_social}
+          />
 
           {/* CONV-002 (#1311): OpportunitySignalsPanel — sinais de oportunidade acima da dobra */}
           {fornecedorSignals.length > 0 && (

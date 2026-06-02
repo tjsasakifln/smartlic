@@ -23,6 +23,7 @@ from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
 from pipeline.budget import _run_with_budget
+from routes._recency_helpers import AtividadeRecenteData, build_recency_from_records
 from sectors import SECTORS
 
 logger = logging.getLogger(__name__)
@@ -101,6 +102,8 @@ class ContratosStatsResponse(BaseModel):
     sample_contracts: list[SampleContract]
     last_updated: str
     aviso_legal: str
+    # CONV-016: temporal urgency signals for pSEO pages
+    atividade_recente: AtividadeRecenteData = AtividadeRecenteData()
 
 
 # ---------------------------------------------------------------------------
@@ -118,6 +121,8 @@ class OrgaoContratosStatsResponse(BaseModel):
     sample_contracts: list[SampleContract]
     last_updated: str
     aviso_legal: str
+    # CONV-016: temporal urgency signals for pSEO pages
+    atividade_recente: AtividadeRecenteData = AtividadeRecenteData()
 
 
 # ---------------------------------------------------------------------------
@@ -140,6 +145,8 @@ class FornecedoresStatsResponse(BaseModel):
     top_orgaos_compradores: list[OrgaoRank]
     last_updated: str
     aviso_legal: str
+    # CONV-016: temporal urgency signals for pSEO pages
+    atividade_recente: AtividadeRecenteData = AtividadeRecenteData()
 
 
 # ---------------------------------------------------------------------------
@@ -258,6 +265,15 @@ def _build_orgao_unavailable(cnpj: str) -> dict:
         "sample_contracts": [],
         "last_updated": now.strftime("%Y-%m-%dT%H:%M:%SZ"),
         "aviso_legal": "Dados temporariamente indisponíveis. Tente novamente em alguns minutos.",
+        "atividade_recente": {
+            "contagem_30d": 0,
+            "contagem_90d": 0,
+            "valor_total_30d": 0.0,
+            "tendencia_12m": "stable",
+            "tendencia_percentual": 0.0,
+            "ultimo_evento_data": None,
+            "sazonalidade_mes_pico": None,
+        },
     }
 
 
@@ -392,6 +408,13 @@ async def orgao_contratos_stats(cnpj: str):
             "data_assinatura": (row.get("data_assinatura") or "")[:10],
         })
 
+    # CONV-016: compute recency/urgency data from contracts
+    atividade_recente = build_recency_from_records(
+        rows,
+        date_field="data_assinatura",
+        value_field="valor_global",
+    )
+
     response_data = {
         "orgao_nome": orgao_nome,
         "orgao_cnpj": cnpj_clean,
@@ -409,6 +432,8 @@ async def orgao_contratos_stats(cnpj: str):
             "Dados de fontes publicas: Portal Nacional de Contratacoes Publicas (PNCP). "
             "Atualizacao diaria."
         ),
+        # CONV-016: recency/urgency indicators for frontend badges
+        "atividade_recente": atividade_recente,
     }
 
     _set_cached(_orgao_contratos_cache, cache_key, response_data)
@@ -513,6 +538,13 @@ async def contratos_stats(setor: str, uf: str):
             "data_assinatura": (row.get("data_assinatura") or "")[:10],
         })
 
+    # CONV-016: compute recency/urgency data from matched contracts
+    atividade_recente = build_recency_from_records(
+        matched,
+        date_field="data_assinatura",
+        value_field="valor_global",
+    )
+
     response_data = {
         "sector_id": sector_id_clean,
         "sector_name": sector.name,
@@ -535,6 +567,8 @@ async def contratos_stats(setor: str, uf: str):
             "Dados de fontes publicas: Portal Nacional de Contratacoes Publicas (PNCP). "
             "Atualizacao diaria."
         ),
+        # CONV-016: recency/urgency indicators for frontend badges
+        "atividade_recente": atividade_recente,
     }
 
     _set_cached(
@@ -597,6 +631,13 @@ async def fornecedores_stats(setor: str, uf: str):
     top_orgaos = sorted(orgao_agg.values(), key=lambda x: x["valor"], reverse=True)[:10]
 
     now = datetime.now(timezone.utc)
+    # CONV-016: compute recency/urgency data from matched contracts
+    atividade_recente = build_recency_from_records(
+        matched,
+        date_field="data_assinatura",
+        value_field="valor_global",
+    )
+
     response_data = {
         "sector_id": sector_id_clean,
         "sector_name": sector.name,
@@ -615,6 +656,8 @@ async def fornecedores_stats(setor: str, uf: str):
             "Dados de fontes publicas: Portal Nacional de Contratacoes Publicas (PNCP). "
             "Atualizacao diaria."
         ),
+        # CONV-016: recency/urgency indicators for frontend badges
+        "atividade_recente": atividade_recente,
     }
 
     _set_cached(
@@ -672,6 +715,8 @@ class FornecedorProfileResponse(BaseModel):
     faq_items: list[FaqItem]
     last_updated: str
     aviso_legal: str
+    # CONV-016: temporal urgency signals for pSEO pages
+    atividade_recente: AtividadeRecenteData = AtividadeRecenteData()
 
 
 # ---------------------------------------------------------------------------
@@ -744,6 +789,15 @@ def _build_fornecedor_unavailable(cnpj: str) -> dict:
         "faq_items": [],
         "last_updated": now.strftime("%Y-%m-%dT%H:%M:%SZ"),
         "aviso_legal": "Dados temporariamente indisponíveis. Tente novamente em alguns minutos.",
+        "atividade_recente": {
+            "contagem_30d": 0,
+            "contagem_90d": 0,
+            "valor_total_30d": 0.0,
+            "tendencia_12m": "stable",
+            "tendencia_percentual": 0.0,
+            "ultimo_evento_data": None,
+            "sazonalidade_mes_pico": None,
+        },
     }
 
 
@@ -872,6 +926,14 @@ async def _build_fornecedor_profile(cnpj_clean: str) -> dict:
     ]
 
     now = datetime.now(timezone.utc)
+
+    # CONV-016: compute recency/urgency data from contracts
+    atividade_recente = build_recency_from_records(
+        rows,
+        date_field="data_assinatura",
+        value_field="valor_global",
+    )
+
     response_data = {
         "cnpj": cnpj_clean,
         "razao_social": razao_social,
@@ -895,6 +957,8 @@ async def _build_fornecedor_profile(cnpj_clean: str) -> dict:
             "Dados de fontes publicas: Portal Nacional de Contratacoes Publicas (PNCP). "
             "Atualizacao diaria. CNPJ e dados cadastrais via BrasilAPI."
         ),
+        # CONV-016: recency/urgency indicators for frontend badges
+        "atividade_recente": atividade_recente,
     }
 
     return response_data

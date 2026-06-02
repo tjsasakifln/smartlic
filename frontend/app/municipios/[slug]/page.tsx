@@ -13,6 +13,7 @@ import AlertEntityCta from '@/components/seo/AlertEntityCta';
 import PreviewCTA from '@/app/components/programmatic/PreviewCTA';
 import { resolveJourney } from '@/lib/seo/relatedResolver';
 import { JourneyLinks } from '@/app/components/navigation/JourneyLinks';
+import { MunicipioUrgency } from '@/components/pseo/MunicipioUrgency';
 
 // Sprint 4 Parte 13: páginas de municípios com licitações abertas
 // ISR 24h — dados do PNCP atualizados diariamente
@@ -35,6 +36,16 @@ interface FaqItem {
   answer: string;
 }
 
+interface AtividadeRecente {
+  contagem_30d: number;
+  contagem_90d: number;
+  valor_total_30d: number;
+  tendencia_12m: string;
+  tendencia_percentual: number;
+  ultimo_evento_data: string | null;
+  sazonalidade_mes_pico: number | null;
+}
+
 interface MunicipioProfile {
   slug: string;
   nome: string;
@@ -48,6 +59,7 @@ interface MunicipioProfile {
   faq_items: FaqItem[];
   last_updated: string;
   aviso_legal: string;
+  atividade_recente: AtividadeRecente;
 }
 
 async function fetchProfile(slug: string): Promise<MunicipioProfile | null> {
@@ -324,6 +336,13 @@ export default async function MunicipioSlugPage({ params }: Props) {
               )}
             </div>
           </div>
+
+          {/* CONV-016: urgency signal — recent bid activity */}
+          <MunicipioUrgency
+            atividade_recente={profile.atividade_recente}
+            nome={profile.nome}
+            uf={profile.uf}
+          />
 
           {/* Licitações Recentes */}
           {profile.licitacoes_recentes.length > 0 && (
