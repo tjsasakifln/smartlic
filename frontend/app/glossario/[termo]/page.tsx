@@ -7,6 +7,7 @@ import LandingNavbar from '@/app/components/landing/LandingNavbar';
 import Footer from '@/app/components/Footer';
 import RelatedArticles from '@/components/seo/RelatedArticles';
 import { SECTORS } from '@/lib/sectors';
+import ValuePropositionAboveFold from '@/app/components/ValuePropositionAboveFold';
 
 export const revalidate = 3600;
 
@@ -210,6 +211,32 @@ export default async function GlossaryTermPage({
               </p>
             )}
           </div>
+        </div>
+
+        {/* CONV-001: Value prop acima da dobra — responde "como ganho dinheiro" */}
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+          <ValuePropositionAboveFold
+            pageType="glossario"
+            context={{ slug: termo }}
+            insightCards={[
+              {
+                icon: '📖',
+                title: 'Cada termo é um mercado',
+                description: 'Por trás de cada conceito do glossário existe um segmento com milhões em contratações públicas.',
+              },
+              {
+                icon: '🎯',
+                title: 'Editais classificados por setor',
+                description: 'Encontre licitações do seu segmento sem precisar garimpar palavras-chave genéricas.',
+              },
+              {
+                icon: '📊',
+                title: 'Dados que viram proposta',
+                description: 'Valores praticados, órgãos compradores e concorrentes — tudo em um painel.',
+              },
+            ]}
+            blurPreview="Milhares de empresas pesquisam estes termos todos os meses para encontrar oportunidades B2G"
+          />
         </div>
 
         {/* ── Main content ── */}
