@@ -78,12 +78,14 @@ globalThis.EventSource = MockEventSource;
 // Polyfill fetch for jsdom (not available by default).
 // Components calling fetch() in useEffect (MarketPatternsBlock,
 // RecentEditaisBlock, TopSuppliersBlock, etc.) need this.
-// Tests can override with custom implementations via jest.spyOn or local mock.
+// Uses a plain function — NOT jest.fn() — because jest.config.js has
+// resetMocks + restoreMocks enabled globally, which would reset/restore
+// a jest.fn() to undefined between tests.
+// Tests can override with jest.spyOn if they need custom behavior.
 if (typeof globalThis.fetch === 'undefined') {
   Object.defineProperty(globalThis, 'fetch', {
-    value: jest.fn(() =>
-      Promise.resolve({ ok: true, json: () => Promise.resolve({}) })
-    ),
+    value: () =>
+      Promise.resolve({ ok: true, json: () => Promise.resolve({}) }),
     configurable: true,
     writable: true,
   });
