@@ -29,6 +29,7 @@ import WhatsAppCTA from "@/app/components/whatsapp/WhatsAppCTA";
 import { PseoPageTracker } from "@/app/components/seo/PseoPageTracker";
 import { PseoLink } from "@/app/components/seo/PseoLink";
 import PreviewCTA from "@/app/components/programmatic/PreviewCTA";
+import { AbTest } from "@/components/AbTest";
 
 /**
  * STORY-324 AC5: SSG with ISR 6h for sector landing pages.
@@ -380,6 +381,37 @@ export default async function SectorPage({
           setor={setor}
           heading={`Receba alertas semanais de licitações de ${sector.name}`}
           description="Novos editais toda semana no seu email, filtrados por setor. Sem spam — cancele a qualquer momento."
+        />
+      </div>
+
+      {/* CONV-012 (#1323): A/B testing example — experiment pseo-cta-v1
+          Control: "Comece agora" CTA / Variant A: "Ver oportunidades" CTA
+          Actual copy variants will be implemented in CONV-002/CONV-006a (#1320). */}
+      <div className="max-w-3xl mx-auto px-4 pb-4">
+        <AbTest
+          experimentId="pseo-cta-v1"
+          variants={{
+            control: (
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 text-center">
+                <p className="text-blue-800 font-semibold">
+                  Comece agora — teste grátis 14 dias
+                </p>
+                <p className="text-blue-600 text-sm mt-1">
+                  Sem cartão de crédito
+                </p>
+              </div>
+            ),
+            variant_a: (
+              <div className="bg-green-50 border border-green-200 rounded-lg p-4 text-center">
+                <p className="text-green-800 font-semibold">
+                  Ver {stats?.total_open ?? 0} oportunidades
+                </p>
+                <p className="text-green-600 text-sm mt-1">
+                  Análise com IA em 3 minutos
+                </p>
+              </div>
+            ),
+          }}
         />
       </div>
 
