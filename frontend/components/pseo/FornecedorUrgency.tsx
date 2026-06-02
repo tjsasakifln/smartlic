@@ -15,11 +15,13 @@ interface AtividadeRecente {
 }
 
 interface FornecedorUrgencyProps {
-  atividade_recente: AtividadeRecente;
+  atividade_recente?: AtividadeRecente | null;
   razao_social: string;
 }
 
 export function FornecedorUrgency({ atividade_recente, razao_social }: FornecedorUrgencyProps) {
+  if (!atividade_recente) return null;
+
   const { contagem_30d, contagem_90d, valor_total_30d, tendencia_12m, tendencia_percentual, ultimo_evento_data } = atividade_recente;
   const daysSinceLast = daysSince(ultimo_evento_data);
 

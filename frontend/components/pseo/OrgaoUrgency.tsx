@@ -15,7 +15,7 @@ interface AtividadeRecente {
 }
 
 interface OrgaoUrgencyProps {
-  atividade_recente: AtividadeRecente;
+  atividade_recente?: AtividadeRecente | null;
   nome: string;
 }
 
@@ -26,6 +26,8 @@ const MESES: Record<number, string> = {
 };
 
 export function OrgaoUrgency({ atividade_recente, nome }: OrgaoUrgencyProps) {
+  if (!atividade_recente) return null;
+
   const { contagem_30d, contagem_90d, ultimo_evento_data, sazonalidade_mes_pico } = atividade_recente;
   const daysSinceLast = daysSince(ultimo_evento_data);
 

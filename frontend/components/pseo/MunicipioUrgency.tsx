@@ -15,12 +15,14 @@ interface AtividadeRecente {
 }
 
 interface MunicipioUrgencyProps {
-  atividade_recente: AtividadeRecente;
+  atividade_recente?: AtividadeRecente | null;
   nome: string;
   uf: string;
 }
 
 export function MunicipioUrgency({ atividade_recente, nome, uf }: MunicipioUrgencyProps) {
+  if (!atividade_recente) return null;
+
   const { contagem_30d, contagem_90d, valor_total_30d, ultimo_evento_data } = atividade_recente;
   const daysSinceLast = daysSince(ultimo_evento_data);
 

@@ -15,12 +15,14 @@ interface AtividadeRecente {
 }
 
 interface ContratosUrgencyProps {
-  atividade_recente: AtividadeRecente;
+  atividade_recente?: AtividadeRecente | null;
   sectorName: string;
   ufLabel: string;
 }
 
 export function ContratosUrgency({ atividade_recente, sectorName, ufLabel }: ContratosUrgencyProps) {
+  if (!atividade_recente) return null;
+
   const { contagem_30d, contagem_90d, valor_total_30d, tendencia_12m, tendencia_percentual, ultimo_evento_data } = atividade_recente;
   const daysSinceLast = daysSince(ultimo_evento_data);
 
