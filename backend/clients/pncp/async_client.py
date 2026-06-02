@@ -11,37 +11,25 @@ import asyncio
 import json
 import logging
 import random
-import time
-from datetime import date, datetime
-from typing import Any, Callable, Dict, List, Optional
+from datetime import date
+from typing import Any, Dict, List
 
 import httpx
 
 from config import (
     RetryConfig,
-    DEFAULT_MODALIDADES,
-    MODALIDADES_EXCLUIDAS,
-    PNCP_TIMEOUT_PER_MODALITY,
-    PNCP_MODALITY_RETRY_BACKOFF,
-    PNCP_TIMEOUT_PER_UF,
-    PNCP_TIMEOUT_PER_UF_DEGRADED,
-    PNCP_BATCH_SIZE,
-    PNCP_BATCH_DELAY_S,
 )
 from exceptions import PNCPAPIError, PNCPRateLimitError
 from middleware import request_id_var
 
 from clients.pncp.circuit_breaker import _circuit_breaker  # noqa: F401
 from clients.pncp.retry import (
-    ParallelFetchResult,
     ModalityFetchState,
     DateFormat,
-    UFS_BY_POPULATION,
     _get_format_rotation,
     _validate_date_params,
     _handle_422_response,
     _set_cached_date_format,
-    calculate_delay,
     format_date,
 )
 from clients.pncp._parallel_mixin import _PNCPParallelMixin

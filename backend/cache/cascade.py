@@ -3,7 +3,6 @@
 Extracted from cache/manager.py (DEBT-203) to keep manager.py ≤ 600 LOC.
 Public API: get_from_cache_cascade
 """
-import asyncio
 import json
 import logging
 from typing import Optional

@@ -7,8 +7,6 @@ patch("cache.redis._get_from_redis"), patch("cache.local_file._get_from_local"),
 Admin functions (metrics, invalidation, inspection) live in cache.admin.
 Hit processing, tracking, and degradation ops live in cache._ops.
 """
-import asyncio
-import json
 import logging
 import os
 import time
@@ -18,14 +16,8 @@ from typing import Optional
 from utils.error_reporting import report_error
 from metrics import CACHE_HITS as METRICS_CACHE_HITS, CACHE_MISSES as METRICS_CACHE_MISSES
 
-from cache.enums import (
-    CacheLevel, CacheStatus, CachePriority,
-    CACHE_FRESH_HOURS, CACHE_STALE_HOURS,
-    LOCAL_CACHE_DIR,
-    classify_priority,
-    compute_search_hash, compute_search_hash_without_dates,
-    compute_global_hash, calculate_backoff_minutes,
-    get_cache_status,
+from cache.enums import (  # noqa: F401 (re-exports)
+    CacheLevel, compute_search_hash, compute_search_hash_without_dates,
 )
 
 # Import submodules as objects so test patches work:
@@ -36,14 +28,8 @@ import cache.local_file as _local
 import cache.supabase as _supa
 
 # Import ops and admin for use and re-export
-from cache._ops import (
-    record_cache_fetch_failure, is_cache_key_degraded,
-    _process_cache_hit, _process_cache_hit_allow_expired,
-    _level_num, _track_cache_operation, _increment_and_reclassify,
-)
-from cache.admin import (
-    get_cache_metrics, invalidate_cache_entry, invalidate_all_cache,
-    inspect_cache_entry,
+from cache._ops import (  # noqa: F401 (re-exports)
+    _process_cache_hit, _track_cache_operation, _increment_and_reclassify,
 )
 from cache.cascade import get_from_cache_cascade, _cascade_read_levels, _format_cache_date_range  # noqa: F401
 
