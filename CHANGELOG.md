@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added — Frontend / Analytics
+- **pSEO analytics instrumentation — scroll depth + time-on-page [CONV-009b] (#1325)** — `useScrollDepth` e `useEngagement` hooks com `requestAnimationFrame` throttling e `passive: true` scroll listener. `PseoPageTracker` (renderless) orquestra view event + scroll + engagement por página. `PseoLink` wrapper de `<Link>` que dispara evento pSEO tipado no click. 9 eventos Mixpanel wireados em 3 templates de maior tráfego (`licitacoes/[setor]`, `contratos/[setor]/[uf]`, `fornecedores/[cnpj]`). LGPD gate via `isTrackingEnabled()`. Rollback: `git revert 40364ff`.
+
+### Added — Frontend / SEO
+- **PSEOTemplate + PreviewCTA em 5 entity pages de alto tráfego [CONV-002b] (#1327)** — Substitui CTAs hardcoded "Testar 14 dias grátis" pelo padrão PSEOTemplate (hero contextual + PreviewCTA mid-page + footer CTA + mobile sticky contextual) em `/fornecedores/[cnpj]`, `/licitacoes/[setor]`, `/contratos/[setor]/[uf]`, `/orgaos/[slug]` e `/municipios/[slug]`. `PreviewCTA` modificado para aceitar `items` pre-fetched (entity pages sem setor). Tracking `pseo_preview_cta_click` + `pseo_checkout_click` preservados. Rollback: `git revert 1cb9218`.
+
 ### Added — Backend / Subcontracting Intelligence
 - **Capability `allow_subcontract_intel` + feature flag `SUBCONTRACT_INTEL_ENABLED` [SUBINTEL-030] (#1234)** — Mecanismo de gating **estritamente aditivo** para a futura vertical de Inteligência de Cadeia de Fornecimento (EPIC-SUBINTEL #1224). Novo campo `allow_subcontract_intel: bool` em `PlanCapabilities` (TypedDict) + `_UNKNOWN_PLAN_DEFAULTS` + 3 construtores do loader DB (jsonb opcional via `.get(...,False)` — não-regressão para linhas existentes), com valor `False` em todos os 9 planos atuais. Dependency `requires_subcontract_intel` + factory `get_subcontract_intel_dependency` em `quota/plan_auth.py` (flag off → 404 rota inerte; capability false → 403 upsell; master bypass; fail-closed em circuit-breaker open) para os futuros endpoints `/v1/subcontract/*`. Feature flag `SUBCONTRACT_INTEL_ENABLED` (default `false`) registrada em `config/features.py` + registry + lifecycle/description em `routes/feature_flags.py`. Comportamento de produção inalterado até ativação explícita. 23 testes novos + atualização de não-regressão. Rollback: reverter o merge ou manter a flag off (estado default).
 
