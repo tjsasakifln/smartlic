@@ -31,11 +31,18 @@ class SaveSegmentRequest(BaseModel):
     )
 
 
-@router.post("/save")
+class SaveSegmentResponse(BaseModel):
+    """Response for POST /v1/segment/save (CONV-018)."""
+
+    status: str = Field(description="Operation status, always 'ok' on success")
+    context_data: dict = Field(description="Full merged context_data after save")
+
+
+@router.post("/save", response_model=SaveSegmentResponse)
 async def save_segment(
     body: SaveSegmentRequest,
     user: dict = Depends(require_auth),
-) -> dict:
+) -> SaveSegmentResponse:
     """Save user segmentation data to profile context_data (CONV-018).
 
     Merges the new fields into the existing ``context_data`` JSONB column
