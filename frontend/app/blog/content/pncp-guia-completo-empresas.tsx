@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import BlogInlineCTA from '../components/BlogInlineCTA';
 import PncpHubPanel from '@/components/blog/hubs/PncpHubPanel';
+import ValuePropositionAboveFold from '@/app/components/ValuePropositionAboveFold';
 
 /**
  * T3: PNCP na prática — Hub de editais, contratos e fornecedores públicos
@@ -12,6 +13,29 @@ import PncpHubPanel from '@/components/blog/hubs/PncpHubPanel';
 export default function PncpGuiaCompletoEmpresas() {
   return (
     <>
+      {/* CONV-001: Value prop acima da dobra — responde "como ganho dinheiro" */}
+      <ValuePropositionAboveFold
+        pageType="pncp-guia"
+        context={{ slug: 'pncp-guia-completo-empresas' }}
+        insightCards={[
+          {
+            icon: '💰',
+            title: 'Milhares de editais por dia',
+            description: 'O PNCP publica dezenas de milhares de contratações por mês. Sua empresa pode estar perdendo oportunidades por não filtrar por setor.',
+          },
+          {
+            icon: '🎯',
+            title: 'Classificação inteligente por setor',
+            description: 'Enquanto o PNCP busca por palavra-chave genérica, o SmartLic classifica cada edital no seu segmento com IA.',
+          },
+          {
+            icon: '📊',
+            title: '27 estados em um só lugar',
+            description: 'Dados consolidados de todos os estados brasileiros — sem navegar por dezenas de portais estaduais.',
+          },
+        ]}
+        blurPreview="47.230 órgãos publicaram editais nos últimos 30 dias — veja quantos são do seu setor"
+      />
       {/* Hub PNCP — acima da dobra com dados reais e CTAs (PSEO-HUB-002) */}
       <PncpHubPanel />
       {/* FAQPage JSON-LD */}

@@ -3,6 +3,7 @@ import Link from 'next/link';
 import EmptyStateSEO from '@/components/seo/EmptyStateSEO';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import ValuePropositionAboveFold from '@/app/components/ValuePropositionAboveFold';
 import { QUESTIONS, getQuestionBySlug, getAllQuestionSlugs, CATEGORY_META, getQuestionsByCategory } from '@/lib/questions';
 import { GLOSSARY_TERMS } from '@/lib/glossary-terms';
 import { buildCanonical } from '@/lib/seo';
@@ -155,6 +156,32 @@ export default async function PerguntaPage({
             </div>
           </div>
         </section>
+
+        {/* CONV-001: Value prop acima da dobra — responde "como ganho dinheiro" */}
+        <div className="mx-auto max-w-4xl px-4">
+          <ValuePropositionAboveFold
+            pageType="perguntas-juridicas"
+            context={{ slug }}
+            insightCards={[
+              {
+                icon: '📋',
+                title: 'Dúvida vira oportunidade',
+                description: 'Cada resposta revela um aspecto do mercado B2G que pode gerar receita para sua empresa.',
+              },
+              {
+                icon: '🔍',
+                title: 'Monitoramento inteligente',
+                description: 'Acompanhe editais, contratos e aditivos do seu setor com alertas automáticos.',
+              },
+              {
+                icon: '⚖️',
+                title: 'Base legal atualizada',
+                description: 'Conteúdo referenciado na Lei 14.133/2021 e jurisprudência do TCU — decisões embasadas.',
+              },
+            ]}
+            blurPreview="Milhares de empresas consultam estas mesmas perguntas para decidir onde e como participar"
+          />
+        </div>
 
         {/* Content grid */}
         <div className="mx-auto max-w-4xl px-4 py-12 grid grid-cols-1 lg:grid-cols-3 gap-12">

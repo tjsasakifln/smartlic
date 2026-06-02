@@ -40,6 +40,21 @@ export type LeadCapturedEvent = {
   form_name?: string;
 };
 
+/** CONV-001 (#1310): Event payload for value_prop_view tracking. */
+export type ValuePropViewEvent = {
+  page_type: string;
+  slug: string;
+  headline: string;
+};
+
+/** CONV-001 (#1310): Event payload for value_cta_click tracking. */
+export type ValuePropCtaClickEvent = {
+  page_type: string;
+  slug: string;
+  campaign: string;
+  cta_label: string;
+};
+
 /** CONV-017 (#1332): Event payload for journey_link_clicked tracking. */
 export type JourneyLinkClickedEvent = {
   source_template: string;
@@ -106,6 +121,23 @@ export function trackFormSubmitted(event: FormSubmittedEvent): void {
  */
 export function trackLeadCaptured(event: LeadCapturedEvent): void {
   safeTrack('lead_captured', event as unknown as Record<string, unknown>);
+}
+
+/**
+/**
+ * CONV-001 (#1310): Track a value proposition view (above-fold component rendered).
+ * Event name: 'value_prop_view'
+ */
+export function trackValuePropView(event: ValuePropViewEvent): void {
+  safeTrack('value_prop_view', event as unknown as Record<string, unknown>);
+}
+
+/**
+ * CONV-001 (#1310): Track a CTA click inside the ValuePropositionAboveFold component.
+ * Event name: 'value_cta_click'
+ */
+export function trackValuePropCtaClick(event: ValuePropCtaClickEvent): void {
+  safeTrack('value_cta_click', event as unknown as Record<string, unknown>);
 }
 
 /**
