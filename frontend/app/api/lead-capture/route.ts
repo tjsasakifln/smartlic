@@ -23,7 +23,8 @@ export async function POST(request: NextRequest) {
       utm_term,
     } = body as Record<string, string | undefined>;
 
-    const hasPhone = typeof telefone === 'string' && telefone.trim().length >= 10;
+    const phoneDigits = typeof telefone === 'string' ? telefone.replace(/\D/g, '') : '';
+    const hasPhone = phoneDigits.length >= 10 && phoneDigits.length <= 13;
 
     if ((!email || !email.includes('@')) && !hasPhone) {
       return NextResponse.json(
