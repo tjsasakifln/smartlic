@@ -20,6 +20,7 @@ import { FoundersRibbon } from "@/components/banners/FoundersRibbon";
 import { AdvisoryDisclaimer } from "@/components/legal/AdvisoryDisclaimer";
 import { RecentEditaisBlock } from "@/app/components/programmatic/RecentEditaisBlock";
 import { TopSuppliersBlock } from "@/app/components/programmatic/TopSuppliersBlock";
+import { MarketPatternsBlock } from "@/components/pseo/MarketPatternsBlock";
 import { TrackedCTALink } from "@/app/components/seo/TrackedCTALink";
 import { SeoOpportunityBanner } from "@/app/components/seo/SeoOpportunityBanner";
 import { LeadCapture } from "@/components/LeadCapture";
@@ -300,6 +301,9 @@ export default async function SectorPage({
         setorLabel={sector.name}
         ufLabel="Brasil"
       />
+
+      {/* #1288 (NETINT-011): Padrões de Mercado — aggregated market intelligence */}
+      <MarketPatternsBlock setor={setor} />
 
       {/* AC6: Como Funciona */}
       <section className="max-w-5xl mx-auto py-16 px-4">
