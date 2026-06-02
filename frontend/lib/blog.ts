@@ -53,7 +53,7 @@ export const BLOG_ARTICLES: BlogArticleMeta[] = [
   // B2G-01
   {
     slug: 'como-aumentar-taxa-vitoria-licitacoes',
-    title: 'Taxa de Vitória em Licitações: Identifique editais viáveis e dispute 50% menos para ganhar mais',
+    title: 'Taxa de Vitória em Licitações: Filtre Mais, Dispute Menos, Ganhe Mais',
     description:
       'Empresas que triplicam adjudicações não disputam mais — disputam melhor. Aprenda o filtro de 4 fatores que elimina 60% dos editais antes da proposta.',
     category: 'Empresas B2G',
