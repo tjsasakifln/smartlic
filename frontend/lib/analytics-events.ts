@@ -55,6 +55,13 @@ export type ValuePropCtaClickEvent = {
   cta_label: string;
 };
 
+/** CONV-017 (#1332): Event payload for journey_link_clicked tracking. */
+export type JourneyLinkClickedEvent = {
+  source_template: string;
+  destination_type: string;
+  position: number;
+};
+
 // ---------------------------------------------------------------------------
 // Internal helpers
 // ---------------------------------------------------------------------------
@@ -117,6 +124,7 @@ export function trackLeadCaptured(event: LeadCapturedEvent): void {
 }
 
 /**
+/**
  * CONV-001 (#1310): Track a value proposition view (above-fold component rendered).
  * Event name: 'value_prop_view'
  */
@@ -130,4 +138,12 @@ export function trackValuePropView(event: ValuePropViewEvent): void {
  */
 export function trackValuePropCtaClick(event: ValuePropCtaClickEvent): void {
   safeTrack('value_cta_click', event as unknown as Record<string, unknown>);
+}
+
+/**
+ * CONV-017 (#1332): Track a journey link click on entity pages.
+ * Event name: 'journey_link_clicked'
+ */
+export function trackJourneyLinkClicked(event: JourneyLinkClickedEvent): void {
+  safeTrack('journey_link_clicked', event as unknown as Record<string, unknown>);
 }
