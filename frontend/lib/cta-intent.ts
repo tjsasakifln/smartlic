@@ -31,7 +31,10 @@ export type CtaPageType =
   | 'contratos'
   | 'juridico-perguntas'
   | 'subcontratacao'
-  | 'blog-generico';
+  | 'blog-generico'
+  | 'guia-geral'
+  | 'perguntas-juridicas'
+  | 'glossario';
 
 /** Complete CTA configuration for a page type + context. */
 export interface CtaConfig {
@@ -255,6 +258,42 @@ function formatValueCrude(value: number): string {
   return value.toFixed(0);
 }
 
+function ctaGuiaGeral(context: CtaContext): CtaConfig {
+  const s = context.setor || 'seu setor';
+  return {
+    pageType: 'guia-geral',
+    headline: `Descubra quanto sua empresa pode faturar com licitações de ${s}`,
+    subtext: 'Veja editais abertos, valores praticados e órgãos compradores — tudo classificado por setor com inteligência artificial.',
+    buttonText: 'Ver oportunidades no meu setor',
+    buttonLink: buildSignupHref(context.slug, 'guia-geral'),
+    socialProof: 'Centenas de empresas já usam para prospectar no B2G',
+    campaign: 'guia-geral',
+  };
+}
+
+function ctaPerguntasJuridicas(context: CtaContext): CtaConfig {
+  return {
+    pageType: 'perguntas-juridicas',
+    headline: 'Transforme dúvidas jurídicas em oportunidades de negócio',
+    subtext: 'Monitore editais, contratos e aditivos do seu setor com alertas inteligentes e análise de viabilidade por IA.',
+    buttonText: 'Monitorar oportunidades agora',
+    buttonLink: buildSignupHref(context.slug, 'perguntas-juridicas'),
+    monitoringCta: true,
+    campaign: 'perguntas-juridicas',
+  };
+}
+
+function ctaGlossario(context: CtaContext): CtaConfig {
+  return {
+    pageType: 'glossario',
+    headline: 'Entenda o termo — e encontre licitações onde ele aparece',
+    subtext: 'Cada termo do glossário representa um mercado real. Veja editais abertos com classificação por setor e viabilidade.',
+    buttonText: 'Buscar licitações do meu setor',
+    buttonLink: buildSignupHref(context.slug, 'glossario'),
+    campaign: 'glossario',
+  };
+}
+
 // ---------------------------------------------------------------------------
 // Public API
 // ---------------------------------------------------------------------------
@@ -286,6 +325,12 @@ export function getCtaByIntent(pageType: CtaPageType, context: CtaContext): CtaC
       return ctaSubcontratacao(context);
     case 'blog-generico':
       return ctaBlogGenerico(context);
+    case 'guia-geral':
+      return ctaGuiaGeral(context);
+    case 'perguntas-juridicas':
+      return ctaPerguntasJuridicas(context);
+    case 'glossario':
+      return ctaGlossario(context);
   }
 }
 

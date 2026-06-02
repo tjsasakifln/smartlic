@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import BlogInlineCTA from '../components/BlogInlineCTA';
 import LeadCaptureIntermediate from '@/components/blog/LeadCaptureIntermediate';
+import ValuePropositionAboveFold from '@/app/components/ValuePropositionAboveFold';
 
 /**
  * T1: Como Participar da Primeira Licitação em 2026 — Guia Completo
@@ -11,6 +12,29 @@ import LeadCaptureIntermediate from '@/components/blog/LeadCaptureIntermediate';
 export default function ComoParticiparPrimeiraLicitacao2026() {
   return (
     <>
+      {/* CONV-001: Value prop acima da dobra — responde "como ganho dinheiro" */}
+      <ValuePropositionAboveFold
+        pageType="primeira-licitacao"
+        context={{ slug: 'como-participar-primeira-licitacao-2026' }}
+        insightCards={[
+          {
+            icon: '🎯',
+            title: 'Encontre editais viáveis para sua empresa',
+            description: 'Filtre por modalidade, valor e prazo. Veja a viabilidade real de cada edital com análise automática por IA.',
+          },
+          {
+            icon: '📋',
+            title: 'Checklist completo de habilitação',
+            description: 'Saiba exatamente quais documentos sua empresa precisa apresentar — sem surpresas de última hora.',
+          },
+          {
+            icon: '⚡',
+            title: 'Alertas de novos editais no seu setor',
+            description: 'Receba notificações automáticas quando surgirem oportunidades compatíveis com seu perfil.',
+          },
+        ]}
+        blurPreview="Mais de 10 mil editais são publicados por mês no Brasil — veja quantos são compatíveis com sua empresa"
+      />
       {/* FAQPage JSON-LD */}
       <script
         type="application/ld+json"

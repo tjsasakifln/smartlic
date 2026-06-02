@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import BlogInlineCTA from '../components/BlogInlineCTA';
+import ValuePropositionAboveFold from '@/app/components/ValuePropositionAboveFold';
 
 /**
  * SEO-12.3.3 Art-07: Subcontratação em licitações: Regras da Lei 14.133
@@ -9,6 +10,29 @@ import BlogInlineCTA from '../components/BlogInlineCTA';
 export default function SubcontratacaoLicitacoesRegrasLei14133() {
   return (
     <>
+      {/* CONV-001: Value prop acima da dobra — responde "como ganho dinheiro" */}
+      <ValuePropositionAboveFold
+        pageType="subcontratacao"
+        context={{ slug: 'subcontratacao-licitacoes-regras-lei-14133' }}
+        insightCards={[
+          {
+            icon: '🤝',
+            title: 'Mapeie contratos que precisam de subcontratados',
+            description: 'Identifique vencedores de licitações e contratos ativos que podem terceirizar parte da execução.',
+          },
+          {
+            icon: '💰',
+            title: 'Oportunidades B2B dentro do B2G',
+            description: 'Empresas vencedoras frequentemente subcontratam serviços especializados — sua empresa pode ser o parceiro ideal.',
+          },
+          {
+            icon: '📋',
+            title: 'Regras claras da Lei 14.133',
+            description: 'O Art. 122 regula a subcontratação. Saiba os limites percentuais, exigências documentais e prazos.',
+          },
+        ]}
+        blurPreview="Milhares de contratos ativos no PNCP permitem subcontratação — veja os do seu setor"
+      />
       {/* FAQPage JSON-LD */}
       <script
         type="application/ld+json"

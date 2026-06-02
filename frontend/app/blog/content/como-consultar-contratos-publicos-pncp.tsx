@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import BlogInlineCTA from '../components/BlogInlineCTA';
 import ContratosHubPanel from '@/components/blog/hubs/ContratosHubPanel';
+import ValuePropositionAboveFold from '@/app/components/ValuePropositionAboveFold';
 
 /**
  * SEO-12.3.3 Art-01: Hub de Contratos Públicos — busque por fornecedor/órgão/objeto
@@ -11,6 +12,29 @@ import ContratosHubPanel from '@/components/blog/hubs/ContratosHubPanel';
 export default function ComoConsultarContratosPublicosPncp() {
   return (
     <>
+      {/* CONV-001: Value prop acima da dobra — responde "como ganho dinheiro" */}
+      <ValuePropositionAboveFold
+        pageType="contratos"
+        context={{ slug: 'como-consultar-contratos-publicos-pncp' }}
+        insightCards={[
+          {
+            icon: '🔍',
+            title: '2M+ contratos indexados',
+            description: 'Histórico completo de contratos do PNCP por setor, UF e órgão — descubra quem compra, quanto compra e de quem.',
+          },
+          {
+            icon: '💼',
+            title: 'Identifique concorrentes',
+            description: 'Veja quais empresas estão ganhando licitações no seu segmento e quais contratos estão próximos do vencimento.',
+          },
+          {
+            icon: '📈',
+            title: 'Benchmark de preços reais',
+            description: 'Compare valores praticados em contratos similares para calibrar suas propostas com dados de mercado.',
+          },
+        ]}
+        blurPreview="Mais de 200 mil novos contratos por ano — veja os do seu setor na sua região"
+      />
       {/* Hub Contratos — acima da dobra com navegação por fornecedor/órgão (PSEO-HUB-002) */}
       <ContratosHubPanel />
 
