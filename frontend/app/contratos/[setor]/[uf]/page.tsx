@@ -27,6 +27,7 @@ import PreviewCTA from '@/app/components/programmatic/PreviewCTA';
 import { OpportunitySignalsPanel } from '@/app/components/OpportunitySignalsPanel';
 import { resolveJourney } from '@/lib/seo/relatedResolver';
 import { JourneyLinks } from '@/app/components/navigation/JourneyLinks';
+import { ContratosUrgency } from '@/components/pseo/ContratosUrgency';
 
 export const revalidate = 14400; // 4h ISR (reduzido de 24h para melhorar freshness dos dados)
 
@@ -35,6 +36,16 @@ export function generateStaticParams() {
 }
 
 type Props = { params: Promise<{ setor: string; uf: string }> };
+
+interface AtividadeRecente {
+  contagem_30d: number;
+  contagem_90d: number;
+  valor_total_30d: number;
+  tendencia_12m: string;
+  tendencia_percentual: number;
+  ultimo_evento_data: string | null;
+  sazonalidade_mes_pico: number | null;
+}
 
 interface ContratosStats {
   sector_id: string;
@@ -49,6 +60,7 @@ interface ContratosStats {
   sample_contracts: { objeto: string; orgao: string; fornecedor: string; valor: number | null; data_assinatura: string }[];
   last_updated: string;
   aviso_legal: string;
+  atividade_recente: AtividadeRecente;
 }
 
 async function fetchContratosStats(setor: string, uf: string): Promise<ContratosStats | null> {
@@ -351,6 +363,13 @@ export default async function ContratosSetorUfPage({ params }: Props) {
                       <p className="text-2xl font-bold text-gray-900">{formatBRL(data.avg_value)}</p>
                     </div>
                   </div>
+
+                  {/* CONV-016: urgency signal — recent contract activity */}
+                  <ContratosUrgency
+                    atividade_recente={data.atividade_recente}
+                    sectorName={data.sector_name}
+                    ufLabel={ufName}
+                  />
 
                   {/* CONV-002 (#1311): OpportunitySignalsPanel — sinais do mercado de contratos */}
                   {contratosSignals.length > 0 && (

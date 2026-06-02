@@ -19,6 +19,7 @@ import {
   buildOperationalTitle,
   buildOperationalDescription,
 } from '@/lib/seo';
+import { OrgaoUrgency } from '@/components/pseo/OrgaoUrgency';
 
 const BACKEND_URL = getBackendUrl();
 
@@ -33,6 +34,16 @@ interface LicitacaoRecente {
 interface ModalidadeCount {
   nome: string;
   count: number;
+}
+
+interface AtividadeRecente {
+  contagem_30d: number;
+  contagem_90d: number;
+  valor_total_30d: number;
+  tendencia_12m: string;
+  tendencia_percentual: number;
+  ultimo_evento_data: string | null;
+  sazonalidade_mes_pico: number | null;
 }
 
 interface OrgaoStats {
@@ -53,6 +64,7 @@ interface OrgaoStats {
   total_contratos_24m?: number;
   valor_total_contratos_24m?: number;
   aviso_legal: string;
+  atividade_recente: AtividadeRecente;
 }
 
 export const revalidate = 3600; // 24h ISR
@@ -299,6 +311,12 @@ export default async function OrgaoPerfilPage({
       />
 
       <OrgaoPerfilClient stats={stats} />
+
+      {/* CONV-016: urgency signal — recent bid activity */}
+      <OrgaoUrgency
+        atividade_recente={stats.atividade_recente}
+        nome={stats.nome}
+      />
 
       {/* CONV-002 (#1311): OpportunitySignalsPanel — categorias + ticket médio + sazonalidade */}
       {orgaoSignals.length > 0 && (

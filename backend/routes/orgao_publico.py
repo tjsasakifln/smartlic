@@ -17,6 +17,7 @@ from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
 from pipeline.budget import _run_with_budget
+from routes._recency_helpers import AtividadeRecenteData, build_recency_from_records
 
 logger = logging.getLogger(__name__)
 router = APIRouter(tags=["orgao-publico"])
@@ -83,6 +84,8 @@ class OrgaoStatsResponse(BaseModel):
     total_contratos_24m: int = 0
     valor_total_contratos_24m: float = 0.0
     aviso_legal: str
+    # CONV-016: temporal urgency signals for pSEO pages
+    atividade_recente: AtividadeRecenteData = AtividadeRecenteData()
 
 
 # ---------------------------------------------------------------------------
@@ -247,6 +250,15 @@ def _build_orgao_unavailable(cnpj: str) -> dict:
         "aviso_legal": (
             "Dados temporariamente indisponíveis. Tente novamente em alguns minutos."
         ),
+        "atividade_recente": {
+            "contagem_30d": 0,
+            "contagem_90d": 0,
+            "valor_total_30d": 0.0,
+            "tendencia_12m": "stable",
+            "tendencia_percentual": 0.0,
+            "ultimo_evento_data": None,
+            "sazonalidade_mes_pico": None,
+        },
     }
 
 
@@ -413,6 +425,13 @@ async def _build_orgao_stats(cnpj: str) -> tuple[dict, bool]:
     # Contracts data from pncp_supplier_contracts (graceful: empty if backfill not done)
     contracts_data = await _fetch_contracts_data(cnpj)
 
+    # CONV-016: compute recency/urgency data from open bids
+    atividade_recente = build_recency_from_records(
+        rows,
+        date_field="data_publicacao",
+        value_field="valor_total_estimado",
+    )
+
     return {
         "nome": nome,
         "cnpj": cnpj,
@@ -435,6 +454,8 @@ async def _build_orgao_stats(cnpj: str) -> tuple[dict, bool]:
             "Dados de fontes públicas: Portal Nacional de Contratações Públicas (PNCP). "
             "Atualização diária."
         ),
+        # CONV-016: recency/urgency indicators for frontend badges
+        "atividade_recente": atividade_recente,
     }, False
 
 

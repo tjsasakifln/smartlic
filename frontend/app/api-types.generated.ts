@@ -6136,6 +6136,44 @@ export interface components {
             /** Value */
             value: unknown;
         };
+        /**
+         * AtividadeRecenteData
+         * @description Recency/urgency data for entity pages (CONV-016).
+         *
+         *     Each pSEO entity response should include this block so the frontend
+         *     can render time-based urgency signals that create motivation to act.
+         */
+        AtividadeRecenteData: {
+            /**
+             * Contagem 30D
+             * @default 0
+             */
+            contagem_30d: number;
+            /**
+             * Contagem 90D
+             * @default 0
+             */
+            contagem_90d: number;
+            /** Sazonalidade Mes Pico */
+            sazonalidade_mes_pico?: number | null;
+            /**
+             * Tendencia 12M
+             * @default stable
+             */
+            tendencia_12m: string;
+            /**
+             * Tendencia Percentual
+             * @default 0
+             */
+            tendencia_percentual: number;
+            /** Ultimo Evento Data */
+            ultimo_evento_data?: string | null;
+            /**
+             * Valor Total 30D
+             * @default 0
+             */
+            valor_total_30d: number;
+        };
         /** AuthStatusResponse */
         AuthStatusResponse: {
             /** Confirmed */
@@ -7348,6 +7386,16 @@ export interface components {
         };
         /** ContratosStatsResponse */
         ContratosStatsResponse: {
+            /**
+             * @default {
+             *       "contagem_30d": 0,
+             *       "contagem_90d": 0,
+             *       "tendencia_12m": "stable",
+             *       "tendencia_percentual": 0,
+             *       "valor_total_30d": 0
+             *     }
+             */
+            atividade_recente: components["schemas"]["AtividadeRecenteData"];
             /** Avg Value */
             avg_value: number;
             /** Aviso Legal */
@@ -8486,6 +8534,16 @@ export interface components {
         FornecedorProfileResponse: {
             /** Anos Atividade */
             anos_atividade: number[];
+            /**
+             * @default {
+             *       "contagem_30d": 0,
+             *       "contagem_90d": 0,
+             *       "tendencia_12m": "stable",
+             *       "tendencia_percentual": 0,
+             *       "valor_total_30d": 0
+             *     }
+             */
+            atividade_recente: components["schemas"]["AtividadeRecenteData"];
             /** Aviso Legal */
             aviso_legal: string;
             /** Cnae Descricao */
@@ -8541,6 +8599,16 @@ export interface components {
         };
         /** FornecedoresStatsResponse */
         FornecedoresStatsResponse: {
+            /**
+             * @default {
+             *       "contagem_30d": 0,
+             *       "contagem_90d": 0,
+             *       "tendencia_12m": "stable",
+             *       "tendencia_percentual": 0,
+             *       "valor_total_30d": 0
+             *     }
+             */
+            atividade_recente: components["schemas"]["AtividadeRecenteData"];
             /** Aviso Legal */
             aviso_legal: string;
             /** Last Updated */
@@ -9710,6 +9778,16 @@ export interface components {
         };
         /** MunicipioProfileResponse */
         MunicipioProfileResponse: {
+            /**
+             * @default {
+             *       "contagem_30d": 0,
+             *       "contagem_90d": 0,
+             *       "tendencia_12m": "stable",
+             *       "tendencia_percentual": 0,
+             *       "valor_total_30d": 0
+             *     }
+             */
+            atividade_recente: components["schemas"]["AtividadeRecenteData"];
             /** Aviso Legal */
             aviso_legal: string;
             /** Faq Items */
@@ -9863,6 +9941,16 @@ export interface components {
         };
         /** OrgaoContratosStatsResponse */
         OrgaoContratosStatsResponse: {
+            /**
+             * @default {
+             *       "contagem_30d": 0,
+             *       "contagem_90d": 0,
+             *       "tendencia_12m": "stable",
+             *       "tendencia_percentual": 0,
+             *       "valor_total_30d": 0
+             *     }
+             */
+            atividade_recente: components["schemas"]["AtividadeRecenteData"];
             /** Avg Value */
             avg_value: number;
             /** Aviso Legal */
@@ -9897,6 +9985,16 @@ export interface components {
         };
         /** OrgaoStatsResponse */
         OrgaoStatsResponse: {
+            /**
+             * @default {
+             *       "contagem_30d": 0,
+             *       "contagem_90d": 0,
+             *       "tendencia_12m": "stable",
+             *       "tendencia_percentual": 0,
+             *       "valor_total_30d": 0
+             *     }
+             */
+            atividade_recente: components["schemas"]["AtividadeRecenteData"];
             /** Aviso Legal */
             aviso_legal: string;
             /** Cnpj */
@@ -10133,6 +10231,16 @@ export interface components {
         };
         /** PerfilB2GResponse */
         PerfilB2GResponse: {
+            /**
+             * @default {
+             *       "contagem_30d": 0,
+             *       "contagem_90d": 0,
+             *       "tendencia_12m": "stable",
+             *       "tendencia_percentual": 0,
+             *       "valor_total_30d": 0
+             *     }
+             */
+            atividade_recente: components["schemas"]["AtividadeRecenteData"];
             /** Aviso Legal */
             aviso_legal: string;
             /**

@@ -1159,6 +1159,60 @@
         "title": "AppConfigRow",
         "type": "object"
       },
+      "AtividadeRecenteData": {
+        "description": "Recency/urgency data for entity pages (CONV-016).\n\nEach pSEO entity response should include this block so the frontend\ncan render time-based urgency signals that create motivation to act.",
+        "properties": {
+          "contagem_30d": {
+            "default": 0,
+            "title": "Contagem 30D",
+            "type": "integer"
+          },
+          "contagem_90d": {
+            "default": 0,
+            "title": "Contagem 90D",
+            "type": "integer"
+          },
+          "sazonalidade_mes_pico": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sazonalidade Mes Pico"
+          },
+          "tendencia_12m": {
+            "default": "stable",
+            "title": "Tendencia 12M",
+            "type": "string"
+          },
+          "tendencia_percentual": {
+            "default": 0.0,
+            "title": "Tendencia Percentual",
+            "type": "number"
+          },
+          "ultimo_evento_data": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ultimo Evento Data"
+          },
+          "valor_total_30d": {
+            "default": 0.0,
+            "title": "Valor Total 30D",
+            "type": "number"
+          }
+        },
+        "title": "AtividadeRecenteData",
+        "type": "object"
+      },
       "AuthStatusResponse": {
         "properties": {
           "confirmed": {
@@ -3819,6 +3873,16 @@
       },
       "ContratosStatsResponse": {
         "properties": {
+          "atividade_recente": {
+            "$ref": "#/components/schemas/AtividadeRecenteData",
+            "default": {
+              "contagem_30d": 0,
+              "contagem_90d": 0,
+              "tendencia_12m": "stable",
+              "tendencia_percentual": 0.0,
+              "valor_total_30d": 0.0
+            }
+          },
           "avg_value": {
             "title": "Avg Value",
             "type": "number"
@@ -6242,6 +6306,16 @@
             "title": "Anos Atividade",
             "type": "array"
           },
+          "atividade_recente": {
+            "$ref": "#/components/schemas/AtividadeRecenteData",
+            "default": {
+              "contagem_30d": 0,
+              "contagem_90d": 0,
+              "tendencia_12m": "stable",
+              "tendencia_percentual": 0.0,
+              "valor_total_30d": 0.0
+            }
+          },
           "aviso_legal": {
             "title": "Aviso Legal",
             "type": "string"
@@ -6394,6 +6468,16 @@
       },
       "FornecedoresStatsResponse": {
         "properties": {
+          "atividade_recente": {
+            "$ref": "#/components/schemas/AtividadeRecenteData",
+            "default": {
+              "contagem_30d": 0,
+              "contagem_90d": 0,
+              "tendencia_12m": "stable",
+              "tendencia_percentual": 0.0,
+              "valor_total_30d": 0.0
+            }
+          },
           "aviso_legal": {
             "title": "Aviso Legal",
             "type": "string"
@@ -8945,6 +9029,16 @@
       },
       "MunicipioProfileResponse": {
         "properties": {
+          "atividade_recente": {
+            "$ref": "#/components/schemas/AtividadeRecenteData",
+            "default": {
+              "contagem_30d": 0,
+              "contagem_90d": 0,
+              "tendencia_12m": "stable",
+              "tendencia_percentual": 0.0,
+              "valor_total_30d": 0.0
+            }
+          },
           "aviso_legal": {
             "title": "Aviso Legal",
             "type": "string"
@@ -9420,6 +9514,16 @@
       },
       "OrgaoContratosStatsResponse": {
         "properties": {
+          "atividade_recente": {
+            "$ref": "#/components/schemas/AtividadeRecenteData",
+            "default": {
+              "contagem_30d": 0,
+              "contagem_90d": 0,
+              "tendencia_12m": "stable",
+              "tendencia_percentual": 0.0,
+              "valor_total_30d": 0.0
+            }
+          },
           "avg_value": {
             "title": "Avg Value",
             "type": "number"
@@ -9515,6 +9619,16 @@
       },
       "OrgaoStatsResponse": {
         "properties": {
+          "atividade_recente": {
+            "$ref": "#/components/schemas/AtividadeRecenteData",
+            "default": {
+              "contagem_30d": 0,
+              "contagem_90d": 0,
+              "tendencia_12m": "stable",
+              "tendencia_percentual": 0.0,
+              "valor_total_30d": 0.0
+            }
+          },
           "aviso_legal": {
             "title": "Aviso Legal",
             "type": "string"
@@ -10255,6 +10369,16 @@
       },
       "PerfilB2GResponse": {
         "properties": {
+          "atividade_recente": {
+            "$ref": "#/components/schemas/AtividadeRecenteData",
+            "default": {
+              "contagem_30d": 0,
+              "contagem_90d": 0,
+              "tendencia_12m": "stable",
+              "tendencia_percentual": 0.0,
+              "valor_total_30d": 0.0
+            }
+          },
           "aviso_legal": {
             "title": "Aviso Legal",
             "type": "string"

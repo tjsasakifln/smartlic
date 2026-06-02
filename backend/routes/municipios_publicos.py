@@ -20,6 +20,7 @@ from typing import Optional
 from fastapi import APIRouter, HTTPException, Response
 
 from routes._sitemap_cache_headers import SITEMAP_CACHE_HEADERS
+from routes._recency_helpers import AtividadeRecenteData, build_recency_from_records
 from pydantic import BaseModel
 
 from metrics import record_sitemap_count
@@ -341,6 +342,8 @@ class MunicipioProfileResponse(BaseModel):
     faq_items: list[FaqItem]
     last_updated: str
     aviso_legal: str
+    # CONV-016: temporal urgency signals for pSEO pages
+    atividade_recente: AtividadeRecenteData = AtividadeRecenteData()
 
 
 class SitemapMunicipiosResponse(BaseModel):
@@ -524,6 +527,18 @@ async def municipio_profile(slug: str):
 
     faq_items = _build_faq(nome, uf, total_licitacoes, populacao)
 
+    # CONV-016: compute recency/urgency data from open bids (rows may be undefined in degraded paths)
+    _rows_for_recency: list[dict] = []
+    try:
+        _rows_for_recency = rows  # type: ignore[name-defined] # noqa
+    except NameError:
+        pass
+    atividade_recente = build_recency_from_records(
+        _rows_for_recency,
+        date_field="data_publicacao",
+        value_field="valor_total_estimado",
+    )
+
     response_data = {
         "slug": slug_clean,
         "nome": nome,
@@ -541,6 +556,8 @@ async def municipio_profile(slug: str):
             "e Instituto Brasileiro de Geografia e Estatistica (IBGE). "
             "Atualizacao diaria. Populacao: estimativa IBGE."
         ),
+        # CONV-016: recency/urgency indicators for frontend badges
+        "atividade_recente": atividade_recente,
     }
 
     if bids_query_degraded:
