@@ -267,7 +267,7 @@ function ctaFornecedorPerfil(context: CtaContext): CtaConfig {
     buttonText: 'Gerar análise comercial',
     buttonLink: buildSignupHref(context.slug, 'fornecedor-analise'),
     secondaryText: 'Ver editais do segmento',
-    secondaryLink: context.setor ? `/licitacoes/${context.setor}` : '/buscar',
+    secondaryLink: context.setor ? `/licitações/${context.setor}` : '/buscar',
     campaign: 'fornecedor-analise',
   };
 }
@@ -284,7 +284,7 @@ function ctaOrgaoPerfil(context: CtaContext): CtaConfig {
     buttonText: 'Ver editais deste órgão',
     buttonLink: buildSignupHref(context.slug, 'orgao-editais'),
     secondaryText: 'Criar alerta de novos editais',
-    secondaryLink: `/alertas-publicos?orgao=${encodeURIComponent(name)}`,
+    secondaryLink: `/alertas-públicos?órgão=${encodeURIComponent(name)}`,
     monitoringCta: true,
     campaign: 'orgao-editais',
   };
@@ -304,7 +304,7 @@ function ctaContratoDetalhe(context: CtaContext): CtaConfig {
     buttonText: 'Explorar contratos similares',
     buttonLink: buildSignupHref(context.slug, 'contratos-similares'),
     secondaryText: 'Desbloquear órgãos compradores do segmento',
-    secondaryLink: '/signup?ref=contratos-orgaos',
+    secondaryLink: '/signup?ref=contratos-órgãos',
     socialProof: 'Dados de 2M+ contratos históricos do PNCP',
     campaign: 'contratos-similares',
   };
@@ -318,7 +318,7 @@ function ctaCnpjInvestigacao(context: CtaContext): CtaConfig {
   return {
     pageType: 'cnpj-investigacao',
     headline: `Inteligência competitiva de ${name}`,
-    subtext: 'Analise o padrão de vitórias, mapeie possíveis contratantes e identifique oportunidades de subcontratação.',
+    subtext: 'Análise o padrão de vitórias, mapeie possíveis contratantes e identifique oportunidades de subcontratação.',
     buttonText: 'Analisar padrão de vitórias',
     buttonLink: buildSignupHref(context.slug, 'cnpj-intel'),
     secondaryText: 'Mapear possíveis contratantes',
