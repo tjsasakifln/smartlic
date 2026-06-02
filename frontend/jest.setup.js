@@ -75,6 +75,20 @@ if (typeof AbortSignal !== 'undefined' && typeof AbortSignal.timeout === 'undefi
 const { MockEventSource } = require('./__tests__/utils/mock-event-source');
 globalThis.EventSource = MockEventSource;
 
+// Polyfill fetch for jsdom (not available by default).
+// Components calling fetch() in useEffect (MarketPatternsBlock,
+// RecentEditaisBlock, TopSuppliersBlock, etc.) need this.
+// Tests can override with custom implementations via jest.spyOn or local mock.
+if (typeof globalThis.fetch === 'undefined') {
+  Object.defineProperty(globalThis, 'fetch', {
+    value: jest.fn(() =>
+      Promise.resolve({ ok: true, json: () => Promise.resolve({}) })
+    ),
+    configurable: true,
+    writable: true,
+  });
+}
+
 // Reset MockEventSource.instances between tests to prevent state leakage
 beforeEach(() => {
   MockEventSource.reset();
