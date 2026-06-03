@@ -11,14 +11,12 @@ dockerfilePath = "Dockerfile"
 watchPatterns = ["backend/**"]
 
 [deploy]
-# COST-OPT 2026-06-03: start.sh is the authoritative entrypoint (delegates to
-# uvicorn via _start_uvicorn). When WORKER_COLOCATED=true, start.sh also
-# launches ARQ worker as background subprocess — eliminates separate
-# bidiq-worker Railway service (~$20/mo saving).
+# COST-OPT 2026-06-03: startCommand REMOVED — Railway falls back to Dockerfile
+# CMD ["/app/start.sh"], which delegates to uvicorn via _start_uvicorn().
+# When WORKER_COLOCATED=true, start.sh also launches ARQ worker as background
+# subprocess — eliminates separate bidiq-worker Railway service (~$20/mo saving).
 # CRIT-083: uvicorn --workers (spawn-based) — SAFE with cryptography>=46.
 # Cross-worker SSE: handled by Redis Streams (STORY-276, STORY-294).
-# Graceful shutdown: configurable via UVICORN_TIMEOUT_GRACEFUL_SHUTDOWN (default 120s, aligned with drainingSeconds=120).
-startCommand = "sh -c '/app/start.sh'"
 # Stage-2 fix 2026-04-27: was /health (probes 5 external APIs with 10s each timeout).
 # Under sustained Googlebot crawl, /health couldn't respond → 11 healthcheck retries
 # failed → Railway never promoted new container, leaving old wedged one in service
