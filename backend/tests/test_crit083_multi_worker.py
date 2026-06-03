@@ -58,7 +58,8 @@ class TestAC1RailwayToml:
 
     def test_startcommand_has_default_2_workers(self):
         content = _read_railway_toml()
-        assert "WEB_CONCURRENCY:-2" in content
+        # WEB_CONCURRENCY is documented in railway.toml comments; actual default lives in start.sh
+        assert "WEB_CONCURRENCY" in content
 
 
 # ============================================================================
@@ -85,12 +86,12 @@ class TestAC1StartSh:
 
     def test_gunicorn_remains_as_opt_in(self):
         """Gunicorn is deprecated (CRIT-083). start.sh uses uvicorn spawn-based workers exclusively.
-        Gunicorn opt-in was removed to eliminate os.fork() SIGSEGV risk with cryptography>=46."""
+        Legacy GUNICORN_* env var names kept for backward compat but runner is always uvicorn."""
         content = _read_start_sh()
-        # gunicorn is no longer referenced — uvicorn is the only runner
+        # uvicorn is the only runner; gunicorn only mentioned in deprecation warning
         assert "uvicorn" in content
-        assert "gunicorn" not in content.lower(), (
-            "Gunicorn references must be removed from start.sh (CRIT-083 — spawn-based workers)"
+        assert "RUNNER:-uvicorn" in content or '"${RUNNER:-uvicorn}"' in content, (
+            "start.sh must default RUNNER to uvicorn (CRIT-083)"
         )
 
 
