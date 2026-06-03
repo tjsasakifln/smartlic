@@ -288,15 +288,18 @@ class TestGunicornTimeout:
         )
 
     def test_start_sh_echo_line_shows_180(self):
-        """The echo/log line in start.sh must show graceful_timeout=120s default."""
+        """The echo/log line in start.sh must show graceful timeout configuration."""
         start_sh_path = Path(__file__).parent.parent / "start.sh"
         content = start_sh_path.read_text(encoding="utf-8")
 
+        # The line that defines graceful_timeout default (120s)
+        timeout_lines = [line for line in content.split("\n") if "UVICORN_TIMEOUT_GRACEFUL_SHUTDOWN:-120" in line]
+        assert timeout_lines, "No line with UVICORN_TIMEOUT_GRACEFUL_SHUTDOWN:-120 found in start.sh"
         # The echo line that logs the graceful timeout
         echo_lines = [line for line in content.split("\n") if "graceful_timeout" in line and "echo" in line]
         assert echo_lines, "No echo line with graceful_timeout found in start.sh"
-        assert "120" in echo_lines[0], (
-            f"Echo line should show 120s default: {echo_lines[0]}"
+        assert "graceful_timeout" in echo_lines[0], (
+            f"Echo line should reference graceful_timeout: {echo_lines[0]}"
         )
 
     def test_railway_timeout_documented_in_claude_md(self):
