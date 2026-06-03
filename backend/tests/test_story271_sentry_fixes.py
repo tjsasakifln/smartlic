@@ -50,17 +50,16 @@ class TestAC2WorkerTimeout:
         )
 
     def test_gunicorn_default_in_start_sh(self):
-        """start.sh should have GUNICORN_TIMEOUT default of 110.
+        """start.sh should have UVICORN_TIMEOUT_GRACEFUL_SHUTDOWN default of 120.
 
-        DEBT-04 AC1: changed 120 → 110 so Gunicorn aborts before Railway's
-        120s proxy timeout, leaving ~10s headroom for response serialization.
-        See start.sh comment block for the time-budget waterfall invariant.
+        CRIT-083/084: uvicorn replaced gunicorn (spawn-based workers avoid os.fork SIGSEGV).
+        Timeout is now --timeout-graceful-shutdown aligned with Railway drainingSeconds=120s.
         """
         start_sh = os.path.join(os.path.dirname(__file__), "..", "start.sh")
         if os.path.isfile(start_sh):
             with open(start_sh) as f:
                 content = f.read()
-            assert "GUNICORN_TIMEOUT:-110" in content
+            assert "UVICORN_TIMEOUT_GRACEFUL_SHUTDOWN:-120" in content
 
     def test_early_return_config_defined(self):
         """EARLY_RETURN_TIME_S and EARLY_RETURN_THRESHOLD_PCT must be in config."""
