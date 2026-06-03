@@ -343,9 +343,9 @@ class TestShutdownSequence:
         assert "drain_timeout" in source
 
     def test_start_sh_uses_graceful_shutdown_timeout(self):
-        """AC4: start.sh aligns gunicorn graceful_timeout with GRACEFUL_SHUTDOWN_TIMEOUT."""
+        """AC4: start.sh uses uvicorn --timeout-graceful-shutdown with UVICORN_TIMEOUT_GRACEFUL_SHUTDOWN (CRIT-083/084)."""
         import os
         start_sh = os.path.join(os.path.dirname(os.path.dirname(__file__)), "start.sh")
         with open(start_sh) as f:
             content = f.read()
-        assert "GRACEFUL_SHUTDOWN_TIMEOUT" in content
+        assert "UVICORN_TIMEOUT_GRACEFUL_SHUTDOWN" in content
