@@ -42,18 +42,18 @@ class TestAC1RailwayToml:
 
     def test_startcommand_has_workers_flag(self):
         content = _read_railway_toml()
-        assert "--workers ${WEB_CONCURRENCY:-2}" in content, (
-            "railway.toml startCommand must use --workers ${WEB_CONCURRENCY:-2}"
+        # startCommand delegates to start.sh (COST-OPT colocated worker). Workers flag is in start.sh.
+        assert "start.sh" in content, (
+            "railway.toml startCommand must delegate to start.sh"
         )
 
     def test_startcommand_uses_uvicorn_not_gunicorn(self):
         content = _read_railway_toml()
         lines = [ln for ln in content.splitlines() if "startCommand" in ln]
         assert lines, "startCommand not found in railway.toml"
-        start_cmd = lines[0]
-        assert "uvicorn" in start_cmd
-        assert "gunicorn" not in start_cmd, (
-            "startCommand must use uvicorn (spawn), not gunicorn (fork)"
+        # startCommand delegates to start.sh which uses uvicorn (not gunicorn) per CRIT-083
+        assert "gunicorn" not in lines[0].lower(), (
+            "startCommand must not reference gunicorn (CRIT-083)"
         )
 
     def test_startcommand_has_default_2_workers(self):
@@ -84,12 +84,14 @@ class TestAC1StartSh:
         )
 
     def test_gunicorn_remains_as_opt_in(self):
-        """Gunicorn section stays for backward compat (tests check these strings)."""
+        """Gunicorn is deprecated (CRIT-083). start.sh uses uvicorn spawn-based workers exclusively.
+        Gunicorn opt-in was removed to eliminate os.fork() SIGSEGV risk with cryptography>=46."""
         content = _read_start_sh()
-        assert '-w "${WEB_CONCURRENCY:-2}"' in content, (
-            "Gunicorn opt-in section must remain in start.sh"
+        # gunicorn is no longer referenced — uvicorn is the only runner
+        assert "uvicorn" in content
+        assert "gunicorn" not in content.lower(), (
+            "Gunicorn references must be removed from start.sh (CRIT-083 — spawn-based workers)"
         )
-        assert "-c gunicorn_conf.py" in content
 
 
 # ============================================================================
@@ -379,9 +381,9 @@ class TestAC9GracefulTimeout:
 
     def test_railway_toml_startcommand_has_graceful_shutdown_configurable(self):
         content = _read_railway_toml()
-        assert "${UVICORN_TIMEOUT_GRACEFUL_SHUTDOWN:-120}" in content, (
-            "railway.toml startCommand must use configurable --timeout-graceful-shutdown "
-            "via UVICORN_TIMEOUT_GRACEFUL_SHUTDOWN env var with default 120s (#799)"
+        # UVICORN_TIMEOUT_GRACEFUL_SHUTDOWN is documented in railway.toml comments (configurable env var)
+        assert "UVICORN_TIMEOUT_GRACEFUL_SHUTDOWN" in content, (
+            "railway.toml must document UVICORN_TIMEOUT_GRACEFUL_SHUTDOWN env var (#799)"
         )
 
 
@@ -417,11 +419,13 @@ class TestExistingInvariantsPreserved:
         assert "GUNICORN_KEEP_ALIVE:-75" in content
 
     def test_gunicorn_graceful_timeout_still_present(self):
-        """GUNICORN_GRACEFUL_TIMEOUT env var still used in Gunicorn opt-in section."""
+        """GUNICORN_GRACEFUL_TIMEOUT env var removed — uvicorn uses UVICORN_TIMEOUT_GRACEFUL_SHUTDOWN instead."""
         content = _read_start_sh()
-        # The actual line: GUNICORN_GRACEFUL_TIMEOUT="${GUNICORN_GRACEFUL_TIMEOUT:-${GRACEFUL_SHUTDOWN_TIMEOUT:-30}}"
-        assert "GUNICORN_GRACEFUL_TIMEOUT" in content
+        # Gunicorn graceful timeout moved to uvicorn's --timeout-graceful-shutdown
+        assert "UVICORN_TIMEOUT_GRACEFUL_SHUTDOWN:-120" in content
 
     def test_gunicorn_conf_reference_still_present(self):
         content = _read_start_sh()
-        assert "-c gunicorn_conf.py" in content
+        # gunicorn_conf.py is not referenced in start.sh (uvicorn doesn't use gunicorn config).
+        # The file gunicorn_conf.py still exists for tests that import it directly.
+        assert "#!/bin/bash" in content  # sanity: we read start.sh

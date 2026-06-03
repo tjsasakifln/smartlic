@@ -272,31 +272,31 @@ class TestGunicornTimeout:
     """T4: Gunicorn timeout configured at 180s in start.sh."""
 
     def test_start_sh_timeout_is_180(self):
-        """start.sh must set Gunicorn timeout default to 110s (DEBT-04 AC1: < Railway 120s hard cutoff, prevents silent request death)."""
+        """start.sh must set uvicorn graceful shutdown timeout to 120s (aligned with Railway drainingSeconds)."""
         start_sh_path = Path(__file__).parent.parent / "start.sh"
         content = start_sh_path.read_text(encoding="utf-8")
 
-        # Check the --timeout line uses 110 as default (DEBT-04 AC1 tightened from 120 → 110)
-        assert "GUNICORN_TIMEOUT:-110" in content, (
-            "start.sh must use GUNICORN_TIMEOUT:-110 (DEBT-04 AC1: < Railway 120s). "
+        # uvicorn uses --timeout-graceful-shutdown with UVICORN_TIMEOUT_GRACEFUL_SHUTDOWN env var
+        assert "UVICORN_TIMEOUT_GRACEFUL_SHUTDOWN:-120" in content, (
+            "start.sh must use UVICORN_TIMEOUT_GRACEFUL_SHUTDOWN:-120 (aligned with Railway drainingSeconds). "
             "GTM-INFRA-001 AC7/AC8."
         )
 
-        # Ensure old 900 default is gone
-        assert "GUNICORN_TIMEOUT:-900" not in content, (
-            "start.sh still contains the old 900s timeout default"
+        # Ensure no stale gunicorn timeout reference
+        assert "GUNICORN_TIMEOUT" not in content, (
+            "start.sh must not contain stale GUNICORN_TIMEOUT (uvicorn replaced gunicorn per CRIT-083)"
         )
 
     def test_start_sh_echo_line_shows_180(self):
-        """The echo/log line in start.sh must show 110 default (DEBT-04 AC1: < Railway 120s hard cutoff)."""
+        """The echo/log line in start.sh must show graceful_timeout=120s default."""
         start_sh_path = Path(__file__).parent.parent / "start.sh"
         content = start_sh_path.read_text(encoding="utf-8")
 
-        # The echo line that logs the timeout
-        echo_lines = [line for line in content.split("\n") if "timeout=" in line and "echo" in line]
-        assert echo_lines, "No echo line with timeout found in start.sh"
-        assert "110" in echo_lines[0], (
-            f"Echo line should show 110s default: {echo_lines[0]}"
+        # The echo line that logs the graceful timeout
+        echo_lines = [line for line in content.split("\n") if "graceful_timeout" in line and "echo" in line]
+        assert echo_lines, "No echo line with graceful_timeout found in start.sh"
+        assert "120" in echo_lines[0], (
+            f"Echo line should show 120s default: {echo_lines[0]}"
         )
 
     def test_railway_timeout_documented_in_claude_md(self):

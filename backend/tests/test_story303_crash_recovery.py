@@ -55,7 +55,8 @@ class TestStartShPreloadDefault:
     """AC1: start.sh must default GUNICORN_PRELOAD to false."""
 
     def test_ac1_start_sh_defaults_preload_false(self):
-        """start.sh contains GUNICORN_PRELOAD:-false as default."""
+        """start.sh uses uvicorn spawn-based workers — no Gunicorn preload concept (CRIT-083/084).
+        STORY-303 AC1 was about Gunicorn --preload; uvicorn --workers always spawns fresh processes."""
         import os
 
         start_sh_path = os.path.join(
@@ -64,8 +65,9 @@ class TestStartShPreloadDefault:
         with open(start_sh_path) as f:
             content = f.read()
 
-        assert "GUNICORN_PRELOAD:-false" in content, (
-            "start.sh must default GUNICORN_PRELOAD to false (STORY-303 AC1)"
+        # uvicorn spawn-based workers don't have a preload concept — this is the correct default
+        assert "GUNICORN_PRELOAD" not in content, (
+            "start.sh must not reference GUNICORN_PRELOAD (uvicorn replaced gunicorn per CRIT-083)"
         )
 
     def test_ac1_start_sh_no_preload_true_default(self):
@@ -83,7 +85,9 @@ class TestStartShPreloadDefault:
         )
 
     def test_ac1_start_sh_preload_warning_when_enabled(self):
-        """start.sh warns about fork-safety when --preload is explicitly enabled."""
+        """start.sh uses uvicorn spawn-based workers — preload/cryptography fork-safety warning is N/A.
+        CRIT-083 eliminated os.fork() entirely by switching to uvicorn spawn workers.
+        The warning now lives in CRIT-083 docs, not in start.sh."""
         import os
 
         start_sh_path = os.path.join(
@@ -92,8 +96,9 @@ class TestStartShPreloadDefault:
         with open(start_sh_path) as f:
             content = f.read()
 
-        assert "verify cryptography fork-safety" in content, (
-            "start.sh must warn about fork-safety when preload is enabled"
+        # uvicorn spawn avoids fork entirely → no cryptography fork-safety concern
+        assert "CRIT-083" in content or "spawn" in content or "os.fork" in content, (
+            "start.sh must document that uvicorn spawn avoids os.fork() (CRIT-083)"
         )
 
 

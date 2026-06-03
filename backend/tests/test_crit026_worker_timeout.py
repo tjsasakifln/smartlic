@@ -150,12 +150,12 @@ class TestStartShConfig:
     """Validate start.sh configuration values."""
 
     def test_start_sh_has_110s_timeout(self):
-        """GTM-INFRA-001 AC7: GUNICORN_TIMEOUT default is 110s (< Railway hard-timeout 120s to prevent silent death)."""
+        """GTM-INFRA-001 AC7: UVICORN_TIMEOUT_GRACEFUL_SHUTDOWN default is 120s (aligned with Railway drainingSeconds=120s)."""
         import os
         start_sh_path = os.path.join(os.path.dirname(__file__), "..", "start.sh")
         with open(start_sh_path) as f:
             content = f.read()
-        assert "GUNICORN_TIMEOUT:-110" in content, "Default timeout should be 110s (GTM-INFRA-001 — must be < Railway 120s)"
+        assert "UVICORN_TIMEOUT_GRACEFUL_SHUTDOWN:-120" in content, "Default graceful timeout should be 120s (aligned with Railway drainingSeconds)"
 
     def test_start_sh_has_2_workers(self):
         """SLA-002: WEB_CONCURRENCY default is 2."""
@@ -166,18 +166,18 @@ class TestStartShConfig:
         assert "WEB_CONCURRENCY:-2" in content, "Default workers should be 2 (SLA-002)"
 
     def test_start_sh_has_keep_alive(self):
-        """AC2: start.sh has --keep-alive flag."""
+        """AC2: start.sh has --timeout-keep-alive flag (uvicorn equivalent of --keep-alive)."""
         import os
         start_sh_path = os.path.join(os.path.dirname(__file__), "..", "start.sh")
         with open(start_sh_path) as f:
             content = f.read()
-        assert "--keep-alive" in content, "start.sh should have --keep-alive flag"
+        assert "--timeout-keep-alive" in content, "start.sh should have --timeout-keep-alive flag"
 
     def test_start_sh_has_graceful_timeout_30(self):
-        """GTM-STAB-002: GUNICORN_GRACEFUL_TIMEOUT defaults to 30s via GRACEFUL_SHUTDOWN_TIMEOUT."""
+        """GTM-STAB-002: uvicorn --timeout-graceful-shutdown defaults to 120s via UVICORN_TIMEOUT_GRACEFUL_SHUTDOWN (aligned with Railway drainingSeconds)."""
         import os
         start_sh_path = os.path.join(os.path.dirname(__file__), "..", "start.sh")
         with open(start_sh_path) as f:
             content = f.read()
-        # Actual line: GUNICORN_GRACEFUL_TIMEOUT="${GUNICORN_GRACEFUL_TIMEOUT:-${GRACEFUL_SHUTDOWN_TIMEOUT:-30}}"
-        assert "GRACEFUL_SHUTDOWN_TIMEOUT:-30" in content, "Graceful shutdown timeout must default to 30s (GTM-STAB-002)"
+        # uvicorn uses --timeout-graceful-shutdown with env var override
+        assert "UVICORN_TIMEOUT_GRACEFUL_SHUTDOWN:-120" in content, "Graceful shutdown timeout must default to 120s (aligned with Railway)"

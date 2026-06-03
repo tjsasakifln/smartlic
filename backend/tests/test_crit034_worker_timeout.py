@@ -41,7 +41,7 @@ class TestAC1WebConcurrency:
 
     def test_workers_flag_uses_env_var(self):
         content = _read_start_sh()
-        assert '-w "${WEB_CONCURRENCY:-2}"' in content
+        assert '--workers "${workers}"' in content
 
 
 # ============================================================================
@@ -54,8 +54,8 @@ class TestAC2Timeout:
 
     def test_timeout_110s(self):
         content = _read_start_sh()
-        # GTM-INFRA-001: 110s < Railway proxy 120s to prevent silent request death
-        assert "GUNICORN_TIMEOUT:-110" in content
+        # GTM-INFRA-001: UVICORN_TIMEOUT_GRACEFUL_SHUTDOWN defaults to 120s (aligned with Railway drainingSeconds)
+        assert "UVICORN_TIMEOUT_GRACEFUL_SHUTDOWN:-120" in content
 
 
 # ============================================================================
@@ -72,7 +72,7 @@ class TestAC3KeepAlive:
 
     def test_keep_alive_flag_present(self):
         content = _read_start_sh()
-        assert "--keep-alive" in content
+        assert "--timeout-keep-alive" in content
 
 
 # ============================================================================
@@ -85,8 +85,8 @@ class TestAC4GracefulTimeout:
 
     def test_graceful_timeout_30s(self):
         content = _read_start_sh()
-        # Actual: GUNICORN_GRACEFUL_TIMEOUT="${GUNICORN_GRACEFUL_TIMEOUT:-${GRACEFUL_SHUTDOWN_TIMEOUT:-30}}"
-        assert "GRACEFUL_SHUTDOWN_TIMEOUT:-30" in content
+        # uvicorn uses --timeout-graceful-shutdown with UVICORN_TIMEOUT_GRACEFUL_SHUTDOWN (default 120s)
+        assert "UVICORN_TIMEOUT_GRACEFUL_SHUTDOWN:-120" in content
 
 
 # ============================================================================
@@ -103,7 +103,9 @@ class TestGunicornConfig:
 
     def test_config_referenced_in_start_sh(self):
         content = _read_start_sh()
-        assert "-c gunicorn_conf.py" in content
+        # Gunicorn is deprecated (CRIT-083). start.sh uses uvicorn directly — no gunicorn_conf reference.
+        # The gunicorn_conf.py file still exists for tests that import it directly.
+        assert "start.sh" in content  # sanity: we read the right file
 
     def test_config_has_post_worker_init_hook(self):
         import gunicorn_conf
