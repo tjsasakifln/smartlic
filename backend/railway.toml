@@ -16,7 +16,7 @@ watchPatterns = ["backend/**"]
 # subprocess — eliminates separate bidiq-worker Railway service (~$20/mo saving).
 # CRIT-083: uvicorn --workers (spawn-based) — SAFE with cryptography>=46.
 # Cross-worker SSE: handled by Redis Streams (STORY-276, STORY-294).
-startCommand = "/app/start.sh"
+startCommand = "sh -c '/app/start.sh'"
 # Stage-2 fix 2026-04-27: was /health (probes 5 external APIs with 10s each timeout).
 # Under sustained Googlebot crawl, /health couldn't respond → 11 healthcheck retries
 # failed → Railway never promoted new container, leaving old wedged one in service
