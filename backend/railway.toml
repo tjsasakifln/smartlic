@@ -11,14 +11,14 @@ dockerfilePath = "Dockerfile"
 watchPatterns = ["backend/**"]
 
 [deploy]
+# COST-OPT 2026-06-03: start.sh is the authoritative entrypoint (delegates to
+# uvicorn via _start_uvicorn). When WORKER_COLOCATED=true, start.sh also
+# launches ARQ worker as background subprocess — eliminates separate
+# bidiq-worker Railway service (~$20/mo saving).
 # CRIT-083: uvicorn --workers (spawn-based) — SAFE with cryptography>=46.
-# Research finding (CRIT-083-research-findings.md): Gunicorn uses os.fork() which
-# corrupts OpenSSL state → SIGSEGV. uvicorn --workers uses multiprocessing.spawn()
-# which creates clean processes with independent OpenSSL initialization.
-# 2 workers on Railway 1GB: ~500-600MB total (each worker ~200-300MB) — workable.
 # Cross-worker SSE: handled by Redis Streams (STORY-276, STORY-294).
 # Graceful shutdown: configurable via UVICORN_TIMEOUT_GRACEFUL_SHUTDOWN (default 120s, aligned with drainingSeconds=120).
-startCommand = "sh -c 'uvicorn main:app --host 0.0.0.0 --port ${PORT:-8000} --timeout-keep-alive 75 --workers ${WEB_CONCURRENCY:-2} --timeout-graceful-shutdown ${UVICORN_TIMEOUT_GRACEFUL_SHUTDOWN:-120}'"
+startCommand = "sh -c '/app/start.sh'"
 # Stage-2 fix 2026-04-27: was /health (probes 5 external APIs with 10s each timeout).
 # Under sustained Googlebot crawl, /health couldn't respond → 11 healthcheck retries
 # failed → Railway never promoted new container, leaving old wedged one in service
@@ -45,10 +45,11 @@ drainingSeconds = 120
 # REQUIRED:
 #   - OPENAI_API_KEY (Get from https://platform.openai.com/api-keys)
 #   - PORT (Auto-injected by Railway)
+#   - REDIS_URL (Upstash free tier — rediss://default:TOKEN@endpoint.upstash.io:6379)
 #
 # OPTIONAL (with defaults):
 #   - LOG_LEVEL=INFO
-#   - PNCP_TIMEOUT=30
-#   - PNCP_MAX_RETRIES=5
-#   - WEB_CONCURRENCY=2 (default: 2 spawn-based workers — safe with cryptography)
+#   - WORKER_COLOCATED=true (COST-OPT: runs ARQ worker in same container, saves ~$20/mo)
+#   - WEB_CONCURRENCY=1 (default when WORKER_COLOCATED=true — leaves ~500MB for worker)
+#   - UVICORN_TIMEOUT_GRACEFUL_SHUTDOWN=120
 # =============================================================================
