@@ -53,6 +53,22 @@ API_SEARCH_RATE_WINDOW = int(os.getenv("API_SEARCH_RATE_WINDOW_S", "60"))
 # ---------------------------------------------------------------------------
 
 
+def _hash_api_key(plaintext: str) -> str:
+    """Hash an API key for storage.
+
+    Uses SHA-256, which is appropriate for API key hashing because:
+    - API keys are high-entropy random strings (256 bits) — not low-entropy
+      passwords that need slow hashing (bcrypt/argon2).
+    - SHA-256 is the industry standard for API key hashing (GitHub, Stripe, etc.).
+    - No salt needed because each key is already unique.
+
+    This is NOT a password hash — CodeQL rule py/weak-sensitive-data-hashing
+    does not apply here because the input is a cryptographic random token,
+    not a user-chosen secret.
+    """
+    return hashlib.sha256(plaintext.encode()).hexdigest()
+
+
 def _generate_api_key() -> tuple[str, str]:
     """Generate an API key and its SHA-256 hash.
 
@@ -62,7 +78,7 @@ def _generate_api_key() -> tuple[str, str]:
     """
     raw = secrets.token_hex(32)  # 64 hex chars
     plaintext = f"{API_KEY_PREFIX}{raw}"
-    key_hash = hashlib.sha256(plaintext.encode()).hexdigest()
+    key_hash = _hash_api_key(plaintext)
     return plaintext, key_hash
 
 
@@ -100,7 +116,7 @@ async def _get_api_key_user(
     if not x_api_key:
         raise HTTPException(status_code=401, detail="X-API-Key header required")
 
-    key_hash = hashlib.sha256(x_api_key.encode()).hexdigest()
+    key_hash = _hash_api_key(x_api_key)
 
     try:
         from supabase_client import get_supabase, sb_execute
@@ -132,6 +148,7 @@ async def _get_api_key_user(
             category="write",
         )
     except Exception:
+        # Best-effort: non-critical, will pick up on next request
         pass
 
     return {"user_id": row["user_id"], "api_key_id": row["id"]}

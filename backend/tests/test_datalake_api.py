@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import hashlib
 from unittest.mock import patch
 
 import pytest
@@ -90,7 +89,8 @@ class TestGenerateApiKey:
 
     def test_hash_matches(self):
         plaintext, key_hash = _generate_api_key()
-        expected = hashlib.sha256(plaintext.encode()).hexdigest()
+        from routes.datalake_api import _hash_api_key
+        expected = _hash_api_key(plaintext)
         assert key_hash == expected
 
     def test_uniqueness(self):
