@@ -21,7 +21,7 @@ describe('EnhancedLoadingProgress - GTM-RESILIENCE-A02 Degraded Visuals', () => 
         <EnhancedLoadingProgress
           {...defaultProps}
           isDegraded={true}
-          degradedMessage="Dados de cache de 3 horas atrás — PNCP indisponível"
+          degradedMessage="Dados de 3 horas atrás — PNCP indisponível"
         />
       );
 
@@ -34,7 +34,7 @@ describe('EnhancedLoadingProgress - GTM-RESILIENCE-A02 Degraded Visuals', () => 
       // Verify degraded message banner
       const degradedMessage = screen.getByTestId('degraded-message');
       expect(degradedMessage).toBeInTheDocument();
-      expect(degradedMessage).toHaveTextContent('Dados de cache de 3 horas atrás — PNCP indisponível');
+      expect(degradedMessage).toHaveTextContent('Dados de 3 horas atrás — PNCP indisponível');
       expect(degradedMessage).toHaveClass('bg-amber-100');
       expect(degradedMessage).toHaveClass('border-amber-300');
     });

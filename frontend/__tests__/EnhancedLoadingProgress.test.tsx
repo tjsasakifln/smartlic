@@ -343,12 +343,12 @@ describe('EnhancedLoadingProgress Component', () => {
           estimatedTime={60}
           stateCount={3}
           isDegraded={true}
-          degradedMessage="Dados de cache"
+          degradedMessage="Dados de"
         />
       );
 
       expect(screen.getByTestId('degraded-message')).toBeInTheDocument();
-      expect(screen.getByText('Dados de cache')).toBeInTheDocument();
+      expect(screen.getByText('Dados de')).toBeInTheDocument();
     });
 
     it('should show default degraded message when no custom message', () => {

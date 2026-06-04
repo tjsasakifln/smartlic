@@ -44,7 +44,7 @@ describe('useSearchSSE - GTM-RESILIENCE-A02 Degraded Handling', () => {
       const degradedEvent: SearchProgressEvent = {
         stage: 'degraded',
         progress: 100,
-        message: 'Dados de cache usado',
+        message: 'Dados de consulta anterior',
         detail: {
           reason: 'PNCP timeout',
           cache_age_hours: 3,
