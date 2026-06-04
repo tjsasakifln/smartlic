@@ -329,6 +329,16 @@ class UserProfileResponse(BaseModel):
             "NULL = no consulting discount."
         ),
     )
+    # ── Login tracking fields (#1426 — LIFECYCLE-001) ────────────────────────
+    last_login_at: Optional[datetime] = Field(
+        default=None,
+        description="LIFECYCLE-001: Timestamp do último login bem-sucedido do usuário. NULL se nunca logou.",
+    )
+    login_count: int = Field(
+        default=0,
+        ge=0,
+        description="LIFECYCLE-001: Contador total de logins bem-sucedidos.",
+    )
 
 
 class DeleteAccountResponse(BaseModel):
