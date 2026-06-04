@@ -30,6 +30,33 @@ def _sentry_breadcrumb(message: str, **data: Any) -> None:
         pass
 
 
+def _track_post_purchase_event(
+    event_name: str,
+    user_id: str,
+    properties: dict | None = None,
+) -> None:
+    """Fire-and-forget Mixpanel event for post-purchase analytics (CONV-011b-3).
+
+    Never raises — tracking failures are logged and must not block the main job.
+    """
+    try:
+        from analytics_events import track_event
+
+        track_event(
+            event_name=event_name,
+            properties={
+                **(properties or {}),
+                "user_id": user_id,
+                "source": "post_purchase_sequence",
+            },
+        )
+    except Exception as exc:
+        logger.warning(
+            "Failed to track post-purchase event %s for user=%s: %s",
+            event_name, user_id, exc,
+        )
+
+
 async def _execute_supabase(query: Any, category: str = "read") -> Any:
     return await sb_execute(query, category=category)
 
@@ -1120,6 +1147,38 @@ async def send_post_purchase_step(ctx: dict, sequence_id: str, step_index: int) 
             f"step={step_name}, to={user_email}, "
             f"product_sku={product_sku}, email_id={email_id}"
         )
+
+        # CONV-011b-3: Track Mixpanel events for post-purchase analytics
+        _track_post_purchase_event(
+            event_name="post_purchase_email_sent",
+            user_id=sequence["user_id"],
+            properties={
+                "product_sku": product_sku,
+                "product_name": product_name,
+                "step": step_name,
+                "step_index": step_index,
+                "sequence_id": sequence_id,
+                "email_id": email_id or "unknown",
+                "delivery_type": delivery_type,
+                "has_upsell": bool(upsell_id),
+                "upsell_product_name": upsell_name,
+                "purchase_id": sequence.get("purchase_id", ""),
+            },
+        )
+
+        # Track upsell exposure on followup and reengagement steps
+        if upsell_name and step_name in ("followup", "reengagement"):
+            _track_post_purchase_event(
+                event_name="post_purchase_upsell_exposed",
+                user_id=sequence["user_id"],
+                properties={
+                    "product_sku": product_sku,
+                    "upsell_product_name": upsell_name,
+                    "upsell_product_price_brl": upsell_price,
+                    "step": step_name,
+                    "sequence_id": sequence_id,
+                },
+            )
     except Exception as email_err:
         logger.error(
             f"send_post_purchase_step: failed to send email for "
