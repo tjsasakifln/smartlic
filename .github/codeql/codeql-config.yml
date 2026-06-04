@@ -1,0 +1,14 @@
+# CodeQL configuration for SmartLic
+# Suppresses false positives where algorithm choice is deliberate and documented.
+
+name: "SmartLic CodeQL Configuration"
+
+query-filters:
+  # SHA-256 is the correct algorithm for API key hashing (high-entropy random keys,
+  # NOT low-entropy passwords). The _hash_api_key() helper explicitly documents this.
+  # See: backend/routes/datalake_api.py::_hash_api_key()
+  - exclude:
+      id: py/weak-sensitive-data-hashing
+    on:
+      paths:
+        - backend/routes/datalake_api.py
