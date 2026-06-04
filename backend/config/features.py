@@ -285,10 +285,6 @@ _FEATURE_FLAG_REGISTRY: dict[str, tuple[str, str]] = {
     "COMPETITIVE_INTEL_ENABLED": ("COMPETITIVE_INTEL_ENABLED", "true"),
     # B2GOPS-000 (EPIC-B2GOPS #1262): B2G Operations workspace_basic gate
     "B2G_OPS_ENABLED": ("B2G_OPS_ENABLED", "true"),
-    # TIER-COMMAND-003: Command tier capability gates
-    "COMMAND_API_ACCESS": ("COMMAND_API_ACCESS", "true"),
-    "COMMAND_MULTI_USER": ("COMMAND_MULTI_USER", "false"),
-    "COMMAND_EXECUTIVE_REPORTS": ("COMMAND_EXECUTIVE_REPORTS", "false"),
     # --- Infra ---
     "METRICS_ENABLED": ("METRICS_ENABLED", "true"),
     "RATE_LIMITING_ENABLED": ("RATE_LIMITING_ENABLED", "true"),
