@@ -16282,6 +16282,43 @@
         "title": "UserProfileResponse",
         "type": "object"
       },
+      "UserSegmentsResponse": {
+        "description": "Response for GET /admin/users/segments (LIFECYCLE-003).",
+        "properties": {
+          "count_by_state": {
+            "additionalProperties": true,
+            "title": "Count By State",
+            "type": "object"
+          },
+          "power_users": {
+            "items": {},
+            "title": "Power Users",
+            "type": "array"
+          },
+          "queried_at": {
+            "title": "Queried At",
+            "type": "string"
+          },
+          "total_users": {
+            "title": "Total Users",
+            "type": "integer"
+          },
+          "transitions_last_week": {
+            "items": {},
+            "title": "Transitions Last Week",
+            "type": "array"
+          }
+        },
+        "required": [
+          "count_by_state",
+          "total_users",
+          "transitions_last_week",
+          "power_users",
+          "queried_at"
+        ],
+        "title": "UserSegmentsResponse",
+        "type": "object"
+      },
       "ValidateSignupEmailResponse": {
         "additionalProperties": true,
         "description": "POST /validate-signup-email response.",
@@ -19522,6 +19559,33 @@
           }
         ],
         "summary": "Create User",
+        "tags": [
+          "admin"
+        ]
+      }
+    },
+    "/v1/admin/users/segments": {
+      "get": {
+        "description": "LIFECYCLE-003: Return user lifecycle segment counts, transitions,\nand power user details.\n\nClassifies every user into one of 10 lifecycle states:\nanonymous, lead, trial_active, trial_limited, trial_expired,\npaid_active, paid_past_due, canceled, churned, power_user.\n\nResults are cached in Redis for 5 minutes.",
+        "operationId": "get_user_segments_v1_admin_users_segments_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserSegmentsResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Get User Segments",
         "tags": [
           "admin"
         ]
