@@ -1,1 +1,0 @@
-DROP INDEX IF EXISTS idx_pncp_raw_bids_codigo_municipio_ibge;
