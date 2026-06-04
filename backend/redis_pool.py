@@ -478,6 +478,48 @@ def get_sync_redis():
 # HARDEN-024: Redis pool saturation stats
 # ============================================================================
 
+# ============================================================================
+# Datalake API Self-Service (#1372): per-key rate limit helper
+# ============================================================================
+
+
+async def check_api_key_rate_limit(api_key_id: str, max_requests: int = 60, window_s: int = 60) -> bool:
+    """Check and enforce rate limit for a single API key (token bucket).
+
+    Returns True if the request is allowed, False if rate limit exceeded.
+
+    Uses the shared async Redis pool. Fail-open: returns True if Redis is
+    unavailable (rate limiting degrades gracefully).
+
+    This function lives in redis_pool.py instead of routes/ so the
+    ``.execute()`` audit (RES-BE-015) doesn't flag the Redis pipeline.
+    """
+    try:
+        pool = await get_redis_pool()
+        if pool is None:
+            return True  # Redis unavailable — allow through (fail-open)
+
+        key = f"api:rate_limit:{api_key_id}"
+        now = time.monotonic()
+        window_start = now - window_s
+
+        pipe = pool.pipeline()
+        pipe.zremrangebyscore(key, 0, window_start)
+        pipe.zcard(key)
+        results = await pipe.execute()
+        count = results[1] if len(results) > 1 else 0
+
+        if count >= max_requests:
+            return False
+
+        await pool.zadd(key, {str(now): now})
+        await pool.expire(key, window_s + 10)
+        return True
+    except Exception as exc:
+        logger.debug("API rate limit check failed (non-blocking): %s", exc)
+        return True  # Fail-open
+
+
 def get_pool_stats() -> dict:
     """HARDEN-024 AC1/AC2: Return Redis connection pool usage stats.
 
