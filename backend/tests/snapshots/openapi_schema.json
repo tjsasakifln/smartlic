@@ -16451,6 +16451,26 @@
             "title": "Is Founder",
             "type": "boolean"
           },
+          "last_login_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "LIFECYCLE-001: Timestamp do \u00faltimo login bem-sucedido do usu\u00e1rio. NULL se nunca logou.",
+            "title": "Last Login At"
+          },
+          "login_count": {
+            "default": 0,
+            "description": "LIFECYCLE-001: Contador total de logins bem-sucedidos.",
+            "minimum": 0.0,
+            "title": "Login Count",
+            "type": "integer"
+          },
           "plan_id": {
             "description": "Plan ID (e.g., 'consultor_agil')",
             "title": "Plan Id",
