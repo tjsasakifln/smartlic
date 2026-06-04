@@ -7,7 +7,7 @@ Contains plan definitions, capability system, and status cache helpers.
 import logging
 import threading
 import time
-from datetime import datetime, timedelta, timezone
+from datetime import datetime
 from enum import Enum
 from typing import Optional, TypedDict
 
@@ -506,3 +506,65 @@ class TrialPhaseInfo(TypedDict):
     phase: str  # "full_access" | "limited_access" | "not_trial"
     day: int
     days_remaining: int
+
+
+# ============================================================================
+# TIER-COMMAND-001: PlanCapabilities + TierConfig — novo tier 'command'
+# ============================================================================
+
+class TierConfig(BaseModel):
+    """Configuration for a product tier.
+
+    Each tier has an id, display name, pricing (in cents), capabilities, and
+    quotas. Capabilities are inherited through dict merging: a child tier's
+    capabilities dict is built by merging parent capabilities first, then
+    applying child-specific capabilities on top.
+    """
+    tier_id: str
+    name: str
+    price_monthly: int   # Price in BRL cents (e.g. 4970_00 = R$ 4,970.00)
+    price_yearly: int    # Price in BRL cents (e.g. 49700_00 = R$ 49,700.00)
+    capabilities: dict[str, bool]
+    quotas: dict[str, int]
+
+
+# TIER-COMMAND-001: Insight capabilities placeholder.
+# TODO: populate from #1235 when merged — Insight tier adds:
+#   - allow_advanced_search
+#   - allow_historical_trends
+#   - allow_competitor_tracking
+#   - allow_supplier_analysis
+INSIGHT_CAPABILITIES: dict[str, bool] = {}
+
+
+# Command tier capabilities (TIER-COMMAND-001).
+# Inherits all INSIGHT_CAPABILITIES + 7 exclusive capabilities below.
+COMMAND_CAPABILITIES: dict[str, bool] = {
+    "allow_multi_user": False,
+    "allow_api_access": False,
+    "allow_executive_reports": False,
+    "allow_regional_intel": False,
+    "allow_workspace_advanced": False,
+    "allow_data_export": False,
+    "allow_custom_alerts": False,
+}
+
+
+# Combined capabilities for Command tier = Insight + Command-specific
+_COMMAND_COMBINED_CAPABILITIES: dict[str, bool] = {
+    **INSIGHT_CAPABILITIES,
+    **COMMAND_CAPABILITIES,
+}
+
+
+TIER_COMMAND = TierConfig(
+    tier_id="command",
+    name="SmartLic Command",
+    price_monthly=4970_00,   # R$ 4.970,00
+    price_yearly=49700_00,   # R$ 49.700,00
+    capabilities=_COMMAND_COMBINED_CAPABILITIES,
+    quotas={
+        "searches": -1,        # Ilimitado
+        "intel_reports": 10,   # 10/mês
+    },
+)
