@@ -3,21 +3,19 @@
 from __future__ import annotations
 
 import hashlib
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import patch
 
 import pytest
 
 from routes.datalake_api import (
     _check_feature_flag,
     _generate_api_key,
-    _now_iso,
     API_KEY_PREFIX,
 )
 from schemas.datalake_api import (
     ApiKeyCreateRequest,
     ApiKeyCreateResponse,
     ApiKeyListItem,
-    ApiKeyListResponse,
     ApiKeyRevokeResponse,
     ApiSearchParams,
 )

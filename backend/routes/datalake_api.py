@@ -16,11 +16,10 @@ import hashlib
 import logging
 import os
 import secrets
-import time
 from datetime import datetime, timezone
 from typing import Optional
 
-from fastapi import APIRouter, Depends, Header, HTTPException, Query, Request
+from fastapi import APIRouter, Depends, Header, HTTPException, Request
 
 from auth import require_auth
 from schemas.datalake_api import (
@@ -146,36 +145,23 @@ async def _get_api_key_user(
 async def _check_api_rate_limit(api_key_id: str) -> None:
     """Check and enforce rate limit for an API key.
 
-    Uses Redis token bucket. Returns None if under limit, raises 429 if exceeded.
+    Delegates to redis_pool.check_api_key_rate_limit (token bucket).
+    Returns None if under limit, raises 429 if exceeded.
     """
     try:
-        from redis_pool import get_redis_pool
+        from redis_pool import check_api_key_rate_limit
 
-        redis = await get_redis_pool()
-        if redis is None:
-            return  # Redis unavailable — allow through (fail-open for rate limit)
-
-        key = f"api:rate_limit:{api_key_id}"
-        now = time.monotonic()
-        window_start = now - API_SEARCH_RATE_WINDOW
-
-        # Remove old entries and count recent requests
-        pipe = redis.pipeline()
-        pipe.zremrangebyscore(key, 0, window_start)
-        pipe.zcard(key)
-        results = await pipe.execute()
-        count = results[1] if len(results) > 1 else 0
-
-        if count >= API_SEARCH_RATE_LIMIT:
+        allowed = await check_api_key_rate_limit(
+            api_key_id,
+            max_requests=API_SEARCH_RATE_LIMIT,
+            window_s=API_SEARCH_RATE_WINDOW,
+        )
+        if not allowed:
             raise HTTPException(
                 status_code=429,
                 detail="Rate limit exceeded",
                 headers={"X-RateLimit-Remaining": "0", "Retry-After": str(API_SEARCH_RATE_WINDOW)},
             )
-
-        # Record this request
-        await redis.zadd(key, {str(now): now})
-        await redis.expire(key, API_SEARCH_RATE_WINDOW + 10)
     except HTTPException:
         raise
     except Exception as exc:
