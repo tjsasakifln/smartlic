@@ -23,7 +23,7 @@ from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
 from auth import require_auth
-from rate_limiter import require_rate_limit
+from routes.checkout import checkout_rate_limit
 
 # ---------------------------------------------------------------------------
 # Mock data
@@ -75,7 +75,7 @@ def app():
     application.dependency_overrides[require_auth] = lambda: MOCK_USER
 
     # Override rate limit to always allow (no Redis in unit tests)
-    application.dependency_overrides[require_rate_limit(10, 60)] = lambda: None
+    application.dependency_overrides[checkout_rate_limit] = lambda: None
 
     application.include_router(checkout_router)
     return application
@@ -112,7 +112,7 @@ class TestAuth:
         from routes.checkout import router as checkout_router
 
         app_no_auth = FastAPI()
-        app_no_auth.dependency_overrides[require_rate_limit(10, 60)] = lambda: None
+        app_no_auth.dependency_overrides[checkout_rate_limit] = lambda: None
         app_no_auth.include_router(checkout_router)
         client_no_auth = TestClient(app_no_auth)
 
@@ -171,6 +171,7 @@ class TestCheckout:
             assert "pix" in kwargs["payment_method_types"]
             assert kwargs["line_items"][0]["quantity"] == 1
             assert kwargs["metadata"]["sku"] == "relatorio-oportunidade"
+            assert kwargs["metadata"]["product_sku"] == "relatorio-oportunidade"
             assert kwargs["metadata"]["user_id"] == "user-abc-123"
             assert kwargs["metadata"]["entity_type"] == "cnpj"
             assert kwargs["metadata"]["entity_id"] == "12345678000199"

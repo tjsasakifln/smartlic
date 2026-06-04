@@ -16,6 +16,7 @@ from __future__ import annotations
 
 import logging
 import os
+from typing import Any, Optional
 
 from fastapi import APIRouter, Depends, HTTPException
 
@@ -27,11 +28,14 @@ from schemas.checkout import CheckoutRequest, CheckoutResponse
 
 logger = logging.getLogger(__name__)
 
+# Module-level rate limit dependency so tests can override the same symbol.
+checkout_rate_limit = require_rate_limit(10, 60)
+
 router = APIRouter(
     prefix="/api/checkout",
     tags=["checkout"],
     dependencies=[
-        Depends(require_rate_limit(10, 60)),
+        Depends(checkout_rate_limit),
     ],
 )
 
@@ -53,7 +57,7 @@ def _get_stripe_key() -> str:
     return key
 
 
-async def _lookup_product(sku: str) -> dict:
+async def _lookup_product(sku: str) -> Optional[dict[str, Any]]:
     """Query digital_products table by SKU.
 
     Returns the product row dict or None if not found.
@@ -221,6 +225,7 @@ async def create_one_time_checkout(
 
     metadata = {
         "sku": payload.sku,
+        "product_sku": payload.sku,
         "product_id": product_id,
         "user_id": user_id,
     }
@@ -274,5 +279,11 @@ async def create_one_time_checkout(
         user_id[:8],
         session.id,
     )
+
+    if not session.url:
+        raise HTTPException(
+            status_code=503,
+            detail="Servico de pagamento temporariamente indisponivel. Tente novamente.",
+        )
 
     return CheckoutResponse(checkout_url=session.url)
