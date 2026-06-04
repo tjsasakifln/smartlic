@@ -8,6 +8,6 @@ export const { GET, POST } = createProxyRoute({
   backendPath: "/v1/alerts",
   methods: ["GET", "POST"],
   requireAuth: true,
-    allowRefresh: true,
+  allowRefresh: true,
   errorMessage: "Erro ao processar alertas",
 });
