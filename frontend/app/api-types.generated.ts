@@ -12883,6 +12883,17 @@ export interface components {
              */
             is_founder: boolean;
             /**
+             * Last Login At
+             * @description LIFECYCLE-001: Timestamp do último login bem-sucedido do usuário. NULL se nunca logou.
+             */
+            last_login_at?: string | null;
+            /**
+             * Login Count
+             * @description LIFECYCLE-001: Contador total de logins bem-sucedidos.
+             * @default 0
+             */
+            login_count: number;
+            /**
              * Plan Id
              * @description Plan ID (e.g., 'consultor_agil')
              */
