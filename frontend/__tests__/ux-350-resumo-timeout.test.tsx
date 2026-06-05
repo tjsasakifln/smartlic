@@ -320,31 +320,31 @@ describe("AC8: AI transparency label", () => {
 // AC9: LlmSourceBadge — "processing" shows spinner, "fallback" shows automatic label
 // ============================================================================
 describe("AC9: LLM Source Badge timeout behavior", () => {
-  it("shows 'Resumo por IA sendo preparado...' when llm_source is processing", () => {
+  it("shows 'Análise automática sendo preparada...' when llm_source is processing", () => {
     render(<LlmSourceBadge llmSource="processing" />);
-    expect(screen.getByText("Resumo por IA sendo preparado...")).toBeInTheDocument();
+    expect(screen.getByText("Análise automática sendo preparada...")).toBeInTheDocument();
   });
 
-  it("shows 'Resumo automatico' when llm_source is fallback (after timeout)", () => {
+  it("shows 'Análise automática' when llm_source is fallback (after timeout)", () => {
     render(<LlmSourceBadge llmSource="fallback" />);
-    expect(screen.getByText("Resumo automatico")).toBeInTheDocument();
+    expect(screen.getByText("Análise automática")).toBeInTheDocument();
   });
 
-  it("shows 'Resumo por IA' when llm_source is ai", () => {
+  it("shows 'Análise automática' when llm_source is ai", () => {
     render(<LlmSourceBadge llmSource="ai" />);
-    expect(screen.getByText("Resumo por IA")).toBeInTheDocument();
+    expect(screen.getByText("Análise automática")).toBeInTheDocument();
   });
 
   it("SearchResults renders fallback badge when llm_source is fallback", () => {
     const result = makeResult({ llm_source: "fallback" });
     render(<SearchResults {...DEFAULT_PROPS} result={result} />);
-    expect(screen.getByText("Resumo automatico")).toBeInTheDocument();
+    expect(screen.getByText("Análise automática")).toBeInTheDocument();
   });
 
   it("SearchResults renders processing badge when llm_source is processing", () => {
     const result = makeResult({ llm_source: "processing" });
     render(<SearchResults {...DEFAULT_PROPS} result={result} />);
-    expect(screen.getByText("Resumo por IA sendo preparado...")).toBeInTheDocument();
+    expect(screen.getByText("Análise automática sendo preparada...")).toBeInTheDocument();
   });
 });
 
@@ -375,15 +375,15 @@ describe("AC10: handleSseEvent replaces resumo on llm_ready", () => {
       <SearchResults {...DEFAULT_PROPS} result={initialResult} />
     );
 
-    // Initially shows fallback
-    expect(screen.getByText("Resumo automatico")).toBeInTheDocument();
+    // Initially shows fallback badge text
+    expect(screen.getByText("Análise automática")).toBeInTheDocument();
 
     // After SSE event updates result
     rerender(<SearchResults {...DEFAULT_PROPS} result={updatedResult} />);
 
-    // Now shows AI badge
-    expect(screen.getByText("Resumo por IA")).toBeInTheDocument();
-    expect(screen.queryByText("Resumo automatico")).not.toBeInTheDocument();
+    // Still shows badge text (same text, different style/title — ai vs fallback)
+    expect(screen.getByText("Análise automática")).toBeInTheDocument();
+    expect(screen.getByText("Resumo gerado por IA aprimorado")).toBeInTheDocument();
     expect(screen.getByText("Resumo gerado por IA aprimorado")).toBeInTheDocument();
   });
 });
