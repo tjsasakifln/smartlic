@@ -1608,7 +1608,7 @@
             6,
             7
           ],
-          "ordenacao": "data_desc",
+          "ordenacao": "confianca",
           "status": "recebendo_proposta",
           "ufs": [
             "SP",
@@ -1760,7 +1760,7 @@
             "title": "Municipios"
           },
           "ordenacao": {
-            "default": "data_desc",
+            "default": "confianca",
             "description": "Crit\u00e9rio de ordena\u00e7\u00e3o dos resultados: 'data_desc' (mais recente), 'data_asc' (mais antigo), 'valor_desc' (maior valor), 'valor_asc' (menor valor), 'prazo_asc' (prazo mais pr\u00f3ximo), 'relevancia' (score de matching).",
             "examples": [
               "data_desc",

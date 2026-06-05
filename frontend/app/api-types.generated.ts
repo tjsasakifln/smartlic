@@ -6568,7 +6568,7 @@ export interface components {
          *         6,
          *         7
          *       ],
-         *       "ordenacao": "data_desc",
+         *       "ordenacao": "confianca",
          *       "status": "recebendo_proposta",
          *       "ufs": [
          *         "SP",
@@ -6658,7 +6658,7 @@ export interface components {
             /**
              * Ordenacao
              * @description Critério de ordenação dos resultados: 'data_desc' (mais recente), 'data_asc' (mais antigo), 'valor_desc' (maior valor), 'valor_asc' (menor valor), 'prazo_asc' (prazo mais próximo), 'relevancia' (score de matching).
-             * @default data_desc
+             * @default confianca
              * @example data_desc
              * @example valor_desc
              * @example prazo_asc

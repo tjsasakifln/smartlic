@@ -199,7 +199,7 @@ class BuscaRequest(BaseModel):
     )
 
     ordenacao: str = Field(
-        default="data_desc",
+        default="confianca",
         description="Critério de ordenação dos resultados: "
                     "'data_desc' (mais recente), 'data_asc' (mais antigo), "
                     "'valor_desc' (maior valor), 'valor_asc' (menor valor), "
@@ -435,7 +435,7 @@ class BuscaRequest(BaseModel):
                 "valor_minimo": 50000,
                 "valor_maximo": 500000,
                 "esferas": ["M"],
-                "ordenacao": "data_desc"
+                "ordenacao": "confianca"
             }
         }
 
