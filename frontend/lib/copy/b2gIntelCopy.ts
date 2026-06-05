@@ -270,6 +270,17 @@ export const REPO_COMMS_BANNED_WORDS = [
   "buscar",
   "encontrar",
   "dados abertos",
+  // NO-JARGON-004: Technical jargon — sync with BANNED_PHRASES
+  "datalake",
+  "data lake",
+  "GPT-4",
+  "GPT-3.5",
+  "GPT",
+  "LLM",
+  "large language model",
+  "cache expirado",
+  "em cache",
+  "quota",
 ];
 
 // ============================================================================
