@@ -93,6 +93,17 @@ describe("STORY-353: Support SLA Card", () => {
           json: () => Promise.resolve({ runs: [] }),
         });
       }
+      if (url.includes("/api/admin/users/segments")) {
+        return Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve({
+            total_users: 128,
+            count_by_state: { anonymous: 5, lead: 18, trial_active: 32 },
+            transitions_last_week: [],
+            power_users: [],
+          }),
+        });
+      }
       return Promise.resolve({ ok: true, json: () => Promise.resolve({}) });
     });
 
@@ -143,6 +154,17 @@ describe("STORY-353: Support SLA Card", () => {
           json: () => Promise.resolve({ runs: [] }),
         });
       }
+      if (url.includes("/api/admin/users/segments")) {
+        return Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve({
+            total_users: 128,
+            count_by_state: { anonymous: 5, lead: 18, trial_active: 32 },
+            transitions_last_week: [],
+            power_users: [],
+          }),
+        });
+      }
       return Promise.resolve({ ok: true, json: () => Promise.resolve({}) });
     });
 
@@ -178,6 +200,17 @@ describe("STORY-353: Support SLA Card", () => {
         return Promise.resolve({
           ok: true,
           json: () => Promise.resolve({ runs: [] }),
+        });
+      }
+      if (url.includes("/api/admin/users/segments")) {
+        return Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve({
+            total_users: 128,
+            count_by_state: { anonymous: 5, lead: 18, trial_active: 32 },
+            transitions_last_week: [],
+            power_users: [],
+          }),
         });
       }
       return Promise.resolve({ ok: true, json: () => Promise.resolve({}) });

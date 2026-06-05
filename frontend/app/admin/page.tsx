@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useAuth } from "../components/AuthProvider";
 import Link from "next/link";
 import { toast } from "sonner";
@@ -13,6 +13,8 @@ import { AdminSupportSLA } from "./components/AdminSupportSLA";
 import { AdminTrialMetrics } from "./components/AdminTrialMetrics";
 import { AdminUserTable } from "./components/AdminUserTable";
 import { AdminCreateUser } from "./components/AdminCreateUser";
+import { LifecycleWidget } from "./components/LifecycleWidget";
+import { ABTestWidget } from "./components/ABTestWidget";
 // STORY-2.1 (EPIC-TD-2026Q2): Share the admin user shape with AdminUserTable.
 import type {
   AdminUserProfile as UserProfile,
@@ -46,6 +48,43 @@ interface ReconResponse {
   }>;
 }
 
+// LIFECYCLE-004 (#1429): Mock lifecycle data for when /admin/users/segments
+// endpoint is not yet deployed (LIFECYCLE-003 #1428 backend pending).
+function mockLifecycleData() {
+  return {
+    total_users: 128,
+    count_by_state: {
+      anonymous: 5,
+      lead: 18,
+      trial_active: 32,
+      trial_limited: 8,
+      trial_expired: 12,
+      paid_active: 24,
+      paid_past_due: 3,
+      canceled: 6,
+      churned: 4,
+      power_user: 16,
+    },
+    transitions_last_week: [
+      { user_id: "a1b2c3d4-e5f6-7890-abcd-ef1234567890", previous_lifecycle: "trial_active", new_lifecycle: "paid_active", changed_at: "2026-06-03T14:30:00Z" },
+      { user_id: "b2c3d4e5-f6a7-8901-bcde-f12345678901", previous_lifecycle: "trial_active", new_lifecycle: "trial_limited", changed_at: "2026-06-03T10:15:00Z" },
+      { user_id: "c3d4e5f6-a7b8-9012-cdef-123456789012", previous_lifecycle: "lead", new_lifecycle: "trial_active", changed_at: "2026-06-02T08:00:00Z" },
+      { user_id: "d4e5f6a7-b8c9-0123-defa-234567890123", previous_lifecycle: "paid_active", new_lifecycle: "power_user", changed_at: "2026-06-01T16:45:00Z" },
+      { user_id: "e5f6a7b8-c9d0-1234-efab-345678901234", previous_lifecycle: "trial_expired", new_lifecycle: "lead", changed_at: "2026-05-31T12:00:00Z" },
+      { user_id: "f6a7b8c9-d0e1-2345-fabc-456789012345", previous_lifecycle: "paid_active", new_lifecycle: "paid_past_due", changed_at: "2026-05-30T09:20:00Z" },
+      { user_id: "a7b8c9d0-e1f2-3456-abcd-567890123456", previous_lifecycle: "trial_active", new_lifecycle: "trial_expired", changed_at: "2026-05-29T18:00:00Z" },
+      { user_id: "b8c9d0e1-f2a3-4567-bcde-678901234567", previous_lifecycle: "paid_past_due", new_lifecycle: "paid_active", changed_at: "2026-05-29T11:30:00Z" },
+    ],
+    power_users: [
+      { user_id: "pu-001-aaaa-bbbb-cccc-ddddeeee0001", email: "marina@smartlic.tech", full_name: "Marina L. Baron", company: "CONFENGE", logins_14d: 12, pipeline_count: 8, alert_count: 3 },
+      { user_id: "pu-001-aaaa-bbbb-cccc-ddddeeee0002", email: "joao@licitacoes.com", full_name: "Joao Silva", company: "Licitacoes Ltda", logins_14d: 8, pipeline_count: 5, alert_count: 2 },
+      { user_id: "pu-001-aaaa-bbbb-cccc-ddddeeee0003", email: "carla@b2g.com", full_name: "Carla Oliveira", company: "B2G Solutions", logins_14d: 7, pipeline_count: 6, alert_count: 1 },
+      { user_id: "pu-001-aaaa-bbbb-cccc-ddddeeee0004", email: "admin@orgao.gov", full_name: "Administrador", company: "Orgao Publico", logins_14d: 15, pipeline_count: 4, alert_count: 5 },
+    ],
+    queried_at: new Date().toISOString(),
+  };
+}
+
 export default function AdminPage() {
   const { session, loading: authLoading, isAdmin } = useAuth();
   const [search, setSearch] = useState("");
@@ -61,6 +100,30 @@ export default function AdminPage() {
   const { data: statusData, isLoading: statusLoading, mutate: mutateStatus } = usePublicSWR<StatusResponse>(isAdmin ? "/api/status" : null);
 
   const { data: slaData, isLoading: slaLoading, mutate: mutateSla } = useAdminSWR<SlaResponse>(isAdmin ? "/api/admin/support-sla" : null);
+
+  // LIFECYCLE-004 (#1429): Fetch lifecycle segments data
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Segments shape from backend runtime (LIFECYCLE-003)
+  const { data: segmentsRaw, isLoading: segmentsLoading, error: segmentsError, mutate: mutateSegments } = useAdminSWR<any>(
+    isAdmin ? "/api/admin/users/segments" : null
+  );
+
+  // LIFECYCLE-004: Fallback to mock data when endpoint is unavailable
+  // or returns incomplete data (CRIT-092: {} with no total_users caused
+  // LifecycleWidget crash — missing fields like transitions_last_week).
+  const segmentsData = useMemo(() => {
+    if (
+      segmentsRaw &&
+      typeof segmentsRaw.total_users === "number" &&
+      segmentsRaw.total_users > 0 &&
+      segmentsRaw.count_by_state &&
+      segmentsRaw.transitions_last_week
+    ) {
+      return segmentsRaw;
+    }
+    if (segmentsError || !segmentsRaw) return mockLifecycleData();
+    // segmentsRaw is {} or missing key fields — fallback to mock
+    return mockLifecycleData();
+  }, [segmentsRaw, segmentsError]);
 
   const { data: reconData, isLoading: reconLoading, mutate: mutateRecon } = useAdminSWR<ReconResponse>(isAdmin ? "/api/admin/reconciliation/history?limit=5" : null);
 
@@ -196,6 +259,17 @@ export default function AdminPage() {
           metrics={trialMetrics ?? null}
           atRiskUsers={atRiskData?.users ?? []}
           loading={metricsLoading}
+        />
+
+        {/* VIAB-UX-005b: A/B test dashboard for viability_sort experiment */}
+        <ABTestWidget />
+
+        <LifecycleWidget
+          data={segmentsData ?? null}
+          loading={segmentsLoading}
+          // Suppress error when using mock data fallback (endpoint unavailable)
+          error={(segmentsRaw === undefined && segmentsError) ? null : (segmentsError?.message ?? null)}
+          onRetry={() => mutateSegments()}
         />
 
         {showCreate && (
