@@ -1350,6 +1350,33 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/admin/users/segments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get User Segments
+         * @description LIFECYCLE-003: Return user lifecycle segment counts, transitions,
+         *     and power user details.
+         *
+         *     Classifies every user into one of 10 lifecycle states:
+         *     anonymous, lead, trial_active, trial_limited, trial_expired,
+         *     paid_active, paid_past_due, canceled, churned, power_user.
+         *
+         *     Results are cached in Redis for 5 minutes.
+         */
+        get: operations["get_user_segments_v1_admin_users_segments_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/admin/users/{user_id}": {
         parameters: {
             query?: never;
@@ -13167,6 +13194,24 @@ export interface components {
             user_id: string;
         };
         /**
+         * UserSegmentsResponse
+         * @description Response for GET /admin/users/segments (LIFECYCLE-003).
+         */
+        UserSegmentsResponse: {
+            /** Count By State */
+            count_by_state: {
+                [key: string]: unknown;
+            };
+            /** Power Users */
+            power_users: unknown[];
+            /** Queried At */
+            queried_at: string;
+            /** Total Users */
+            total_users: number;
+            /** Transitions Last Week */
+            transitions_last_week: unknown[];
+        };
+        /**
          * ValidateSignupEmailResponse
          * @description POST /validate-signup-email response.
          */
@@ -15105,6 +15150,26 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_user_segments_v1_admin_users_segments_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UserSegmentsResponse"];
                 };
             };
         };
