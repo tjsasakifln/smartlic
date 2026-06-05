@@ -417,7 +417,7 @@ export function useSearchAPI(params: UseSearchAPIParams): UseSearchAPIReturn {
             if (partialRaw) {
               const partialData = JSON.parse(partialRaw) as { rawCount: number; timestamp: number };
               if (partialData.rawCount > 0 && Date.now() - partialData.timestamp < 300000) {
-                toast.info(`${partialData.rawCount.toLocaleString("pt-BR")} licitações foram encontradas antes do timeout. Tente novamente — os resultados estarão em cache.`);
+                toast.info(`${partialData.rawCount.toLocaleString("pt-BR")} licitações foram encontradas antes do timeout. Tente novamente — os resultados estarão salvos.`);
                 sessionStorage.removeItem(partialKey);
               }
             }
