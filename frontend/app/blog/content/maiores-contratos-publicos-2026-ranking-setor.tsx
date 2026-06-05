@@ -115,7 +115,7 @@ export default function MaioresContratosPublicos2026RankingSetor() {
             Painel de Compras do Governo Federal (compras.dados.gov.br)
           </li>
           <li>
-            Datalake SmartLic — indexação diária de contratos do PNCP e fontes
+            Base de dados SmartLic — indexação diária de contratos do PNCP e fontes
             complementares, cobertura nacional
           </li>
           <li>
