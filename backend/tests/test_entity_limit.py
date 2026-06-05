@@ -168,7 +168,7 @@ class TestCheckEntityLimit:
         from routes.alerts import _check_entity_limit
 
         # Should not raise — unlimited
-        await _check_entity_limit("user-master", "tracked_orgaos", ["cnpj-1"])
+        await _check_entity_limit("user-master", "tracked_orgaos", ["12345678000195"])
 
 
 # ===========================================================================
@@ -239,9 +239,9 @@ class TestCreateAlertRequestIncludesTrackedEntities:
         req = CreateAlertRequest(
             name="Test",
             filters=AlertFilters(),
-            tracked_orgaos=["cnpj-1", "cnpj-2"],
+            tracked_orgaos=["12345678000195", "22345678000195"],
         )
-        assert req.tracked_orgaos == ["cnpj-1", "cnpj-2"]
+        assert req.tracked_orgaos == ["12345678000195", "22345678000195"]
 
     def test_create_alert_request_has_tracked_fornecedores(self):
         """CreateAlertRequest accepts tracked_fornecedores."""
@@ -250,9 +250,9 @@ class TestCreateAlertRequestIncludesTrackedEntities:
         req = CreateAlertRequest(
             name="Test",
             filters=AlertFilters(),
-            tracked_fornecedores=["cnpj-3"],
+            tracked_fornecedores=["32345678000195"],
         )
-        assert req.tracked_fornecedores == ["cnpj-3"]
+        assert req.tracked_fornecedores == ["32345678000195"]
 
 
 class TestUpdateAlertRequestIncludesTrackedEntities:
@@ -262,8 +262,8 @@ class TestUpdateAlertRequestIncludesTrackedEntities:
         """UpdateAlertRequest accepts tracked_orgaos."""
         from routes.alerts import UpdateAlertRequest
 
-        req = UpdateAlertRequest(tracked_orgaos=["cnpj-1"])
-        assert req.tracked_orgaos == ["cnpj-1"]
+        req = UpdateAlertRequest(tracked_orgaos=["12345678000195"])
+        assert req.tracked_orgaos == ["12345678000195"]
 
     def test_update_alert_request_tracked_fornecedores_none_by_default(self):
         """UpdateAlertRequest has tracked_fornecedores as None by default."""
