@@ -23,6 +23,7 @@ from database import get_db, get_user_db
 from schemas import (
     UserProfileResponse, SuccessResponse, DeleteAccountResponse,
     PerfilContexto, PerfilContextoResponse, ProfileCompletenessResponse, validate_password,
+    SectorAffinityResponse,
 )
 from schemas.parity import TrialExitSurveysResponse
 from log_sanitizer import mask_user_id, log_user_action
@@ -885,3 +886,135 @@ async def get_exit_surveys_admin(
     except Exception as e:
         logger.error(f"Error fetching exit surveys: {e}")
         raise HTTPException(status_code=503, detail="Erro ao buscar surveys")
+
+
+# =============================================================================
+# FEEDBACK-004: Sector Affinity Endpoint
+# =============================================================================
+
+_SECTOR_AFFINITY_CACHE_TTL = 300  # 5 minutes
+_SECTOR_NAMES: dict[str, str] | None = None
+
+
+def _get_sector_names() -> dict[str, str]:
+    """Load sector names from sectors_data.yaml as fallback mapping."""
+    global _SECTOR_NAMES
+    if _SECTOR_NAMES is not None:
+        return _SECTOR_NAMES
+    try:
+        import os
+        import yaml
+        yaml_path = os.path.join(os.path.dirname(__file__), "..", "sectors_data.yaml")
+        with open(yaml_path) as f:
+            data = yaml.safe_load(f)
+        _SECTOR_NAMES = {sid: cfg["name"] for sid, cfg in data.get("sectors", {}).items()}
+    except Exception:
+        _SECTOR_NAMES = {}
+    return _SECTOR_NAMES
+
+
+async def _get_cached_sector_affinity(cache_key: str) -> list | None:
+    """Best-effort Redis cache read for sector affinity data."""
+    try:
+        from redis_pool import get_redis_pool
+        redis = await get_redis_pool()
+        if redis is None:
+            return None
+        raw = await redis.get(cache_key)
+        if raw is None:
+            return None
+        if isinstance(raw, bytes):
+            raw = raw.decode("utf-8")
+        return json.loads(raw)
+    except Exception:
+        return None
+
+
+async def _set_cached_sector_affinity(cache_key: str, data: list) -> None:
+    """Best-effort Redis cache write for sector affinity data."""
+    try:
+        from redis_pool import get_redis_pool
+        redis = await get_redis_pool()
+        if redis is None:
+            return
+        await redis.set(cache_key, json.dumps(data), ex=_SECTOR_AFFINITY_CACHE_TTL)
+    except Exception:
+        pass
+
+
+@router.get("/profile/sector-affinity", response_model=list[SectorAffinityResponse])
+async def get_sector_affinity(
+    user: dict = Depends(require_auth),
+):
+    """FEEDBACK-004: Return user's sector affinities ordered by score DESC.
+
+    Reads from user_sector_affinity table, joined with sector names from
+    sectors_data.yaml. Results are cached for 5 minutes per user.
+    Returns empty list if the table doesn't exist yet (migration pending).
+    """
+    user_id = user.get("sub") or user.get("id")
+    if not user_id:
+        raise HTTPException(status_code=401, detail="User ID not found in token")
+
+    cache_key = f"sector_affinity:{user_id}"
+
+    # Try cache first
+    cached = await _get_cached_sector_affinity(cache_key)
+    if cached is not None:
+        return [SectorAffinityResponse(**item) for item in cached]
+
+    # Load sector name mapping
+    sector_names = _get_sector_names()
+
+    # Query user_sector_affinity table
+    try:
+        from supabase_client import get_supabase
+        db = get_supabase()
+
+        result = await sb_execute(
+            db.table("user_sector_affinity")
+            .select("sector_id, affinity_score")
+            .eq("user_id", user_id)
+            .order("affinity_score", desc=True)
+        )
+
+        rows = result.data or []
+    except Exception as exc:
+        error_str = str(exc).lower()
+        # Table doesn't exist yet — migration not applied
+        if "relation" in error_str and "does not exist" in error_str:
+            logger.warning(
+                "user_sector_affinity table not found. Returning empty list for user %s",
+                mask_user_id(user_id),
+            )
+            return []
+        # Other errors — return empty list gracefully
+        logger.error(
+            "Failed to query sector affinity for %s: %s",
+            mask_user_id(user_id),
+            exc,
+        )
+        return []
+
+    # Map sector_id to sector_name
+    result_items = []
+    for row in rows:
+        sector_id = row.get("sector_id", "")
+        result_items.append(SectorAffinityResponse(
+            sector_id=sector_id,
+            sector_name=sector_names.get(sector_id, sector_id),
+            affinity_score=float(row.get("affinity_score", 0.0)),
+        ))
+
+    # Cache the result
+    data_for_cache = [
+        {
+            "sector_id": item.sector_id,
+            "sector_name": item.sector_name,
+            "affinity_score": item.affinity_score,
+        }
+        for item in result_items
+    ]
+    await _set_cached_sector_affinity(cache_key, data_for_cache)
+
+    return result_items
