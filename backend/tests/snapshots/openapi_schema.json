@@ -13489,6 +13489,35 @@
         "title": "SeasonalCalendarStats",
         "type": "object"
       },
+      "SectorAffinityResponse": {
+        "description": "FEEDBACK-004: User affinity score for a sector.\n\nReturned by GET /v1/profile/sector-affinity.",
+        "properties": {
+          "affinity_score": {
+            "description": "Affinity score from 0.0 to 1.0",
+            "maximum": 1.0,
+            "minimum": 0.0,
+            "title": "Affinity Score",
+            "type": "number"
+          },
+          "sector_id": {
+            "description": "Sector identifier (e.g., 'vestuario')",
+            "title": "Sector Id",
+            "type": "string"
+          },
+          "sector_name": {
+            "description": "Display name of the sector",
+            "title": "Sector Name",
+            "type": "string"
+          }
+        },
+        "required": [
+          "sector_id",
+          "sector_name",
+          "affinity_score"
+        ],
+        "title": "SectorAffinityResponse",
+        "type": "object"
+      },
       "SectorAggregate": {
         "properties": {
           "avg_value": {
@@ -26515,6 +26544,37 @@
           }
         ],
         "summary": "Save Profile Context",
+        "tags": [
+          "user"
+        ]
+      }
+    },
+    "/v1/profile/sector-affinity": {
+      "get": {
+        "description": "FEEDBACK-004: Return user's sector affinities ordered by score DESC.\n\nReads from user_sector_affinity table, joined with sector names from\nsectors_data.yaml. Results are cached for 5 minutes per user.\nReturns empty list if the table doesn't exist yet (migration pending).",
+        "operationId": "get_sector_affinity_v1_profile_sector_affinity_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/SectorAffinityResponse"
+                  },
+                  "title": "Response Get Sector Affinity V1 Profile Sector Affinity Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Get Sector Affinity",
         "tags": [
           "user"
         ]

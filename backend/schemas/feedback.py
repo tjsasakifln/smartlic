@@ -64,6 +64,16 @@ class FPKeywordSuggestion(BaseModel):
     suggestion: str
 
 
+class SectorAffinityResponse(BaseModel):
+    """FEEDBACK-004: User affinity score for a sector.
+
+    Returned by GET /v1/profile/sector-affinity.
+    """
+    sector_id: str = Field(..., description="Sector identifier (e.g., 'vestuario')")
+    sector_name: str = Field(..., description="Display name of the sector")
+    affinity_score: float = Field(..., ge=0.0, le=1.0, description="Affinity score from 0.0 to 1.0")
+
+
 class FeedbackPatternsResponse(BaseModel):
     """GET /v1/admin/feedback/patterns response body."""
     total_feedbacks: int
