@@ -1,0 +1,24 @@
+name: Banned Phrases Check (NO-JARGON-004)
+
+on:
+  pull_request:
+    paths:
+      - "frontend/app/blog/**"
+      - "frontend/app/buscar/**"
+      - "frontend/components/**"
+      - "frontend/lib/copy/**"
+  push:
+    branches: [main]
+    paths:
+      - "frontend/app/blog/**"
+      - "frontend/app/buscar/**"
+      - "frontend/components/**"
+      - "frontend/lib/copy/**"
+
+jobs:
+  check-banned-phrases:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run banned phrase scan
+        run: bash scripts/check-banned-phrases.sh
