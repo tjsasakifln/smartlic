@@ -24,6 +24,20 @@ from auth import require_auth
 from log_sanitizer import mask_user_id
 from schemas.common import SuccessMessageResponse
 
+# ENTITY-004: Max tracked entities per plan tier (hardcoded fallback for
+# alert-specific enforcement; source of truth is PlanCapabilities in quota_core).
+_PLAN_TRACKED_ENTITY_LIMITS: dict[str, int] = {
+    "free": 0,
+    "free_trial": 1,
+    "consultor_agil": 1,
+    "maquina": 5,
+    "sala_guerra": 20,
+    "smartlic_pro": 5,
+    "founding_member": 5,
+    "consultoria": 20,
+    "master": 99999,
+}
+
 logger = logging.getLogger(__name__)
 
 router = APIRouter(tags=["alerts"])
@@ -43,6 +57,96 @@ _PLAN_ALERT_LIMITS: dict[str, int] = {
     "consultoria": 20,
     "master": 20,
 }
+
+
+async def _get_entity_tracked_limit(user_id: str) -> int:
+    """Get max tracked entities allowed for user based on their plan type.
+
+    ENTITY-004: Checks profiles.plan_type and returns the per-plan limit.
+    Falls back to _PLAN_TRACKED_ENTITY_LIMITS dict (hardcoded fallback).
+    """
+    from supabase_client import get_supabase, sb_execute
+    try:
+        sb = get_supabase()
+        result = await sb_execute(
+            sb.table("profiles")
+            .select("plan_type")
+            .eq("id", user_id)
+            .single()
+        )
+        plan_type = (result.data or {}).get("plan_type", "free")
+        return _PLAN_TRACKED_ENTITY_LIMITS.get(plan_type, 1)
+    except Exception:
+        logger.warning(f"Failed to get plan for user {mask_user_id(user_id)}, defaulting to trial entity limit")
+        return _PLAN_TRACKED_ENTITY_LIMITS.get("free_trial", 1)
+
+
+async def _count_user_tracked_entities(user_id: str, tracked_field: str) -> int:
+    """Count unique tracked entities across all user's alerts for a given field.
+
+    ENTITY-004: Aggregates tracked_orgaos and tracked_fornecedores from all user
+    alerts, deduplicating CNPJs to accurately enforce the per-plan entity limit.
+    """
+    from supabase_client import get_supabase, sb_execute
+    try:
+        sb = get_supabase()
+        result = await sb_execute(
+            sb.table("alerts")
+            .select(tracked_field)
+            .eq("user_id", user_id)
+        )
+        all_entities: set[str] = set()
+        for row in (result.data or []):
+            entities = row.get(tracked_field)
+            if isinstance(entities, list):
+                all_entities.update(entities)
+        return len(all_entities)
+    except Exception as e:
+        logger.warning(f"Failed to count tracked entities for user {mask_user_id(user_id)}: {e}")
+        return 0
+
+
+async def _check_entity_limit(user_id: str, tracked_field: str, additional_entities: list[str]) -> None:
+    """Raise 422 if adding tracked entities would exceed the plan limit.
+
+    ENTITY-004: Counts existing + new unique entities and compares against plan cap.
+    Skips check for plans with max_tracked_entities >= 99999 (unlimited, e.g. master).
+    """
+    max_entities = await _get_entity_tracked_limit(user_id)
+    if max_entities >= 99999:
+        return  # Unlimited plan — skip check
+
+    current_count = await _count_user_tracked_entities(user_id, tracked_field)
+
+    # Calculate projected count (deduplicate against existing entities)
+    existing_set: set[str] = set()
+    try:
+        from supabase_client import get_supabase, sb_execute
+        sb = get_supabase()
+        result = await sb_execute(
+            sb.table("alerts")
+            .select(tracked_field)
+            .eq("user_id", user_id)
+        )
+        for row in (result.data or []):
+            entities = row.get(tracked_field)
+            if isinstance(entities, list):
+                existing_set.update(entities)
+    except Exception:
+        pass
+
+    projected = len(existing_set) + sum(1 for e in additional_entities if e not in existing_set)
+
+    if projected > max_entities:
+        field_label = "órgãos" if tracked_field == "tracked_orgaos" else "fornecedores"
+        raise HTTPException(
+            status_code=422,
+            detail=(
+                f"Seu plano permite monitorar até {max_entities} {field_label}. "
+                f"Você já está monitorando {len(existing_set)} e não pode adicionar mais. "
+                "Faça upgrade do seu plano para monitorar mais entidades."
+            ),
+        )
 
 
 async def _get_alert_limit(user_id: str) -> int:
@@ -276,6 +380,12 @@ async def create_alert(
         logger.warning(f"Failed to check alert count for user {mask_user_id(user_id)}: {e}")
         # Continue — better to allow than to block on a count check failure
 
+    # ENTITY-004: Enforce per-plan tracked entity limit
+    if body.tracked_orgaos:
+        await _check_entity_limit(user_id, "tracked_orgaos", body.tracked_orgaos)
+    if body.tracked_fornecedores:
+        await _check_entity_limit(user_id, "tracked_fornecedores", body.tracked_fornecedores)
+
     now = datetime.now(timezone.utc).isoformat()
 
     insert_data = {
@@ -401,9 +511,14 @@ async def update_alert(
         payload["filters"] = body.filters.model_dump(exclude_none=True)
     if body.active is not None:
         payload["active"] = body.active
+
+    # ENTITY-004: Enforce per-plan tracked entity limit on PATCH
+    # Client sends the full replacement list — validate projected count.
     if body.tracked_orgaos is not None:
+        await _check_entity_limit(user_id, "tracked_orgaos", body.tracked_orgaos)
         payload["tracked_orgaos"] = body.tracked_orgaos
     if body.tracked_fornecedores is not None:
+        await _check_entity_limit(user_id, "tracked_fornecedores", body.tracked_fornecedores)
         payload["tracked_fornecedores"] = body.tracked_fornecedores
 
     if not payload:

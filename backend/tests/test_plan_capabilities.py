@@ -29,6 +29,7 @@ class TestPlanCapabilities:
             "allow_predictive_intel",  # PREDINT-000 (EPIC-PREDINT #1260)
             "allow_competitive_intel",  # COMPINT-000 (EPIC-COMPINT #1261)
             "allow_workspace_basic",  # B2GOPS-000 (EPIC-B2GOPS #1262)
+            "max_tracked_entities",  # ENTITY-004
             "max_requests_per_month",
             "max_requests_per_min",
             "max_summary_tokens",
