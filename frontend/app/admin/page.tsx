@@ -108,10 +108,21 @@ export default function AdminPage() {
   );
 
   // LIFECYCLE-004: Fallback to mock data when endpoint is unavailable
+  // or returns incomplete data (CRIT-092: {} with no total_users caused
+  // LifecycleWidget crash — missing fields like transitions_last_week).
   const segmentsData = useMemo(() => {
-    if (segmentsRaw && segmentsRaw.total_users > 0) return segmentsRaw;
+    if (
+      segmentsRaw &&
+      typeof segmentsRaw.total_users === "number" &&
+      segmentsRaw.total_users > 0 &&
+      segmentsRaw.count_by_state &&
+      segmentsRaw.transitions_last_week
+    ) {
+      return segmentsRaw;
+    }
     if (segmentsError || !segmentsRaw) return mockLifecycleData();
-    return segmentsRaw;
+    // segmentsRaw is {} or missing key fields — fallback to mock
+    return mockLifecycleData();
   }, [segmentsRaw, segmentsError]);
 
   const { data: reconData, isLoading: reconLoading, mutate: mutateRecon } = useAdminSWR<ReconResponse>(isAdmin ? "/api/admin/reconciliation/history?limit=5" : null);
