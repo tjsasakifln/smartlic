@@ -299,6 +299,14 @@ _FEATURE_FLAG_REGISTRY: dict[str, tuple[str, str]] = {
     "TRIGRAM_FALLBACK_ENABLED": ("TRIGRAM_FALLBACK_ENABLED", "true"),
     # --- STORY-438: Semantic embeddings ---
     "EMBEDDING_ENABLED": ("EMBEDDING_ENABLED", "false"),
+    # --- TIER-COMMAND-003: Command tier feature flags (fail-closed: all default false) ---
+    "COMMAND_API_ACCESS": ("COMMAND_API_ACCESS", "false"),
+    "COMMAND_MULTI_USER": ("COMMAND_MULTI_USER", "false"),
+    "COMMAND_EXECUTIVE_REPORTS": ("COMMAND_EXECUTIVE_REPORTS", "false"),
+    "COMMAND_REGIONAL_INTEL": ("COMMAND_REGIONAL_INTEL", "false"),
+    "COMMAND_WORKSPACE_ADVANCED": ("COMMAND_WORKSPACE_ADVANCED", "false"),
+    "COMMAND_DATA_EXPORT": ("COMMAND_DATA_EXPORT", "false"),
+    "COMMAND_CUSTOM_ALERTS": ("COMMAND_CUSTOM_ALERTS", "false"),
 }
 
 

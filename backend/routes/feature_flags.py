@@ -225,6 +225,14 @@ _FLAG_DESCRIPTIONS: dict[str, str] = {
     "EMBEDDING_ENABLED": "Semantic embedding search for datalake (STORY-438)",
     # Founders Offer
     "FOUNDERS_OFFER_ENABLED": "Kill switch for the Founders lifetime offer (epic:fundadores — BIZ-FOUND-002)",
+    # TIER-COMMAND-003: Command tier feature flags
+    "COMMAND_API_ACCESS": "Command tier: API access capability (TIER-COMMAND-003)",
+    "COMMAND_MULTI_USER": "Command tier: multi-user capability (TIER-COMMAND-003)",
+    "COMMAND_EXECUTIVE_REPORTS": "Command tier: executive reports capability (TIER-COMMAND-003)",
+    "COMMAND_REGIONAL_INTEL": "Command tier: regional intelligence capability (TIER-COMMAND-003)",
+    "COMMAND_WORKSPACE_ADVANCED": "Command tier: advanced workspace capability (TIER-COMMAND-003)",
+    "COMMAND_DATA_EXPORT": "Command tier: data export capability (TIER-COMMAND-003)",
+    "COMMAND_CUSTOM_ALERTS": "Command tier: custom alerts capability (TIER-COMMAND-003)",
 }
 
 
@@ -299,6 +307,14 @@ _FLAG_LIFECYCLE: dict[str, dict] = {
     "COMPETITIVE_INTEL_ENABLED": {"owner": "product", "category": "competitive", "lifecycle": "permanent", "created": "2026-05"},
     # B2GOPS-000 (EPIC-B2GOPS #1262): B2G Operations workspace_basic gate
     "B2G_OPS_ENABLED": {"owner": "product", "category": "b2gops", "lifecycle": "permanent", "created": "2026-05"},
+    # TIER-COMMAND-003: Command tier feature flags
+    "COMMAND_API_ACCESS": {"owner": "billing", "category": "command", "lifecycle": "experimental", "created": "2026-06"},
+    "COMMAND_MULTI_USER": {"owner": "billing", "category": "command", "lifecycle": "experimental", "created": "2026-06"},
+    "COMMAND_EXECUTIVE_REPORTS": {"owner": "billing", "category": "command", "lifecycle": "experimental", "created": "2026-06"},
+    "COMMAND_REGIONAL_INTEL": {"owner": "billing", "category": "command", "lifecycle": "experimental", "created": "2026-06"},
+    "COMMAND_WORKSPACE_ADVANCED": {"owner": "billing", "category": "command", "lifecycle": "experimental", "created": "2026-06"},
+    "COMMAND_DATA_EXPORT": {"owner": "billing", "category": "command", "lifecycle": "experimental", "created": "2026-06"},
+    "COMMAND_CUSTOM_ALERTS": {"owner": "billing", "category": "command", "lifecycle": "experimental", "created": "2026-06"},
 }
 
 
