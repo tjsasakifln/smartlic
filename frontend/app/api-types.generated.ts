@@ -24,6 +24,34 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/checkout/one-time": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Create One Time Checkout
+         * @description Create a Stripe Checkout Session for a one-time digital product purchase.
+         *
+         *     Flow:
+         *         1. Validate SKU against digital_products table
+         *         2. Resolve or create Stripe Price
+         *         3. Create Stripe Checkout Session with card/boleto/PIX
+         *         4. Return checkout URL
+         *
+         *     Rate limited: 10 req/min per IP.
+         */
+        post: operations["create_one_time_checkout_api_checkout_one_time_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/founders/availability": {
         parameters: {
             query?: never;
@@ -1322,6 +1350,33 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/admin/users/segments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get User Segments
+         * @description LIFECYCLE-003: Return user lifecycle segment counts, transitions,
+         *     and power user details.
+         *
+         *     Classifies every user into one of 10 lifecycle states:
+         *     anonymous, lead, trial_active, trial_limited, trial_expired,
+         *     paid_active, paid_past_due, canceled, churned, power_user.
+         *
+         *     Results are cached in Redis for 5 minutes.
+         */
+        get: operations["get_user_segments_v1_admin_users_segments_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/admin/users/{user_id}": {
         parameters: {
             query?: never;
@@ -1688,6 +1743,73 @@ export interface paths {
          *     Used by TrialConversionScreen to show personalized conversion messaging.
          */
         get: operations["get_trial_value_v1_analytics_trial_value_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/api/api-keys": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Api Keys
+         * @description List all API keys for the authenticated user.
+         */
+        get: operations["list_api_keys_v1_api_api_keys_get"];
+        put?: never;
+        /**
+         * Create Api Key
+         * @description Create a new API key. The plaintext key is returned once and not stored.
+         */
+        post: operations["create_api_key_v1_api_api_keys_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/api/api-keys/{key_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Revoke Api Key
+         * @description Revoke an API key (soft-delete).
+         */
+        delete: operations["revoke_api_key_v1_api_api_keys__key_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/api/api/search": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Api Search
+         * @description Search licitações via API key authentication.
+         *
+         *     Same data source as the internal /buscar endpoint, adapted for
+         *     programmatic access. Returns paginated results.
+         */
+        get: operations["api_search_v1_api_api_search_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -6077,6 +6199,16 @@ export interface components {
              * @default 0
              */
             sent_count: number;
+            /**
+             * Tracked Fornecedores
+             * @description ENTITY-001: CNPJ list of tracked suppliers (fornecedores).
+             */
+            tracked_fornecedores?: string[];
+            /**
+             * Tracked Orgaos
+             * @description ENTITY-001: CNPJ list of tracked public agencies (orgaos).
+             */
+            tracked_orgaos?: string[];
             /** Updated At */
             updated_at: string;
             /** User Id */
@@ -6131,6 +6263,96 @@ export interface components {
             total: number;
             /** Uf */
             uf: string;
+        };
+        /**
+         * ApiKeyCreateRequest
+         * @description Request to create a new API key.
+         */
+        ApiKeyCreateRequest: {
+            /**
+             * Name
+             * @description Label for the API key
+             * @default
+             */
+            name: string;
+        };
+        /**
+         * ApiKeyCreateResponse
+         * @description Response after creating an API key. The plaintext key is returned ONCE.
+         */
+        ApiKeyCreateResponse: {
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Id */
+            id: string;
+            /**
+             * Key
+             * @description Plaintext API key — shown only once
+             */
+            key: string;
+            /** Name */
+            name: string;
+        };
+        /**
+         * ApiKeyListItem
+         * @description Public representation of an API key (no plaintext).
+         */
+        ApiKeyListItem: {
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Id */
+            id: string;
+            /** Last Used At */
+            last_used_at?: string | null;
+            /** Name */
+            name: string;
+            /** Revoked At */
+            revoked_at?: string | null;
+        };
+        /**
+         * ApiKeyListResponse
+         * @description List of user's API keys.
+         */
+        ApiKeyListResponse: {
+            /** Keys */
+            keys: components["schemas"]["ApiKeyListItem"][];
+        };
+        /**
+         * ApiKeyRevokeResponse
+         * @description Response after revoking an API key.
+         */
+        ApiKeyRevokeResponse: {
+            /** Id */
+            id: string;
+            /** Message */
+            message: string;
+            /** Revoked */
+            revoked: boolean;
+        };
+        /**
+         * ApiSearchResponse
+         * @description Paginated search response for the API search endpoint.
+         */
+        ApiSearchResponse: {
+            /** Pagina */
+            pagina: number;
+            /**
+             * Resultados
+             * @default []
+             */
+            resultados: {
+                [key: string]: unknown;
+            }[];
+            /** Tamanho */
+            tamanho: number;
+            /** Total */
+            total: number;
         };
         /**
          * AppConfigPatchRequest
@@ -6991,8 +7213,23 @@ export interface components {
             [key: string]: unknown;
         };
         /**
+         * CheckoutRequest
+         * @description Request body for POST /api/checkout/one-time.
+         */
+        CheckoutRequest: {
+            /**
+             * Context
+             * @default {}
+             */
+            context: {
+                [key: string]: unknown;
+            };
+            /** Sku */
+            sku: string;
+        };
+        /**
          * CheckoutResponse
-         * @description Response for POST /checkout.
+         * @description Response for a successful checkout session creation.
          */
         CheckoutResponse: {
             /** Checkout Url */
@@ -7602,6 +7839,16 @@ export interface components {
              * @description Alert display name
              */
             name: string;
+            /**
+             * Tracked Fornecedores
+             * @description CNPJ list of suppliers to track. Each must be 14 digits.
+             */
+            tracked_fornecedores?: string[] | null;
+            /**
+             * Tracked Orgaos
+             * @description CNPJ list of public agencies to track. Each must be 14 digits.
+             */
+            tracked_orgaos?: string[] | null;
         };
         /**
          * CreateConversationRequest
@@ -12645,6 +12892,16 @@ export interface components {
             filters?: components["schemas"]["AlertFilters"] | null;
             /** Name */
             name?: string | null;
+            /**
+             * Tracked Fornecedores
+             * @description CNPJ list of suppliers (fornecedores) to track. Each must be 14 digits.
+             */
+            tracked_fornecedores?: string[] | null;
+            /**
+             * Tracked Orgaos
+             * @description CNPJ list of public agencies (orgaos) to track. Each must be 14 digits.
+             */
+            tracked_orgaos?: string[] | null;
         };
         /**
          * UpdateBillingPeriodRequest
@@ -12883,6 +13140,17 @@ export interface components {
              */
             is_founder: boolean;
             /**
+             * Last Login At
+             * @description LIFECYCLE-001: Timestamp do último login bem-sucedido do usuário. NULL se nunca logou.
+             */
+            last_login_at?: string | null;
+            /**
+             * Login Count
+             * @description LIFECYCLE-001: Contador total de logins bem-sucedidos.
+             * @default 0
+             */
+            login_count: number;
+            /**
              * Plan Id
              * @description Plan ID (e.g., 'consultor_agil')
              */
@@ -12924,6 +13192,24 @@ export interface components {
             trial_expires_at?: string | null;
             /** User Id */
             user_id: string;
+        };
+        /**
+         * UserSegmentsResponse
+         * @description Response for GET /admin/users/segments (LIFECYCLE-003).
+         */
+        UserSegmentsResponse: {
+            /** Count By State */
+            count_by_state: {
+                [key: string]: unknown;
+            };
+            /** Power Users */
+            power_users: unknown[];
+            /** Queried At */
+            queried_at: string;
+            /** Total Users */
+            total_users: number;
+            /** Transitions Last Week */
+            transitions_last_week: unknown[];
         };
         /**
          * ValidateSignupEmailResponse
@@ -13232,6 +13518,39 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["RootResponse"];
+                };
+            };
+        };
+    };
+    create_one_time_checkout_api_checkout_one_time_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CheckoutRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CheckoutResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };
@@ -14835,6 +15154,26 @@ export interface operations {
             };
         };
     };
+    get_user_segments_v1_admin_users_segments_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UserSegmentsResponse"];
+                };
+            };
+        };
+    };
     update_user_v1_admin_users__user_id__put: {
         parameters: {
             query?: never;
@@ -15408,6 +15747,131 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["TrialValueResponse"];
+                };
+            };
+        };
+    };
+    list_api_keys_v1_api_api_keys_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiKeyListResponse"];
+                };
+            };
+        };
+    };
+    create_api_key_v1_api_api_keys_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["ApiKeyCreateRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiKeyCreateResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    revoke_api_key_v1_api_api_keys__key_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                key_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiKeyRevokeResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    api_search_v1_api_api_search_get: {
+        parameters: {
+            query: {
+                q: string;
+                uf?: string | null;
+                data_inicial?: string | null;
+                data_final?: string | null;
+                modalidade?: string | null;
+                valor_min?: number | null;
+                valor_max?: number | null;
+                pagina?: number;
+                tamanho?: number;
+            };
+            header?: {
+                "X-API-Key"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiSearchResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };

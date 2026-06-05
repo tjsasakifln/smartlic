@@ -22,6 +22,11 @@ from quota.quota_core import (
     PlanPriority,
     QuotaInfo,
     TrialPhaseInfo,
+    # TIER-COMMAND-001: TierConfig e definições do tier Command
+    TierConfig,
+    INSIGHT_CAPABILITIES,
+    COMMAND_CAPABILITIES,
+    TIER_COMMAND,
     _cache_plan_status,
     _coerce_capabilities_row,
     _FALLBACK_PLAN_CAPABILITIES,
@@ -88,6 +93,11 @@ __all__ = [
     "PlanPriority",
     "QuotaInfo",
     "TrialPhaseInfo",
+    # TIER-COMMAND-001
+    "TierConfig",
+    "INSIGHT_CAPABILITIES",
+    "COMMAND_CAPABILITIES",
+    "TIER_COMMAND",
     "_cache_plan_status",
     "_coerce_capabilities_row",
     "_FALLBACK_PLAN_CAPABILITIES",

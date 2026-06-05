@@ -950,6 +950,22 @@
             "title": "Sent Count",
             "type": "integer"
           },
+          "tracked_fornecedores": {
+            "description": "ENTITY-001: CNPJ list of tracked suppliers (fornecedores).",
+            "items": {
+              "type": "string"
+            },
+            "title": "Tracked Fornecedores",
+            "type": "array"
+          },
+          "tracked_orgaos": {
+            "description": "ENTITY-001: CNPJ list of tracked public agencies (orgaos).",
+            "items": {
+              "type": "string"
+            },
+            "title": "Tracked Orgaos",
+            "type": "array"
+          },
           "updated_at": {
             "title": "Updated At",
             "type": "string"
@@ -1080,6 +1096,174 @@
           "last_updated"
         ],
         "title": "AlertasResponse",
+        "type": "object"
+      },
+      "ApiKeyCreateRequest": {
+        "description": "Request to create a new API key.",
+        "properties": {
+          "name": {
+            "default": "",
+            "description": "Label for the API key",
+            "maxLength": 100,
+            "title": "Name",
+            "type": "string"
+          }
+        },
+        "title": "ApiKeyCreateRequest",
+        "type": "object"
+      },
+      "ApiKeyCreateResponse": {
+        "description": "Response after creating an API key. The plaintext key is returned ONCE.",
+        "properties": {
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "key": {
+            "description": "Plaintext API key \u2014 shown only once",
+            "title": "Key",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "key",
+          "name",
+          "created_at"
+        ],
+        "title": "ApiKeyCreateResponse",
+        "type": "object"
+      },
+      "ApiKeyListItem": {
+        "description": "Public representation of an API key (no plaintext).",
+        "properties": {
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "last_used_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Used At"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "revoked_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Revoked At"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "created_at"
+        ],
+        "title": "ApiKeyListItem",
+        "type": "object"
+      },
+      "ApiKeyListResponse": {
+        "description": "List of user's API keys.",
+        "properties": {
+          "keys": {
+            "items": {
+              "$ref": "#/components/schemas/ApiKeyListItem"
+            },
+            "title": "Keys",
+            "type": "array"
+          }
+        },
+        "required": [
+          "keys"
+        ],
+        "title": "ApiKeyListResponse",
+        "type": "object"
+      },
+      "ApiKeyRevokeResponse": {
+        "description": "Response after revoking an API key.",
+        "properties": {
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "message": {
+            "title": "Message",
+            "type": "string"
+          },
+          "revoked": {
+            "title": "Revoked",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "id",
+          "revoked",
+          "message"
+        ],
+        "title": "ApiKeyRevokeResponse",
+        "type": "object"
+      },
+      "ApiSearchResponse": {
+        "description": "Paginated search response for the API search endpoint.",
+        "properties": {
+          "pagina": {
+            "title": "Pagina",
+            "type": "integer"
+          },
+          "resultados": {
+            "default": [],
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "title": "Resultados",
+            "type": "array"
+          },
+          "tamanho": {
+            "title": "Tamanho",
+            "type": "integer"
+          },
+          "total": {
+            "title": "Total",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "pagina",
+          "tamanho",
+          "total"
+        ],
+        "title": "ApiSearchResponse",
         "type": "object"
       },
       "AppConfigPatchRequest": {
@@ -2801,8 +2985,28 @@
         "title": "CheckPhoneResponse",
         "type": "object"
       },
+      "CheckoutRequest": {
+        "description": "Request body for POST /api/checkout/one-time.",
+        "properties": {
+          "context": {
+            "additionalProperties": true,
+            "default": {},
+            "title": "Context",
+            "type": "object"
+          },
+          "sku": {
+            "title": "Sku",
+            "type": "string"
+          }
+        },
+        "required": [
+          "sku"
+        ],
+        "title": "CheckoutRequest",
+        "type": "object"
+      },
       "CheckoutResponse": {
-        "description": "Response for POST /checkout.",
+        "description": "Response for a successful checkout session creation.",
         "properties": {
           "checkout_url": {
             "title": "Checkout Url",
@@ -4270,6 +4474,36 @@
             "minLength": 1,
             "title": "Name",
             "type": "string"
+          },
+          "tracked_fornecedores": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "CNPJ list of suppliers to track. Each must be 14 digits.",
+            "title": "Tracked Fornecedores"
+          },
+          "tracked_orgaos": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "CNPJ list of public agencies to track. Each must be 14 digits.",
+            "title": "Tracked Orgaos"
           }
         },
         "required": [
@@ -15779,6 +16013,36 @@
               }
             ],
             "title": "Name"
+          },
+          "tracked_fornecedores": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "CNPJ list of suppliers (fornecedores) to track. Each must be 14 digits.",
+            "title": "Tracked Fornecedores"
+          },
+          "tracked_orgaos": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "CNPJ list of public agencies (orgaos) to track. Each must be 14 digits.",
+            "title": "Tracked Orgaos"
           }
         },
         "title": "UpdateAlertRequest",
@@ -16187,6 +16451,26 @@
             "title": "Is Founder",
             "type": "boolean"
           },
+          "last_login_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "LIFECYCLE-001: Timestamp do \u00faltimo login bem-sucedido do usu\u00e1rio. NULL se nunca logou.",
+            "title": "Last Login At"
+          },
+          "login_count": {
+            "default": 0,
+            "description": "LIFECYCLE-001: Contador total de logins bem-sucedidos.",
+            "minimum": 0.0,
+            "title": "Login Count",
+            "type": "integer"
+          },
           "plan_id": {
             "description": "Plan ID (e.g., 'consultor_agil')",
             "title": "Plan Id",
@@ -16260,6 +16544,43 @@
           "subscription_status"
         ],
         "title": "UserProfileResponse",
+        "type": "object"
+      },
+      "UserSegmentsResponse": {
+        "description": "Response for GET /admin/users/segments (LIFECYCLE-003).",
+        "properties": {
+          "count_by_state": {
+            "additionalProperties": true,
+            "title": "Count By State",
+            "type": "object"
+          },
+          "power_users": {
+            "items": {},
+            "title": "Power Users",
+            "type": "array"
+          },
+          "queried_at": {
+            "title": "Queried At",
+            "type": "string"
+          },
+          "total_users": {
+            "title": "Total Users",
+            "type": "integer"
+          },
+          "transitions_last_week": {
+            "items": {},
+            "title": "Transitions Last Week",
+            "type": "array"
+          }
+        },
+        "required": [
+          "count_by_state",
+          "total_users",
+          "transitions_last_week",
+          "power_users",
+          "queried_at"
+        ],
+        "title": "UserSegmentsResponse",
         "type": "object"
       },
       "ValidateSignupEmailResponse": {
@@ -17031,6 +17352,53 @@
           }
         },
         "summary": "Root"
+      }
+    },
+    "/api/checkout/one-time": {
+      "post": {
+        "description": "Create a Stripe Checkout Session for a one-time digital product purchase.\n\nFlow:\n    1. Validate SKU against digital_products table\n    2. Resolve or create Stripe Price\n    3. Create Stripe Checkout Session with card/boleto/PIX\n    4. Return checkout URL\n\nRate limited: 10 req/min per IP.",
+        "operationId": "create_one_time_checkout_api_checkout_one_time_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CheckoutRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CheckoutResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Create One Time Checkout",
+        "tags": [
+          "checkout"
+        ]
       }
     },
     "/api/founders/availability": {
@@ -19460,6 +19828,33 @@
         ]
       }
     },
+    "/v1/admin/users/segments": {
+      "get": {
+        "description": "LIFECYCLE-003: Return user lifecycle segment counts, transitions,\nand power user details.\n\nClassifies every user into one of 10 lifecycle states:\nanonymous, lead, trial_active, trial_limited, trial_expired,\npaid_active, paid_past_due, canceled, churned, power_user.\n\nResults are cached in Redis for 5 minutes.",
+        "operationId": "get_user_segments_v1_admin_users_segments_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserSegmentsResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Get User Segments",
+        "tags": [
+          "admin"
+        ]
+      }
+    },
     "/v1/admin/users/{user_id}": {
       "delete": {
         "description": "Delete a user and all their data.",
@@ -20375,6 +20770,313 @@
         "summary": "Get Trial Value",
         "tags": [
           "analytics"
+        ]
+      }
+    },
+    "/v1/api/api-keys": {
+      "get": {
+        "description": "List all API keys for the authenticated user.",
+        "operationId": "list_api_keys_v1_api_api_keys_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiKeyListResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "List Api Keys",
+        "tags": [
+          "datalake-api"
+        ]
+      },
+      "post": {
+        "description": "Create a new API key. The plaintext key is returned once and not stored.",
+        "operationId": "create_api_key_v1_api_api_keys_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ApiKeyCreateRequest",
+                "default": {
+                  "name": ""
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiKeyCreateResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Create Api Key",
+        "tags": [
+          "datalake-api"
+        ]
+      }
+    },
+    "/v1/api/api-keys/{key_id}": {
+      "delete": {
+        "description": "Revoke an API key (soft-delete).",
+        "operationId": "revoke_api_key_v1_api_api_keys__key_id__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "key_id",
+            "required": true,
+            "schema": {
+              "title": "Key Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiKeyRevokeResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Revoke Api Key",
+        "tags": [
+          "datalake-api"
+        ]
+      }
+    },
+    "/v1/api/api/search": {
+      "get": {
+        "description": "Search licita\u00e7\u00f5es via API key authentication.\n\nSame data source as the internal /buscar endpoint, adapted for\nprogrammatic access. Returns paginated results.",
+        "operationId": "api_search_v1_api_api_search_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "q",
+            "required": true,
+            "schema": {
+              "maxLength": 200,
+              "minLength": 2,
+              "title": "Q",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "uf",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 2,
+                  "minLength": 2,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Uf"
+            }
+          },
+          {
+            "in": "query",
+            "name": "data_inicial",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Data Inicial"
+            }
+          },
+          {
+            "in": "query",
+            "name": "data_final",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Data Final"
+            }
+          },
+          {
+            "in": "query",
+            "name": "modalidade",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Modalidade"
+            }
+          },
+          {
+            "in": "query",
+            "name": "valor_min",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "minimum": 0,
+                  "type": "number"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Valor Min"
+            }
+          },
+          {
+            "in": "query",
+            "name": "valor_max",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "minimum": 0,
+                  "type": "number"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Valor Max"
+            }
+          },
+          {
+            "in": "query",
+            "name": "pagina",
+            "required": false,
+            "schema": {
+              "default": 1,
+              "maximum": 100,
+              "minimum": 1,
+              "title": "Pagina",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "tamanho",
+            "required": false,
+            "schema": {
+              "default": 20,
+              "maximum": 100,
+              "minimum": 1,
+              "title": "Tamanho",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-API-Key",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Api-Key"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiSearchResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Api Search",
+        "tags": [
+          "datalake-api"
         ]
       }
     },
