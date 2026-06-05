@@ -490,7 +490,7 @@ export default function ComoConsultarContratosPublicosPncp() {
         resolver esse problema.
       </p>
 
-      <h3>Datalake de contratos públicos</h3>
+      <h3>Base de dados de contratos públicos</h3>
 
       <p>
         O SmartLic mantém uma base de dados atualizada diariamente com dados do PNCP, integrando
