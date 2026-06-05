@@ -20,5 +20,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Full history for git diff against base ref
       - name: Run banned phrase scan
         run: bash scripts/check-banned-phrases.sh
