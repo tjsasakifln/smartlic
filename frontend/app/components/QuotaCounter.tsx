@@ -103,7 +103,7 @@ export function QuotaCounter({
         <div
           className={`h-full transition-all duration-300 ${progressColor}`}
           style={{ width: `${percentage}%` }}
-          aria-label={`${percentage}% do quota utilizado`}
+          aria-label={`${percentage}% do limite utilizado`}
         />
       </div>
 

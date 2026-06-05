@@ -273,7 +273,7 @@ describe('QuotaCounter', () => {
         />
       );
 
-      const progressBar = container.querySelector('[aria-label*="quota"]');
+      const progressBar = container.querySelector('[aria-label*="limite"]');
       expect(progressBar).toBeInTheDocument();
       expect(progressBar).toHaveAttribute('aria-label', expect.stringContaining('50%'));
     });
