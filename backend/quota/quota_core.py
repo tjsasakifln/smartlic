@@ -73,10 +73,8 @@ def invalidate_plan_status_cache(user_id: str) -> None:
         logger.debug(f"Plan status cache miss (no entry) for user {mask_user_id(user_id)}")
 
 
-# ============================================================================
-# Plan Capabilities System
-# ============================================================================
-
+# =====================================================================# Plan Capabilities System
+# =====================================================================
 class PlanPriority(str, Enum):
     """Processing priority for background jobs (future use)."""
     LOW = "low"
@@ -94,6 +92,7 @@ class PlanCapabilities(TypedDict):
     allow_predictive_intel: bool  # PREDINT-000: Inteligência Preditiva (default off, additive)
     allow_competitive_intel: bool  # COMPINT-000: Inteligência Concorrencial (default off, additive)
     allow_workspace_basic: bool  # B2GOPS-000: B2G Operations workspace (default off, additive)
+    max_tracked_entities: int  # ENTITY-004: Max tracked orgaos/fornecedores per plan
     max_requests_per_month: int
     max_requests_per_min: int
     max_summary_tokens: int
@@ -110,6 +109,7 @@ PLAN_CAPABILITIES: dict[str, PlanCapabilities] = {
         "allow_predictive_intel": False,  # PREDINT-000
         "allow_competitive_intel": False,  # COMPINT-000
         "allow_workspace_basic": False,  # B2GOPS-000
+        "max_tracked_entities": 1,  # ENTITY-004
         "max_requests_per_month": 1000,  # STORY-264 AC1: Full access (same as smartlic_pro)
         "max_requests_per_min": 2,  # STORY-264 AC2: Anti-abuse rate limit kept
         "max_summary_tokens": 10000,  # GTM-003: Full AI analysis (same as smartlic_pro)
@@ -126,6 +126,7 @@ PLAN_CAPABILITIES: dict[str, PlanCapabilities] = {
         "allow_predictive_intel": False,  # PREDINT-000
         "allow_competitive_intel": False,  # COMPINT-000
         "allow_workspace_basic": False,  # B2GOPS-000
+        "max_tracked_entities": 1,  # ENTITY-004
         "max_requests_per_month": 50,
         "max_requests_per_min": 10,
         "max_summary_tokens": 200,
@@ -142,6 +143,7 @@ PLAN_CAPABILITIES: dict[str, PlanCapabilities] = {
         "allow_predictive_intel": False,  # PREDINT-000
         "allow_competitive_intel": False,  # COMPINT-000
         "allow_workspace_basic": False,  # B2GOPS-000
+        "max_tracked_entities": 5,  # ENTITY-004
         "max_requests_per_month": 300,
         "max_requests_per_min": 30,
         "max_summary_tokens": 500,
@@ -158,6 +160,7 @@ PLAN_CAPABILITIES: dict[str, PlanCapabilities] = {
         "allow_predictive_intel": False,  # PREDINT-000
         "allow_competitive_intel": False,  # COMPINT-000
         "allow_workspace_basic": False,  # B2GOPS-000
+        "max_tracked_entities": 20,  # ENTITY-004
         "max_requests_per_month": 1000,
         "max_requests_per_min": 60,
         "max_summary_tokens": 10000,
@@ -174,6 +177,7 @@ PLAN_CAPABILITIES: dict[str, PlanCapabilities] = {
         "allow_predictive_intel": False,  # PREDINT-000
         "allow_competitive_intel": False,  # COMPINT-000
         "allow_workspace_basic": False,  # B2GOPS-000
+        "max_tracked_entities": 5,  # ENTITY-004
         "max_requests_per_month": 1000,
         "max_requests_per_min": 60,
         "max_summary_tokens": 10000,
@@ -192,6 +196,7 @@ PLAN_CAPABILITIES: dict[str, PlanCapabilities] = {
         "allow_predictive_intel": True,  # PREDINT-000
         "allow_competitive_intel": True,  # COMPINT-000
         "allow_workspace_basic": True,  # B2GOPS-000
+        "max_tracked_entities": 50,  # ENTITY-004
         "max_requests_per_month": 5000,
         "max_requests_per_min": 120,
         "max_summary_tokens": 20000,
@@ -209,6 +214,7 @@ PLAN_CAPABILITIES: dict[str, PlanCapabilities] = {
         "allow_predictive_intel": False,  # PREDINT-000
         "allow_competitive_intel": False,  # COMPINT-000
         "allow_workspace_basic": False,  # B2GOPS-000
+        "max_tracked_entities": 5,  # ENTITY-004
         "max_requests_per_month": 1000,
         "max_requests_per_min": 60,
         "max_summary_tokens": 10000,
@@ -226,6 +232,7 @@ PLAN_CAPABILITIES: dict[str, PlanCapabilities] = {
         "allow_predictive_intel": False,  # PREDINT-000
         "allow_competitive_intel": False,  # COMPINT-000
         "allow_workspace_basic": False,  # B2GOPS-000
+        "max_tracked_entities": 20,  # ENTITY-004
         "max_requests_per_month": 5000,  # 1000 x 5 members
         "max_requests_per_min": 10,  # Rate limit per org
         "max_summary_tokens": 10000,
@@ -243,6 +250,7 @@ PLAN_CAPABILITIES: dict[str, PlanCapabilities] = {
         "allow_predictive_intel": False,  # PREDINT-000
         "allow_competitive_intel": False,  # COMPINT-000
         "allow_workspace_basic": False,  # B2GOPS-000
+        "max_tracked_entities": 0,  # ENTITY-004
         "max_requests_per_month": 10,
         "max_requests_per_min": 2,
         "max_summary_tokens": 200,
@@ -259,6 +267,7 @@ PLAN_CAPABILITIES: dict[str, PlanCapabilities] = {
         "allow_predictive_intel": False,  # PREDINT-000
         "allow_competitive_intel": False,  # COMPINT-000
         "allow_workspace_basic": False,  # B2GOPS-000
+        "max_tracked_entities": 99999,  # ENTITY-004
         "max_requests_per_month": 99999,
         "max_requests_per_min": 120,
         "max_summary_tokens": 10000,
@@ -317,10 +326,8 @@ UPGRADE_SUGGESTIONS: dict[str, dict[str, str]] = {
 }
 
 
-# ============================================================================
-# STORY-203 SYS-M04: Database-driven Plan Capabilities Loader
-# ============================================================================
-
+# =====================================================================# STORY-203 SYS-M04: Database-driven Plan Capabilities Loader
+# =====================================================================
 # Conservative defaults for unknown plans discovered at runtime
 _UNKNOWN_PLAN_DEFAULTS = PlanCapabilities(
     max_history_days=30,
@@ -330,6 +337,7 @@ _UNKNOWN_PLAN_DEFAULTS = PlanCapabilities(
     allow_predictive_intel=False,  # PREDINT-000
     allow_competitive_intel=False,  # COMPINT-000
     allow_workspace_basic=False,  # B2GOPS-000
+    max_tracked_entities=1,  # ENTITY-004
     allow_command_api_access=False,  # TIER-COMMAND-003
     allow_command_multi_user=False,  # TIER-COMMAND-003
     allow_command_executive_reports=False,  # TIER-COMMAND-003
@@ -383,6 +391,7 @@ def _coerce_capabilities_row(plan_id: str, raw: Optional[dict], max_searches: Op
             # B2GOPS-000: optional jsonb key — defaults False when absent so
             # existing DB rows without it still coerce (non-regression).
             allow_workspace_basic=bool(raw.get("allow_workspace_basic", False)),
+            max_tracked_entities=int(raw.get("max_tracked_entities", 1)),  # ENTITY-004
             # TIER-COMMAND-003: optional jsonb keys — each defaults False when
             # absent so legacy rows without them still coerce (additive rollout).
             allow_command_api_access=bool(raw.get("allow_command_api_access", False)),
@@ -454,6 +463,7 @@ def _load_plan_capabilities_from_db() -> dict[str, PlanCapabilities]:
                         allow_predictive_intel=base_caps.get("allow_predictive_intel", False),  # PREDINT-000
                         allow_competitive_intel=base_caps.get("allow_competitive_intel", False),  # COMPINT-000
                         allow_workspace_basic=base_caps.get("allow_workspace_basic", False),  # B2GOPS-000
+                        max_tracked_entities=base_caps.get("max_tracked_entities", 1),  # ENTITY-004
                         allow_command_api_access=base_caps.get("allow_command_api_access", False),  # TIER-COMMAND-003
                         allow_command_multi_user=base_caps.get("allow_command_multi_user", False),  # TIER-COMMAND-003
                         allow_command_executive_reports=base_caps.get("allow_command_executive_reports", False),  # TIER-COMMAND-003
@@ -475,6 +485,7 @@ def _load_plan_capabilities_from_db() -> dict[str, PlanCapabilities]:
                         allow_predictive_intel=_UNKNOWN_PLAN_DEFAULTS["allow_predictive_intel"],  # PREDINT-000
                         allow_competitive_intel=_UNKNOWN_PLAN_DEFAULTS["allow_competitive_intel"],  # COMPINT-000
                         allow_workspace_basic=_UNKNOWN_PLAN_DEFAULTS["allow_workspace_basic"],  # B2GOPS-000
+                        max_tracked_entities=_UNKNOWN_PLAN_DEFAULTS["max_tracked_entities"],  # ENTITY-004
                         allow_command_api_access=_UNKNOWN_PLAN_DEFAULTS["allow_command_api_access"],  # TIER-COMMAND-003
                         allow_command_multi_user=_UNKNOWN_PLAN_DEFAULTS["allow_command_multi_user"],  # TIER-COMMAND-003
                         allow_command_executive_reports=_UNKNOWN_PLAN_DEFAULTS["allow_command_executive_reports"],  # TIER-COMMAND-003
@@ -544,10 +555,8 @@ def clear_plan_capabilities_cache() -> None:
     logger.info("Plan capabilities cache cleared")
 
 
-# ============================================================================
-# Quota Info Models
-# ============================================================================
-
+# =====================================================================# Quota Info Models
+# =====================================================================
 class QuotaInfo(BaseModel):
     """Complete quota information for a user."""
     allowed: bool
@@ -570,10 +579,8 @@ class TrialPhaseInfo(TypedDict):
     days_remaining: int
 
 
-# ============================================================================
-# TIER-COMMAND-001: PlanCapabilities + TierConfig — novo tier 'command'
-# ============================================================================
-
+# =====================================================================# TIER-COMMAND-001: PlanCapabilities + TierConfig — novo tier 'command'
+# =====================================================================
 class TierConfig(BaseModel):
     """Configuration for a product tier.
 

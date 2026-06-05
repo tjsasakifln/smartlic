@@ -29,6 +29,7 @@ class TestPlanCapabilities:
             "allow_predictive_intel",  # PREDINT-000 (EPIC-PREDINT #1260)
             "allow_competitive_intel",  # COMPINT-000 (EPIC-COMPINT #1261)
             "allow_workspace_basic",  # B2GOPS-000 (EPIC-B2GOPS #1262)
+            "max_tracked_entities",  # ENTITY-004
             "allow_command_api_access",  # TIER-COMMAND-003
             "allow_command_multi_user",  # TIER-COMMAND-003
             "allow_command_executive_reports",  # TIER-COMMAND-003

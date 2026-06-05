@@ -1630,7 +1630,11 @@ class TestTrackedEntities:
         async def fake_sb_execute(query):
             return MockResponse(data=[row], count=0)
 
-        with patch("supabase_client.get_supabase", return_value=sb),              patch("supabase_client.sb_execute", side_effect=fake_sb_execute):
+        # ENTITY-004: mock _check_entity_limit to no-op (test is about alert
+        # creation with entity fields, not about limit enforcement).
+        with patch("routes.alerts._check_entity_limit", new_callable=AsyncMock), \
+             patch("supabase_client.get_supabase", return_value=sb), \
+             patch("supabase_client.sb_execute", side_effect=fake_sb_execute):
             resp = client.post(
                 "/v1/alerts",
                 json={
