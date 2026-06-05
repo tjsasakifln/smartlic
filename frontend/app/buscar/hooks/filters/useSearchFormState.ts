@@ -60,7 +60,7 @@ export function useSearchFormState(clearResult: () => void): UseSearchFormStateR
   const [valorValid, setValorValid] = useState(true);
   const [esferas, _setEsferas] = useState<Esfera[]>(["F", "E", "M"]);
   const [municipios, _setMunicipios] = useState<Municipio[]>([]);
-  const [ordenacao, setOrdenacao] = useState<OrdenacaoOption>("data_desc");
+  const [ordenacao, setOrdenacao] = useState<OrdenacaoOption>("confianca");
 
   const [locationFiltersOpen, setLocationFiltersOpen] = useState(() => {
     if (typeof window === "undefined") return false;
