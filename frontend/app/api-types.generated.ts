@@ -4717,6 +4717,30 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/profile/sector-affinity": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Sector Affinity
+         * @description FEEDBACK-004: Return user's sector affinities ordered by score DESC.
+         *
+         *     Reads from user_sector_affinity table, joined with sector names from
+         *     sectors_data.yaml. Results are cached for 5 minutes per user.
+         *     Returns empty list if the table doesn't exist yet (migration pending).
+         */
+        get: operations["get_sector_affinity_v1_profile_sector_affinity_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/pseo/recent-editais": {
         parameters: {
             query?: never;
@@ -11886,6 +11910,29 @@ export interface components {
              * @description UF code (uppercase)
              */
             uf: string;
+        };
+        /**
+         * SectorAffinityResponse
+         * @description FEEDBACK-004: User affinity score for a sector.
+         *
+         *     Returned by GET /v1/profile/sector-affinity.
+         */
+        SectorAffinityResponse: {
+            /**
+             * Affinity Score
+             * @description Affinity score from 0.0 to 1.0
+             */
+            affinity_score: number;
+            /**
+             * Sector Id
+             * @description Sector identifier (e.g., 'vestuario')
+             */
+            sector_id: string;
+            /**
+             * Sector Name
+             * @description Display name of the sector
+             */
+            sector_name: string;
         };
         /** SectorAggregate */
         SectorAggregate: {
@@ -19532,6 +19579,26 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_sector_affinity_v1_profile_sector_affinity_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SectorAffinityResponse"][];
                 };
             };
         };
