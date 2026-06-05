@@ -73,10 +73,8 @@ def invalidate_plan_status_cache(user_id: str) -> None:
         logger.debug(f"Plan status cache miss (no entry) for user {mask_user_id(user_id)}")
 
 
-# ============================================================================
-# Plan Capabilities System
-# ============================================================================
-
+# =====================================================================# Plan Capabilities System
+# =====================================================================
 class PlanPriority(str, Enum):
     """Processing priority for background jobs (future use)."""
     LOW = "low"
@@ -115,6 +113,9 @@ PLAN_CAPABILITIES: dict[str, PlanCapabilities] = {
         "max_requests_per_month": 1000,  # STORY-264 AC1: Full access (same as smartlic_pro)
         "max_requests_per_min": 2,  # STORY-264 AC2: Anti-abuse rate limit kept
         "max_summary_tokens": 10000,  # GTM-003: Full AI analysis (same as smartlic_pro)
+        "allow_command_api_access": False,  # TIER-COMMAND-003
+        "allow_command_multi_user": False,  # TIER-COMMAND-003
+        "allow_command_executive_reports": False,  # TIER-COMMAND-003
         "priority": PlanPriority.NORMAL.value,  # GTM-003: Normal speed (same as smartlic_pro)
     },
     "consultor_agil": {
@@ -129,6 +130,9 @@ PLAN_CAPABILITIES: dict[str, PlanCapabilities] = {
         "max_requests_per_month": 50,
         "max_requests_per_min": 10,
         "max_summary_tokens": 200,
+        "allow_command_api_access": False,  # TIER-COMMAND-003
+        "allow_command_multi_user": False,  # TIER-COMMAND-003
+        "allow_command_executive_reports": False,  # TIER-COMMAND-003
         "priority": PlanPriority.NORMAL.value,
     },
     "maquina": {
@@ -143,6 +147,9 @@ PLAN_CAPABILITIES: dict[str, PlanCapabilities] = {
         "max_requests_per_month": 300,
         "max_requests_per_min": 30,
         "max_summary_tokens": 500,
+        "allow_command_api_access": False,  # TIER-COMMAND-003
+        "allow_command_multi_user": False,  # TIER-COMMAND-003
+        "allow_command_executive_reports": False,  # TIER-COMMAND-003
         "priority": PlanPriority.HIGH.value,
     },
     "sala_guerra": {
@@ -157,6 +164,9 @@ PLAN_CAPABILITIES: dict[str, PlanCapabilities] = {
         "max_requests_per_month": 1000,
         "max_requests_per_min": 60,
         "max_summary_tokens": 10000,
+        "allow_command_api_access": False,  # TIER-COMMAND-003
+        "allow_command_multi_user": False,  # TIER-COMMAND-003
+        "allow_command_executive_reports": False,  # TIER-COMMAND-003
         "priority": PlanPriority.CRITICAL.value,
     },
     "smartlic_pro": {
@@ -171,7 +181,28 @@ PLAN_CAPABILITIES: dict[str, PlanCapabilities] = {
         "max_requests_per_month": 1000,
         "max_requests_per_min": 60,
         "max_summary_tokens": 10000,
+        "allow_command_api_access": False,  # TIER-COMMAND-003
+        "allow_command_multi_user": False,  # TIER-COMMAND-003
+        "allow_command_executive_reports": False,  # TIER-COMMAND-003
         "priority": PlanPriority.NORMAL.value,
+    },
+    # TIER-COMMAND-002: SmartLic Command — premium tier with predictive intel,
+    # competitive intel, and B2G Operations workspace enabled.
+    "smartlic_command": {
+        "max_history_days": 1825,  # 5 years
+        "allow_excel": True,
+        "allow_pipeline": True,
+        "allow_subcontract_intel": False,  # SUBINTEL-030
+        "allow_predictive_intel": True,  # PREDINT-000
+        "allow_competitive_intel": True,  # COMPINT-000
+        "allow_workspace_basic": True,  # B2GOPS-000
+        "max_requests_per_month": 5000,
+        "max_requests_per_min": 120,
+        "max_summary_tokens": 20000,
+        "allow_command_api_access": True,  # TIER-COMMAND-003
+        "allow_command_multi_user": True,  # TIER-COMMAND-003
+        "allow_command_executive_reports": True,  # TIER-COMMAND-003
+        "priority": PlanPriority.HIGH.value,
     },
     # MAYDAY-A2: Founding Member — same capabilities as smartlic_pro, 50% off price
     "founding_member": {
@@ -186,6 +217,9 @@ PLAN_CAPABILITIES: dict[str, PlanCapabilities] = {
         "max_requests_per_month": 1000,
         "max_requests_per_min": 60,
         "max_summary_tokens": 10000,
+        "allow_command_api_access": False,  # TIER-COMMAND-003
+        "allow_command_multi_user": False,  # TIER-COMMAND-003
+        "allow_command_executive_reports": False,  # TIER-COMMAND-003
         "priority": PlanPriority.NORMAL.value,
     },
     # STORY-322: Plano Consultoria — multi-user org plan
@@ -201,6 +235,9 @@ PLAN_CAPABILITIES: dict[str, PlanCapabilities] = {
         "max_requests_per_month": 5000,  # 1000 x 5 members
         "max_requests_per_min": 10,  # Rate limit per org
         "max_summary_tokens": 10000,
+        "allow_command_api_access": False,  # TIER-COMMAND-003
+        "allow_command_multi_user": False,  # TIER-COMMAND-003
+        "allow_command_executive_reports": False,  # TIER-COMMAND-003
         "priority": PlanPriority.HIGH.value,
     },
     # STORY-283 AC1: Map plan_ids found in production database
@@ -216,6 +253,9 @@ PLAN_CAPABILITIES: dict[str, PlanCapabilities] = {
         "max_requests_per_month": 10,
         "max_requests_per_min": 2,
         "max_summary_tokens": 200,
+        "allow_command_api_access": False,  # TIER-COMMAND-003
+        "allow_command_multi_user": False,  # TIER-COMMAND-003
+        "allow_command_executive_reports": False,  # TIER-COMMAND-003
         "priority": PlanPriority.LOW.value,
     },
     "master": {
@@ -230,6 +270,9 @@ PLAN_CAPABILITIES: dict[str, PlanCapabilities] = {
         "max_requests_per_month": 99999,
         "max_requests_per_min": 120,
         "max_summary_tokens": 10000,
+        "allow_command_api_access": False,  # TIER-COMMAND-003
+        "allow_command_multi_user": False,  # TIER-COMMAND-003
+        "allow_command_executive_reports": False,  # TIER-COMMAND-003
         "priority": PlanPriority.HIGH.value,
     },
 }
@@ -241,6 +284,7 @@ PLAN_NAMES: dict[str, str] = {
     "maquina": "Máquina (legacy)",
     "sala_guerra": "Sala de Guerra (legacy)",
     "smartlic_pro": "SmartLic Pro",
+    "smartlic_command": "SmartLic Command",  # TIER-COMMAND-002
     "founding_member": "SmartLic Founding Member",
     "consultoria": "SmartLic Consultoria",
     "free": "Free",
@@ -253,6 +297,7 @@ PLAN_PRICES: dict[str, str] = {
     "maquina": "R$ 597/mês",
     "sala_guerra": "R$ 1.497/mês",
     "smartlic_pro": "R$ 397/mês",
+    "smartlic_command": "R$ 4.970/mês",  # TIER-COMMAND-002
     "founding_member": "R$ 197/mês",
     "consultoria": "R$ 997/mês",
 }
@@ -280,10 +325,8 @@ UPGRADE_SUGGESTIONS: dict[str, dict[str, str]] = {
 }
 
 
-# ============================================================================
-# STORY-203 SYS-M04: Database-driven Plan Capabilities Loader
-# ============================================================================
-
+# =====================================================================# STORY-203 SYS-M04: Database-driven Plan Capabilities Loader
+# =====================================================================
 # Conservative defaults for unknown plans discovered at runtime
 _UNKNOWN_PLAN_DEFAULTS = PlanCapabilities(
     max_history_days=30,
@@ -294,6 +337,9 @@ _UNKNOWN_PLAN_DEFAULTS = PlanCapabilities(
     allow_competitive_intel=False,  # COMPINT-000
     allow_workspace_basic=False,  # B2GOPS-000
     max_tracked_entities=1,  # ENTITY-004
+    allow_command_api_access=False,  # TIER-COMMAND-003
+    allow_command_multi_user=False,  # TIER-COMMAND-003
+    allow_command_executive_reports=False,  # TIER-COMMAND-003
     max_requests_per_month=10,
     max_requests_per_min=5,
     max_summary_tokens=200,
@@ -320,10 +366,11 @@ def _coerce_capabilities_row(plan_id: str, raw: Optional[dict], max_searches: Op
         "max_requests_per_month", "max_requests_per_min",
         "max_summary_tokens", "priority",
     )
-    # PREDINT-000 / COMPINT-000 / B2GOPS-000: allow_predictive_intel,
-    # allow_competitive_intel, and allow_workspace_basic are NOT in
-    # required_keys — each uses raw.get(key, False) so legacy rows
-    # without them still coerce (additive rollout).
+    # PREDINT-000 / COMPINT-000 / B2GOPS-000 / TIER-COMMAND-003:
+    # allow_predictive_intel, allow_competitive_intel, allow_workspace_basic,
+    # allow_command_api_access, allow_command_multi_user, and
+    # allow_command_executive_reports are NOT in required_keys — each uses
+    # raw.get(key, False) so legacy rows without them still coerce (additive).
     if not all(k in raw for k in required_keys):
         return None
     try:
@@ -344,6 +391,11 @@ def _coerce_capabilities_row(plan_id: str, raw: Optional[dict], max_searches: Op
             # existing DB rows without it still coerce (non-regression).
             allow_workspace_basic=bool(raw.get("allow_workspace_basic", False)),
             max_tracked_entities=int(raw.get("max_tracked_entities", 1)),  # ENTITY-004
+            # TIER-COMMAND-003: optional jsonb keys — each defaults False when
+            # absent so legacy rows without them still coerce (additive rollout).
+            allow_command_api_access=bool(raw.get("allow_command_api_access", False)),
+            allow_command_multi_user=bool(raw.get("allow_command_multi_user", False)),
+            allow_command_executive_reports=bool(raw.get("allow_command_executive_reports", False)),
             # max_searches column wins when set (legacy override path)
             max_requests_per_month=int(max_searches) if max_searches else int(raw["max_requests_per_month"]),
             max_requests_per_min=int(raw["max_requests_per_min"]),
@@ -411,6 +463,9 @@ def _load_plan_capabilities_from_db() -> dict[str, PlanCapabilities]:
                         allow_competitive_intel=base_caps.get("allow_competitive_intel", False),  # COMPINT-000
                         allow_workspace_basic=base_caps.get("allow_workspace_basic", False),  # B2GOPS-000
                         max_tracked_entities=base_caps.get("max_tracked_entities", 1),  # ENTITY-004
+                        allow_command_api_access=base_caps.get("allow_command_api_access", False),  # TIER-COMMAND-003
+                        allow_command_multi_user=base_caps.get("allow_command_multi_user", False),  # TIER-COMMAND-003
+                        allow_command_executive_reports=base_caps.get("allow_command_executive_reports", False),  # TIER-COMMAND-003
                         max_requests_per_month=int(max_searches) if max_searches else base_caps["max_requests_per_month"],
                         max_requests_per_min=base_caps["max_requests_per_min"],
                         max_summary_tokens=base_caps["max_summary_tokens"],
@@ -430,6 +485,9 @@ def _load_plan_capabilities_from_db() -> dict[str, PlanCapabilities]:
                         allow_competitive_intel=_UNKNOWN_PLAN_DEFAULTS["allow_competitive_intel"],  # COMPINT-000
                         allow_workspace_basic=_UNKNOWN_PLAN_DEFAULTS["allow_workspace_basic"],  # B2GOPS-000
                         max_tracked_entities=_UNKNOWN_PLAN_DEFAULTS["max_tracked_entities"],  # ENTITY-004
+                        allow_command_api_access=_UNKNOWN_PLAN_DEFAULTS["allow_command_api_access"],  # TIER-COMMAND-003
+                        allow_command_multi_user=_UNKNOWN_PLAN_DEFAULTS["allow_command_multi_user"],  # TIER-COMMAND-003
+                        allow_command_executive_reports=_UNKNOWN_PLAN_DEFAULTS["allow_command_executive_reports"],  # TIER-COMMAND-003
                         max_requests_per_month=int(max_searches) if max_searches else _UNKNOWN_PLAN_DEFAULTS["max_requests_per_month"],
                         max_requests_per_min=_UNKNOWN_PLAN_DEFAULTS["max_requests_per_min"],
                         max_summary_tokens=_UNKNOWN_PLAN_DEFAULTS["max_summary_tokens"],
@@ -496,10 +554,8 @@ def clear_plan_capabilities_cache() -> None:
     logger.info("Plan capabilities cache cleared")
 
 
-# ============================================================================
-# Quota Info Models
-# ============================================================================
-
+# =====================================================================# Quota Info Models
+# =====================================================================
 class QuotaInfo(BaseModel):
     """Complete quota information for a user."""
     allowed: bool
@@ -522,10 +578,8 @@ class TrialPhaseInfo(TypedDict):
     days_remaining: int
 
 
-# ============================================================================
-# TIER-COMMAND-001: PlanCapabilities + TierConfig — novo tier 'command'
-# ============================================================================
-
+# =====================================================================# TIER-COMMAND-001: PlanCapabilities + TierConfig — novo tier 'command'
+# =====================================================================
 class TierConfig(BaseModel):
     """Configuration for a product tier.
 
