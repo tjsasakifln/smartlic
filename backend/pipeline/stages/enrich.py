@@ -9,8 +9,12 @@ from relevance import score_relevance, count_phrase_matches
 from utils.ordenacao import ordenar_licitacoes
 from search_context import SearchContext
 from viability import assess_batch as viability_assess_batch
+from pipeline.budget import _run_with_budget  # STORY-4.4 TD-SYS-003
 
 logger = logging.getLogger(__name__)
+
+# Budget label for affinity DB lookup (STORY-4.4 TD-SYS-003).
+_AFFINITY_BUDGET_S = 5.0  # Lightweight DB call — generous budget, must not block pipeline.
 
 
 async def stage_enrich(pipeline, ctx: SearchContext) -> None:
@@ -53,6 +57,38 @@ async def stage_enrich(pipeline, ctx: SearchContext) -> None:
                 len(matched_terms), len(ctx.custom_terms), phrase_count
             )
 
+    # FEEDBACK-003: Fetch user-sector affinity before scoring.
+    # Formula: affinity_factor = min(1.0, 0.5 + affinity).
+    #   affinity=0.0 → factor=0.5 (50% reduction, never zero).
+    #   affinity=0.5 → factor=1.0 (cold start / neutral).
+    #   affinity=1.0 → factor=1.0 (capped — no excessive boost).
+    affinity_factor = 1.0  # Neutral default
+    if ctx.user and ctx.sector and ctx.licitacoes_filtradas:
+        user_id = ctx.user.get("id")
+        sector_id = getattr(ctx.sector, "id", None)
+        if user_id and sector_id:
+            try:
+                from feedback_affinity import get_affinity
+                from supabase_client import get_supabase
+
+                async def _fetch_affinity():
+                    supabase = get_supabase()
+                    return await get_affinity(supabase, user_id, sector_id)
+
+                affinity = await _run_with_budget(
+                    _fetch_affinity(),
+                    budget=_AFFINITY_BUDGET_S,
+                    phase="enrich",
+                    source="affinity",
+                )
+                affinity_factor = min(1.0, 0.5 + affinity)
+                logger.debug(
+                    f"FEEDBACK-003: affinity={affinity:.2f} factor={affinity_factor:.2f} "
+                    f"user={user_id[:8]}... sector={sector_id}"
+                )
+            except Exception as exc:
+                logger.warning(f"FEEDBACK-003: affinity lookup failed — using neutral factor: {exc}")
+
     # D-02 AC5 + D-04 AC9: Re-ranking by combined score (viability always-on)
     if ctx.licitacoes_filtradas:
         viability_active = any(
@@ -77,12 +113,17 @@ async def stage_enrich(pipeline, ctx: SearchContext) -> None:
                 # D-04 AC9: combined_score = confidence * 0.6 + viability * 0.4
                 viab = lic.get("_viability_score", 50)
                 combined = conf * 0.6 + viab * 0.4 + relevance_boost
+                # FEEDBACK-003: Apply user-sector affinity factor
+                combined *= affinity_factor
                 lic["_combined_score"] = round(combined)
+                lic["_affinity_factor"] = round(affinity_factor, 3)
                 return (-combined, -valor)
 
-            # Fallback for simplified searches without viability scores
+            # FEEDBACK-003: Fallback for simplified searches without viability scores.
+            # Apply affinity consistently so both paths personalize results.
             # Band: 0=high(>=80), 1=medium(50-79), 2=low(<50)
-            boosted_conf = conf + relevance_boost
+            boosted_conf = (conf + relevance_boost) * affinity_factor
+            lic["_affinity_factor"] = round(affinity_factor, 3)
             if boosted_conf >= 80:
                 band = 0
             elif boosted_conf >= 50:
