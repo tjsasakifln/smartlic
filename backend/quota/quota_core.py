@@ -196,6 +196,7 @@ PLAN_CAPABILITIES: dict[str, PlanCapabilities] = {
         "allow_predictive_intel": True,  # PREDINT-000
         "allow_competitive_intel": True,  # COMPINT-000
         "allow_workspace_basic": True,  # B2GOPS-000
+        "max_tracked_entities": 50,  # ENTITY-004
         "max_requests_per_month": 5000,
         "max_requests_per_min": 120,
         "max_summary_tokens": 20000,

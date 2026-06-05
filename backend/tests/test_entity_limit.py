@@ -24,7 +24,7 @@ from quota.quota_core import (
 # Mock the module-level dependencies of routes.alerts so we can import
 # the Pydantic models and helper functions without pulling in FastAPI/auth.
 # ---------------------------------------------------------------------------
-@pytest.fixture(autouse=True)
+@pytest.fixture(autouse=True, scope="module")
 def _mock_alerts_deps():
     """Mock dependencies of routes.alerts module before any test imports from it.
 
