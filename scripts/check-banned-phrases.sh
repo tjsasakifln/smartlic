@@ -67,6 +67,10 @@ for dir in "${SCAN_DIRS[@]}"; do
   fi
   while IFS= read -r file; do
     [ -z "$file" ] && continue
+    # Skip files that define banned word lists (not user-facing content)
+    if echo "$file" | grep -qE "(valueProps\.ts|b2gIntelCopy\.ts)$"; then
+      continue
+    fi
     # Get only added lines (lines starting with +)
     added_lines=$(git diff "$DIFF_BASE" HEAD -- "$file" | grep '^+' | grep -v '^+++' || true)
     if [ -z "$added_lines" ]; then
