@@ -100,6 +100,14 @@ async def submit_feedback(
     except Exception:
         pass
 
+    # FEEDBACK-002 (#1436): Update user sector affinity based on verdict
+    try:
+        from feedback_affinity import update_affinity
+        sector_id = body.setor_id or "unknown"
+        await update_affinity(db, user_id, sector_id, body.user_verdict.value)
+    except Exception:
+        pass
+
     return FeedbackResponse(
         id=feedback_id,
         received_at=now,
