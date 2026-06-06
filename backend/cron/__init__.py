@@ -65,3 +65,12 @@ from cron.notifications import (SESSION_STALE_HOURS, SESSION_OLD_DAYS,  # noqa: 
 from jobs.cron.notifications import (  # noqa: F401
     start_trial_sequence_task,  # CRIT-044: canonical source for trial emails
 )
+
+# API-SELF-004: API metered billing
+from cron.api_metered_billing import (  # noqa: F401
+    API_METERED_BILLING_LOCK_KEY,
+    API_METERED_BILLING_LOCK_TTL,
+    API_METERED_BILLING_HOUR_UTC,
+    run_api_metered_billing,
+    start_api_metered_billing_task,
+)

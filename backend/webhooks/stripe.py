@@ -5,6 +5,7 @@ Validates signature, checks idempotency, routes to handler modules.
 
 Handler logic lives in webhooks/handlers/:
 - checkout.py: checkout.session.completed, async_payment_succeeded/failed
+- api_checkout.py: checkout.session.completed (API subscription)
 - subscription.py: customer.subscription.updated/deleted
 - invoice.py: invoice.payment_succeeded/failed, payment_action_required
 
@@ -60,6 +61,9 @@ from webhooks.handlers.invoice import (  # noqa: F401
     _send_payment_confirmation_email,
     _send_payment_action_required_email,
     _send_payment_failed_email,
+)
+from webhooks.handlers.api_checkout import (  # noqa: F401
+    handle_api_checkout_session_completed as _handle_api_checkout_session_completed,
 )
 from webhooks.handlers._shared import resolve_user_id as _resolve_user_id  # noqa: F401
 from webhooks.handlers.founding import (  # noqa: F401

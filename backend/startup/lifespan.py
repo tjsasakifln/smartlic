@@ -324,6 +324,7 @@ async def lifespan(app_instance: FastAPI):
         start_new_bids_notifier_task,  # STORY-445
         start_cron_monitor_task,       # STORY-1.1 TD-DB-040
         start_lead_magnet_batch_task,  # LEAD-MAGNET-001: lead magnet PDF delivery
+        start_api_metered_billing_task,  # API-SELF-004
     )
     from progress import _periodic_tracker_cleanup
 
@@ -349,6 +350,7 @@ async def lifespan(app_instance: FastAPI):
     from login_tracker import periodic_flush
     task_registry.register("login_flush", periodic_flush, is_coroutine=True)
     task_registry.register("lead_magnet_batch", start_lead_magnet_batch_task)  # LEAD-MAGNET-001
+    task_registry.register("api_metered_billing", start_api_metered_billing_task)  # API-SELF-004
 
     await task_registry.start_all()
 

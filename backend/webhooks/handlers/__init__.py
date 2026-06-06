@@ -6,6 +6,7 @@ handles a group of related Stripe event types:
 
 - checkout: checkout.session.completed, async_payment_succeeded/failed,
   checkout.session.expired
+- api_checkout: checkout.session.completed (API subscription — API-SELF-004)
 - subscription: customer.subscription.created/updated/deleted/trial_will_end
 - invoice: invoice.payment_succeeded/failed/action_required
 - stripe_product_price: product.updated, price.created/updated/deleted
@@ -22,6 +23,9 @@ from webhooks.handlers._base import HANDLERS_REGISTRY, WebhookHandler, webhook_h
 # Side-effect import; the names aren't used directly here.
 from webhooks.handlers import _registry  # noqa: F401
 
+from webhooks.handlers.api_checkout import (
+    handle_api_checkout_session_completed,
+)
 from webhooks.handlers.checkout import (
     handle_async_payment_failed,
     handle_async_payment_succeeded,
@@ -56,6 +60,7 @@ __all__ = [
     "HANDLERS_REGISTRY",
     "WebhookHandler",
     "webhook_handler",
+    "handle_api_checkout_session_completed",
     "handle_checkout_session_completed",
     "handle_async_payment_succeeded",
     "handle_async_payment_failed",
