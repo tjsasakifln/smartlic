@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useRef, useCallback, useEffect, useId } from "react";
+import mixpanel from "mixpanel-browser";
 
 /** D-04 AC1: Viability factor breakdown */
 export interface ViabilityFactors {
@@ -19,6 +20,8 @@ interface ViabilityBadgeProps {
   score?: number | null;
   factors?: ViabilityFactors | null;
   valueSource?: "estimated" | "missing" | null;
+  /** VIAB-UX-002: Bid identifier for Mixpanel analytics tracking */
+  bidId?: string;
 }
 
 /** Factor label for tooltip display */
@@ -34,6 +37,7 @@ export default function ViabilityBadge({
   score,
   factors,
   valueSource,
+  bidId,
 }: ViabilityBadgeProps) {
   if (!level) return null;
 
@@ -104,6 +108,8 @@ export default function ViabilityBadge({
       ariaLabel={c.ariaLabel}
       bg={c.bg}
       level={level}
+      score={score}
+      bidId={bidId}
     >
       {c.icon}
       {c.label}
@@ -123,25 +129,56 @@ function ViabilityTooltip({
   ariaLabel,
   bg,
   level,
+  score,
+  bidId,
 }: {
   children: React.ReactNode;
   tooltipLines: string[];
   ariaLabel: string;
   bg: string;
   level: string;
+  score?: number | null;
+  bidId?: string;
 }) {
   const [open, setOpen] = useState(false);
   const tooltipId = useId();
   const triggerRef = useRef<HTMLSpanElement>(null);
+  /** VIAB-UX-002: Debounce ref to avoid duplicate Mixpanel events */
+  const lastTrackedRef = useRef(0);
+
+  /** VIAB-UX-002: Track viability_breakdown_viewed with dedup */
+  const trackBreakdownViewed = useCallback(() => {
+    const now = Date.now();
+    if (now - lastTrackedRef.current < 500) return;
+    lastTrackedRef.current = now;
+    try {
+      mixpanel.track("viability_breakdown_viewed", {
+        bid_id: bidId,
+        viability_score: score ?? null,
+        timestamp: new Date().toISOString(),
+        environment: process.env.NODE_ENV || "development",
+      });
+    } catch {
+      // analytics failure is non-critical
+    }
+  }, [bidId, score]);
 
   const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
     if (e.key === "Escape") {
       setOpen(false);
     } else if (e.key === "Enter" || e.key === " ") {
       e.preventDefault();
+      trackBreakdownViewed();
       setOpen((prev) => !prev);
     }
-  }, []);
+  }, [trackBreakdownViewed]);
+
+  /** VIAB-UX-002: Track viability_breakdown_viewed when tooltip opens via hover/focus */
+  useEffect(() => {
+    if (open) {
+      trackBreakdownViewed();
+    }
+  }, [open, trackBreakdownViewed]);
 
   // Dismiss on outside click
   useEffect(() => {
@@ -172,7 +209,10 @@ function ViabilityTooltip({
         onFocus={() => setOpen(true)}
         onBlur={() => setOpen(false)}
         onKeyDown={handleKeyDown}
-        onClick={() => setOpen((prev) => !prev)}
+        onClick={() => {
+          trackBreakdownViewed();
+          setOpen((prev) => !prev);
+        }}
         className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-semibold cursor-default
           focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-1 focus-visible:ring-current
           ${bg}`}

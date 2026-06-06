@@ -8,12 +8,20 @@
  * The title attribute was removed for WCAG 2.1 AA compliance — tooltip content
  * is now accessible via keyboard/focus and via the data-tooltip-content attribute
  * for test introspection.
+ *
+ * VIAB-UX-002: Mixpanel analytics tracking tests.
  */
 
 import React from "react";
-import { render, screen } from "@testing-library/react";
+import { render, screen, fireEvent } from "@testing-library/react";
 import ViabilityBadge from "../components/ViabilityBadge";
 import type { ViabilityFactors } from "../components/ViabilityBadge";
+
+// VIAB-UX-002: Mock Mixpanel for analytics tracking tests
+jest.mock("mixpanel-browser", () => ({
+  track: jest.fn(),
+}));
+import mixpanel from "mixpanel-browser";
 
 const mockFactors: ViabilityFactors = {
   modalidade: 100,
@@ -177,5 +185,137 @@ describe("ViabilityBadge", () => {
     );
     const badge = screen.getByTestId("viability-badge");
     expect(getTooltipContent(badge)).not.toContain("não informado pelo órgão");
+  });
+});
+
+// VIAB-UX-002: Mixpanel analytics tracking
+describe("ViabilityBadge — Mixpanel analytics", () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  it("tracks viability_breakdown_viewed on hover (mouseEnter)", () => {
+    render(
+      <ViabilityBadge
+        level="alta"
+        score={85}
+        factors={mockFactors}
+        bidId="bid-test-123"
+      />
+    );
+    const badge = screen.getByTestId("viability-badge");
+    fireEvent.mouseEnter(badge);
+
+    expect(mixpanel.track).toHaveBeenCalledTimes(1);
+    expect(mixpanel.track).toHaveBeenCalledWith(
+      "viability_breakdown_viewed",
+      expect.objectContaining({
+        bid_id: "bid-test-123",
+        viability_score: 85,
+      })
+    );
+  });
+
+  it("tracks viability_breakdown_viewed on click", () => {
+    render(
+      <ViabilityBadge
+        level="media"
+        score={60}
+        factors={mockFactors}
+        bidId="bid-click-456"
+      />
+    );
+    const badge = screen.getByTestId("viability-badge");
+    fireEvent.click(badge);
+
+    expect(mixpanel.track).toHaveBeenCalledTimes(1);
+    expect(mixpanel.track).toHaveBeenCalledWith(
+      "viability_breakdown_viewed",
+      expect.objectContaining({
+        bid_id: "bid-click-456",
+        viability_score: 60,
+      })
+    );
+  });
+
+  it("includes timestamp and environment in tracking event", () => {
+    render(
+      <ViabilityBadge
+        level="baixa"
+        score={30}
+        factors={mockFactors}
+        bidId="bid-env-789"
+      />
+    );
+    const badge = screen.getByTestId("viability-badge");
+    fireEvent.mouseEnter(badge);
+
+    expect(mixpanel.track).toHaveBeenCalledWith(
+      "viability_breakdown_viewed",
+      expect.objectContaining({
+        timestamp: expect.any(String),
+        environment: expect.any(String),
+      })
+    );
+  });
+
+  it("tracks without bidId when prop is not provided", () => {
+    render(
+      <ViabilityBadge level="alta" score={90} factors={mockFactors} />
+    );
+    const badge = screen.getByTestId("viability-badge");
+    fireEvent.mouseEnter(badge);
+
+    expect(mixpanel.track).toHaveBeenCalledTimes(1);
+    expect(mixpanel.track).toHaveBeenCalledWith(
+      "viability_breakdown_viewed",
+      expect.objectContaining({
+        bid_id: undefined,
+        viability_score: 90,
+      })
+    );
+  });
+
+  it("tracks with null score when score is not provided", () => {
+    render(
+      <ViabilityBadge
+        level="alta"
+        score={null}
+        factors={mockFactors}
+        bidId="bid-nullscore"
+      />
+    );
+    const badge = screen.getByTestId("viability-badge");
+    fireEvent.mouseEnter(badge);
+
+    expect(mixpanel.track).toHaveBeenCalledWith(
+      "viability_breakdown_viewed",
+      expect.objectContaining({
+        bid_id: "bid-nullscore",
+        viability_score: null,
+      })
+    );
+  });
+
+  it("does not throw when mixpanel.track throws", () => {
+    const consoleWarnSpy = jest.spyOn(console, "warn").mockImplementation();
+    (mixpanel.track as jest.Mock).mockImplementationOnce(() => {
+      throw new Error("Mixpanel error");
+    });
+
+    expect(() => {
+      render(
+        <ViabilityBadge
+          level="alta"
+          score={85}
+          factors={mockFactors}
+          bidId="bid-error"
+        />
+      );
+      const badge = screen.getByTestId("viability-badge");
+      fireEvent.mouseEnter(badge);
+    }).not.toThrow();
+
+    consoleWarnSpy.mockRestore();
   });
 });

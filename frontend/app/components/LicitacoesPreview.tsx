@@ -498,7 +498,7 @@ function BidCard({
               {highlightTerms(item.objeto, item.matched_terms || searchTerms)}
             </h4>
             <div className="flex flex-wrap items-center gap-2 mt-2">
-              <span data-tour="viability-badge"><ViabilityBadge level={item.viability_level} score={item.viability_score} factors={item.viability_factors} valueSource={item._value_source} /></span>
+              <span data-tour="viability-badge"><ViabilityBadge level={item.viability_level} score={item.viability_score} factors={item.viability_factors} valueSource={item._value_source} bidId={item.pncp_id || `${idPrefix}-${index}`} /></span>
               {getUrgenciaBadge(item)}
               <span className="inline-flex items-center px-2 py-0.5 rounded bg-brand-blue-subtle text-brand-navy text-xs font-medium">
                 {item.uf}
