@@ -28,6 +28,7 @@ CREATE OR REPLACE FUNCTION public.refresh_metrics_cache_cron()
 RETURNS text
 LANGUAGE plpgsql
 SECURITY DEFINER
+SET search_path = public, pg_temp
 AS $$
 BEGIN
   -- Attempt to trigger the backend via pg_net HTTP request.
