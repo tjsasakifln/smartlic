@@ -2159,6 +2159,31 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/api/search": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Api Search
+         * @description Search licitacoes via API key authentication.
+         *
+         *     Same search pipeline as ``POST /buscar`` but authenticated with an
+         *     ``X-API-Key`` header instead of JWT Bearer token.
+         *
+         *     **Rate limiting:** 100 requests/day per API key (``X-RateLimit-*`` headers).
+         */
+        get: operations["api_search_v1_api_search_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/api/subscriptions/cancel": {
         parameters: {
             query?: never;
@@ -16298,6 +16323,46 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["PlansResponse"];
+                };
+            };
+        };
+    };
+    api_search_v1_api_search_get: {
+        parameters: {
+            query: {
+                /** @description Search query (keywords or free text) */
+                q: string;
+                /** @description State (UF) code, e.g. 'SP'. Searches all UFs when omitted. */
+                uf?: string | null;
+                /** @description Comma-separated modality codes, e.g. '5,6'. Defaults to standard modalities [4,5,6,7] when omitted. */
+                modalidade?: string | null;
+                /** @description Page number (1-indexed). Default: 1. */
+                pagina?: number;
+                /** @description Items per page (1-100). Default: 20. */
+                tamanho?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BuscaResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };
