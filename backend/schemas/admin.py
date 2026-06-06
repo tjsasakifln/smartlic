@@ -236,3 +236,34 @@ class UserSegmentsResponse(BaseModel):
     transitions_last_week: list
     power_users: list
     queried_at: str
+
+
+# ---------------------------------------------------------------------------
+# DIGEST-005 (#1421): Digest Metrics Widget
+# ---------------------------------------------------------------------------
+
+
+class DigestFrequencyBreakdown(BaseModel):
+    """Breakdown of digest events by frequency (daily / twice_weekly / weekly)."""
+    sent: int = 0
+    opened: int = 0
+    clicked: int = 0
+    unsubscribed: int = 0
+
+
+class AdminDigestMetricsResponse(BaseModel):
+    """Response for GET /v1/admin/metrics/digest (DIGEST-005).
+
+    All rates are computed over a 30-day window. Daily avg sent is the
+    total sent in 30 days divided by 30.
+    """
+    daily_avg_sent: float = 0.0
+    open_rate_30d: float = 0.0
+    click_rate_30d: float = 0.0
+    unsubscribe_rate_30d: float = 0.0
+    total_sent_30d: int = 0
+    total_opened_30d: int = 0
+    total_clicked_30d: int = 0
+    total_unsubscribed_30d: int = 0
+    breakdown_by_frequency: dict[str, DigestFrequencyBreakdown] = {}
+    queried_at: str

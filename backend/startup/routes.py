@@ -93,6 +93,8 @@ from routes.seasonal_calendar import router as seasonal_calendar_router
 from routes.network_events import router as network_events_router
 from routes.segment import router as segment_router
 from routes.api_search import router as api_search_router
+from routes.email_tracking import router as email_tracking_router
+from routes.admin_digest_metrics import router as admin_digest_metrics_router
 
 _v1_routers = [
     admin_router, subscriptions_router, upgrade_to_lifetime_router,
@@ -181,6 +183,13 @@ def register_routes(app: FastAPI) -> None:
     # CONV-005b-2: Checkout endpoint — self-prefixed at /api/checkout/*
     # (NOT under /v1/ — generic path for frontend convenience).
     app.include_router(checkout_router)
+
+    # DIGEST-005 (#1421): Email tracking (open/click/unsubscribe) endpoints
+    # Self-prefixed at /api/email/* — no auth, must be accessible from email clients
+    app.include_router(email_tracking_router)
+
+    # DIGEST-005 (#1421): Admin digest metrics dashboard widget
+    app.include_router(admin_digest_metrics_router)
 
     # Stripe webhook at root — DEBT-324: single registration only.
     # Removed from _v1_routers above to prevent duplicate at /v1/webhooks/stripe.

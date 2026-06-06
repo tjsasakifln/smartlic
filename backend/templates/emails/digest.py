@@ -1,8 +1,12 @@
 """
-STORY-278 AC3: Daily digest email template.
+STORY-278 AC3 + DIGEST-005 (#1421): Daily digest email template.
 
 Renders a mobile-responsive email showing top opportunities with
 viability badges — the key SmartLic differentiator no competitor has.
+
+DIGEST-005 adds:
+- Tracking pixel (1x1 transparent GIF) for open detection
+- Click tracking on the CTA button (wraps URL in /api/email/click/{id}?url=...)
 
 Design:
 - Stats summary (X new opportunities in your sector today)
@@ -11,7 +15,13 @@ Design:
 - Mobile-responsive (max-width 600px, inline CSS — same pattern as trial.py)
 """
 
+import os
+from urllib.parse import quote
+
 from templates.emails.base import email_base, SMARTLIC_GREEN, FRONTEND_URL
+
+# Backend URL for tracking pixel and click tracking
+BACKEND_URL = os.getenv("BACKEND_URL", "https://smartlic-backend-production.up.railway.app")
 
 
 # Viability badge colors and labels
@@ -102,14 +112,49 @@ def _render_opportunity_row(opp: dict, index: int) -> str:
     </tr>"""
 
 
+def _tracking_pixel(tracking_id: str, backend_url: str) -> str:
+    """Render a 1x1 transparent tracking pixel for open detection.
+
+    Args:
+        tracking_id: UUID tracking identifier.
+        backend_url: Backend base URL for tracking endpoint.
+
+    Returns:
+        HTML img tag string.
+    """
+    tracking_url = f"{backend_url}/api/email/open/{tracking_id}"
+    return (
+        f'<img src="{tracking_url}" width="1" height="1" '
+        f'alt="" style="display:none;width:1px;height:1px;" />'
+    )
+
+
+def _click_tracking_url(tracking_id: str, target_url: str, backend_url: str) -> str:
+    """Build a click-tracked URL wrapping the target.
+
+    Args:
+        tracking_id: UUID tracking identifier.
+        target_url: The original destination URL.
+        backend_url: Backend base URL for click tracking endpoint.
+
+    Returns:
+        Click tracking URL string.
+    """
+    encoded = quote(target_url, safe="")
+    return f"{backend_url}/api/email/click/{tracking_id}?url={encoded}"
+
+
 def render_daily_digest_email(
     user_name: str,
     opportunities: list[dict],
     stats: dict,
+    tracking_id: str | None = None,
+    backend_url: str | None = None,
 ) -> str:
     """Render the daily digest email.
 
     STORY-278 AC3: Mobile-responsive email with viability badges.
+    DIGEST-005: Optional tracking_id for open/click tracking pixel.
 
     Args:
         user_name: User's display name.
@@ -117,10 +162,13 @@ def render_daily_digest_email(
             titulo, orgao, valor_estimado, uf, viability_score, data_publicacao.
         stats: Dict with keys:
             total_novas (int), setor_nome (str), total_valor (float).
+        tracking_id: UUID for open/click tracking. If None, no tracking.
+        backend_url: Backend base URL for tracking endpoints (defaults to env).
 
     Returns:
         Complete HTML email string.
     """
+    backend_url = backend_url or BACKEND_URL
     total_novas = stats.get("total_novas", len(opportunities))
     setor_nome = stats.get("setor_nome", "seu setor")
     total_valor = stats.get("total_valor", 0.0)
@@ -139,6 +187,18 @@ def render_daily_digest_email(
     else:
         stats_line = f"{total_novas} novas oportunidades no setor de {setor_nome} hoje."
 
+    # Build CTA URL (with optional click tracking)
+    manual_btn_url = FRONTEND_URL + "/buscar"
+    cta_url = FRONTEND_URL + "/buscar?auto=true"
+    if tracking_id and backend_url:
+        manual_btn_url = _click_tracking_url(tracking_id, manual_btn_url, backend_url)
+        cta_url = _click_tracking_url(tracking_id, cta_url, backend_url)
+
+    # Tracking pixel (invisible 1x1)
+    pixel_html = ""
+    if tracking_id and backend_url:
+        pixel_html = _tracking_pixel(tracking_id, backend_url)
+
     # Empty state
     if not opportunities:
         body = f"""
@@ -150,11 +210,12 @@ def render_daily_digest_email(
           Continuaremos monitorando e avisaremos assim que houver novidades.
         </p>
         <p style="text-align: center; margin: 24px 0 16px;">
-          <a href="{FRONTEND_URL}/buscar" class="btn"
+          <a href="{manual_btn_url}" class="btn"
              style="display: inline-block; padding: 14px 32px; background-color: {SMARTLIC_GREEN}; color: #ffffff; text-decoration: none; border-radius: 8px; font-weight: 600; font-size: 16px;">
             Fazer análise manual
           </a>
         </p>
+        {pixel_html}
         """
         return email_base(
             title="Resumo diário — SmartLic",
@@ -199,9 +260,9 @@ def render_daily_digest_email(
       {opp_rows}
     </table>
 
-    <!-- CTA -->
+    <!-- CTA (with optional click tracking) -->
     <p style="text-align: center; margin: 24px 0 16px;">
-      <a href="{FRONTEND_URL}/buscar?auto=true" class="btn"
+      <a href="{cta_url}" class="btn"
          style="display: inline-block; padding: 14px 32px; background-color: {SMARTLIC_GREEN}; color: #ffffff; text-decoration: none; border-radius: 8px; font-weight: 600; font-size: 16px;">
         Ver todas as oportunidades
       </a>
@@ -213,6 +274,8 @@ def render_daily_digest_email(
       Para ajustar suas preferências de alerta,
       <a href="{FRONTEND_URL}/conta" style="color: #888; text-decoration: underline;">acesse sua conta</a>.
     </p>
+
+    {pixel_html}
     """
 
     return email_base(

@@ -341,7 +341,10 @@ async def get_digest_eligible_users(db=None) -> list[dict]:
 
 
 async def mark_digest_sent(user_id: str, db=None) -> None:
-    """Update last_digest_sent_at after successful send."""
+    """Update last_digest_sent_at after successful send.
+
+    DIGEST-005: Also fires ``digest_sent`` Mixpanel event (fire-and-forget).
+    """
     if db is None:
         from supabase_client import get_supabase
         db = get_supabase()
@@ -355,6 +358,61 @@ async def mark_digest_sent(user_id: str, db=None) -> None:
         )
     except Exception as e:
         logger.warning(f"Failed to update last_digest_sent_at for {user_id[:8]}: {e}")
+
+
+async def track_digest_sent_event(
+    user_id: str,
+    frequency: str = "daily",
+    opportunity_count: int = 0,
+    sectors: list[str] | None = None,
+    tracking_id: str | None = None,
+) -> None:
+    """Fire ``digest_sent`` Mixpanel event and insert tracking record.
+
+    DIGEST-005 (#1421): Fire-and-forget. Called after successful email send.
+    Inserts a ``sent`` event into ``email_tracking_events`` and fires the
+    Mixpanel ``digest_sent`` event.
+
+    Args:
+        user_id: User UUID.
+        frequency: Digest frequency (daily, twice_weekly, weekly).
+        opportunity_count: Number of opportunities in the digest.
+        sectors: List of sector IDs included.
+        tracking_id: UUID for tracking correlation (generated if None).
+    """
+    from uuid import uuid4
+    from analytics_events import track_event
+    from supabase_client import get_supabase, sb_execute
+
+    tracking_id = tracking_id or str(uuid4())
+
+    # Insert tracking event into DB
+    try:
+        sb = get_supabase()
+        await sb_execute(sb.table("email_tracking_events").insert({
+            "tracking_id": tracking_id,
+            "event_type": "sent",
+            "user_id": user_id,
+            "digest_frequency": frequency,
+            "metadata": {
+                "opportunity_count": opportunity_count,
+                "sectors": sectors or [],
+            },
+        }))
+    except Exception as e:
+        logger.warning(
+            "Failed to insert digest_sent tracking event for %s: %s",
+            user_id[:8], e,
+        )
+
+    # Fire Mixpanel event (fire-and-forget, never raises)
+    track_event("digest_sent", {
+        "tracking_id": tracking_id,
+        "user_id": user_id,
+        "frequency": frequency,
+        "opportunity_count": opportunity_count,
+        "sectors": ",".join(sectors) if sectors else "",
+    })
 
 
 # ============================================================================
