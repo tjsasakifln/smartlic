@@ -8,7 +8,7 @@ from templates.emails.billing import (
     render_subscription_expiring_email,
     render_cancellation_email,
 )
-from templates.emails.digest import render_daily_digest_email
+from templates.emails.digest import render_daily_digest_email, render_digest_email, get_digest_subject
 
 __all__ = [
     "email_base",
@@ -21,4 +21,6 @@ __all__ = [
     "render_subscription_expiring_email",
     "render_cancellation_email",
     "render_daily_digest_email",
+    "render_digest_email",
+    "get_digest_subject",
 ]

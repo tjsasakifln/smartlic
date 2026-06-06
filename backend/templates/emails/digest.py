@@ -1,24 +1,34 @@
 """
-STORY-278 AC3: Daily digest email template.
+DIGEST-003: Digest email template -- B2G copy, viability badges, CTA.
 
-Renders a mobile-responsive email showing top opportunities with
-viability badges — the key SmartLic differentiator no competitor has.
+Renders a mobile-responsive digest email (daily or weekly frequency) with:
+- Setor + N oportunidades novas header
+- Viability badges per opportunity (alta/verde, media/amarelo, baixa/cinza)
+- CTA "Ver no SmartLic" linking to /buscar
+- Footer with unsubscribe link (token-based, RFC 8058 compatible)
 
-Design:
-- Stats summary (X new opportunities in your sector today)
-- Top 10 opportunities with viability badge per item
-- CTA: "Ver todas as oportunidades" → /buscar?auto=true
-- Mobile-responsive (max-width 600px, inline CSS — same pattern as trial.py)
+Builds on STORY-278 AC3 daily digest template.
 """
 
 from templates.emails.base import email_base, SMARTLIC_GREEN, FRONTEND_URL
 
-
-# Viability badge colors and labels
+# DIGEST-003: Viability badge colors and labels
+# alta = verde, media = amarelo, baixa = cinza
 _VIABILITY_COLORS = {
     "alta": {"bg": "#e8f5e9", "text": "#2e7d32", "label": "Alta viabilidade"},
-    "media": {"bg": "#fff8e1", "text": "#f57f17", "label": "Viabilidade média"},
-    "baixa": {"bg": "#ffebee", "text": "#c62828", "label": "Baixa viabilidade"},
+    "media": {"bg": "#fff8e1", "text": "#b76e00", "label": "Viabilidade media"},
+    "baixa": {"bg": "#f5f5f5", "text": "#757575", "label": "Baixa viabilidade"},
+}
+
+# Frequency label mapping
+_FREQUENCY_LABELS = {
+    "daily": "diario",
+    "weekly": "semanal",
+}
+
+_FREQUENCY_PERIOD = {
+    "daily": "nas ultimas 24 horas",
+    "weekly": "na ultima semana",
 }
 
 
@@ -34,11 +44,13 @@ def _format_brl(value: float) -> str:
 def _viability_badge(score: float | None) -> str:
     """Render an inline viability badge based on score.
 
+    DIGEST-003: alta=verde, media=amarelo, baixa=cinza.
+
     Args:
         score: Viability score 0.0-1.0, or None if not assessed.
 
     Returns:
-        HTML string for the badge.
+        HTML string for the badge (inline-styled span).
     """
     if score is None:
         return ""
@@ -62,17 +74,17 @@ def _render_opportunity_row(opp: dict, index: int) -> str:
     """Render a single opportunity row in the digest table.
 
     Args:
-        opp: Dict with keys: titulo, orgao, valor_estimado, uf, viability_score, data_publicacao.
+        opp: Dict with keys: titulo, orgao, valor_estimado, uf, viability_score.
         index: Row number (1-based).
 
     Returns:
         HTML table row string.
     """
-    titulo = opp.get("titulo", "Sem título")
+    titulo = opp.get("titulo", "Sem titulo")
     if len(titulo) > 120:
         titulo = titulo[:117] + "..."
 
-    orgao = opp.get("orgao", "Órgão não informado")
+    orgao = opp.get("orgao", "Orgao nao informado")
     if len(orgao) > 60:
         orgao = orgao[:57] + "..."
 
@@ -81,7 +93,7 @@ def _render_opportunity_row(opp: dict, index: int) -> str:
     viability_score = opp.get("viability_score")
     badge = _viability_badge(viability_score)
 
-    valor_display = _format_brl(valor) if valor > 0 else "Valor não informado"
+    valor_display = _format_brl(valor) if valor > 0 else "Valor nao informado"
 
     bg_color = "#ffffff" if index % 2 == 1 else "#f9f9f9"
 
@@ -102,73 +114,74 @@ def _render_opportunity_row(opp: dict, index: int) -> str:
     </tr>"""
 
 
-def render_daily_digest_email(
+def render_digest_email(
     user_name: str,
     opportunities: list[dict],
-    stats: dict,
+    frequency: str = "daily",
+    unsubscribe_token: str = "",
 ) -> str:
-    """Render the daily digest email.
+    """Render the digest email HTML (daily or weekly).
 
-    STORY-278 AC3: Mobile-responsive email with viability badges.
+    DIGEST-003: B2G copy, viability badges, CTA "Ver no SmartLic",
+    token-based unsubscribe in footer.
 
     Args:
         user_name: User's display name.
         opportunities: List of dicts with keys:
-            titulo, orgao, valor_estimado, uf, viability_score, data_publicacao.
-        stats: Dict with keys:
-            total_novas (int), setor_nome (str), total_valor (float).
+            titulo, orgao, valor_estimado, uf, viability_score.
+        frequency: "daily" or "weekly".
+        unsubscribe_token: Token for one-click unsubscribe URL.
 
     Returns:
         Complete HTML email string.
     """
-    total_novas = stats.get("total_novas", len(opportunities))
-    setor_nome = stats.get("setor_nome", "seu setor")
-    total_valor = stats.get("total_valor", 0.0)
+    total_novas = len(opportunities)
+    freq_label = _FREQUENCY_LABELS.get(frequency, "diario")
+    period_label = _FREQUENCY_PERIOD.get(frequency, "nas ultimas 24 horas")
+
+    # Build unsubscribe URL (RFC 8058 compatible)
+    unsubscribe_url = ""
+    if unsubscribe_token:
+        unsubscribe_url = f"{FRONTEND_URL}/conta/preferencias?unsubscribe={unsubscribe_token}"
+
+    # Empty state
+    if not opportunities:
+        body = f"""
+        <h1 style="color: #333; font-size: 22px; margin: 0 0 16px;">
+          Ola, {user_name}!
+        </h1>
+        <p style="color: #555; font-size: 16px; line-height: 1.6; margin: 0 0 24px;">
+          Nenhuma nova oportunidade encontrada {period_label}.
+          Continuaremos monitorando e avisaremos assim que houver novidades.
+        </p>
+        <p style="text-align: center; margin: 24px 0 16px;">
+          <a href="{FRONTEND_URL}/buscar" class="btn"
+             style="display: inline-block; padding: 14px 32px; background-color: {SMARTLIC_GREEN}; color: #ffffff; text-decoration: none; border-radius: 8px; font-weight: 600; font-size: 16px;">
+            Analisar oportunidades manualmente
+          </a>
+        </p>
+        """
+        return email_base(
+            title=f"Resumo {freq_label} — SmartLic",
+            body_html=body,
+            is_transactional=False,
+            unsubscribe_url=unsubscribe_url,
+        )
 
     # Build opportunity rows
     opp_rows = ""
     for i, opp in enumerate(opportunities):
         opp_rows += _render_opportunity_row(opp, i + 1)
 
-    # Stats summary line
-    if total_valor > 0:
-        stats_line = (
-            f"{total_novas} novas oportunidades no setor de {setor_nome} hoje, "
-            f"totalizando {_format_brl(total_valor)}."
-        )
-    else:
-        stats_line = f"{total_novas} novas oportunidades no setor de {setor_nome} hoje."
-
-    # Empty state
-    if not opportunities:
-        body = f"""
-        <h1 style="color: #333; font-size: 22px; margin: 0 0 16px;">
-          Bom dia, {user_name}!
-        </h1>
-        <p style="color: #555; font-size: 16px; line-height: 1.6; margin: 0 0 24px;">
-          Nenhuma nova oportunidade encontrada no seu setor hoje.
-          Continuaremos monitorando e avisaremos assim que houver novidades.
-        </p>
-        <p style="text-align: center; margin: 24px 0 16px;">
-          <a href="{FRONTEND_URL}/buscar" class="btn"
-             style="display: inline-block; padding: 14px 32px; background-color: {SMARTLIC_GREEN}; color: #ffffff; text-decoration: none; border-radius: 8px; font-weight: 600; font-size: 16px;">
-            Fazer análise manual
-          </a>
-        </p>
-        """
-        return email_base(
-            title="Resumo diário — SmartLic",
-            body_html=body,
-            is_transactional=False,
-            unsubscribe_url=f"{FRONTEND_URL}/conta",
-        )
-
+    # Plural forms
+    s_plural = "s" if total_novas != 1 else ""
     body = f"""
     <h1 style="color: #333; font-size: 22px; margin: 0 0 8px;">
-      Bom dia, {user_name}!
+      Ola, {user_name}!
     </h1>
     <p style="color: #555; font-size: 16px; line-height: 1.6; margin: 0 0 16px;">
-      {stats_line}
+      Seu resumo <strong>{freq_label}</strong> de oportunidades <strong>{period_label}</strong>:
+      <strong>{total_novas}</strong> nova{s_plural} oportunidade{s_plural} encontrada{s_plural}.
     </p>
 
     <!-- Stats highlight bar -->
@@ -180,7 +193,7 @@ def render_daily_digest_email(
             {total_novas}
           </span>
           <span style="color: #555; font-size: 14px; margin-left: 8px;">
-            oportunidades encontradas
+            {"oportunidade" if total_novas == 1 else "oportunidades"} encontrada{"s" if total_novas != 1 else ""}
           </span>
         </td>
       </tr>
@@ -192,32 +205,90 @@ def render_daily_digest_email(
       <tr>
         <td style="padding: 10px 16px; background-color: #f5f5f5; border-bottom: 2px solid #eee;">
           <span style="font-size: 13px; font-weight: 600; color: #555; text-transform: uppercase; letter-spacing: 0.5px;">
-            Melhores oportunidades
+            Oportunidades encontradas
           </span>
         </td>
       </tr>
       {opp_rows}
     </table>
 
-    <!-- CTA -->
+    <!-- DIGEST-003: CTA "Ver no SmartLic" -->
     <p style="text-align: center; margin: 24px 0 16px;">
-      <a href="{FRONTEND_URL}/buscar?auto=true" class="btn"
+      <a href="{FRONTEND_URL}/buscar" class="btn"
          style="display: inline-block; padding: 14px 32px; background-color: {SMARTLIC_GREEN}; color: #ffffff; text-decoration: none; border-radius: 8px; font-weight: 600; font-size: 16px;">
-        Ver todas as oportunidades
+        Ver no SmartLic &rarr;
       </a>
     </p>
 
+    <!-- Footer: viability explanation + preferences -->
     <p style="color: #888; font-size: 12px; text-align: center; margin: 16px 0 0;">
-      Os indicadores de viabilidade mostram a compatibilidade da oportunidade com seu perfil.
-      <br>
-      Para ajustar suas preferências de alerta,
-      <a href="{FRONTEND_URL}/conta" style="color: #888; text-decoration: underline;">acesse sua conta</a>.
+      Os indicadores de viabilidade consideram modalidade, prazo, valor e geografia
+      para mostrar a compatibilidade da oportunidade com seu perfil B2G.
     </p>
     """
 
     return email_base(
-        title=f"{total_novas} oportunidades no seu setor — SmartLic",
+        title=f"Resumo {freq_label} — {total_novas} oportunidades — SmartLic",
         body_html=body,
         is_transactional=False,
-        unsubscribe_url=f"{FRONTEND_URL}/conta",
+        unsubscribe_url=unsubscribe_url,
     )
+
+
+# ---------------------------------------------------------------------------
+# Backward compatibility: keep render_daily_digest_email for existing callers
+# ---------------------------------------------------------------------------
+
+def render_daily_digest_email(
+    user_name: str,
+    opportunities: list[dict],
+    stats: dict,
+) -> str:
+    """Render the daily digest email (legacy interface).
+
+    Delegates to render_digest_email() with frequency="daily".
+    The stats dict is used for backward compatibility but the new
+    renderer derives display values directly from opportunities.
+
+    Args:
+        user_name: User's display name.
+        opportunities: List of opportunity dicts.
+        stats: Legacy stats dict (total_novas, setor_nome, total_valor).
+
+    Returns:
+        Complete HTML email string.
+    """
+    return render_digest_email(
+        user_name=user_name,
+        opportunities=opportunities,
+        frequency="daily",
+        unsubscribe_token="",
+    )
+
+
+# ---------------------------------------------------------------------------
+# Subject line helpers
+# ---------------------------------------------------------------------------
+
+def get_digest_subject(
+    total_count: int,
+    frequency: str = "daily",
+) -> str:
+    """Generate the email subject line for a digest.
+
+    DIGEST-003: "[SmartLic] Seu resumo [diario|semanal] -
+    [N] novas oportunidades"
+
+    Args:
+        total_count: Number of new opportunities.
+        frequency: "daily" or "weekly".
+
+    Returns:
+        Email subject string.
+    """
+    freq_label = _FREQUENCY_LABELS.get(frequency, "diario")
+    if total_count == 0:
+        return f"[SmartLic] Seu resumo {freq_label} — nenhuma novidade"
+    if total_count == 1:
+        return f"[SmartLic] Seu resumo {freq_label} — 1 nova oportunidade"
+    return f"[SmartLic] Seu resumo {freq_label} — {total_count} novas oportunidades"
