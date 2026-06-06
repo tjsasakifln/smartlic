@@ -21715,6 +21715,118 @@
         ]
       }
     },
+    "/v1/api/search": {
+      "get": {
+        "description": "Search licitacoes via API key authentication.\n\nSame search pipeline as ``POST /buscar`` but authenticated with an\n``X-API-Key`` header instead of JWT Bearer token.\n\n**Rate limiting:** 100 requests/day per API key (``X-RateLimit-*`` headers).",
+        "operationId": "api_search_v1_api_search_get",
+        "parameters": [
+          {
+            "description": "Search query (keywords or free text)",
+            "in": "query",
+            "name": "q",
+            "required": true,
+            "schema": {
+              "description": "Search query (keywords or free text)",
+              "maxLength": 500,
+              "minLength": 2,
+              "title": "Q",
+              "type": "string"
+            }
+          },
+          {
+            "description": "State (UF) code, e.g. 'SP'. Searches all UFs when omitted.",
+            "in": "query",
+            "name": "uf",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 2,
+                  "minLength": 2,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "State (UF) code, e.g. 'SP'. Searches all UFs when omitted.",
+              "title": "Uf"
+            }
+          },
+          {
+            "description": "Comma-separated modality codes, e.g. '5,6'. Defaults to standard modalities [4,5,6,7] when omitted.",
+            "in": "query",
+            "name": "modalidade",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Comma-separated modality codes, e.g. '5,6'. Defaults to standard modalities [4,5,6,7] when omitted.",
+              "title": "Modalidade"
+            }
+          },
+          {
+            "description": "Page number (1-indexed). Default: 1.",
+            "in": "query",
+            "name": "pagina",
+            "required": false,
+            "schema": {
+              "default": 1,
+              "description": "Page number (1-indexed). Default: 1.",
+              "minimum": 1,
+              "title": "Pagina",
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Items per page (1-100). Default: 20.",
+            "in": "query",
+            "name": "tamanho",
+            "required": false,
+            "schema": {
+              "default": 20,
+              "description": "Items per page (1-100). Default: 20.",
+              "maximum": 100,
+              "minimum": 1,
+              "title": "Tamanho",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BuscaResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Api Search",
+        "tags": [
+          "api"
+        ]
+      }
+    },
     "/v1/api/subscriptions/cancel": {
       "post": {
         "description": "Cancel subscription at period end.\n\nGTM-FIX-006: User-initiated cancellation flow.\nUX-308: Accepts optional cancellation reason for retention analytics.\nSets cancel_at_period_end=True in Stripe, updates status to 'canceling'.",
