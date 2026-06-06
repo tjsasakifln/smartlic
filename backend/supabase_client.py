@@ -42,8 +42,11 @@ _supabase_client_lock = threading.Lock()
 # Default: 25 per worker (50 total), down from 50 per worker (100 total).
 # ============================================================================
 
-_POOL_MAX_CONNECTIONS = int(os.getenv("SUPABASE_POOL_MAX_CONNECTIONS", "25"))
-_POOL_MAX_KEEPALIVE = int(os.getenv("SUPABASE_POOL_MAX_KEEPALIVE", "10"))
+# DEBT-IO-BUDGET: Reduced from 25→10 per worker (20 total with 2 workers)
+# to stay under Supabase free tier limit of 20 direct connections.
+# Override via SUPABASE_POOL_MAX_CONNECTIONS env if upgraded to paid tier.
+_POOL_MAX_CONNECTIONS = int(os.getenv("SUPABASE_POOL_MAX_CONNECTIONS", "10"))
+_POOL_MAX_KEEPALIVE = int(os.getenv("SUPABASE_POOL_MAX_KEEPALIVE", "5"))
 _POOL_TIMEOUT = float(os.getenv("SUPABASE_POOL_TIMEOUT", "30.0"))
 _POOL_CONNECT_TIMEOUT = 10.0
 _POOL_HIGH_WATER_RATIO = 0.8  # Log warning when pool > 80% utilization

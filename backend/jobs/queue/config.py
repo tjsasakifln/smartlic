@@ -80,23 +80,26 @@ try:
                 _WDAY = {"mon": 0, "tues": 1, "wed": 2, "thurs": 3, "fri": 4, "sat": 5, "sun": 6}
                 _raw_weekdays = __import__("os").getenv("CONTRACTS_CRAWL_WEEKDAYS", "mon,wed,fri")
                 _contracts_weekdays = {_WDAY[w] for w in (d.strip() for d in _raw_weekdays.split(",")) if w in _WDAY}
+                # DEBT-IO-BUDGET: staggered from +1h to +5h (10:00 UTC vs 06:00 UTC)
+                # to avoid competing with full bid crawl for Disk IO
                 _worker_cron_jobs.append(
-                    _arq_cron(contracts_full_crawl_job, weekday=_contracts_weekdays, hour={INGESTION_FULL_CRAWL_HOUR_UTC + 1}, minute=0, timeout=CONTRACTS_FULL_CRAWL_TIMEOUT),
+                    _arq_cron(contracts_full_crawl_job, weekday=_contracts_weekdays, hour={INGESTION_FULL_CRAWL_HOUR_UTC + 5}, minute=0, timeout=CONTRACTS_FULL_CRAWL_TIMEOUT),
                 )
                 _worker_cron_jobs.append(
                     _arq_cron(contracts_incremental_job, weekday=_contracts_weekdays, hour={12, 18, 0}, minute=0, timeout=CONTRACTS_INCREMENTAL_TIMEOUT),
                 )
             # Sprint 2 Parte 13: enriquecimento de fornecedores (BrasilAPI)
-            # Diario as 08:00 UTC (5am BRT), apos o contracts crawl das 06:00 UTC
+            # DEBT-IO-BUDGET: staggered to 20:00 UTC (17:00 BRT) to avoid
+            # competing with ingestion crawls during 05:00-10:00 UTC peak window
             from ingestion.scheduler import enrich_entities_job
             _worker_cron_jobs.append(
-                _arq_cron(enrich_entities_job, hour={8}, minute=0, timeout=7200),
+                _arq_cron(enrich_entities_job, hour={20}, minute=0, timeout=7200),
             )
             # Sprint 4 Parte 13: enriquecimento de municipios (IBGE)
-            # Diario as 09:00 UTC (6am BRT), 1h apos o enricher de fornecedores
+            # DEBT-IO-BUDGET: staggered to 21:00 UTC (18:00 BRT), 1h after enricher
             from ingestion.scheduler import enrich_municipios_job
             _worker_cron_jobs.append(
-                _arq_cron(enrich_municipios_job, hour={9}, minute=0, timeout=3600),
+                _arq_cron(enrich_municipios_job, hour={21}, minute=0, timeout=3600),
             )
             # IBGE code backfill: runs 30min after each crawl wave
             # (full=5 UTC + 30min, incremental=11/17/23 UTC + 30min)

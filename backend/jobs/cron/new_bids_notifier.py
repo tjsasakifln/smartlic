@@ -53,58 +53,68 @@ async def run_new_bids_notifier() -> dict:
         if not profiles:
             return {"processed": 0, "reason": "no_active_profiles"}
 
-        processed = 0
+        # DEBT-IO-BUDGET: Group profiles by unique (setor_id, ufs) combination
+        # to eliminate N+1 queries. 500 users sharing 10 unique combinations
+        # = 10 queries instead of 500.
+        from collections import defaultdict
+
+        grouped: dict[tuple, list[str]] = defaultdict(list)
         skipped = 0
-        errors = 0
 
         for profile in profiles:
+            user_id = profile["id"]
+            ctx = profile.get("context_data") or {}
+
+            setor_id = (
+                ctx.get("setor_id")
+                or ctx.get("setor")
+                or ctx.get("sector_id")
+            )
+            ufs_raw = (
+                ctx.get("ufs")
+                or ctx.get("ufs_selecionadas")
+                or ctx.get("states")
+                or []
+            )
+            ufs = tuple(sorted(ufs_raw)) if isinstance(ufs_raw, (list, tuple)) and ufs_raw else ()
+
+            if not setor_id or not ufs:
+                skipped += 1
+                continue
+
+            grouped[(setor_id, ufs)].append(user_id)
+
+        processed = 0
+        errors = 0
+
+        # One COUNT query per unique (setor_id, ufs) combination
+        for (setor_id, ufs), user_ids in grouped.items():
             try:
-                user_id = profile["id"]
-                ctx = profile.get("context_data") or {}
-
-                # Support multiple field name conventions
-                setor_id = (
-                    ctx.get("setor_id")
-                    or ctx.get("setor")
-                    or ctx.get("sector_id")
-                )
-                ufs_raw = (
-                    ctx.get("ufs")
-                    or ctx.get("ufs_selecionadas")
-                    or ctx.get("states")
-                    or []
-                )
-                ufs = list(ufs_raw) if isinstance(ufs_raw, (list, tuple)) else []
-
-                if not setor_id or not ufs:
-                    skipped += 1
-                    continue
-
-                # Count bids in last 26h matching user's sector + UFs
                 count_resp = await sb_execute(
                     sb.table("pncp_raw_bids")
                     .select("id", count="exact")
                     .eq("setor_id", setor_id)
-                    .in_("uf", ufs)
+                    .in_("uf", list(ufs))
                     .gte("ingested_at", since)
-                    .eq("is_active", True)
+                    .eq("is_active", True),
+                    category="read",
                 )
                 count = count_resp.count or 0
 
+                # Write same count to all users in this group
                 if redis:
-                    await redis.setex(
-                        f"new_bids_count:{user_id}",
-                        NEW_BIDS_REDIS_TTL,
-                        str(count),
-                    )
-                processed += 1
+                    for uid in user_ids:
+                        await redis.setex(
+                            f"new_bids_count:{uid}",
+                            NEW_BIDS_REDIS_TTL,
+                            str(count),
+                        )
+                processed += len(user_ids)
 
             except Exception as e:
-                uid_prefix = profile.get("id", "?")
-                if isinstance(uid_prefix, str):
-                    uid_prefix = uid_prefix[:8]
                 logger.warning(
-                    "STORY-445: Error processing user %s: %s", uid_prefix, e
+                    "STORY-445: Error processing group setor=%s ufs=%s: %s",
+                    setor_id, ufs, e,
                 )
                 errors += 1
 
