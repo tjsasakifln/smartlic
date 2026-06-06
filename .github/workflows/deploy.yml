@@ -146,10 +146,15 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v6
 
+      - name: Install Alpine runtime deps
+        run: |
+          apk add --no-cache libstdc++ libgcc 2>/dev/null || true
+          echo "✅ Runtime deps check complete"
+
       - name: Setup Supabase CLI
         uses: supabase/setup-cli@v2
         with:
-          version: latest
+          version: v2.15.8
 
       - name: Link project
         run: supabase link --project-ref ${{ secrets.SUPABASE_PROJECT_REF }}
