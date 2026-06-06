@@ -91,6 +91,7 @@ from routes.checkout import router as checkout_router
 from routes.seasonal_calendar import router as seasonal_calendar_router
 from routes.network_events import router as network_events_router
 from routes.segment import router as segment_router
+from routes.api_search import router as api_search_router
 
 _v1_routers = [
     admin_router, subscriptions_router, upgrade_to_lifetime_router,
@@ -143,6 +144,7 @@ _v1_routers = [
     seasonal_calendar_router,
     network_events_router,
     segment_router,
+    api_search_router,
 ]
 
 

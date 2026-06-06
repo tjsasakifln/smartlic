@@ -34,7 +34,7 @@ from collections import OrderedDict
 from jwt import PyJWKClient
 from typing import Any, Optional, Tuple
 
-from fastapi import HTTPException, Depends
+from fastapi import HTTPException, Depends, Request
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from log_sanitizer import log_auth_event, get_sanitized_logger
 
@@ -371,6 +371,85 @@ async def require_auth(
             detail="Autenticacao necessaria. Faca login para continuar.",
         )
     return user
+
+
+# ---------------------------------------------------------------------------
+# API-SELF-002: API Key authentication middleware
+# ---------------------------------------------------------------------------
+
+
+async def require_api_key(request: Request) -> str:
+    """FastAPI dependency that authenticates via X-API-Key header.
+
+    Workflow:
+      1. Extract ``X-API-Key`` header from the request.
+      2. Compute SHA-256 hash of the plaintext key.
+      3. Look up ``api_keys`` table WHERE ``key_hash = hash``
+         AND ``revoked_at IS NULL``.
+      4. Update ``last_used_at`` to the current timestamp.
+      5. Populate ``request.state.user_id`` and ``request.state.api_key_id``
+         with values from the matched row.
+      6. Return the ``user_id`` (str).
+
+    Every failure mode (missing key, not found, revoked) returns the SAME
+    ``401 Invalid API key`` message to avoid leaking whether a key exists.
+
+    The plaintext key is never written to logs — ``log_sanitizer.mask_api_key``
+    strips it to ``{prefix}***{suffix}``.
+    """
+    api_key = request.headers.get("X-API-Key")
+    if not api_key:
+        raise HTTPException(status_code=401, detail="Invalid API key")
+
+    # SHA-256 hash (high-entropy input — no salt needed, see ``datalake_api`` docs)
+    key_hash = hashlib.sha256(api_key.encode()).hexdigest()
+
+    from log_sanitizer import mask_api_key
+    logger.debug("API key auth: hash=%s... key=%s", key_hash[:16], mask_api_key(api_key))
+
+    from supabase_client import get_supabase, sb_execute
+
+    sb = get_supabase()
+    try:
+        result = await sb_execute(
+            sb.table("api_keys")
+            .select("id, user_id, revoked_at")
+            .eq("key_hash", key_hash)
+            .is_("revoked_at", "null")
+            .limit(1),
+            category="read",
+        )
+    except Exception:
+        logger.exception("API key lookup failed")
+        raise HTTPException(status_code=401, detail="Invalid API key")
+
+    if not result.data or len(result.data) == 0:
+        raise HTTPException(status_code=401, detail="Invalid API key")
+
+    row = result.data[0]
+
+    # Update last_used_at (best-effort, non-blocking)
+    try:
+        from datetime import datetime, timezone
+        await sb_execute(
+            sb.table("api_keys")
+            .update({"last_used_at": datetime.now(timezone.utc).isoformat()})
+            .eq("id", row["id"]),
+            category="write",
+        )
+    except Exception:
+        pass  # Best-effort — will pick up on next request
+
+    request.state.user_id = row["user_id"]
+    request.state.api_key_id = row["id"]
+
+    logger.debug(
+        "API key auth success: user_id=%s... api_key_id=%s...",
+        row["user_id"][:8],
+        row["id"][:8],
+    )
+
+    return row["user_id"]
 
 
 async def _get_profile_mfa_state(user_id: str) -> dict:
