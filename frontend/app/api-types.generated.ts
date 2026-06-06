@@ -24,34 +24,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/checkout/api-subscription": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Create Api Subscription Checkout
-         * @description Create a Stripe Checkout Session for an API tier subscription.
-         *
-         *     Flow:
-         *         1. Validate tier against API_PRODUCTS config
-         *         2. Look up Stripe Price ID from env var
-         *         3. Create Stripe Checkout Session (mode=subscription)
-         *         4. Return checkout URL
-         *
-         *     Rate limited: 10 req/min per IP.
-         */
-        post: operations["create_api_subscription_checkout_api_checkout_api_subscription_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/api/checkout/one-time": {
         parameters: {
             query?: never;
@@ -808,6 +780,35 @@ export interface paths {
          *     Caller is responsible for capturing 10× over 24h to build baseline.
          */
         get: operations["memory_snapshot_v1_admin_memory_snapshot_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/admin/metrics/revenue": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Revenue Metrics
+         * @description Return financial and engagement metrics for the founder dashboard.
+         *
+         *     Calls six PostgreSQL functions (FOUNDER-001) + inline queries for
+         *     activation_d7, retention_d1, retention_d30.
+         *
+         *     All percentage fields are normalized to the 0.0–1.0 range.
+         *     Response shape follows the FOUNDER-003 schema plus mrr_history (FOUNDER-004).
+         *
+         *     **Requires:** admin or master role.
+         *     **Target:** p95 <500ms (all DB calls run in parallel).
+         */
+        get: operations["get_revenue_metrics_v1_admin_metrics_revenue_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -6523,24 +6524,6 @@ export interface components {
             total: number;
         };
         /**
-         * ApiSubscriptionCheckoutRequest
-         * @description Request body for POST /api/checkout/api-subscription.
-         */
-        ApiSubscriptionCheckoutRequest: {
-            /** Tier */
-            tier: string;
-        };
-        /**
-         * ApiSubscriptionCheckoutResponse
-         * @description Response for API subscription checkout session creation.
-         */
-        ApiSubscriptionCheckoutResponse: {
-            /** Checkout Url */
-            checkout_url: string;
-            /** Session Id */
-            session_id: string;
-        };
-        /**
          * AppConfigPatchRequest
          * @description PATCH /v1/admin/config/{key} body.
          */
@@ -10234,6 +10217,27 @@ export interface components {
             /** Pct */
             pct: number;
         };
+        /**
+         * MrrHistoryEntry
+         * @description Single month entry in the MRR time series.
+         */
+        MrrHistoryEntry: {
+            /**
+             * Month
+             * @default
+             */
+            month: string;
+            /**
+             * Mrr
+             * @default 0
+             */
+            mrr: number;
+            /**
+             * Subscriber Count
+             * @default 0
+             */
+            subscriber_count: number;
+        };
         /** MunicipioProfileResponse */
         MunicipioProfileResponse: {
             /**
@@ -11727,6 +11731,94 @@ export interface components {
             paths: string[];
             /** Status */
             status: string;
+        };
+        /**
+         * RevenueMetricsResponse
+         * @description Response for GET /v1/admin/metrics/revenue (FOUNDER-003).
+         *
+         *     Returns financial and engagement metrics for the founder dashboard.
+         *     All rate/percentage fields are normalized to 0.0–1.0 range.
+         *
+         *     ``mrr`` is the most recent month's MRR in BRL.
+         *     ``total_subscribers`` is the active paid subscriber count from the
+         *     most recent MRR computation.
+         *
+         *     ``activation_d7`` is the proportion of users who created a search
+         *     session within their first 7 days after signup (normalized 0–1).
+         *
+         *     ``retention_d1`` / ``retention_d7`` / ``retention_d30`` are
+         *     the proportion of users who logged in on day 1 / day 7 / day 30
+         *     after signup (normalized 0–1).
+         *
+         *     ``mrr_history`` is a list of monthly MRR entries (time series)
+         *     ordered chronologically, used by the frontend Recharts line chart.
+         */
+        RevenueMetricsResponse: {
+            /**
+             * Activation D7
+             * @default 0
+             */
+            activation_d7: number;
+            /**
+             * Arpa
+             * @default 0
+             */
+            arpa: number;
+            /**
+             * Churn Rate 30D
+             * @default 0
+             */
+            churn_rate_30d: number;
+            /**
+             * Mrr
+             * @default 0
+             */
+            mrr: number;
+            /**
+             * Mrr History
+             * @default []
+             */
+            mrr_history: components["schemas"]["MrrHistoryEntry"][];
+            /**
+             * Period End
+             * @default
+             */
+            period_end: string;
+            /**
+             * Period Start
+             * @default
+             */
+            period_start: string;
+            /**
+             * Retention D1
+             * @default 0
+             */
+            retention_d1: number;
+            /**
+             * Retention D30
+             * @default 0
+             */
+            retention_d30: number;
+            /**
+             * Retention D7
+             * @default 0
+             */
+            retention_d7: number;
+            /**
+             * Total Subscribers
+             * @default 0
+             */
+            total_subscribers: number;
+            /**
+             * Trial To Paid 30D
+             * @default 0
+             */
+            trial_to_paid_30d: number;
+            /**
+             * Trial To Paid 90D
+             * @default 0
+             */
+            trial_to_paid_90d: number;
         };
         /** ReverseSyncRequest */
         ReverseSyncRequest: {
@@ -13731,39 +13823,6 @@ export interface operations {
             };
         };
     };
-    create_api_subscription_checkout_api_checkout_api_subscription_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["ApiSubscriptionCheckoutRequest"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ApiSubscriptionCheckoutResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
     create_one_time_checkout_api_checkout_one_time_post: {
         parameters: {
             query?: never;
@@ -14649,6 +14708,26 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["MemorySnapshot"];
+                };
+            };
+        };
+    };
+    get_revenue_metrics_v1_admin_metrics_revenue_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RevenueMetricsResponse"];
                 };
             };
         };
