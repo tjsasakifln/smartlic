@@ -1354,6 +1354,39 @@
         "title": "ApiSearchResponse",
         "type": "object"
       },
+      "ApiSubscriptionCheckoutRequest": {
+        "description": "Request body for POST /api/checkout/api-subscription.",
+        "properties": {
+          "tier": {
+            "title": "Tier",
+            "type": "string"
+          }
+        },
+        "required": [
+          "tier"
+        ],
+        "title": "ApiSubscriptionCheckoutRequest",
+        "type": "object"
+      },
+      "ApiSubscriptionCheckoutResponse": {
+        "description": "Response for API subscription checkout session creation.",
+        "properties": {
+          "checkout_url": {
+            "title": "Checkout Url",
+            "type": "string"
+          },
+          "session_id": {
+            "title": "Session Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "checkout_url",
+          "session_id"
+        ],
+        "title": "ApiSubscriptionCheckoutResponse",
+        "type": "object"
+      },
       "AppConfigPatchRequest": {
         "description": "PATCH /v1/admin/config/{key} body.",
         "properties": {
@@ -11457,54 +11490,6 @@
         "title": "PorteEmpresa",
         "type": "string"
       },
-      "PreferenciasRequest": {
-        "description": "Request body for PATCH /conta/preferencias \u2014 frequency toggle.",
-        "properties": {
-          "frequency": {
-            "description": "Digest frequency: daily, weekly, twice_weekly, off, none",
-            "title": "Frequency",
-            "type": "string"
-          }
-        },
-        "required": [
-          "frequency"
-        ],
-        "title": "PreferenciasRequest",
-        "type": "object"
-      },
-      "PreferenciasResponse": {
-        "description": "Response for PATCH /conta/preferencias \u2014 current digest preferences.",
-        "properties": {
-          "enabled": {
-            "default": true,
-            "description": "Whether the digest email is enabled",
-            "title": "Enabled",
-            "type": "boolean"
-          },
-          "frequency": {
-            "description": "Digest frequency (API namespace: off, not none)",
-            "title": "Frequency",
-            "type": "string"
-          },
-          "last_digest_sent_at": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "description": "ISO 8601 timestamp of last sent digest",
-            "title": "Last Digest Sent At"
-          }
-        },
-        "required": [
-          "frequency"
-        ],
-        "title": "PreferenciasResponse",
-        "type": "object"
-      },
       "ProductsResponse": {
         "properties": {
           "products": {
@@ -17517,6 +17502,53 @@
           }
         },
         "summary": "Root"
+      }
+    },
+    "/api/checkout/api-subscription": {
+      "post": {
+        "description": "Create a Stripe Checkout Session for an API tier subscription.\n\nFlow:\n    1. Validate tier against API_PRODUCTS config\n    2. Look up Stripe Price ID from env var\n    3. Create Stripe Checkout Session (mode=subscription)\n    4. Return checkout URL\n\nRate limited: 10 req/min per IP.",
+        "operationId": "create_api_subscription_checkout_api_checkout_api_subscription_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ApiSubscriptionCheckoutRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiSubscriptionCheckoutResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Create Api Subscription Checkout",
+        "tags": [
+          "checkout"
+        ]
       }
     },
     "/api/checkout/one-time": {
@@ -23819,53 +23851,6 @@
           }
         },
         "summary": "Cancel Trial Execute",
-        "tags": [
-          "conta"
-        ]
-      }
-    },
-    "/v1/conta/preferencias": {
-      "patch": {
-        "description": "DIGEST-004: Toggle the user's digest email frequency.\n\nAccepts ``frequency`` field with one of:\n  - ``daily`` \u2014 every day at 07:00 BRT\n  - ``twice_weekly`` \u2014 Monday + Thursday at 07:00 BRT\n  - ``weekly`` \u2014 Monday at 07:00 BRT\n  - ``off`` / ``none`` \u2014 disable digest emails\n\nInternally normalizes ``off`` \u2192 ``none`` for DB storage (DIGEST-001 naming).\nReturns the API-facing value (``off``, never ``none``) on the response.\nUses upsert on ``user_id`` \u2014 creates a row if none exists.\nUses ``_run_with_budget`` for the DB write (RES-BE-001/015 compliance).",
-        "operationId": "update_preferencias_v1_conta_preferencias_patch",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/PreferenciasRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/PreferenciasResponse"
-                }
-              }
-            },
-            "description": "Successful Response"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            },
-            "description": "Validation Error"
-          }
-        },
-        "security": [
-          {
-            "HTTPBearer": []
-          }
-        ],
-        "summary": "Update Preferencias",
         "tags": [
           "conta"
         ]
