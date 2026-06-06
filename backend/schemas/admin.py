@@ -236,3 +236,31 @@ class UserSegmentsResponse(BaseModel):
     transitions_last_week: list
     power_users: list
     queried_at: str
+
+
+# ---------------------------------------------------------------------------
+# FOUNDER-001/003/005: Founder Metrics Dashboard
+# ---------------------------------------------------------------------------
+
+
+class MrrEntry(BaseModel):
+    """Single month MRR entry returned by get_mrr()."""
+    month: str  # ISO date string, e.g. "2026-06-01"
+    mrr: float
+    subscriber_count: int
+
+
+class RevenueMetricsResponse(BaseModel):
+    """Response for GET /admin/metrics/founder (FOUNDER-003/005).
+
+    Aggregated revenue and engagement metrics for the founder dashboard.
+    All values are non-PII aggregates computed by server-side SQL functions.
+    """
+    mrr: list[MrrEntry]
+    churn_rate_30d: float
+    trial_to_paid_30d: float
+    trial_to_paid_90d: float
+    d7_retention: float
+    arpa: float
+    total_subscribers: int
+    lookup_duration_ms: float
