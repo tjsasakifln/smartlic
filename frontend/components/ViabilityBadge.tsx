@@ -24,9 +24,62 @@ interface ViabilityBadgeProps {
   bidId?: string;
 }
 
-/** Factor label for tooltip display */
-function factorLine(name: string, score: number, label: string): string {
-  return `${name}: ${label} (${score}/100)`;
+/** Factor line for data-tooltip-content text summary */
+function factorLine(name: string, weight: string, score: number, label: string): string {
+  return `${name} (${weight}): ${label} (${score}/100)`;
+}
+
+/** Progress bar color class based on score range: green >=70, yellow 40-69, gray <40 */
+function barColor(score: number): string {
+  if (score >= 70) return "bg-emerald-400";
+  if (score >= 40) return "bg-yellow-400";
+  return "bg-gray-400";
+}
+
+/** Progress bar background color class based on score range */
+function barBgColor(score: number): string {
+  if (score >= 70) return "bg-emerald-900/40";
+  if (score >= 40) return "bg-yellow-900/40";
+  return "bg-gray-700";
+}
+
+/** VIAB-UX-003: Individual factor row with label, score, weight, contextual explanation, and progress bar */
+function FactorRow({
+  name,
+  weight,
+  score,
+  label,
+}: {
+  name: string;
+  weight: string;
+  score: number;
+  label: string;
+}) {
+  return (
+    <div className="text-gray-300" role="group" aria-label={`${name} ${weight}`}>
+      <div className="flex items-baseline justify-between">
+        <span className="text-white text-[10px] font-medium">
+          {name}
+          <span className="text-gray-400 font-normal"> {weight}</span>
+        </span>
+        <span className="text-[10px] tabular-nums">{score}/100</span>
+      </div>
+      <div className="text-[9px] text-gray-400/80 mt-0.5 mb-1 leading-tight line-clamp-2">
+        {label}
+      </div>
+      <div className={`h-1.5 rounded-full w-full ${barBgColor(score)}`}>
+        <div
+          className={`h-full rounded-full ${barColor(score)}`}
+          style={{ width: `${Math.min(100, Math.max(0, score))}%` }}
+          role="progressbar"
+          aria-valuenow={score}
+          aria-valuemin={0}
+          aria-valuemax={100}
+          aria-label={`${name}: ${score} de 100`}
+        />
+      </div>
+    </div>
+  );
 }
 
 /** D-04 AC8: Viability badge with accessible tooltip showing factor breakdown
@@ -86,14 +139,14 @@ export default function ViabilityBadge({
   const c = config[level] ?? config["baixa"];
   if (!c) return null;
 
-  // Build tooltip lines
+  // Build tooltip text for data attribute (test introspection)
   const tooltipLines: string[] = [`Viabilidade: ${score ?? "?"}/100`];
   if (factors) {
     tooltipLines.push(
-      factorLine("Modalidade", factors.modalidade, factors.modalidade_label),
-      factorLine("Prazo", factors.timeline, factors.timeline_label),
-      factorLine("Valor", factors.value_fit, factors.value_fit_label),
-      factorLine("UF", factors.geography, factors.geography_label),
+      factorLine("Modalidade", "30%", factors.modalidade, factors.modalidade_label),
+      factorLine("Prazo", "25%", factors.timeline, factors.timeline_label),
+      factorLine("Valor", "25%", factors.value_fit, factors.value_fit_label),
+      factorLine("UF", "20%", factors.geography, factors.geography_label),
     );
   }
   if (valueSource === "missing") {
@@ -105,6 +158,9 @@ export default function ViabilityBadge({
   return (
     <ViabilityTooltip
       tooltipLines={tooltipLines}
+      factors={factors}
+      score={score}
+      valueSource={valueSource}
       ariaLabel={c.ariaLabel}
       bg={c.bg}
       level={level}
@@ -122,10 +178,14 @@ export default function ViabilityBadge({
  * - Mobile tap-to-toggle support
  * - ARIA: role="tooltip" + aria-describedby linkage
  * - Dismisses on Escape key and outside click
+ * VIAB-UX-003: Rich content with progress bars and factor breakdown
  */
 function ViabilityTooltip({
   children,
   tooltipLines,
+  factors,
+  score,
+  valueSource,
   ariaLabel,
   bg,
   level,
@@ -134,6 +194,9 @@ function ViabilityTooltip({
 }: {
   children: React.ReactNode;
   tooltipLines: string[];
+  factors?: ViabilityFactors | null;
+  score?: number | null;
+  valueSource?: "estimated" | "missing" | null;
   ariaLabel: string;
   bg: string;
   level: string;
@@ -226,17 +289,54 @@ function ViabilityTooltip({
           role="tooltip"
           className={[
             "absolute z-50 bottom-full left-1/2 -translate-x-1/2 mb-2",
-            "w-max max-w-[240px]",
+            "w-max max-w-[260px]",
             "bg-gray-900 dark:bg-gray-800 text-white text-[10px] leading-relaxed",
             "rounded-md px-2.5 py-2 shadow-lg",
             "pointer-events-none",
           ].join(" ")}
         >
-          {tooltipLines.map((line, i) => (
-            <p key={i} className={i === 0 ? "font-semibold mb-1" : "text-gray-300"}>
-              {line}
-            </p>
-          ))}
+          {/* Total score */}
+          <div className="font-semibold mb-2 text-white text-[11px]">
+            Viabilidade: {score ?? "?"}/100
+          </div>
+
+          {/* Factor rows with progress bars — VIAB-UX-003 */}
+          {factors && (
+            <div className="space-y-2">
+              <FactorRow
+                name="Modalidade"
+                weight="30%"
+                score={factors.modalidade}
+                label={factors.modalidade_label}
+              />
+              <FactorRow
+                name="Prazo"
+                weight="25%"
+                score={factors.timeline}
+                label={factors.timeline_label}
+              />
+              <FactorRow
+                name="Valor"
+                weight="25%"
+                score={factors.value_fit}
+                label={factors.value_fit_label}
+              />
+              <FactorRow
+                name="UF"
+                weight="20%"
+                score={factors.geography}
+                label={factors.geography_label}
+              />
+            </div>
+          )}
+
+          {/* Missing value warning */}
+          {valueSource === "missing" && (
+            <div className="mt-1.5 text-[9px] text-yellow-400 leading-tight">
+              ⚠ Valor estimado não informado pelo órgão — viabilidade pode ser maior
+            </div>
+          )}
+
           {/* Arrow */}
           <span
             aria-hidden="true"
