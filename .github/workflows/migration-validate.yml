@@ -28,10 +28,18 @@ jobs:
     steps:
       - uses: actions/checkout@v6
 
+      # Alpine/musl containers need libstdc++ + libgcc for Supabase CLI.
+      # Without these, supabase/setup-cli fails with "exec format error" on the
+      # Deno binary. Pinning version avoids GitHub API rate limit on latest resolution.
+      - name: Install Alpine runtime deps
+        run: |
+          apk add --no-cache libstdc++ libgcc
+          echo "✅ Alpine runtime deps installed"
+
       - name: Setup Supabase CLI
         uses: supabase/setup-cli@v2
         with:
-          version: latest
+          version: v2.15.8
 
       - name: Start Supabase local (no migrations yet)
         run: |
