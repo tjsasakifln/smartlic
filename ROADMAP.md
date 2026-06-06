@@ -1,6 +1,6 @@
 # ROADMAP — SmartLic
 
-**Versao:** 6.2 | **Atualizado:** 2026-06-04 | **Status:** Intel Reports 87.5%, Reposicionamento 100%, Q2 Multi-Camada 61.2%, Wave 4 0%
+**Versao:** 6.3 | **Atualizado:** 2026-06-06 | **Status:** Intel Reports 87.5%, Reposicionamento 100%, Q2 Multi-Camada 98.8%, Wave 4 63.0%
 
 ## 2026-04-24 — EPIC-GROWTH-VIRAL-2026-Q3: On-Page CAC-Zero
 
@@ -46,8 +46,8 @@ FOUNDERS PLAN:       [####################] 100% (23 issues — #782–#795, #86
 TECH DEBT (TD):      [####################] 100% (61/61 issues fechadas)
 INTEL REPORTS:       [################....] 87.5% (7/8 issues, 1 open blocker)
 UX PREMIUM:          [....................] 0% (issues nao criados — spec em docs/stories/)
-Q2 MULTI-CAMADA:     [############........] 61.2% (5 EPICs + CONV + Verticais, 85 issues, 52 closed, 33 open)
-Q2 WAVE 4 (JUN):     [....................] 0% (54 issues novas — #1400–#1453)
+Q2 MULTI-CAMADA:     [###################.] 98.8% (5 EPICs + CONV + Verticais, 85 issues, 84 closed, 1 open)
+Q2 WAVE 4 (JUN):     [#############.......] 63.0% (54 issues, 34 closed, 20 open — #1400–#1453)
 ```
 
 **Production:** https://smartlic.tech
@@ -194,7 +194,7 @@ Status: todas Draft — Milestone criado (#4), issues a criar.
 
 ## Q2 2026 — Inteligencia Multi-Camada (em execucao)
 
-5 EPICs lançados 2026-05-16 a 2026-06-02 + CONV + Verticais Premium. 85 issues (52 closed, 33 open). Foco: camada de inteligência B2G profunda além da busca. Progresso real: 61.2% concluído (recálculo audit 2026-06-04 — 110 estava inflado).
+5 EPICs lançados 2026-05-16 a 2026-06-02 + CONV + Verticais Premium. 85 issues (84 closed, 1 open). Foco: camada de inteligência B2G profunda além da busca. Progresso real: 98.8% concluído (recálculo audit 2026-06-06 — 33 issues do Wave 4 fechados em 3 dias).
 
 ### EPIC-SUBINTEL — Inteligencia de Cadeia de Fornecimento (#1224)
 
@@ -321,6 +321,15 @@ Status: todas Draft — Milestone criado (#4), issues a criar.
 | #1339 | CONV-011b-2: 3 templates email (delivery, followup, reengagement) | Closed |
 | #1340 | CONV-011b-3: ARQ jobs post_purchase_sequence + tracking Mixpanel | Closed |
 
+**CRO-CTA (2026-05-30 a 2026-06-02) — Arquitetura de CTA por intenção**
+
+| Issue | Título | Status |
+|-------|--------|--------|
+| #1211 | CRO-CTA-005: /blog/subcontratacao-licitacoes-regras-lei-14133 — CTA estratégia de entrada para PME | Closed |
+| #1212 | CRO-CTA-006: /perguntas/indice-reajuste-contrato-publico — CTA contratos monitoráveis | Closed |
+| #1213 | CRO-CTA-007: /blog/licitacoes/facilities/es — Inverter mensagem para páginas com zero editais | Closed |
+| #1214 | CRO-CTA-000: Arquitetura de CTA por intenção de busca — matar "Teste Grátis" como CTA padrão do pSEO | Closed |
+
 **Verticais Premium (2026-06-02)**
 
 | Issue | Título | Status |
@@ -342,14 +351,14 @@ Status: todas Draft — Milestone criado (#4), issues a criar.
 
 ### Q2 Wave 4 — Core Features (Jun 2026) — 54 issues novas
 
-Lançados 2026-06-04. Nenhum closed ainda — todos Open. Foco: retenção, revenue visibility, API self-service, UX repositioning, feedback loop.
+Lançados 2026-06-04. 34 de 54 closed (63.0%) — todos fechados entre Jun 4-6. Foco: retenção, revenue visibility, API self-service, UX repositioning, feedback loop.
 
 **DIGEST — Motor de Retenção Semanal (#1410–#1413, #1421)**
 
 | Issue | Título | Status |
 |-------|--------|--------|
-| #1410 | DIGEST-001: Migration + config — coluna frequency, cron pg_cron, flag DIGEST_ENABLED | Open |
-| #1411 | DIGEST-002: Lógica de build do digest — query por setor, top N por tier, fallback | Open |
+| #1410 | DIGEST-001: Migration + config — coluna frequency, cron pg_cron, flag DIGEST_ENABLED | Closed |
+| #1411 | DIGEST-002: Lógica de build do digest — query por setor, top N por tier, fallback | Closed |
 | #1412 | DIGEST-003: Template HTML + integração Resend — viability badges, CTA, List-Unsubscribe | Open |
 | #1413 | DIGEST-004: Endpoint de preferências — PATCH /conta/preferencias para frequency toggle | Open |
 | #1421 | DIGEST-005: Métricas + Mixpanel — digest_sent/opened/clicked/unsubscribe | Open |
@@ -358,8 +367,8 @@ Lançados 2026-06-04. Nenhum closed ainda — todos Open. Foco: retenção, reve
 
 | Issue | Título | Status |
 |-------|--------|--------|
-| #1414 | FOUNDER-001: SQL queries — MRR, churn 30d, trial-to-paid 30d/90d, D7 retention, ARPA | Open |
-| #1415 | FOUNDER-002: Cron diário + cache Redis — computar métricas, invalidar a cada 1h | Open |
+| #1414 | FOUNDER-001: SQL queries — MRR, churn 30d, trial-to-paid 30d/90d, D7 retention, ARPA | Closed |
+| #1415 | FOUNDER-002: Cron diário + cache Redis — computar métricas, invalidar a cada 1h | Closed |
 | #1416 | FOUNDER-003: Endpoint GET /admin/metrics/revenue — JSON, p95 <500ms | Open |
 | #1417 | FOUNDER-004: Frontend /admin/metrics — cards numéricos + gráfico de coortes (Recharts) | Open |
 | #1422 | FOUNDER-005: Mixpanel founder_metrics_viewed + permission check admin-only | Open |
@@ -368,9 +377,9 @@ Lançados 2026-06-04. Nenhum closed ainda — todos Open. Foco: retenção, reve
 
 | Issue | Título | Status |
 |-------|--------|--------|
-| #1372 | P0: Datalake API Self-Service — monetização imediata via API REST | Open |
-| #1418 | API-SELF-001: Migration api_keys + modelo Pydantic + rotas CRUD | Open |
-| #1419 | API-SELF-002: Middleware require_api_key + rota GET /v1/api/search | Open |
+| #1372 | P0: Datalake API Self-Service — monetização imediata via API REST | Closed |
+| #1418 | API-SELF-001: Migration api_keys + modelo Pydantic + rotas CRUD | Closed |
+| #1419 | API-SELF-002: Middleware require_api_key + rota GET /v1/api/search | Closed |
 | #1420 | API-SELF-003: Rate limiting por API key via Redis token bucket (respeita tier) | Open |
 | #1423 | API-SELF-004: Stripe — 3 products/prices + webhook + metered billing cron | Open |
 | #1424 | API-SELF-005: Landing page /api + Swagger UI público + pricing cards | Open |
@@ -381,22 +390,22 @@ Lançados 2026-06-04. Nenhum closed ainda — todos Open. Foco: retenção, reve
 | Issue | Título | Status |
 |-------|--------|--------|
 | #1408 | feat: Implement User Lifecycle State Machine + Login Tracking | Open |
-| #1426 | LIFECYCLE-001: Migration — profiles.last_login_at, login_count, tabela login_activity | Open |
-| #1427 | LIFECYCLE-002: Auth middleware — atualizar last_login_at + login_activity (Redis write-behind) | Open |
-| #1428 | LIFECYCLE-003: SQL function compute_user_lifecycle() + endpoint GET /admin/users/segments | Open |
-| #1429 | LIFECYCLE-004: Admin dashboard — lifecycle states, transições/semana, power users, Mixpanel | Open |
+| #1426 | LIFECYCLE-001: Migration — profiles.last_login_at, login_count, tabela login_activity | Closed |
+| #1427 | LIFECYCLE-002: Auth middleware — atualizar last_login_at + login_activity (Redis write-behind) | Closed |
+| #1428 | LIFECYCLE-003: SQL function compute_user_lifecycle() + endpoint GET /admin/users/segments | Closed |
+| #1429 | LIFECYCLE-004: Admin dashboard — lifecycle states, transições/semana, power users, Mixpanel | Closed |
 
 **VIAB-UX — Viability Score UX Repositioning (#1430–#1434, #1452–#1453, estende #1405)**
 
 | Issue | Título | Status |
 |-------|--------|--------|
 | #1405 | feat: Reposition Viability Score as Central UX Element | Open |
-| #1430 | VIAB-UX-001: Mudar default sort para confianca — backend schema + frontend SearchForm | Open |
-| #1431 | VIAB-UX-002: ViabilityBadge inline em cada linha da listagem principal | Open |
-| #1432 | VIAB-UX-003: Tooltip com breakdown dos 4 fatores — Modalidade, Prazo, Valor, Geografia | Open |
-| #1433 | VIAB-UX-004: Seção 'Por que esta oportunidade?' — expandable section no card | Open |
+| #1430 | VIAB-UX-001: Mudar default sort para confianca — backend schema + frontend SearchForm | Closed |
+| #1431 | VIAB-UX-002: ViabilityBadge inline em cada linha da listagem principal | Closed |
+| #1432 | VIAB-UX-003: Tooltip com breakdown dos 4 fatores — Modalidade, Prazo, Valor, Geografia | Closed |
+| #1433 | VIAB-UX-004: Seção 'Por que esta oportunidade?' — expandable section no card | Closed |
 | #1434 | VIAB-UX-005: A/B test — feature flag VIABILITY_DEFAULT_SORT + métricas de comparação | Open |
-| #1452 | VIAB-UX-005a: Feature flag VIABILITY_DEFAULT_SORT + split 50/50 via hash user_id | Open |
+| #1452 | VIAB-UX-005a: Feature flag VIABILITY_DEFAULT_SORT + split 50/50 via hash user_id | Closed |
 | #1453 | VIAB-UX-005b: Admin dashboard de A/B test — metricas comparativas + significancia estatistica | Open |
 
 **FEEDBACK — Feedback Loop + Sector Affinity (#1435–#1439, estende #1406)**
@@ -404,40 +413,40 @@ Lançados 2026-06-04. Nenhum closed ainda — todos Open. Foco: retenção, reve
 | Issue | Título | Status |
 |-------|--------|--------|
 | #1406 | feat: Close the Feedback Loop — Learn from User Behavior | Open |
-| #1435 | FEEDBACK-001: Migration user_sector_affinity — tabela + RLS + seed inicial | Open |
-| #1436 | FEEDBACK-002: Atualizar affinity no feedback — correct +0.1, false_positive -0.2 por setor | Open |
-| #1437 | FEEDBACK-003: Combined score adjustment — fator de afinidade no enrich pipeline | Open |
-| #1438 | FEEDBACK-004: Endpoint GET /profile/sector-affinity — transparência de afinidades | Open |
+| #1435 | FEEDBACK-001: Migration user_sector_affinity — tabela + RLS + seed inicial | Closed |
+| #1436 | FEEDBACK-002: Atualizar affinity no feedback — correct +0.1, false_positive -0.2 por setor | Closed |
+| #1437 | FEEDBACK-003: Combined score adjustment — fator de afinidade no enrich pipeline | Closed |
+| #1438 | FEEDBACK-004: Endpoint GET /profile/sector-affinity — transparência de afinidades | Closed |
 | #1439 | FEEDBACK-005: Frontend — 'Setores que não me interessam' + mute/unmute na /conta/preferencias | Open |
 
 **NO-JARGON — Replace Technical Jargon (#1440–#1443, estende #1407)**
 
 | Issue | Título | Status |
 |-------|--------|--------|
-| #1407 | fix: Replace Technical Jargon in Customer-Facing UX | Open |
-| #1440 | NO-JARGON-001: Substituir 'Cache' → 'Dados recentes' nos 6 componentes de busca | Open |
-| #1441 | NO-JARGON-002: Substituir 'GPT-4', 'LLM', 'quota' em componentes visíveis | Open |
-| #1442 | NO-JARGON-003: Blog — substituir 'datalake' por 'base de dados' em 15+ artigos | Open |
-| #1443 | NO-JARGON-004: Atualizar BANNED_PHRASES + extender validação para blog e search components | Open |
+| #1407 | fix: Replace Technical Jargon in Customer-Facing UX | Closed |
+| #1440 | NO-JARGON-001: Substituir 'Cache' → 'Dados recentes' nos 6 componentes de busca | Closed |
+| #1441 | NO-JARGON-002: Substituir 'GPT-4', 'LLM', 'quota' em componentes visíveis | Closed |
+| #1442 | NO-JARGON-003: Blog — substituir 'datalake' por 'base de dados' em 15+ artigos | Closed |
+| #1443 | NO-JARGON-004: Atualizar BANNED_PHRASES + extender validação para blog e search components | Closed |
 
 **ENTITY — Entity Tracking (#1444–#1447, estende #1409)**
 
 | Issue | Título | Status |
 |-------|--------|--------|
 | #1409 | feat: Enable "Follow Organ/Competitor" Entity Tracking | Open |
-| #1444 | ENTITY-001: Migration — adicionar tracked_orgaos e tracked_fornecedores ao schema de alertas | Open |
-| #1445 | ENTITY-002: Alert matcher — cruzar novos bids com CNPJ dos órgãos/fornecedores trackeados | Open |
-| #1446 | ENTITY-003: Frontend — botão 'Seguir' nas páginas de órgão e CNPJ | Open |
-| #1447 | ENTITY-004: Limite de entidades por plano + upgrade prompt | Open |
+| #1444 | ENTITY-001: Migration — adicionar tracked_orgaos e tracked_fornecedores ao schema de alertas | Closed |
+| #1445 | ENTITY-002: Alert matcher — cruzar novos bids com CNPJ dos órgãos/fornecedores trackeados | Closed |
+| #1446 | ENTITY-003: Frontend — botão 'Seguir' nas páginas de órgão e CNPJ | Closed |
+| #1447 | ENTITY-004: Limite de entidades por plano + upgrade prompt | Closed |
 
 **TIER-COMMAND — SmartLic Command Tier (#1448–#1451, estende #1290)**
 
 | Issue | Título | Status |
 |-------|--------|--------|
-| #1448 | TIER-COMMAND-001: PlanCapabilities + TierConfig — novo tier 'command' no quota_core.py | Open |
-| #1449 | TIER-COMMAND-002: Stripe — novo product/price + webhook handlers | Open |
-| #1450 | TIER-COMMAND-003: Feature flags por capability — gate de acesso às funcionalidades Command | Open |
-| #1451 | TIER-COMMAND-004: Página de checkout + landing page do tier Command | Open |
+| #1448 | TIER-COMMAND-001: PlanCapabilities + TierConfig — novo tier 'command' no quota_core.py | Closed |
+| #1449 | TIER-COMMAND-002: Stripe — novo product/price + webhook handlers | Closed |
+| #1450 | TIER-COMMAND-003: Feature flags por capability — gate de acesso às funcionalidades Command | Closed |
+| #1451 | TIER-COMMAND-004: Página de checkout + landing page do tier Command | Closed |
 
 **CONV-SUB — CONV Sub-Issues (#1400–#1402)**
 
@@ -502,7 +511,8 @@ Obsolete stories and docs moved to `docs/archive/` (Feb 20, 2026):
 | 2026-06-02 | Verticais Premium: 6 feature flags ativados + Datalake API Self-Service |
 | 2026-06-03 | ROADMAP v6.1 — audit sync: 601 issues (565 closed, 36 open), Q2 69.1% |
 | 2026-06-04 | ROADMAP v6.2 — audit sync: 655 issues (567 closed, 88 open). Fix #1339/#1340 states, +4 capabilities, +54 Wave 4 issues. Q2 recalculado: 61.2% (85 issues, não 110) |
+| 2026-06-06 | ROADMAP v6.3 — audit sync: 655 issues (600 closed, 55 open). +33 Wave 4 issues closed em 3 dias. Q2 Multi-Camada 98.8%, Wave 4 63.0%. Velocity ~12/dia. |
 
 ---
 
-*Ultima atualizacao: 2026-06-04*
+*Ultima atualizacao: 2026-06-06*
