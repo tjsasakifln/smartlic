@@ -323,7 +323,7 @@ COMMENT ON FUNCTION public.get_d7_retention IS
 -- Formula:
 --   current MRR / total active paid subscribers
 --
--- Uses the same MRR logic as get_mrr but computed for the current month.
+-- Delegates MRR calculation to get_mrr() so the formula stays consistent.
 -- Active paid subscribers = count of subscriptions with is_active = true,
 -- subscription_status IN ('active', 'trialing'), plan_id NOT a free/pack plan.
 -- ============================================================================
@@ -332,66 +332,45 @@ CREATE OR REPLACE FUNCTION public.get_arpa()
 RETURNS NUMERIC
 LANGUAGE sql STABLE
 AS $$
-  SELECT
-    CASE
-      WHEN subscriber_count = 0 THEN 0
-      ELSE ROUND((current_mrr / subscriber_count)::NUMERIC, 2)
-    END
-  FROM (
-    SELECT
-      COALESCE(SUM(
-        COALESCE(
-          pbp.price_cents / 100.0,
-          CASE
-            WHEN p.id = 'annual' THEN p.price_brl / 12.0
-            WHEN p.id IN ('free', 'free_trial', 'pack_5', 'pack_10', 'pack_20', 'master') THEN 0
-            ELSE p.price_brl
-          END
-        )
-      ), 0) AS current_mrr,
-      COUNT(*) AS subscriber_count
+  WITH current_month AS (
+    SELECT date_trunc('month', NOW())::DATE AS month_start
+  ),
+  mrr_data AS (
+    SELECT mrr
+    FROM public.get_mrr(
+      (SELECT month_start FROM current_month),
+      (SELECT month_start FROM current_month)
+    )
+  ),
+  active_count AS (
+    SELECT COUNT(*)::NUMERIC AS count
     FROM public.user_subscriptions us
-    JOIN public.plans p ON p.id = us.plan_id
-    LEFT JOIN public.plan_billing_periods pbp
-      ON pbp.plan_id = us.plan_id
-      AND pbp.billing_period = COALESCE(us.billing_period, 'monthly')
     WHERE us.is_active = true
       AND us.subscription_status IN ('active', 'trialing')
       AND us.plan_id NOT IN ('free', 'free_trial', 'pack_5', 'pack_10', 'pack_20', 'master')
-      AND COALESCE(
-        pbp.price_cents / 100.0,
-        CASE
-          WHEN p.id = 'annual' THEN p.price_brl / 12.0
-          WHEN p.id IN ('free', 'free_trial', 'pack_5', 'pack_10', 'pack_20', 'master') THEN 0
-          ELSE p.price_brl
-        END
-      ) > 0
-  ) metrics;
+  )
+  SELECT
+    CASE
+      WHEN (SELECT count FROM active_count) = 0 THEN 0
+      ELSE ROUND(((SELECT mrr FROM mrr_data) / (SELECT count FROM active_count))::NUMERIC, 2)
+    END;
 $$;
 
 COMMENT ON FUNCTION public.get_arpa IS
-  'FOUNDER-001: Average Revenue Per Account (BRL). Current MRR / active paid '
-  'subscribers.';
+  'FOUNDER-001: Average Revenue Per Account (BRL). Current MRR (delegated to '
+  'get_mrr) / active paid subscribers.';
 
 -- ============================================================================
 -- Grant permissions
 -- ============================================================================
 
--- Allow authenticated users and service_role to execute these functions
+-- Allow service_role to execute these functions (admin dashboard)
 GRANT EXECUTE ON FUNCTION public.get_mrr TO service_role;
 GRANT EXECUTE ON FUNCTION public.get_churn_rate_30d TO service_role;
 GRANT EXECUTE ON FUNCTION public.get_trial_to_paid_30d TO service_role;
 GRANT EXECUTE ON FUNCTION public.get_trial_to_paid_90d TO service_role;
 GRANT EXECUTE ON FUNCTION public.get_d7_retention TO service_role;
 GRANT EXECUTE ON FUNCTION public.get_arpa TO service_role;
-
--- Also allow authenticated so admin dashboard can call them via the API
-GRANT EXECUTE ON FUNCTION public.get_mrr TO authenticated;
-GRANT EXECUTE ON FUNCTION public.get_churn_rate_30d TO authenticated;
-GRANT EXECUTE ON FUNCTION public.get_trial_to_paid_30d TO authenticated;
-GRANT EXECUTE ON FUNCTION public.get_trial_to_paid_90d TO authenticated;
-GRANT EXECUTE ON FUNCTION public.get_d7_retention TO authenticated;
-GRANT EXECUTE ON FUNCTION public.get_arpa TO authenticated;
 
 -- ============================================================================
 -- Notify PostgREST to reload schema
