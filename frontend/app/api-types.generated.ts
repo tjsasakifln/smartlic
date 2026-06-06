@@ -2217,7 +2217,8 @@ export interface paths {
          *     Same search pipeline as ``POST /buscar`` but authenticated with an
          *     ``X-API-Key`` header instead of JWT Bearer token.
          *
-         *     **Rate limiting:** 100 requests/day per API key (``X-RateLimit-*`` headers).
+         *     **Rate limiting:** Monthly quota per API key based on user's plan tier
+         *     (``X-RateLimit-*`` headers).
          */
         get: operations["api_search_v1_api_search_get"];
         put?: never;
