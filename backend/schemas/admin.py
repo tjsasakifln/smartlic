@@ -236,3 +236,37 @@ class UserSegmentsResponse(BaseModel):
     transitions_last_week: list
     power_users: list
     queried_at: str
+
+
+# --- FOUNDER-003 (#1416): Revenue Metrics ------------------------------------
+
+
+class RevenueMetricsResponse(BaseModel):
+    """Response for GET /v1/admin/metrics/revenue (FOUNDER-003).
+
+    Returns financial and engagement metrics for the founder dashboard.
+    All rate/percentage fields are normalized to 0.0–1.0 range.
+
+    ``mrr`` is the most recent month's MRR in BRL.
+    ``total_subscribers`` is the active paid subscriber count from the
+    most recent MRR computation.
+
+    ``activation_d7`` is the proportion of users who created a search
+    session within their first 7 days after signup (normalized 0–1).
+
+    ``retention_d1`` / ``retention_d7`` / ``retention_d30`` are
+    the proportion of users who logged in on day 1 / day 7 / day 30
+    after signup (normalized 0–1).
+    """
+    mrr: float = 0.0
+    churn_rate_30d: float = 0.0
+    trial_to_paid_30d: float = 0.0
+    trial_to_paid_90d: float = 0.0
+    activation_d7: float = 0.0
+    retention_d1: float = 0.0
+    retention_d7: float = 0.0
+    retention_d30: float = 0.0
+    arpa: float = 0.0
+    total_subscribers: int = 0
+    period_start: str = ""
+    period_end: str = ""
