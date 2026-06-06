@@ -1098,6 +1098,22 @@
         "title": "AlertasResponse",
         "type": "object"
       },
+      "ApiKeyCreate": {
+        "description": "Request body for POST /v1/api-keys.",
+        "properties": {
+          "name": {
+            "maxLength": 100,
+            "minLength": 1,
+            "title": "Name",
+            "type": "string"
+          }
+        },
+        "required": [
+          "name"
+        ],
+        "title": "ApiKeyCreate",
+        "type": "object"
+      },
       "ApiKeyCreateRequest": {
         "description": "Request to create a new API key.",
         "properties": {
@@ -1141,6 +1157,41 @@
           "created_at"
         ],
         "title": "ApiKeyCreateResponse",
+        "type": "object"
+      },
+      "ApiKeyCreated": {
+        "description": "Returned ONCE after creation \u2014 includes plaintext key.",
+        "properties": {
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "message": {
+            "default": "Guarde esta chave agora. Ela n\u00e3o ser\u00e1 exibida novamente.",
+            "title": "Message",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "plaintext_key": {
+            "title": "Plaintext Key",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "plaintext_key",
+          "created_at"
+        ],
+        "title": "ApiKeyCreated",
         "type": "object"
       },
       "ApiKeyListItem": {
@@ -1207,6 +1258,43 @@
           "keys"
         ],
         "title": "ApiKeyListResponse",
+        "type": "object"
+      },
+      "ApiKeyResponse": {
+        "description": "Public representation of an API key (no plaintext, no hash).",
+        "properties": {
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "last_used_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Used At"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "created_at"
+        ],
+        "title": "ApiKeyResponse",
         "type": "object"
       },
       "ApiKeyRevokeResponse": {
@@ -20799,6 +20887,123 @@
         "summary": "Get Trial Value",
         "tags": [
           "analytics"
+        ]
+      }
+    },
+    "/v1/api-keys": {
+      "get": {
+        "description": "List all non-revoked API keys for the authenticated user.",
+        "operationId": "list_api_keys_v1_api_keys_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/ApiKeyResponse"
+                  },
+                  "title": "Response List Api Keys V1 Api Keys Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "List Api Keys",
+        "tags": [
+          "api-keys"
+        ]
+      },
+      "post": {
+        "description": "Create a new API key. The plaintext key is returned ONCE.",
+        "operationId": "create_api_key_v1_api_keys_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ApiKeyCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiKeyCreated"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Create Api Key",
+        "tags": [
+          "api-keys"
+        ]
+      }
+    },
+    "/v1/api-keys/{key_id}": {
+      "delete": {
+        "description": "Revoke (soft-delete) an API key. Only the owner can revoke.",
+        "operationId": "revoke_api_key_v1_api_keys__key_id__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "key_id",
+            "required": true,
+            "schema": {
+              "title": "Key Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Revoke Api Key",
+        "tags": [
+          "api-keys"
         ]
       }
     },

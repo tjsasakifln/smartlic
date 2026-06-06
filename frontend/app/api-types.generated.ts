@@ -1751,6 +1751,50 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/api-keys": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Api Keys
+         * @description List all non-revoked API keys for the authenticated user.
+         */
+        get: operations["list_api_keys_v1_api_keys_get"];
+        put?: never;
+        /**
+         * Create Api Key
+         * @description Create a new API key. The plaintext key is returned ONCE.
+         */
+        post: operations["create_api_key_v1_api_keys_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/api-keys/{key_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Revoke Api Key
+         * @description Revoke (soft-delete) an API key. Only the owner can revoke.
+         */
+        delete: operations["revoke_api_key_v1_api_keys__key_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/api/api-keys": {
         parameters: {
             query?: never;
@@ -6289,6 +6333,14 @@ export interface components {
             uf: string;
         };
         /**
+         * ApiKeyCreate
+         * @description Request body for POST /v1/api-keys.
+         */
+        ApiKeyCreate: {
+            /** Name */
+            name: string;
+        };
+        /**
          * ApiKeyCreateRequest
          * @description Request to create a new API key.
          */
@@ -6321,6 +6373,28 @@ export interface components {
             name: string;
         };
         /**
+         * ApiKeyCreated
+         * @description Returned ONCE after creation — includes plaintext key.
+         */
+        ApiKeyCreated: {
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Id */
+            id: string;
+            /**
+             * Message
+             * @default Guarde esta chave agora. Ela não será exibida novamente.
+             */
+            message: string;
+            /** Name */
+            name: string;
+            /** Plaintext Key */
+            plaintext_key: string;
+        };
+        /**
          * ApiKeyListItem
          * @description Public representation of an API key (no plaintext).
          */
@@ -6346,6 +6420,23 @@ export interface components {
         ApiKeyListResponse: {
             /** Keys */
             keys: components["schemas"]["ApiKeyListItem"][];
+        };
+        /**
+         * ApiKeyResponse
+         * @description Public representation of an API key (no plaintext, no hash).
+         */
+        ApiKeyResponse: {
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Id */
+            id: string;
+            /** Last Used At */
+            last_used_at?: string | null;
+            /** Name */
+            name: string;
         };
         /**
          * ApiKeyRevokeResponse
@@ -15794,6 +15885,88 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["TrialValueResponse"];
+                };
+            };
+        };
+    };
+    list_api_keys_v1_api_keys_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiKeyResponse"][];
+                };
+            };
+        };
+    };
+    create_api_key_v1_api_keys_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ApiKeyCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiKeyCreated"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    revoke_api_key_v1_api_keys__key_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                key_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };
