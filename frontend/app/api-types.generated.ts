@@ -24,6 +24,34 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/checkout/api-subscription": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Create Api Subscription Checkout
+         * @description Create a Stripe Checkout Session for an API tier subscription.
+         *
+         *     Flow:
+         *         1. Validate tier against API_PRODUCTS config
+         *         2. Look up Stripe Price ID from env var
+         *         3. Create Stripe Checkout Session (mode=subscription)
+         *         4. Return checkout URL
+         *
+         *     Rate limited: 10 req/min per IP.
+         */
+        post: operations["create_api_subscription_checkout_api_checkout_api_subscription_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/checkout/one-time": {
         parameters: {
             query?: never;
@@ -6493,6 +6521,24 @@ export interface components {
             tamanho: number;
             /** Total */
             total: number;
+        };
+        /**
+         * ApiSubscriptionCheckoutRequest
+         * @description Request body for POST /api/checkout/api-subscription.
+         */
+        ApiSubscriptionCheckoutRequest: {
+            /** Tier */
+            tier: string;
+        };
+        /**
+         * ApiSubscriptionCheckoutResponse
+         * @description Response for API subscription checkout session creation.
+         */
+        ApiSubscriptionCheckoutResponse: {
+            /** Checkout Url */
+            checkout_url: string;
+            /** Session Id */
+            session_id: string;
         };
         /**
          * AppConfigPatchRequest
@@ -13681,6 +13727,39 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["RootResponse"];
+                };
+            };
+        };
+    };
+    create_api_subscription_checkout_api_checkout_api_subscription_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ApiSubscriptionCheckoutRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiSubscriptionCheckoutResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };

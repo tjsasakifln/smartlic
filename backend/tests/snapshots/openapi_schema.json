@@ -9349,6 +9349,28 @@
         "title": "ModalidadeAggregate",
         "type": "object"
       },
+      "MrrHistoryEntry": {
+        "description": "Single month entry in the MRR time series.",
+        "properties": {
+          "month": {
+            "default": "",
+            "title": "Month",
+            "type": "string"
+          },
+          "mrr": {
+            "default": 0.0,
+            "title": "Mrr",
+            "type": "number"
+          },
+          "subscriber_count": {
+            "default": 0,
+            "title": "Subscriber Count",
+            "type": "integer"
+          }
+        },
+        "title": "MrrHistoryEntry",
+        "type": "object"
+      },
       "MunicipioProfileResponse": {
         "properties": {
           "atividade_recente": {
@@ -12829,6 +12851,81 @@
           "paths"
         ],
         "title": "RevalidateSEOResponse",
+        "type": "object"
+      },
+      "RevenueMetricsResponse": {
+        "description": "Response for GET /v1/admin/metrics/revenue (FOUNDER-003).\n\nReturns financial and engagement metrics for the founder dashboard.\nAll rate/percentage fields are normalized to 0.0\u20131.0 range.\n\n``mrr`` is the most recent month's MRR in BRL.\n``total_subscribers`` is the active paid subscriber count from the\nmost recent MRR computation.\n\n``activation_d7`` is the proportion of users who created a search\nsession within their first 7 days after signup (normalized 0\u20131).\n\n``retention_d1`` / ``retention_d7`` / ``retention_d30`` are\nthe proportion of users who logged in on day 1 / day 7 / day 30\nafter signup (normalized 0\u20131).\n\n``mrr_history`` is a list of monthly MRR entries (time series)\nordered chronologically, used by the frontend Recharts line chart.",
+        "properties": {
+          "activation_d7": {
+            "default": 0.0,
+            "title": "Activation D7",
+            "type": "number"
+          },
+          "arpa": {
+            "default": 0.0,
+            "title": "Arpa",
+            "type": "number"
+          },
+          "churn_rate_30d": {
+            "default": 0.0,
+            "title": "Churn Rate 30D",
+            "type": "number"
+          },
+          "mrr": {
+            "default": 0.0,
+            "title": "Mrr",
+            "type": "number"
+          },
+          "mrr_history": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/MrrHistoryEntry"
+            },
+            "title": "Mrr History",
+            "type": "array"
+          },
+          "period_end": {
+            "default": "",
+            "title": "Period End",
+            "type": "string"
+          },
+          "period_start": {
+            "default": "",
+            "title": "Period Start",
+            "type": "string"
+          },
+          "retention_d1": {
+            "default": 0.0,
+            "title": "Retention D1",
+            "type": "number"
+          },
+          "retention_d30": {
+            "default": 0.0,
+            "title": "Retention D30",
+            "type": "number"
+          },
+          "retention_d7": {
+            "default": 0.0,
+            "title": "Retention D7",
+            "type": "number"
+          },
+          "total_subscribers": {
+            "default": 0,
+            "title": "Total Subscribers",
+            "type": "integer"
+          },
+          "trial_to_paid_30d": {
+            "default": 0.0,
+            "title": "Trial To Paid 30D",
+            "type": "number"
+          },
+          "trial_to_paid_90d": {
+            "default": 0.0,
+            "title": "Trial To Paid 90D",
+            "type": "number"
+          }
+        },
+        "title": "RevenueMetricsResponse",
         "type": "object"
       },
       "ReverseSyncRequest": {
@@ -18809,6 +18906,34 @@
         "summary": "Memory Snapshot",
         "tags": [
           "admin"
+        ]
+      }
+    },
+    "/v1/admin/metrics/revenue": {
+      "get": {
+        "description": "Return financial and engagement metrics for the founder dashboard.\n\nCalls six PostgreSQL functions (FOUNDER-001) + inline queries for\nactivation_d7, retention_d1, retention_d30.\n\nAll percentage fields are normalized to the 0.0\u20131.0 range.\nResponse shape follows the FOUNDER-003 schema plus mrr_history (FOUNDER-004).\n\n**Requires:** admin or master role.\n**Target:** p95 <500ms (all DB calls run in parallel).",
+        "operationId": "get_revenue_metrics_v1_admin_metrics_revenue_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RevenueMetricsResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Get Revenue Metrics",
+        "tags": [
+          "admin",
+          "metrics"
         ]
       }
     },
