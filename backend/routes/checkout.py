@@ -1,9 +1,12 @@
 """CONV-005b-2: Generic one-time checkout endpoint for digital products.
+API-SELF-004: API subscription checkout endpoint.
 
-Creates a Stripe Checkout Session for a digital product identified by SKU.
+Creates a Stripe Checkout Session for a digital product identified by SKU,
+or for an API tier subscription (Starter/Pro/Scale).
 
 Endpoints:
-    POST /api/checkout/one-time — create Stripe Checkout Session for a product
+    POST /api/checkout/one-time           — create Stripe Checkout Session for a product
+    POST /api/checkout/api-subscription   — create Stripe Checkout Session for API tier
 
 Dependencies:
     - digital_products table (CONV-005b-1 / #1334)
@@ -24,7 +27,12 @@ from auth import require_auth
 from rate_limiter import require_rate_limit
 from supabase_client import get_supabase, sb_execute
 
-from schemas.checkout import CheckoutRequest, CheckoutResponse
+from schemas.checkout import (
+    ApiSubscriptionCheckoutRequest,
+    ApiSubscriptionCheckoutResponse,
+    CheckoutRequest,
+    CheckoutResponse,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -287,3 +295,123 @@ async def create_one_time_checkout(
         )
 
     return CheckoutResponse(checkout_url=session.url)
+
+
+# ---------------------------------------------------------------------------
+# API-SELF-004: API subscription checkout
+# ---------------------------------------------------------------------------
+
+
+@router.post("/api-subscription", response_model=ApiSubscriptionCheckoutResponse)
+async def create_api_subscription_checkout(
+    payload: ApiSubscriptionCheckoutRequest,
+    user: dict = Depends(require_auth),
+):
+    """Create a Stripe Checkout Session for an API tier subscription.
+
+    Flow:
+        1. Validate tier against API_PRODUCTS config
+        2. Look up Stripe Price ID from env var
+        3. Create Stripe Checkout Session (mode=subscription)
+        4. Return checkout URL
+
+    Rate limited: 10 req/min per IP.
+    """
+    import stripe as stripe_lib
+
+    from stripe_api_products import (
+        API_PRODUCTS,
+        get_tier_price_id,
+        API_TIER_STARTER,
+        API_TIER_PRO,
+        API_TIER_SCALE,
+    )
+
+    stripe_key = _get_stripe_key()
+    frontend_url = _get_frontend_url()
+
+    # Step 1: Validate tier
+    valid_tiers = {API_TIER_STARTER, API_TIER_PRO, API_TIER_SCALE}
+    if payload.tier not in valid_tiers:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Tier invalido. Opcoes: {', '.join(sorted(valid_tiers))}",
+        )
+
+    # Step 2: Resolve Stripe Price ID from env var
+    price_id = get_tier_price_id(payload.tier)
+    if not price_id:
+        logger.error(
+            "API checkout: Stripe Price ID not configured for tier=%s "
+            "(env var %s is not set)",
+            payload.tier,
+            API_PRODUCTS[payload.tier]["price_id_env"],
+        )
+        raise HTTPException(
+            status_code=503,
+            detail="Preco nao configurado para este tier. Contate o suporte.",
+        )
+
+    user_id = user.get("sub") or user.get("id") or ""
+
+    # Step 3: Create Checkout Session
+    success_url = f"{frontend_url}/conta?api_subscription=success"
+    cancel_url = f"{frontend_url}/planos/api"
+
+    metadata = {
+        "source": "api_subscription",
+        "tier": payload.tier,
+        "user_id": user_id,
+    }
+
+    try:
+        session = stripe_lib.checkout.Session.create(
+            mode="subscription",
+            line_items=[{"price": price_id, "quantity": 1}],
+            metadata=metadata,
+            client_reference_id=user_id,
+            customer_email=user.get("email", ""),
+            success_url=success_url,
+            cancel_url=cancel_url,
+            api_key=stripe_key,
+        )
+    except stripe_lib.error.InvalidRequestError as exc:
+        logger.error(
+            "API checkout: Stripe InvalidRequestError for tier=%s user=%s: %s",
+            payload.tier,
+            user_id[:8],
+            exc,
+        )
+        raise HTTPException(
+            status_code=400,
+            detail="Nao foi possivel iniciar o checkout. Verifique os dados e tente novamente.",
+        ) from exc
+    except stripe_lib.error.StripeError as exc:
+        logger.error(
+            "API checkout: Stripe error for tier=%s user=%s: %s",
+            payload.tier,
+            user_id[:8],
+            exc,
+        )
+        raise HTTPException(
+            status_code=503,
+            detail="Servico de pagamento temporariamente indisponivel. Tente novamente.",
+        ) from exc
+
+    logger.info(
+        "API checkout: session created — tier=%s user=%s session=%s",
+        payload.tier,
+        user_id[:8],
+        session.id,
+    )
+
+    if not session.url:
+        raise HTTPException(
+            status_code=503,
+            detail="Servico de pagamento temporariamente indisponivel. Tente novamente.",
+        )
+
+    return ApiSubscriptionCheckoutResponse(
+        checkout_url=session.url,
+        session_id=session.id,
+    )

@@ -22,10 +22,12 @@ from __future__ import annotations
 from typing import Optional
 
 import stripe
-from fastapi import APIRouter, HTTPException, Query
-from pydantic import BaseModel, Field
+from fastapi import APIRouter, Depends, HTTPException, Query
+from pydantic import BaseModel, Field, field_validator
 
+from auth import require_auth
 from log_sanitizer import get_sanitized_logger, mask_user_id
+from pipeline.budget import _run_with_budget
 from services.trial_cancel_token import (
     TrialCancelTokenError,
     verify_cancel_trial_token,
@@ -289,4 +291,116 @@ async def cancel_trial_execute(payload: CancelTrialRequest) -> CancelTrialRespon
 
     return CancelTrialResponse(
         cancelled=True, access_until=trial_end_ts, already_cancelled=False
+    )
+
+
+# ============================================================================
+# DIGEST-004: Digest preference frequency toggle
+# ============================================================================
+
+_VALID_FREQUENCIES = frozenset({"daily", "weekly", "twice_weekly", "off", "none"})
+
+
+class PreferenciasRequest(BaseModel):
+    """Request body for PATCH /conta/preferencias — frequency toggle."""
+
+    frequency: str = Field(
+        ...,
+        description="Digest frequency: daily, weekly, twice_weekly, off, none",
+    )
+
+    @field_validator("frequency")
+    @classmethod
+    def _validate_frequency(cls, v: str) -> str:
+        normalized = v.strip().lower()
+        if normalized not in _VALID_FREQUENCIES:
+            raise ValueError(
+                f"Frequência inválida: '{v}'. Opções: {', '.join(sorted(_VALID_FREQUENCIES))}"
+            )
+        return normalized
+
+
+class PreferenciasResponse(BaseModel):
+    """Response for PATCH /conta/preferencias — current digest preferences."""
+
+    frequency: str = Field(
+        ...,
+        description="Digest frequency (API namespace: off, not none)",
+    )
+    enabled: bool = Field(
+        default=True,
+        description="Whether the digest email is enabled",
+    )
+    last_digest_sent_at: str | None = Field(
+        default=None,
+        description="ISO 8601 timestamp of last sent digest",
+    )
+
+
+@router.patch("/preferencias", response_model=PreferenciasResponse)
+async def update_preferencias(
+    payload: PreferenciasRequest,
+    user: dict = Depends(require_auth),
+) -> PreferenciasResponse:
+    """DIGEST-004: Toggle the user's digest email frequency.
+
+    Accepts ``frequency`` field with one of:
+      - ``daily`` — every day at 07:00 BRT
+      - ``twice_weekly`` — Monday + Thursday at 07:00 BRT
+      - ``weekly`` — Monday at 07:00 BRT
+      - ``off`` / ``none`` — disable digest emails
+
+    Internally normalizes ``off`` → ``none`` for DB storage (DIGEST-001 naming).
+    Returns the API-facing value (``off``, never ``none``) on the response.
+    Uses upsert on ``user_id`` — creates a row if none exists.
+    Uses ``_run_with_budget`` for the DB write (RES-BE-001/015 compliance).
+    """
+    user_id = user["id"]
+    raw_frequency = payload.frequency
+
+    # DIGEST-001: normalize API value "off" → DB value "none"
+    db_frequency = "none" if raw_frequency in ("off", "none") else raw_frequency
+
+    sb = get_supabase()
+
+    try:
+        result = await _run_with_budget(
+            sb_execute(
+                sb.table("alert_preferences").upsert(
+                    {
+                        "user_id": user_id,
+                        "frequency": db_frequency,
+                    },
+                    on_conflict="user_id",
+                ),
+                category="write",
+            ),
+            budget=5.0,
+            phase="route",
+            source="conta.update_preferencias",
+        )
+    except Exception as exc:
+        logger.error(f"Failed to update digest preferences for {mask_user_id(user_id)}: {exc}")
+        raise HTTPException(
+            status_code=500,
+            detail="Erro ao salvar preferências de frequência.",
+        ) from exc
+
+    row = result.data[0] if result.data else {}
+
+    # DIGEST-001: normalize DB value "none" → API value "off"
+    api_frequency = row.get("frequency", db_frequency)
+    if api_frequency == "none":
+        api_frequency = "off"
+
+    logger.info(
+        "DIGEST-004: frequency updated user=%s frequency=%s",
+        mask_user_id(user_id),
+        api_frequency,
+    )
+
+    return PreferenciasResponse(
+        frequency=api_frequency,
+        enabled=row.get("enabled", True),
+        last_digest_sent_at=row.get("last_digest_sent_at"),
     )

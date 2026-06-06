@@ -9349,11 +9349,10 @@
         "title": "ModalidadeAggregate",
         "type": "object"
       },
-      "MrrHistoryEntry": {
-        "description": "Single month entry in the MRR time series.",
+      "MrrEntry": {
+        "description": "Single month MRR entry returned by ``get_mrr()``.",
         "properties": {
           "month": {
-            "default": "",
             "title": "Month",
             "type": "string"
           },
@@ -9368,7 +9367,10 @@
             "type": "integer"
           }
         },
-        "title": "MrrHistoryEntry",
+        "required": [
+          "month"
+        ],
+        "title": "MrrEntry",
         "type": "object"
       },
       "MunicipioProfileResponse": {
@@ -11479,6 +11481,54 @@
         "title": "PorteEmpresa",
         "type": "string"
       },
+      "PreferenciasRequest": {
+        "description": "Request body for PATCH /conta/preferencias \u2014 frequency toggle.",
+        "properties": {
+          "frequency": {
+            "description": "Digest frequency: daily, weekly, twice_weekly, off, none",
+            "title": "Frequency",
+            "type": "string"
+          }
+        },
+        "required": [
+          "frequency"
+        ],
+        "title": "PreferenciasRequest",
+        "type": "object"
+      },
+      "PreferenciasResponse": {
+        "description": "Response for PATCH /conta/preferencias \u2014 current digest preferences.",
+        "properties": {
+          "enabled": {
+            "default": true,
+            "description": "Whether the digest email is enabled",
+            "title": "Enabled",
+            "type": "boolean"
+          },
+          "frequency": {
+            "description": "Digest frequency (API namespace: off, not none)",
+            "title": "Frequency",
+            "type": "string"
+          },
+          "last_digest_sent_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "ISO 8601 timestamp of last sent digest",
+            "title": "Last Digest Sent At"
+          }
+        },
+        "required": [
+          "frequency"
+        ],
+        "title": "PreferenciasResponse",
+        "type": "object"
+      },
       "ProductsResponse": {
         "properties": {
           "products": {
@@ -12854,7 +12904,7 @@
         "type": "object"
       },
       "RevenueMetricsResponse": {
-        "description": "Response for GET /v1/admin/metrics/revenue (FOUNDER-003).\n\nReturns financial and engagement metrics for the founder dashboard.\nAll rate/percentage fields are normalized to 0.0\u20131.0 range.\n\n``mrr`` is the most recent month's MRR in BRL.\n``total_subscribers`` is the active paid subscriber count from the\nmost recent MRR computation.\n\n``activation_d7`` is the proportion of users who created a search\nsession within their first 7 days after signup (normalized 0\u20131).\n\n``retention_d1`` / ``retention_d7`` / ``retention_d30`` are\nthe proportion of users who logged in on day 1 / day 7 / day 30\nafter signup (normalized 0\u20131).\n\n``mrr_history`` is a list of monthly MRR entries (time series)\nordered chronologically, used by the frontend Recharts line chart.",
+        "description": "Response for GET /v1/admin/metrics/revenue (FOUNDER-003 + FOUNDER-005).\n\nAggregated revenue and engagement metrics for the founder dashboard.\nAll values are non-PII aggregates computed by server-side SQL functions\n(FOUNDER-001 migration 20260606010000).\n\n``mrr`` is the most recent month's MRR in BRL.\n``mrr_history`` contains per-month MRR entries for chart rendering.\nAll rate/percentage fields are normalized to the 0.0-1.0 range.",
         "properties": {
           "activation_d7": {
             "default": 0.0,
@@ -12879,7 +12929,7 @@
           "mrr_history": {
             "default": [],
             "items": {
-              "$ref": "#/components/schemas/MrrHistoryEntry"
+              "$ref": "#/components/schemas/MrrEntry"
             },
             "title": "Mrr History",
             "type": "array"
@@ -18911,7 +18961,7 @@
     },
     "/v1/admin/metrics/revenue": {
       "get": {
-        "description": "Return financial and engagement metrics for the founder dashboard.\n\nCalls six PostgreSQL functions (FOUNDER-001) + inline queries for\nactivation_d7, retention_d1, retention_d30.\n\nAll percentage fields are normalized to the 0.0\u20131.0 range.\nResponse shape follows the FOUNDER-003 schema plus mrr_history (FOUNDER-004).\n\n**Requires:** admin or master role.\n**Target:** p95 <500ms (all DB calls run in parallel).",
+        "description": "Return financial and engagement metrics for the founder dashboard.\n\nCalls six PostgreSQL functions (FOUNDER-001) + inline queries for\nactivation_d7, retention_d1, retention_d30. All DB calls run in\nparallel via ``asyncio.gather``.\n\nFires a Mixpanel ``founder_metrics_viewed`` event and logs an audit\nevent. Both are fire-and-forget \u2014 they never block the response.\n\n**Requires:** admin or master role.",
         "operationId": "get_revenue_metrics_v1_admin_metrics_revenue_get",
         "responses": {
           "200": {
@@ -22047,7 +22097,7 @@
     },
     "/v1/api/search": {
       "get": {
-        "description": "Search licitacoes via API key authentication.\n\nSame search pipeline as ``POST /buscar`` but authenticated with an\n``X-API-Key`` header instead of JWT Bearer token.\n\n**Rate limiting:** 100 requests/day per API key (``X-RateLimit-*`` headers).",
+        "description": "Search licitacoes via API key authentication.\n\nSame search pipeline as ``POST /buscar`` but authenticated with an\n``X-API-Key`` header instead of JWT Bearer token.\n\n**Rate limiting:** Monthly quota per API key based on user's plan tier\n(``X-RateLimit-*`` headers).",
         "operationId": "api_search_v1_api_search_get",
         "parameters": [
           {
@@ -23896,6 +23946,53 @@
           }
         },
         "summary": "Cancel Trial Execute",
+        "tags": [
+          "conta"
+        ]
+      }
+    },
+    "/v1/conta/preferencias": {
+      "patch": {
+        "description": "DIGEST-004: Toggle the user's digest email frequency.\n\nAccepts ``frequency`` field with one of:\n  - ``daily`` \u2014 every day at 07:00 BRT\n  - ``twice_weekly`` \u2014 Monday + Thursday at 07:00 BRT\n  - ``weekly`` \u2014 Monday at 07:00 BRT\n  - ``off`` / ``none`` \u2014 disable digest emails\n\nInternally normalizes ``off`` \u2192 ``none`` for DB storage (DIGEST-001 naming).\nReturns the API-facing value (``off``, never ``none``) on the response.\nUses upsert on ``user_id`` \u2014 creates a row if none exists.\nUses ``_run_with_budget`` for the DB write (RES-BE-001/015 compliance).",
+        "operationId": "update_preferencias_v1_conta_preferencias_patch",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PreferenciasRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PreferenciasResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Update Preferencias",
         "tags": [
           "conta"
         ]
