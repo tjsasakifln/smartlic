@@ -9,7 +9,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 from fastapi import FastAPI
-from httpx import AsyncClient
+from httpx import ASGITransport, AsyncClient
 
 from routes.admin_metrics import router as admin_metrics_router
 from schemas.admin import MrrHistoryEntry, RevenueMetricsResponse
@@ -31,7 +31,7 @@ def app():
 @pytest.fixture
 async def client(app):
     """Async HTTP client."""
-    async with AsyncClient(app=app, base_url="http://test") as ac:
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:
         yield ac
 
 
