@@ -11,6 +11,7 @@ import DeepAnalysisModal from "../../components/DeepAnalysisModal";
 import { AddToPipelineButton } from "./AddToPipelineButton";
 import { formatCurrencyBR } from "../../lib/format-currency";
 import { ShareAnalysisButton } from "../../components/ShareAnalysisButton";
+import WhyThisOpportunity from "../buscar/components/WhyThisOpportunity";
 
 interface LicitacoesPreviewProps {
   /** List of bid items to display */
@@ -33,6 +34,8 @@ interface LicitacoesPreviewProps {
   bidAnalysis?: BidAnalysisItem[];
   /** STORY-259: Status of bid analysis batch job */
   bidAnalysisStatus?: "ready" | "processing" | null;
+  /** VIAB-UX-004: Sector name for "why this opportunity" breakdown */
+  sectorName?: string;
 }
 
 /**
@@ -52,6 +55,7 @@ export function LicitacoesPreview({
   accessToken,
   bidAnalysis,
   bidAnalysisStatus,
+  sectorName,
 }: LicitacoesPreviewProps) {
   /** STORY-259: Index bid analysis by bid_id for O(1) lookup */
   const bidAnalysisMap = bidAnalysis
@@ -282,6 +286,7 @@ export function LicitacoesPreview({
             idPrefix="bid"
             bidAnalysis={bidAnalysisMap?.get(item.pncp_id || "") ?? null}
             bidAnalysisStatus={bidAnalysisStatus}
+            sectorName={sectorName}
           />
         ))}
       </div>
@@ -374,6 +379,7 @@ export function LicitacoesPreview({
               idPrefix="extra"
               bidAnalysis={bidAnalysisMap?.get(item.pncp_id || "") ?? null}
               bidAnalysisStatus={bidAnalysisStatus}
+              sectorName={sectorName}
             />
           ))}
         </div>
@@ -406,6 +412,8 @@ interface BidCardProps {
   bidAnalysis?: BidAnalysisItem | null;
   /** STORY-259: Global analysis batch status */
   bidAnalysisStatus?: "ready" | "processing" | null;
+  /** VIAB-UX-004: Sector name for "why this opportunity" breakdown */
+  sectorName?: string;
 }
 
 function BidCard({
@@ -426,8 +434,10 @@ function BidCard({
   idPrefix,
   bidAnalysis,
   bidAnalysisStatus,
+  sectorName,
 }: BidCardProps) {
   const [expanded, setExpanded] = useState(false);
+  const [whyOpen, setWhyOpen] = useState(false);
   const [deepModalOpen, setDeepModalOpen] = useState(false);
   // STORY-447: Per-bid PDF export state
   const [isPdfLoading, setIsPdfLoading] = useState(false);
@@ -590,6 +600,21 @@ function BidCard({
             )}
           </div>
         </div>
+
+        {/* VIAB-UX-004: "Por que esta oportunidade?" expandable section */}
+        <WhyThisOpportunity
+          viabilityScore={item.viability_score}
+          viabilityLevel={item.viability_level}
+          viabilityFactors={item.viability_factors}
+          sectorName={sectorName}
+          matchedTerms={item.matched_terms ?? undefined}
+          municipio={item.municipio ?? undefined}
+          uf={item.uf}
+          valor={item.valor}
+          bidId={item.pncp_id || `${idPrefix}-${index}`}
+          isOpen={whyOpen}
+          onToggle={() => setWhyOpen((prev) => !prev)}
+        />
 
         {/* AC8: Expandable details section */}
         <div className="mt-2">

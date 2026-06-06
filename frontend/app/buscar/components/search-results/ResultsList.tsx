@@ -28,6 +28,8 @@ interface ResultsListProps {
   // Paywall
   paywallApplied?: boolean;
   totalBeforePaywall?: number | null;
+  /** VIAB-UX-004: Sector name for "why this opportunity" breakdown */
+  sectorName?: string;
 }
 
 /**
@@ -51,6 +53,7 @@ export function ResultsList({
   setorId,
   paywallApplied,
   totalBeforePaywall,
+  sectorName,
 }: ResultsListProps) {
   return (
     <>
@@ -83,6 +86,7 @@ export function ResultsList({
           accessToken={session?.access_token}
           bidAnalysis={result.bid_analysis}
           bidAnalysisStatus={result.bid_analysis_status}
+          sectorName={sectorName}
         />
       )}
 
