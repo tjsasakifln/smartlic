@@ -168,10 +168,9 @@ function ViabilityTooltip({
       setOpen(false);
     } else if (e.key === "Enter" || e.key === " ") {
       e.preventDefault();
-      trackBreakdownViewed();
       setOpen((prev) => !prev);
     }
-  }, [trackBreakdownViewed]);
+  }, []);
 
   /** VIAB-UX-002: Track viability_breakdown_viewed when tooltip opens via hover/focus */
   useEffect(() => {
@@ -209,10 +208,7 @@ function ViabilityTooltip({
         onFocus={() => setOpen(true)}
         onBlur={() => setOpen(false)}
         onKeyDown={handleKeyDown}
-        onClick={() => {
-          trackBreakdownViewed();
-          setOpen((prev) => !prev);
-        }}
+        onClick={() => setOpen((prev) => !prev)}
         className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-semibold cursor-default
           focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-1 focus-visible:ring-current
           ${bg}`}
