@@ -129,3 +129,12 @@ from jobs.cron.send_lead_magnet import (  # noqa: F401
     send_lead_magnet_batch_job,
     start_lead_magnet_batch_task,
 )
+
+# API-SELF-004: API metered billing — daily usage tracking
+from cron.api_metered_billing import (  # noqa: F401
+    API_METERED_BILLING_LOCK_KEY,
+    API_METERED_BILLING_LOCK_TTL,
+    API_METERED_BILLING_HOUR_UTC,
+    run_api_metered_billing,
+    start_api_metered_billing_task,
+)

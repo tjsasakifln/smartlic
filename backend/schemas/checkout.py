@@ -18,3 +18,16 @@ class CheckoutResponse(BaseModel):
     """Response for a successful checkout session creation."""
 
     checkout_url: str
+
+
+class ApiSubscriptionCheckoutRequest(BaseModel):
+    """Request body for POST /api/checkout/api-subscription."""
+
+    tier: str  # "api_starter", "api_pro", "api_scale"
+
+
+class ApiSubscriptionCheckoutResponse(BaseModel):
+    """Response for API subscription checkout session creation."""
+
+    checkout_url: str
+    session_id: str

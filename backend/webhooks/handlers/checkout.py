@@ -159,6 +159,16 @@ async def handle_checkout_session_completed(sb, event: stripe.Event) -> None:
         await handle_intel_report_checkout_completed(sb, session_data)
         return
 
+    # API-SELF-004: API subscription checkout (mode=subscription + source=api_subscription)
+    if metadata.get("source") == "api_subscription":
+        logger.info(
+            "checkout.session.completed: API subscription checkout — "
+            "routing to handle_api_checkout_session_completed"
+        )
+        from webhooks.handlers.api_checkout import handle_api_checkout_session_completed
+        await handle_api_checkout_session_completed(sb, event)
+        return
+
     # FOUND-CRIT-006: founding mode=payment one-time checkout — routed entirely
     # through mark_founding_lead_completed (which handles entitlement + invite).
     # These sessions have no plan_id/subscription in metadata, so they must be
