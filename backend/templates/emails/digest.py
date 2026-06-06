@@ -16,8 +16,15 @@ from templates.emails.base import email_base, SMARTLIC_GREEN, FRONTEND_URL
 # alta = verde, media = amarelo, baixa = cinza
 _VIABILITY_COLORS = {
     "alta": {"bg": "#e8f5e9", "text": "#2e7d32", "label": "Alta viabilidade"},
-    "media": {"bg": "#fff8e1", "text": "#b76e00", "label": "Viabilidade media"},
+    "media": {"bg": "#fff8e1", "text": "#b76e00", "label": "Viabilidade média"},
     "baixa": {"bg": "#f5f5f5", "text": "#757575", "label": "Baixa viabilidade"},
+}
+
+# Legacy badge colors for render_daily_digest_email (STORY-278 AC3 backward compat)
+_LEGACY_VIABILITY_COLORS = {
+    "alta": {"bg": "#e8f5e9", "text": "#2e7d32", "label": "Alta viabilidade"},
+    "media": {"bg": "#fff8e1", "text": "#f57f17", "label": "Viabilidade média"},
+    "baixa": {"bg": "#fce4ec", "text": "#c62828", "label": "Baixa viabilidade"},
 }
 
 # Frequency label mapping
@@ -93,7 +100,7 @@ def _render_opportunity_row(opp: dict, index: int) -> str:
     viability_score = opp.get("viability_score")
     badge = _viability_badge(viability_score)
 
-    valor_display = _format_brl(valor) if valor > 0 else "Valor nao informado"
+    valor_display = _format_brl(valor) if valor > 0 else "Valor não informado"
 
     bg_color = "#ffffff" if index % 2 == 1 else "#f9f9f9"
 
@@ -239,16 +246,84 @@ def render_digest_email(
 # Backward compatibility: keep render_daily_digest_email for existing callers
 # ---------------------------------------------------------------------------
 
+def _legacy_viability_badge(score: float | None) -> str:
+    """Render a viability badge using legacy colors (STORY-278 AC3).
+
+    Uses _LEGACY_VIABILITY_COLORS: baixa=red (#c62828), media=amber (#f57f17).
+
+    Args:
+        score: Viability score 0.0-1.0, or None if not assessed.
+
+    Returns:
+        HTML string for the badge (inline-styled span).
+    """
+    if score is None:
+        return ""
+
+    if score >= 0.7:
+        style = _LEGACY_VIABILITY_COLORS["alta"]
+    elif score >= 0.4:
+        style = _LEGACY_VIABILITY_COLORS["media"]
+    else:
+        style = _LEGACY_VIABILITY_COLORS["baixa"]
+
+    return (
+        f'<span style="display: inline-block; padding: 2px 8px; '
+        f'background-color: {style["bg"]}; color: {style["text"]}; '
+        f'border-radius: 4px; font-size: 11px; font-weight: 600; '
+        f'line-height: 1.4;">{style["label"]}</span>'
+    )
+
+
+def _render_legacy_opportunity_row(opp: dict, index: int) -> str:
+    """Render a single opportunity row with old badge colors and display."""
+    titulo = opp.get("titulo", "Sem titulo")
+    if len(titulo) > 120:
+        titulo = titulo[:117] + "..."
+
+    orgao = opp.get("orgao", "Orgao nao informado")
+    if len(orgao) > 60:
+        orgao = orgao[:57] + "..."
+
+    valor = opp.get("valor_estimado", 0.0) or 0.0
+    uf = opp.get("uf", "\u2014")
+    viability_score = opp.get("viability_score")
+    badge = _legacy_viability_badge(viability_score)
+
+    valor_display = _format_brl(valor) if valor > 0 else "Valor n\u00e3o informado"
+
+    bg_color = "#ffffff" if index % 2 == 1 else "#f9f9f9"
+
+    return f"""
+    <tr style="background-color: {bg_color};">
+      <td style="padding: 12px 16px; border-bottom: 1px solid #eee; vertical-align: top;">
+        <p style="margin: 0 0 4px; font-size: 14px; color: #333; font-weight: 600; line-height: 1.4;">
+          {titulo}
+        </p>
+        <p style="margin: 0 0 4px; font-size: 13px; color: #666; line-height: 1.3;">
+          {orgao} &mdash; {uf}
+        </p>
+        <p style="margin: 0; font-size: 13px;">
+          <span style="color: {SMARTLIC_GREEN}; font-weight: 600;">{valor_display}</span>
+          &nbsp;&nbsp;{badge}
+        </p>
+      </td>
+    </tr>"""
+
+
 def render_daily_digest_email(
     user_name: str,
     opportunities: list[dict],
     stats: dict,
 ) -> str:
-    """Render the daily digest email (legacy interface).
+    """Render the daily digest email (legacy interface \u2014 STORY-278 AC3).
 
-    Delegates to render_digest_email() with frequency="daily".
-    The stats dict is used for backward compatibility but the new
-    renderer derives display values directly from opportunities.
+    Standalone function that preserves old behavior:
+    - "Bom dia" greeting
+    - Stats-based summary (setor_nome, total_valor)
+    - Legacy badge colors (baixa=red #c62828, media=amber #f57f17)
+    - "Ver todas as oportunidades" CTA with /buscar?auto=true
+    - Always includes unsubscribe link to /conta/preferencias
 
     Args:
         user_name: User's display name.
@@ -258,11 +333,107 @@ def render_daily_digest_email(
     Returns:
         Complete HTML email string.
     """
-    return render_digest_email(
-        user_name=user_name,
-        opportunities=opportunities,
-        frequency="daily",
-        unsubscribe_token="",
+    total_novas = stats.get("total_novas", len(opportunities))
+    setor_nome = stats.get("setor_nome", "")
+    total_valor = stats.get("total_valor", 0.0) or 0.0
+
+    # Build opportunity rows with legacy badge colors
+    opp_rows = ""
+    for i, opp in enumerate(opportunities):
+        opp_rows += _render_legacy_opportunity_row(opp, i + 1)
+
+    # Build setor summary line
+    setor_line = f"no setor <strong>{setor_nome}</strong>" if setor_nome else ""
+
+    # Plural forms
+    s_plural = "s" if total_novas != 1 else ""
+    valor_display = _format_brl(total_valor) if total_valor > 0 else "Valor n\u00e3o informado"
+
+    # Empty state
+    if not opportunities:
+        body = f"""
+        <h1 style="color: #333; font-size: 22px; margin: 0 0 16px;">
+          Bom dia, {user_name}!
+        </h1>
+        <p style="color: #555; font-size: 16px; line-height: 1.6; margin: 0 0 24px;">
+          Nenhuma nova oportunidade encontrada nas ultimas 24 horas
+          {setor_line}.
+          Continuaremos monitorando e avisaremos assim que houver novidades.
+        </p>
+        <p style="text-align: center; margin: 24px 0 16px;">
+          <a href="{FRONTEND_URL}/buscar?auto=true" class="btn"
+             style="display: inline-block; padding: 14px 32px; background-color: {SMARTLIC_GREEN}; color: #ffffff; text-decoration: none; border-radius: 8px; font-weight: 600; font-size: 16px;">
+            Fazer an\u00e1lise manual
+          </a>
+        </p>
+        """
+        return email_base(
+            title=f"Resumo diario \u2014 {setor_nome or 'SmartLic'}",
+            body_html=body,
+            is_transactional=False,
+            unsubscribe_url=f"{FRONTEND_URL}/conta/preferencias",
+        )
+
+    body = f"""
+    <h1 style="color: #333; font-size: 22px; margin: 0 0 8px;">
+      Bom dia, {user_name}!
+    </h1>
+    <p style="color: #555; font-size: 16px; line-height: 1.6; margin: 0 0 16px;">
+      Encontramos {total_novas} nova{s_plural} oportunidade{s_plural}
+      {setor_line} nas ultimas 24 horas.
+    </p>
+
+    <!-- Stats highlight bar -->
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0"
+           style="background-color: #e8f5e9; border-radius: 8px; margin: 0 0 24px;">
+      <tr>
+        <td style="padding: 12px 16px; text-align: center;">
+          <span style="color: {SMARTLIC_GREEN}; font-size: 24px; font-weight: 700;">
+            {total_novas}
+          </span>
+          <span style="color: #555; font-size: 14px; margin-left: 8px;">
+            {"oportunidade" if total_novas == 1 else "oportunidades"}
+          </span>
+          <span style="color: #555; font-size: 14px; margin-left: 8px;">
+            &mdash; Valor total estimado: <strong>{valor_display}</strong>
+          </span>
+        </td>
+      </tr>
+    </table>
+
+    <!-- Opportunities table -->
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0"
+           style="border: 1px solid #eee; border-radius: 8px; overflow: hidden; margin: 0 0 24px;">
+      <tr>
+        <td style="padding: 10px 16px; background-color: #f5f5f5; border-bottom: 2px solid #eee;">
+          <span style="font-size: 13px; font-weight: 600; color: #555; text-transform: uppercase; letter-spacing: 0.5px;">
+            Oportunidades encontradas
+          </span>
+        </td>
+      </tr>
+      {opp_rows}
+    </table>
+
+    <!-- CTA -->
+    <p style="text-align: center; margin: 24px 0 16px;">
+      <a href="{FRONTEND_URL}/buscar?auto=true" class="btn"
+         style="display: inline-block; padding: 14px 32px; background-color: {SMARTLIC_GREEN}; color: #ffffff; text-decoration: none; border-radius: 8px; font-weight: 600; font-size: 16px;">
+        Ver todas as oportunidades &rarr;
+      </a>
+    </p>
+
+    <!-- Footer: viability explanation -->
+    <p style="color: #888; font-size: 12px; text-align: center; margin: 16px 0 0;">
+      Os indicadores de viabilidade consideram modalidade, prazo, valor e geografia
+      para mostrar a compatibilidade da oportunidade com seu perfil B2G.
+    </p>
+    """
+
+    return email_base(
+        title=f"Resumo diario \u2014 {setor_nome or 'SmartLic'}",
+        body_html=body,
+        is_transactional=False,
+        unsubscribe_url=f"{FRONTEND_URL}/conta/preferencias",
     )
 
 

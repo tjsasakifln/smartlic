@@ -177,13 +177,13 @@ class TestViabilityBadge:
         from templates.emails.digest import _viability_badge
         badge = _viability_badge(0.5)
         assert "Viabilidade média" in badge
-        assert "#f57f17" in badge  # amber text
+        assert "#b76e00" in badge  # amber text (DIGEST-003)
 
     def test_baixa_viability(self):
         from templates.emails.digest import _viability_badge
         badge = _viability_badge(0.2)
         assert "Baixa viabilidade" in badge
-        assert "#c62828" in badge  # red text
+        assert "#757575" in badge  # gray text (DIGEST-003)
 
     def test_none_viability(self):
         from templates.emails.digest import _viability_badge

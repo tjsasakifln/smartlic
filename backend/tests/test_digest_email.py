@@ -199,7 +199,7 @@ class TestViabilityBadges:
         from templates.emails.digest import _viability_badge
 
         badge = _viability_badge(0.50)
-        assert "media" in badge.lower()
+        assert "média" in badge.lower()
         assert "#b76e00" in badge  # Amber text
         assert "#fff8e1" in badge  # Amber bg
 
@@ -229,7 +229,7 @@ class TestViabilityBadges:
 
         # Boundary: exactly 0.4 should be media
         badge = _viability_badge(0.4)
-        assert "media" in badge.lower()
+        assert "média" in badge.lower()
 
     def test_badges_in_rendered_html(self):
         from templates.emails.digest import render_digest_email
