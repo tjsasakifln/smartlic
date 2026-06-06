@@ -257,7 +257,7 @@ export default function ApiUsagePage() {
                     fontSize: '12px',
                   }}
                   labelFormatter={(label) => `${label}/${monthNum}/${year}`}
-                  formatter={(value: number): [string, string] => [`${value} req`, 'Requisições']}
+                  formatter={((value: number) => [`${value} req`, 'Requisições']) as any}
                 />
                 <ReferenceLine
                   y={monthly_limit / 30}
