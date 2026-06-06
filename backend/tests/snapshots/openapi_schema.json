@@ -21922,7 +21922,7 @@
     },
     "/v1/api/search": {
       "get": {
-        "description": "Search licitacoes via API key authentication.\n\nSame search pipeline as ``POST /buscar`` but authenticated with an\n``X-API-Key`` header instead of JWT Bearer token.\n\n**Rate limiting:** 100 requests/day per API key (``X-RateLimit-*`` headers).",
+        "description": "Search licitacoes via API key authentication.\n\nSame search pipeline as ``POST /buscar`` but authenticated with an\n``X-API-Key`` header instead of JWT Bearer token.\n\n**Rate limiting:** Monthly quota per API key based on user's plan tier\n(``X-RateLimit-*`` headers).",
         "operationId": "api_search_v1_api_search_get",
         "parameters": [
           {
