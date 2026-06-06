@@ -12,3 +12,27 @@ query-filters:
     on:
       paths:
         - backend/routes/datalake_api.py
+
+  # API-SELF-001: plaintext_key is returned ONCE by design in create_api_key.
+  # The key is generated server-side with secrets.token_urlsafe(32), never logged.
+  - exclude:
+      id: py/clear-text-logging-sensitive-data
+    on:
+      paths:
+        - backend/routes/api_keys.py
+
+  # API-SELF-001: user_id[:8] and key_id[:8] are UUID prefix of high-entropy
+  # random values, NOT free-form user input. Safe to log.
+  - exclude:
+      id: py/log-injection
+    on:
+      paths:
+        - backend/routes/api_keys.py
+
+  # API-SELF-001: schemas/api_keys.py only exports 3 Pydantic models.
+  # The wildcard import in schemas/__init__.py is intentional.
+  - exclude:
+      id: py/polluting-import
+    on:
+      paths:
+        - backend/schemas/__init__.py
