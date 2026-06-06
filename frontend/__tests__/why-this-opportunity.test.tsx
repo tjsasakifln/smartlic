@@ -351,7 +351,7 @@ describe("WhyThisOpportunity", () => {
     expect(score85.className).toContain("emerald");
 
     // Score 50 >= 40 → amber
-    const score50 = screen.getByTestId("why-factor-timeline-score");
+    const score50 = screen.getByTestId("why-factor-prazo-score");
     expect(score50.className).toContain("amber");
 
     // Score 30 < 40 → gray
