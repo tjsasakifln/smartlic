@@ -24,6 +24,34 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/checkout/api-subscription": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Create Api Subscription Checkout
+         * @description Create a Stripe Checkout Session for an API tier subscription.
+         *
+         *     Flow:
+         *         1. Validate tier against API_PRODUCTS config
+         *         2. Look up Stripe Price ID from env var
+         *         3. Create Stripe Checkout Session (mode=subscription)
+         *         4. Return checkout URL
+         *
+         *     Rate limited: 10 req/min per IP.
+         */
+        post: operations["create_api_subscription_checkout_api_checkout_api_subscription_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/checkout/one-time": {
         parameters: {
             query?: never;
@@ -3135,37 +3163,6 @@ export interface paths {
         options?: never;
         head?: never;
         patch?: never;
-        trace?: never;
-    };
-    "/v1/conta/preferencias": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        /**
-         * Update Preferencias
-         * @description DIGEST-004: Toggle the user's digest email frequency.
-         *
-         *     Accepts ``frequency`` field with one of:
-         *       - ``daily`` — every day at 07:00 BRT
-         *       - ``twice_weekly`` — Monday + Thursday at 07:00 BRT
-         *       - ``weekly`` — Monday at 07:00 BRT
-         *       - ``off`` / ``none`` — disable digest emails
-         *
-         *     Internally normalizes ``off`` → ``none`` for DB storage (DIGEST-001 naming).
-         *     Returns the API-facing value (``off``, never ``none``) on the response.
-         *     Uses upsert on ``user_id`` — creates a row if none exists.
-         *     Uses ``_run_with_budget`` for the DB write (RES-BE-001/015 compliance).
-         */
-        patch: operations["update_preferencias_v1_conta_preferencias_patch"];
         trace?: never;
     };
     "/v1/contratos/orgao/{cnpj}/stats": {
@@ -6524,6 +6521,24 @@ export interface components {
             tamanho: number;
             /** Total */
             total: number;
+        };
+        /**
+         * ApiSubscriptionCheckoutRequest
+         * @description Request body for POST /api/checkout/api-subscription.
+         */
+        ApiSubscriptionCheckoutRequest: {
+            /** Tier */
+            tier: string;
+        };
+        /**
+         * ApiSubscriptionCheckoutResponse
+         * @description Response for API subscription checkout session creation.
+         */
+        ApiSubscriptionCheckoutResponse: {
+            /** Checkout Url */
+            checkout_url: string;
+            /** Session Id */
+            session_id: string;
         };
         /**
          * AppConfigPatchRequest
@@ -11012,39 +11027,6 @@ export interface components {
          * @enum {string}
          */
         PorteEmpresa: "MEI" | "ME" | "EPP" | "MEDIO" | "GRANDE";
-        /**
-         * PreferenciasRequest
-         * @description Request body for PATCH /conta/preferencias — frequency toggle.
-         */
-        PreferenciasRequest: {
-            /**
-             * Frequency
-             * @description Digest frequency: daily, weekly, twice_weekly, off, none
-             */
-            frequency: string;
-        };
-        /**
-         * PreferenciasResponse
-         * @description Response for PATCH /conta/preferencias — current digest preferences.
-         */
-        PreferenciasResponse: {
-            /**
-             * Enabled
-             * @description Whether the digest email is enabled
-             * @default true
-             */
-            enabled: boolean;
-            /**
-             * Frequency
-             * @description Digest frequency (API namespace: off, not none)
-             */
-            frequency: string;
-            /**
-             * Last Digest Sent At
-             * @description ISO 8601 timestamp of last sent digest
-             */
-            last_digest_sent_at?: string | null;
-        };
         /** ProductsResponse */
         ProductsResponse: {
             /** Products */
@@ -13745,6 +13727,39 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["RootResponse"];
+                };
+            };
+        };
+    };
+    create_api_subscription_checkout_api_checkout_api_subscription_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ApiSubscriptionCheckoutRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiSubscriptionCheckoutResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };
@@ -17774,39 +17789,6 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["CancelTrialResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    update_preferencias_v1_conta_preferencias_patch: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["PreferenciasRequest"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["PreferenciasResponse"];
                 };
             };
             /** @description Validation Error */
