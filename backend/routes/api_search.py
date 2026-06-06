@@ -6,11 +6,12 @@ Endpoints:
 Reuses the same ``SearchPipeline`` as ``POST /buscar`` but authenticated
 with an API key (``require_api_key``) instead of JWT (``require_auth``).
 
-Rate limiting:
-    - ``X-RateLimit-Limit``: 100 requests/day (hardcoded for now)
-    - ``X-RateLimit-Remaining``: remaining quota in current window
-    - Redis key ``ratelimit:api:{user_id}:{YYYY-MM-DD}`` with 24h TTL
-    - Returns 429 when exceeded
+Rate limiting (API-SELF-003):
+    - Monthly counter per API key via Redis
+    - Limits determined by user's plan tier (Starter 1k / Pro 10k / Scale 100k)
+    - ``X-RateLimit-Limit`` and ``X-RateLimit-Remaining`` on every response
+    - Returns 429 with ``Retry-After`` when quota exhausted
+    - Reset at 00:00 BRT on the 1st of each month
 """
 
 from __future__ import annotations
@@ -39,76 +40,11 @@ from filter import (
 from excel import create_excel
 from rate_limiter import rate_limiter
 from authorization import check_user_roles
+from api_key_rate_limit import check_api_key_rate_limit
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter(tags=["api"])
-
-# ---------------------------------------------------------------------------
-# Configuration
-# ---------------------------------------------------------------------------
-
-API_RATE_LIMIT_PER_DAY: int = 100  # Hardcoded; configurable per tier in API-SELF-003
-_RATE_LIMIT_REDIS_PREFIX: str = "ratelimit:api:"
-
-
-# ---------------------------------------------------------------------------
-# Rate limit helpers
-# ---------------------------------------------------------------------------
-
-
-async def _check_api_rate_limit(
-    user_id: str,
-    *,
-    limit: int = API_RATE_LIMIT_PER_DAY,
-) -> tuple[int, int]:
-    """Check and enforce daily rate limit for an API key user.
-
-    Redis key format: ``ratelimit:api:{user_id}:{YYYY-MM-DD}``, TTL 24h.
-    Falls back to in-memory when Redis is unavailable (fail-open).
-
-    Returns:
-        ``(remaining, limit)`` tuple.
-
-    Raises:
-        HTTPException 429: when quota is exhausted.
-    """
-    date_str = datetime.now(timezone.utc).strftime("%Y-%m-%d")
-    redis_key = f"{_RATE_LIMIT_REDIS_PREFIX}{user_id}:{date_str}"
-
-    from redis_pool import get_redis_pool
-    redis = await get_redis_pool()
-
-    if redis is not None:
-        try:
-            count = await redis.incr(redis_key)
-            if count == 1:
-                await redis.expire(redis_key, 86400)  # 24 hours
-
-            remaining = max(0, limit - count)
-            if count > limit:
-                raise HTTPException(
-                    status_code=429,
-                    detail={
-                        "detail": "Rate limit exceeded. Try again later.",
-                        "retry_after_seconds": 86400,
-                    },
-                    headers={
-                        "X-RateLimit-Limit": str(limit),
-                        "X-RateLimit-Remaining": "0",
-                        "Retry-After": "86400",
-                    },
-                )
-            return remaining, limit
-        except HTTPException:
-            raise
-        except Exception as exc:
-            logger.warning("API rate limit Redis error (fail-open): %s", exc)
-            return limit, limit  # Fail-open
-
-    # No Redis — allow through (best-effort rate limiting)
-    return limit, limit
-
 
 # ---------------------------------------------------------------------------
 # Endpoint
@@ -153,10 +89,12 @@ async def api_search(
     Same search pipeline as ``POST /buscar`` but authenticated with an
     ``X-API-Key`` header instead of JWT Bearer token.
 
-    **Rate limiting:** 100 requests/day per API key (``X-RateLimit-*`` headers).
+    **Rate limiting:** Monthly quota per API key based on user's plan tier
+    (``X-RateLimit-*`` headers).
     """
-    # ---- Rate limit check ----
-    remaining, limit = await _check_api_rate_limit(_api_user_id)
+    # ---- Rate limit check (API-SELF-003: monthly, tier-aware) ----
+    api_key_id = getattr(raw_request.state, "api_key_id", _api_user_id)
+    remaining, limit = await check_api_key_rate_limit(api_key_id, _api_user_id)
     http_response.headers["X-RateLimit-Limit"] = str(limit)
     http_response.headers["X-RateLimit-Remaining"] = str(remaining)
 

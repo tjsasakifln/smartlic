@@ -161,7 +161,7 @@ class TestApiSearchAuth:
         assert response.status_code == 200
         assert "X-RateLimit-Limit" in response.headers
         assert "X-RateLimit-Remaining" in response.headers
-        assert response.headers["X-RateLimit-Limit"] == "100"
+        assert response.headers["X-RateLimit-Limit"] == "1000"
 
     def test_pipeline_failure_returns_500(
         self, client, override_valid_key
