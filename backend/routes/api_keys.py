@@ -130,7 +130,7 @@ async def list_api_keys(user: dict = Depends(require_auth)):
     ]
 
 
-@router.delete("/{key_id}", status_code=204)
+@router.delete("/{key_id}", status_code=204, response_model=None)
 async def revoke_api_key(key_id: str, user: dict = Depends(require_auth)):
     """Revoke (soft-delete) an API key. Only the owner can revoke."""
     user_id = user.get("sub") or user.get("id", "")
