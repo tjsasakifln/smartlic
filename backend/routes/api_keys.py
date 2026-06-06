@@ -16,7 +16,6 @@ from datetime import datetime, timezone
 from fastapi import APIRouter, Depends, HTTPException
 
 from auth import require_auth
-from log_sanitizer import mask_api_key
 from schemas.api_keys import ApiKeyCreate, ApiKeyCreated, ApiKeyResponse
 
 logger = logging.getLogger(__name__)
@@ -88,9 +87,7 @@ async def create_api_key(
         "API key created for user %s (name=%s, id=%s)",
         user_id[:8], row.get("name", ""), row.get("id", "")[:8],
     )
-    # Log mask — never log plaintext
-    logger.debug("API key plaintext (masked): %s", mask_api_key(plaintext))
-
+    # plaintext is returned below — never logged; supress CodeQL py/clear-text-logging-sensitive-data
     return ApiKeyCreated(
         id=row.get("id", ""),
         name=row.get("name", body.name),
