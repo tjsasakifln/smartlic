@@ -265,7 +265,7 @@ async def list_users(
     search: Optional[str] = Query(default=None, max_length=100),
 ):
     """List all users with profiles and subscription info."""
-    from supabase_client import get_supabase
+    from supabase_client import get_supabase, sb_execute
     from quota import PLAN_CAPABILITIES, get_monthly_quota_used
     sb = get_supabase()
 
@@ -278,7 +278,10 @@ async def list_users(
             # Use parameterized-style filter with sanitized input
             query = query.or_(f"email.ilike.%{sanitized_search}%,full_name.ilike.%{sanitized_search}%,company.ilike.%{sanitized_search}%")
 
-    result = query.order("created_at", desc=True).range(offset, offset + limit - 1).execute()
+    result = await sb_execute(
+        query.order("created_at", desc=True).range(offset, offset + limit - 1),
+        category="read",
+    )
 
     # Enrich user data with computed credits for users without active subscriptions
     users = result.data or []
@@ -332,7 +335,7 @@ async def create_user(
     if not is_valid:
         raise HTTPException(status_code=400, detail=error_msg)
 
-    from supabase_client import get_supabase
+    from supabase_client import get_supabase, sb_execute
     sb = get_supabase()
 
     # Create auth user via admin API
@@ -355,7 +358,10 @@ async def create_user(
             updates["company"] = req.company
         if req.plan_id:
             updates["plan_type"] = req.plan_id
-        sb.table("profiles").update(updates).eq("id", user_id).execute()
+        await sb_execute(
+            sb.table("profiles").update(updates).eq("id", user_id),
+            category="write",
+        )
 
     # Assign plan if not free_trial
     if req.plan_id and req.plan_id != "free_trial":
@@ -382,11 +388,14 @@ async def delete_user(
     # SECURITY: Validate user_id as UUID v4 (Issue #203)
     user_id = _validate_user_id_param(user_id)
 
-    from supabase_client import get_supabase
+    from supabase_client import get_supabase, sb_execute
     sb = get_supabase()
 
     # Check user exists
-    profile = sb.table("profiles").select("email").eq("id", user_id).single().execute()
+    profile = await sb_execute(
+        sb.table("profiles").select("email").eq("id", user_id).single(),
+        category="read",
+    )
     if not profile.data:
         raise HTTPException(status_code=404, detail="Usuario nao encontrado")
 
@@ -422,7 +431,7 @@ async def update_user(
     if req.plan_id is not None:
         validated_plan_id = _validate_plan_id_param(req.plan_id)
 
-    from supabase_client import get_supabase
+    from supabase_client import get_supabase, sb_execute
     sb = get_supabase()
 
     updates = {}
@@ -434,7 +443,10 @@ async def update_user(
         updates["plan_type"] = validated_plan_id
 
     if updates:
-        sb.table("profiles").update(updates).eq("id", user_id).execute()
+        await sb_execute(
+            sb.table("profiles").update(updates).eq("id", user_id),
+            category="write",
+        )
 
     if validated_plan_id:
         _assign_plan(sb, user_id, validated_plan_id)
@@ -496,13 +508,16 @@ async def assign_plan(
     user_id = _validate_user_id_param(user_id)
     plan_id = _validate_plan_id_param(plan_id)
 
-    from supabase_client import get_supabase
+    from supabase_client import get_supabase, sb_execute
     sb = get_supabase()
 
     try:
         _assign_plan(sb, user_id, plan_id)
 
-        sb.table("profiles").update({"plan_type": plan_id}).eq("id", user_id).execute()
+        await sb_execute(
+            sb.table("profiles").update({"plan_type": plan_id}).eq("id", user_id),
+            category="write",
+        )
     except HTTPException:
         # Re-raise HTTPException as-is (e.g., 404 for plan not found)
         raise
@@ -560,21 +575,24 @@ async def update_user_credits(
     # SECURITY: Validate user_id as UUID v4 (Issue #203)
     user_id = _validate_user_id_param(user_id)
 
-    from supabase_client import get_supabase
+    from supabase_client import get_supabase, sb_execute
     sb = get_supabase()
 
     # Verify user exists
-    profile = sb.table("profiles").select("email, plan_type").eq("id", user_id).single().execute()
+    profile = await sb_execute(
+        sb.table("profiles").select("email, plan_type").eq("id", user_id).single(),
+        category="read",
+    )
     if not profile.data:
         raise HTTPException(status_code=404, detail="Usuario nao encontrado")
 
     # Get active subscription
-    sub_result = (
+    sub_result = await sb_execute(
         sb.table("user_subscriptions")
         .select("id, plan_id, credits_remaining")
         .eq("user_id", user_id)
-        .eq("is_active", True)
-        .execute()
+        .eq("is_active", True),
+        category="read",
     )
 
     if sub_result.data and len(sub_result.data) > 0:
@@ -582,9 +600,12 @@ async def update_user_credits(
         subscription = sub_result.data[0]
         old_credits = subscription.get("credits_remaining")
 
-        sb.table("user_subscriptions").update({
-            "credits_remaining": req.credits
-        }).eq("id", subscription["id"]).execute()
+        await sb_execute(
+            sb.table("user_subscriptions").update({
+                "credits_remaining": req.credits
+            }).eq("id", subscription["id"]),
+            category="write",
+        )
 
         log_admin_action(
             logger,
@@ -605,7 +626,10 @@ async def update_user_credits(
         plan_id = profile.data.get("plan_type", "free_trial")
 
         # Get plan details for expiration
-        plan = sb.table("plans").select("*").eq("id", plan_id).execute()
+        plan = await sb_execute(
+            sb.table("plans").select("*").eq("id", plan_id),
+            category="read",
+        )
         plan_data = plan.data[0] if plan.data else None
 
         from datetime import datetime, timezone, timedelta
@@ -615,13 +639,16 @@ async def update_user_credits(
             expires_at = (datetime.now(timezone.utc) + timedelta(days=plan_data["duration_days"])).isoformat()
 
         # Create new subscription with specified credits
-        sb.table("user_subscriptions").insert({
-            "user_id": user_id,
-            "plan_id": plan_id,
-            "credits_remaining": req.credits,
-            "expires_at": expires_at,
-            "is_active": True,
-        }).execute()
+        await sb_execute(
+            sb.table("user_subscriptions").insert({
+                "user_id": user_id,
+                "plan_id": plan_id,
+                "credits_remaining": req.credits,
+                "expires_at": expires_at,
+                "is_active": True,
+            }),
+            category="write",
+        )
 
         log_admin_action(
             logger,
@@ -808,16 +835,16 @@ async def get_reconciliation_history(
 
     Returns list of reconciliation_log entries, most recent first.
     """
-    from supabase_client import get_supabase
+    from supabase_client import get_supabase, sb_execute
 
     sb = get_supabase()
     try:
-        result = (
+        result = await sb_execute(
             sb.table("reconciliation_log")
             .select("*")
             .order("run_at", desc=True)
-            .limit(limit)
-            .execute()
+            .limit(limit),
+            category="read",
         )
         return {"runs": result.data or [], "total": len(result.data or [])}
     except Exception as e:
@@ -869,7 +896,7 @@ async def get_support_sla(
         pending_count: Number of unanswered conversations
         breached_count: Number of conversations exceeding 20 business hours
     """
-    from supabase_client import get_supabase
+    from supabase_client import get_supabase, sb_execute
     from business_hours import calculate_business_hours
     from config import SUPPORT_SLA_ALERT_THRESHOLD_HOURS
     from datetime import datetime, timezone
@@ -879,13 +906,13 @@ async def get_support_sla(
 
     try:
         # Get conversations with first_response_at (for average)
-        responded = (
+        responded = await sb_execute(
             sb.table("conversations")
             .select("created_at, first_response_at")
             .not_.is_("first_response_at", "null")
             .order("created_at", desc=True)
-            .limit(200)
-            .execute()
+            .limit(200),
+            category="read",
         )
 
         # Calculate average response time in business hours
@@ -904,12 +931,12 @@ async def get_support_sla(
         )
 
         # Get pending (unanswered) conversations
-        pending = (
+        pending = await sb_execute(
             sb.table("conversations")
             .select("id, created_at", count="exact")
             .is_("first_response_at", "null")
-            .neq("status", "resolvido")
-            .execute()
+            .neq("status", "resolvido"),
+            category="read",
         )
 
         pending_count = pending.count or 0
@@ -951,7 +978,7 @@ async def get_trial_metrics(
     """
     from datetime import datetime, timezone, timedelta
     from collections import defaultdict
-    from supabase_client import get_supabase
+    from supabase_client import get_supabase, sb_execute
     from services.trial_risk import categorize_trial_risk
 
     sb = get_supabase()
@@ -959,28 +986,28 @@ async def get_trial_metrics(
     thirty_days_ago = now - timedelta(days=30)
 
     # Active trials
-    active_result = (
+    active_result = await sb_execute(
         sb.table("profiles")
         .select("id", count="exact")
-        .eq("plan_type", "free_trial")
-        .execute()
+        .eq("plan_type", "free_trial"),
+        category="read",
     )
     active_trials = active_result.count or 0
 
     # Conversion rate (last 30 days): users created in window who now have paid plan
     window_start = now - timedelta(days=44)  # 14d trial + 30d window
-    converted_result = (
+    converted_result = await sb_execute(
         sb.table("profiles")
         .select("id", count="exact")
         .neq("plan_type", "free_trial")
-        .gte("created_at", window_start.isoformat())
-        .execute()
+        .gte("created_at", window_start.isoformat()),
+        category="read",
     )
-    total_started_result = (
+    total_started_result = await sb_execute(
         sb.table("profiles")
         .select("id", count="exact")
-        .gte("created_at", window_start.isoformat())
-        .execute()
+        .gte("created_at", window_start.isoformat()),
+        category="read",
     )
 
     converted_count = converted_result.count or 0
@@ -990,22 +1017,22 @@ async def get_trial_metrics(
     # Risk distribution: categorize active trial users
     risk_dist: dict[str, int] = {"critical": 0, "at_risk": 0, "healthy": 0}
     if active_trials > 0:
-        trial_users_result = (
+        trial_users_result = await sb_execute(
             sb.table("profiles")
             .select("id, created_at")
             .eq("plan_type", "free_trial")
-            .limit(200)
-            .execute()
+            .limit(200),
+            category="read",
         )
         for tu in (trial_users_result.data or []):
             try:
                 created = datetime.fromisoformat(tu["created_at"].replace("Z", "+00:00"))
                 trial_day = (now - created).days
-                searches_r = (
+                searches_r = await sb_execute(
                     sb.table("search_sessions")
                     .select("id", count="exact")
-                    .eq("user_id", tu["id"])
-                    .execute()
+                    .eq("user_id", tu["id"]),
+                    category="read",
                 )
                 searches = searches_r.count or 0
                 risk = categorize_trial_risk(searches, 0, trial_day)
@@ -1016,11 +1043,11 @@ async def get_trial_metrics(
     # Email funnel from trial_email_log (last 30 days)
     email_funnel = []
     try:
-        email_stats = (
+        email_stats = await sb_execute(
             sb.table("trial_email_log")
             .select("email_type, id, opened_at, clicked_at")
-            .gte("sent_at", thirty_days_ago.isoformat())
-            .execute()
+            .gte("sent_at", thirty_days_ago.isoformat()),
+            category="read",
         )
         funnel: dict[str, dict[str, int]] = defaultdict(lambda: {"sent": 0, "opened": 0, "clicked": 0})
         for row in (email_stats.data or []):
@@ -1056,19 +1083,19 @@ async def get_at_risk_trials(
 ):
     """Paginated list of trial users with risk categorization."""
     from datetime import datetime, timezone
-    from supabase_client import get_supabase
+    from supabase_client import get_supabase, sb_execute
     from services.trial_risk import categorize_trial_risk
 
     sb = get_supabase()
     now = datetime.now(timezone.utc)
 
-    trial_users_result = (
+    trial_users_result = await sb_execute(
         sb.table("profiles")
         .select("id, email, full_name, company, created_at", count="exact")
         .eq("plan_type", "free_trial")
         .order("created_at", desc=True)
-        .range(page * limit, page * limit + limit - 1)
-        .execute()
+        .range(page * limit, page * limit + limit - 1),
+        category="read",
     )
 
     users = []
@@ -1077,11 +1104,11 @@ async def get_at_risk_trials(
             created = datetime.fromisoformat(tu["created_at"].replace("Z", "+00:00"))
             trial_day = (now - created).days
 
-            searches_r = (
+            searches_r = await sb_execute(
                 sb.table("search_sessions")
                 .select("id", count="exact")
-                .eq("user_id", tu["id"])
-                .execute()
+                .eq("user_id", tu["id"]),
+                category="read",
             )
             searches = searches_r.count or 0
 

@@ -165,10 +165,13 @@ class AuditLogger:
         }
 
         try:
-            from supabase_client import get_supabase
+            from supabase_client import get_supabase, sb_execute
 
             supabase = get_supabase()
-            supabase.table("audit_events").insert(row).execute()
+            await sb_execute(
+                supabase.table("audit_events").insert(row),
+                category="write",
+            )
         except Exception as e:
             # Never let a DB write failure suppress the audit event.
             # The stdout log above already captured it.

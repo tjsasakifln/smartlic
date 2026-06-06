@@ -476,14 +476,14 @@ class TestPoolConstants:
     """Verify CRIT-046 constants are correctly defined."""
 
     def test_pool_max_connections(self):
-        """DEBT-018 lowered the default to 25 (env-tunable via SUPABASE_POOL_MAX_CONNECTIONS)."""
+        """DEBT-IO-BUDGET lowered the default to 10 (env-tunable via SUPABASE_POOL_MAX_CONNECTIONS)."""
         from supabase_client import _POOL_MAX_CONNECTIONS
-        assert _POOL_MAX_CONNECTIONS == 25
+        assert _POOL_MAX_CONNECTIONS == 10
 
     def test_pool_max_keepalive(self):
-        """DEBT-018 lowered the default to 10 (env-tunable via SUPABASE_POOL_MAX_KEEPALIVE)."""
+        """DEBT-IO-BUDGET lowered the default to 5 (env-tunable via SUPABASE_POOL_MAX_KEEPALIVE)."""
         from supabase_client import _POOL_MAX_KEEPALIVE
-        assert _POOL_MAX_KEEPALIVE == 10
+        assert _POOL_MAX_KEEPALIVE == 5
 
     def test_pool_timeout(self):
         from supabase_client import _POOL_TIMEOUT

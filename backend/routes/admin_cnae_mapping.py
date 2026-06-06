@@ -101,7 +101,7 @@ async def list_cnae_mappings(
     """List CNAE mappings, optionally filtered by ``setor``."""
     try:
         sb = get_supabase()
-        query = sb.table("cnae_setor_mapping").select("*").order("cnae_code")
+        query = sb.table("cnae_setor_mapping").select("*").order("cnae_code").limit(5000)
         if setor:
             query = query.eq("setor_id", setor)
         result = await sb_execute_direct(query)
