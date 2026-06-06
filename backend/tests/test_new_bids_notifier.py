@@ -65,7 +65,7 @@ async def test_run_new_bids_notifier_processes_valid_users(mock_profiles):
 
     call_count = [0]
 
-    async def mock_sb_execute(query):
+    async def mock_sb_execute(query, **kwargs):
         call_count[0] += 1
         if call_count[0] == 1:
             return profiles_resp
@@ -79,7 +79,7 @@ async def test_run_new_bids_notifier_processes_valid_users(mock_profiles):
         from jobs.cron.new_bids_notifier import run_new_bids_notifier
         result = await run_new_bids_notifier()
 
-    # 2 valid profiles processed, 2 skipped
+    # 2 valid profiles processed (grouped by unique setor+UFs), 2 skipped
     assert result["processed"] == 2
     assert result["skipped"] == 2
     assert result["errors"] == 0
@@ -102,7 +102,7 @@ async def test_run_new_bids_notifier_stores_count_in_redis(mock_profiles):
 
     call_count = [0]
 
-    async def mock_sb_execute(query):
+    async def mock_sb_execute(query, **kwargs):
         call_count[0] += 1
         if call_count[0] == 1:
             return profiles_resp
@@ -160,7 +160,7 @@ async def test_run_new_bids_notifier_redis_unavailable(mock_profiles):
 
     call_count = [0]
 
-    async def mock_sb_execute(query):
+    async def mock_sb_execute(query, **kwargs):
         call_count[0] += 1
         if call_count[0] == 1:
             return profiles_resp
@@ -174,7 +174,7 @@ async def test_run_new_bids_notifier_redis_unavailable(mock_profiles):
         from jobs.cron.new_bids_notifier import run_new_bids_notifier
         result = await run_new_bids_notifier()
 
-    # processed == 1 because count_resp was returned; no Redis write attempted
+    # processed == 1 (user-a was counted via grouped query); no Redis write attempted
     assert result["processed"] == 1
     assert result["errors"] == 0
 
