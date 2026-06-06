@@ -93,6 +93,7 @@ from routes.seasonal_calendar import router as seasonal_calendar_router
 from routes.network_events import router as network_events_router
 from routes.segment import router as segment_router
 from routes.api_search import router as api_search_router
+from routes.admin_metrics import router as admin_metrics_router
 from routes.email_tracking import router as email_tracking_router
 from routes.admin_digest_metrics import router as admin_digest_metrics_router
 
@@ -169,6 +170,7 @@ def register_routes(app: FastAPI) -> None:
     app.include_router(admin_calibration_router)
     app.include_router(admin_billing_sync_router)
     app.include_router(admin_founding_router)
+    app.include_router(admin_metrics_router)
     app.include_router(slo_router)
 
     # Issue #1002: founders availability — self-prefixed at /api/founders/*

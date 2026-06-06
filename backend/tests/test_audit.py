@@ -80,6 +80,8 @@ class TestValidEventTypes:
         # STORY-BTS-010a feature flag registry: added admin.feature_flag_change
         # for auditable flag lifecycle changes (2026-04-19).
         "admin.feature_flag_change",
+        # FOUNDER-003 (#1416): admin metrics dashboard viewed event.
+        "admin.founder_metrics_viewed",
         "billing.checkout",
         "billing.subscription_change",
         "data.search",

@@ -48,6 +48,7 @@ VALID_EVENT_TYPES: Set[str] = {
     "admin.user_delete",
     "admin.plan_assign",
     "admin.feature_flag_change",
+    "admin.founder_metrics_viewed",
     "billing.checkout",
     "billing.subscription_change",
     "data.search",
