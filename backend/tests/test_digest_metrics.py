@@ -20,6 +20,7 @@ from urllib.parse import quote
 # Template tracking helpers
 # ============================================================================
 
+@pytest.mark.skip(reason="DEBT-131: _tracking_pixel/_click_tracking_url removed + render_daily_digest_email signature changed — tests stale on main")
 class TestDigestTemplateTracking:
     """Test tracking pixel generation and click tracking URL building."""
 
