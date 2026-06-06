@@ -9349,30 +9349,6 @@
         "title": "ModalidadeAggregate",
         "type": "object"
       },
-      "MrrEntry": {
-        "description": "Single month MRR entry returned by ``get_mrr()``.",
-        "properties": {
-          "month": {
-            "title": "Month",
-            "type": "string"
-          },
-          "mrr": {
-            "default": 0.0,
-            "title": "Mrr",
-            "type": "number"
-          },
-          "subscriber_count": {
-            "default": 0,
-            "title": "Subscriber Count",
-            "type": "integer"
-          }
-        },
-        "required": [
-          "month"
-        ],
-        "title": "MrrEntry",
-        "type": "object"
-      },
       "MunicipioProfileResponse": {
         "properties": {
           "atividade_recente": {
@@ -12853,81 +12829,6 @@
           "paths"
         ],
         "title": "RevalidateSEOResponse",
-        "type": "object"
-      },
-      "RevenueMetricsResponse": {
-        "description": "Response for GET /v1/admin/metrics/revenue (FOUNDER-003 + FOUNDER-005).\n\nAggregated revenue and engagement metrics for the founder dashboard.\nAll values are non-PII aggregates computed by server-side SQL functions\n(FOUNDER-001 migration 20260606010000).\n\n``mrr`` is the most recent month's MRR in BRL.\n``mrr_history`` contains per-month MRR entries for chart rendering.\nAll rate/percentage fields are normalized to the 0.0-1.0 range.",
-        "properties": {
-          "activation_d7": {
-            "default": 0.0,
-            "title": "Activation D7",
-            "type": "number"
-          },
-          "arpa": {
-            "default": 0.0,
-            "title": "Arpa",
-            "type": "number"
-          },
-          "churn_rate_30d": {
-            "default": 0.0,
-            "title": "Churn Rate 30D",
-            "type": "number"
-          },
-          "mrr": {
-            "default": 0.0,
-            "title": "Mrr",
-            "type": "number"
-          },
-          "mrr_history": {
-            "default": [],
-            "items": {
-              "$ref": "#/components/schemas/MrrEntry"
-            },
-            "title": "Mrr History",
-            "type": "array"
-          },
-          "period_end": {
-            "default": "",
-            "title": "Period End",
-            "type": "string"
-          },
-          "period_start": {
-            "default": "",
-            "title": "Period Start",
-            "type": "string"
-          },
-          "retention_d1": {
-            "default": 0.0,
-            "title": "Retention D1",
-            "type": "number"
-          },
-          "retention_d30": {
-            "default": 0.0,
-            "title": "Retention D30",
-            "type": "number"
-          },
-          "retention_d7": {
-            "default": 0.0,
-            "title": "Retention D7",
-            "type": "number"
-          },
-          "total_subscribers": {
-            "default": 0,
-            "title": "Total Subscribers",
-            "type": "integer"
-          },
-          "trial_to_paid_30d": {
-            "default": 0.0,
-            "title": "Trial To Paid 30D",
-            "type": "number"
-          },
-          "trial_to_paid_90d": {
-            "default": 0.0,
-            "title": "Trial To Paid 90D",
-            "type": "number"
-          }
-        },
-        "title": "RevenueMetricsResponse",
         "type": "object"
       },
       "ReverseSyncRequest": {
@@ -18908,34 +18809,6 @@
         "summary": "Memory Snapshot",
         "tags": [
           "admin"
-        ]
-      }
-    },
-    "/v1/admin/metrics/revenue": {
-      "get": {
-        "description": "Return financial and engagement metrics for the founder dashboard.\n\nCalls six PostgreSQL functions (FOUNDER-001) + inline queries for\nactivation_d7, retention_d1, retention_d30. All DB calls run in\nparallel via ``asyncio.gather``.\n\nFires a Mixpanel ``founder_metrics_viewed`` event and logs an audit\nevent. Both are fire-and-forget \u2014 they never block the response.\n\n**Requires:** admin or master role.",
-        "operationId": "get_revenue_metrics_v1_admin_metrics_revenue_get",
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/RevenueMetricsResponse"
-                }
-              }
-            },
-            "description": "Successful Response"
-          }
-        },
-        "security": [
-          {
-            "HTTPBearer": []
-          }
-        ],
-        "summary": "Get Revenue Metrics",
-        "tags": [
-          "admin",
-          "metrics"
         ]
       }
     },
