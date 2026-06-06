@@ -11,7 +11,7 @@
  */
 
 import React from "react";
-import { render, screen } from "@testing-library/react";
+import { render, screen, fireEvent } from "@testing-library/react";
 import ViabilityBadge from "../components/ViabilityBadge";
 import type { ViabilityFactors } from "../components/ViabilityBadge";
 
@@ -75,15 +75,15 @@ describe("ViabilityBadge", () => {
   });
 
   // AC11: Tooltip with factor breakdown
-  it("shows tooltip with factor breakdown", () => {
+  it("shows tooltip with factor breakdown including weights", () => {
     render(<ViabilityBadge level="alta" score={95} factors={mockFactors} />);
     const badge = screen.getByTestId("viability-badge");
     const tooltipContent = getTooltipContent(badge);
     expect(tooltipContent).toContain("Viabilidade: 95/100");
-    expect(tooltipContent).toContain("Modalidade: Ótimo (100/100)");
-    expect(tooltipContent).toContain("Prazo: 12 dias (80/100)");
-    expect(tooltipContent).toContain("Valor: Ideal (100/100)");
-    expect(tooltipContent).toContain("UF: Sua região (100/100)");
+    expect(tooltipContent).toContain("Modalidade (30%): Ótimo (100/100)");
+    expect(tooltipContent).toContain("Prazo (25%): 12 dias (80/100)");
+    expect(tooltipContent).toContain("Valor (25%): Ideal (100/100)");
+    expect(tooltipContent).toContain("UF (20%): Sua região (100/100)");
   });
 
   it("shows basic tooltip without factors", () => {
@@ -92,6 +92,55 @@ describe("ViabilityBadge", () => {
     const tooltipContent = getTooltipContent(badge);
     expect(tooltipContent).toContain("Viabilidade: 60/100");
     expect(tooltipContent).not.toContain("Modalidade");
+  });
+
+  // VIAB-UX-003: Progress bars
+  it("renders progress bars with correct widths when tooltip opens", () => {
+    const { container } = render(
+      <ViabilityBadge level="alta" score={85} factors={mockFactors} />
+    );
+    const badge = screen.getByTestId("viability-badge");
+
+    // Open tooltip via focus
+    fireEvent.focus(badge);
+
+    const bars = container.querySelectorAll('[role="progressbar"]');
+    expect(bars).toHaveLength(4);
+    // mockFactors: modalidade=100, timeline=80, value_fit=100, geography=100
+    expect(bars[0]).toHaveAttribute("aria-valuenow", "100");
+    expect(bars[1]).toHaveAttribute("aria-valuenow", "80");
+    expect(bars[2]).toHaveAttribute("aria-valuenow", "100");
+    expect(bars[3]).toHaveAttribute("aria-valuenow", "100");
+  });
+
+  it("applies correct progress bar colors by score range", () => {
+    const mixedFactors: ViabilityFactors = {
+      modalidade: 85,  // >= 70 → green (bg-emerald-400)
+      timeline: 55,    // 40-69 → yellow (bg-yellow-400)
+      value_fit: 20,   // < 40 → gray (bg-gray-400)
+      geography: 70,   // >= 70 → green
+      modalidade_label: "Bom",
+      timeline_label: "Médio",
+      value_fit_label: "Baixo",
+      geography_label: "OK",
+    };
+
+    const { container } = render(
+      <ViabilityBadge level="media" score={55} factors={mixedFactors} />
+    );
+    const badge = screen.getByTestId("viability-badge");
+
+    // Open tooltip via focus
+    fireEvent.focus(badge);
+
+    const bars = container.querySelectorAll('[role="progressbar"]');
+    expect(bars).toHaveLength(4);
+
+    // Order: Modalidade, Prazo, Valor, UF
+    expect(bars[0]).toHaveClass("bg-emerald-400");
+    expect(bars[1]).toHaveClass("bg-yellow-400");
+    expect(bars[2]).toHaveClass("bg-gray-400");
+    expect(bars[3]).toHaveClass("bg-emerald-400");
   });
 
   // Accessibility
