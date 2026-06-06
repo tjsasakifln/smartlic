@@ -148,12 +148,13 @@ class TestUpdateAlertPreferences:
         assert response.status_code == 400
         assert "invalida" in response.json()["detail"].lower()
 
-    def test_updates_to_off(self, app, client):
+    def test_updates_to_off__normalizes_to_none_in_db(self, app, client):
+        """DIGEST-001: API accepts 'off', normalizes to 'none' in DB, returns 'off'."""
         mock_db = MagicMock()
         result = MagicMock()
         result.data = [{
             "user_id": "test-user-123",
-            "frequency": "off",
+            "frequency": "none",  # DB stores "none" per CHECK constraint
             "enabled": False,
             "last_digest_sent_at": None,
         }]
@@ -167,8 +168,32 @@ class TestUpdateAlertPreferences:
 
         assert response.status_code == 200
         data = response.json()
+        # API contract: returns "off" (normalized from DB "none")
         assert data["frequency"] == "off"
         assert data["enabled"] is False
+
+        # Verify DB write used "none", not "off"
+        upsert_kwargs = mock_db.table.return_value.upsert.call_args[0][0]
+        assert upsert_kwargs["frequency"] == "none"
+
+    def test_get_normalizes_none_to_off(self, app, client):
+        """DIGEST-001: GET returns 'off' when DB stores 'none'."""
+        mock_db = MagicMock()
+        result = MagicMock()
+        result.data = {
+            "frequency": "none",  # DB value
+            "enabled": True,
+            "last_digest_sent_at": None,
+        }
+        mock_db.table.return_value.select.return_value.eq.return_value.single.return_value.execute.return_value = result
+        _override_db(app, mock_db)
+
+        response = client.get("/v1/profile/alert-preferences")
+
+        assert response.status_code == 200
+        data = response.json()
+        # API contract: returns "off" (normalized from DB "none")
+        assert data["frequency"] == "off"
 
     def test_handles_db_error(self, app, client):
         mock_db = MagicMock()

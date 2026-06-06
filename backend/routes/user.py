@@ -523,8 +523,10 @@ async def get_alert_preferences(
         )
 
         if result.data:
+            # DIGEST-001: normalize DB value "none" -> API value "off"
+            api_frequency = "off" if result.data["frequency"] == "none" else result.data["frequency"]
             return AlertPreferencesResponse(
-                frequency=result.data["frequency"],
+                frequency=api_frequency,
                 enabled=result.data["enabled"],
                 last_digest_sent_at=result.data.get("last_digest_sent_at"),
             )
@@ -559,21 +561,28 @@ async def update_alert_preferences(
             detail=f"Frequencia invalida. Opcoes: {', '.join(valid_frequencies)}"
         )
 
+    # DIGEST-001: normalize API value "off" -> DB value "none"
+    db_frequency = "none" if prefs.frequency == "off" else prefs.frequency
+
     try:
         # Upsert: insert or update
         result = await sb_execute(
             user_db.table("alert_preferences").upsert({
                 "user_id": user_id,
-                "frequency": prefs.frequency,
+                "frequency": db_frequency,
                 "enabled": prefs.enabled,
             }, on_conflict="user_id")
         )
 
         data = result.data[0] if result.data else {}
 
+        # DIGEST-001: normalize DB value "none" -> API value "off" for response
+        raw_frequency = data.get("frequency", prefs.frequency)
+        api_frequency = "off" if raw_frequency == "none" else raw_frequency
+
         log_user_action(logger, "alert_preferences_updated", user_id)
         return AlertPreferencesResponse(
-            frequency=data.get("frequency", prefs.frequency),
+            frequency=api_frequency,
             enabled=data.get("enabled", prefs.enabled),
             last_digest_sent_at=data.get("last_digest_sent_at"),
         )
