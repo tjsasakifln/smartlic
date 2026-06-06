@@ -224,6 +224,68 @@
         "title": "AdminDeleteUserResponse",
         "type": "object"
       },
+      "AdminDigestMetricsResponse": {
+        "description": "Response for GET /v1/admin/metrics/digest (DIGEST-005).\n\nAll rates are computed over a 30-day window. Daily avg sent is the\ntotal sent in 30 days divided by 30.",
+        "properties": {
+          "breakdown_by_frequency": {
+            "additionalProperties": {
+              "$ref": "#/components/schemas/DigestFrequencyBreakdown"
+            },
+            "default": {},
+            "title": "Breakdown By Frequency",
+            "type": "object"
+          },
+          "click_rate_30d": {
+            "default": 0.0,
+            "title": "Click Rate 30D",
+            "type": "number"
+          },
+          "daily_avg_sent": {
+            "default": 0.0,
+            "title": "Daily Avg Sent",
+            "type": "number"
+          },
+          "open_rate_30d": {
+            "default": 0.0,
+            "title": "Open Rate 30D",
+            "type": "number"
+          },
+          "queried_at": {
+            "title": "Queried At",
+            "type": "string"
+          },
+          "total_clicked_30d": {
+            "default": 0,
+            "title": "Total Clicked 30D",
+            "type": "integer"
+          },
+          "total_opened_30d": {
+            "default": 0,
+            "title": "Total Opened 30D",
+            "type": "integer"
+          },
+          "total_sent_30d": {
+            "default": 0,
+            "title": "Total Sent 30D",
+            "type": "integer"
+          },
+          "total_unsubscribed_30d": {
+            "default": 0,
+            "title": "Total Unsubscribed 30D",
+            "type": "integer"
+          },
+          "unsubscribe_rate_30d": {
+            "default": 0.0,
+            "title": "Unsubscribe Rate 30D",
+            "type": "number"
+          }
+        },
+        "required": [
+          "queried_at"
+        ],
+        "title": "AdminDigestMetricsResponse",
+        "type": "object"
+      },
       "AdminJobTraceState": {
         "description": "``jobs`` field of the search-trace response.\n\nValues are short status strings (``\"completed\"`` / ``\"not_found\"``)\nso the model accepts them as ``Optional[str]``. ``error`` is present\nwhen the lookup itself raised.",
         "properties": {
@@ -1352,6 +1414,39 @@
           "total"
         ],
         "title": "ApiSearchResponse",
+        "type": "object"
+      },
+      "ApiSubscriptionCheckoutRequest": {
+        "description": "Request body for POST /api/checkout/api-subscription.",
+        "properties": {
+          "tier": {
+            "title": "Tier",
+            "type": "string"
+          }
+        },
+        "required": [
+          "tier"
+        ],
+        "title": "ApiSubscriptionCheckoutRequest",
+        "type": "object"
+      },
+      "ApiSubscriptionCheckoutResponse": {
+        "description": "Response for API subscription checkout session creation.",
+        "properties": {
+          "checkout_url": {
+            "title": "Checkout Url",
+            "type": "string"
+          },
+          "session_id": {
+            "title": "Session Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "checkout_url",
+          "session_id"
+        ],
+        "title": "ApiSubscriptionCheckoutResponse",
         "type": "object"
       },
       "AppConfigPatchRequest": {
@@ -5405,6 +5500,33 @@
         "title": "DiagnosticoRequest",
         "type": "object"
       },
+      "DigestFrequencyBreakdown": {
+        "description": "Breakdown of digest events by frequency (daily / twice_weekly / weekly).",
+        "properties": {
+          "clicked": {
+            "default": 0,
+            "title": "Clicked",
+            "type": "integer"
+          },
+          "opened": {
+            "default": 0,
+            "title": "Opened",
+            "type": "integer"
+          },
+          "sent": {
+            "default": 0,
+            "title": "Sent",
+            "type": "integer"
+          },
+          "unsubscribed": {
+            "default": 0,
+            "title": "Unsubscribed",
+            "type": "integer"
+          }
+        },
+        "title": "DigestFrequencyBreakdown",
+        "type": "object"
+      },
       "DigitalProductOut": {
         "description": "Public representation of a digital product for checkout.",
         "properties": {
@@ -9349,10 +9471,11 @@
         "title": "ModalidadeAggregate",
         "type": "object"
       },
-      "MrrEntry": {
-        "description": "Single month MRR entry returned by ``get_mrr()``.",
+      "MrrHistoryEntry": {
+        "description": "Single month entry in the MRR time series.",
         "properties": {
           "month": {
+            "default": "",
             "title": "Month",
             "type": "string"
           },
@@ -9367,10 +9490,7 @@
             "type": "integer"
           }
         },
-        "required": [
-          "month"
-        ],
-        "title": "MrrEntry",
+        "title": "MrrHistoryEntry",
         "type": "object"
       },
       "MunicipioProfileResponse": {
@@ -12904,7 +13024,7 @@
         "type": "object"
       },
       "RevenueMetricsResponse": {
-        "description": "Response for GET /v1/admin/metrics/revenue (FOUNDER-003 + FOUNDER-005).\n\nAggregated revenue and engagement metrics for the founder dashboard.\nAll values are non-PII aggregates computed by server-side SQL functions\n(FOUNDER-001 migration 20260606010000).\n\n``mrr`` is the most recent month's MRR in BRL.\n``mrr_history`` contains per-month MRR entries for chart rendering.\nAll rate/percentage fields are normalized to the 0.0-1.0 range.",
+        "description": "Response for GET /v1/admin/metrics/revenue (FOUNDER-003).\n\nReturns financial and engagement metrics for the founder dashboard.\nAll rate/percentage fields are normalized to 0.0\u20131.0 range.\n\n``mrr`` is the most recent month's MRR in BRL.\n``total_subscribers`` is the active paid subscriber count from the\nmost recent MRR computation.\n\n``activation_d7`` is the proportion of users who created a search\nsession within their first 7 days after signup (normalized 0\u20131).\n\n``retention_d1`` / ``retention_d7`` / ``retention_d30`` are\nthe proportion of users who logged in on day 1 / day 7 / day 30\nafter signup (normalized 0\u20131).\n\n``mrr_history`` is a list of monthly MRR entries (time series)\nordered chronologically, used by the frontend Recharts line chart.",
         "properties": {
           "activation_d7": {
             "default": 0.0,
@@ -12929,7 +13049,7 @@
           "mrr_history": {
             "default": [],
             "items": {
-              "$ref": "#/components/schemas/MrrEntry"
+              "$ref": "#/components/schemas/MrrHistoryEntry"
             },
             "title": "Mrr History",
             "type": "array"
@@ -15852,6 +15972,61 @@
         "title": "TraceMallocEntry",
         "type": "object"
       },
+      "TrackSentRequest": {
+        "description": "Payload for POST /api/email/track-sent.",
+        "properties": {
+          "frequency": {
+            "default": "daily",
+            "title": "Frequency",
+            "type": "string"
+          },
+          "opportunity_count": {
+            "default": 0,
+            "title": "Opportunity Count",
+            "type": "integer"
+          },
+          "sectors": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Sectors",
+            "type": "array"
+          },
+          "tracking_id": {
+            "title": "Tracking Id",
+            "type": "string"
+          },
+          "user_id": {
+            "title": "User Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "tracking_id",
+          "user_id"
+        ],
+        "title": "TrackSentRequest",
+        "type": "object"
+      },
+      "TrackSentResponse": {
+        "properties": {
+          "status": {
+            "title": "Status",
+            "type": "string"
+          },
+          "tracking_id": {
+            "title": "Tracking Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "status",
+          "tracking_id"
+        ],
+        "title": "TrackSentResponse",
+        "type": "object"
+      },
       "TrendingSector": {
         "properties": {
           "count_this_week": {
@@ -16239,6 +16414,48 @@
           "unread_count"
         ],
         "title": "UnreadCountResponse",
+        "type": "object"
+      },
+      "UnsubscribeRequest": {
+        "description": "Payload for POST /api/email/unsubscribe.",
+        "properties": {
+          "frequency": {
+            "default": "daily",
+            "title": "Frequency",
+            "type": "string"
+          },
+          "tracking_id": {
+            "title": "Tracking Id",
+            "type": "string"
+          },
+          "user_id": {
+            "title": "User Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "user_id",
+          "tracking_id"
+        ],
+        "title": "UnsubscribeRequest",
+        "type": "object"
+      },
+      "UnsubscribeResponse": {
+        "properties": {
+          "message": {
+            "title": "Message",
+            "type": "string"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "status",
+          "message"
+        ],
+        "title": "UnsubscribeResponse",
         "type": "object"
       },
       "UpdateAlertRequest": {
@@ -17618,6 +17835,53 @@
         "summary": "Root"
       }
     },
+    "/api/checkout/api-subscription": {
+      "post": {
+        "description": "Create a Stripe Checkout Session for an API tier subscription.\n\nFlow:\n    1. Validate tier against API_PRODUCTS config\n    2. Look up Stripe Price ID from env var\n    3. Create Stripe Checkout Session (mode=subscription)\n    4. Return checkout URL\n\nRate limited: 10 req/min per IP.",
+        "operationId": "create_api_subscription_checkout_api_checkout_api_subscription_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ApiSubscriptionCheckoutRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiSubscriptionCheckoutResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Create Api Subscription Checkout",
+        "tags": [
+          "checkout"
+        ]
+      }
+    },
     "/api/checkout/one-time": {
       "post": {
         "description": "Create a Stripe Checkout Session for a one-time digital product purchase.\n\nFlow:\n    1. Validate SKU against digital_products table\n    2. Resolve or create Stripe Price\n    3. Create Stripe Checkout Session with card/boleto/PIX\n    4. Return checkout URL\n\nRate limited: 10 req/min per IP.",
@@ -17662,6 +17926,178 @@
         "summary": "Create One Time Checkout",
         "tags": [
           "checkout"
+        ]
+      }
+    },
+    "/api/email/click/{tracking_id}": {
+      "get": {
+        "description": "Click tracking endpoint \u2014 fires ``digest_clicked`` Mixpanel event.\n\nRecords a ``clicked`` event in ``email_tracking_events``, fires a\nfire-and-forget Mixpanel ``digest_clicked`` event, then redirects the\nuser to the target URL via 302.\n\nArgs:\n    tracking_id: UUID tracking identifier from email HTML.\n    url: Target URL (must be a valid smartlic.tech URL).",
+        "operationId": "track_email_click_api_email_click__tracking_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "tracking_id",
+            "required": true,
+            "schema": {
+              "title": "Tracking Id",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Target URL to redirect to",
+            "in": "query",
+            "name": "url",
+            "required": true,
+            "schema": {
+              "description": "Target URL to redirect to",
+              "title": "Url",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Track Email Click",
+        "tags": [
+          "email_tracking"
+        ]
+      }
+    },
+    "/api/email/open/{tracking_id}": {
+      "get": {
+        "description": "Tracking pixel endpoint \u2014 fires ``digest_opened`` Mixpanel event.\n\nReturns a 1x1 transparent GIF (43 bytes). Inserts an ``opened`` event\ninto ``email_tracking_events`` and fires a fire-and-forget Mixpanel\n``digest_opened`` event.\n\nCalled via ``<img>`` tag in the email HTML. Since email clients cache\nimages aggressively, this is a best-effort metric.",
+        "operationId": "track_email_open_api_email_open__tracking_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "tracking_id",
+            "required": true,
+            "schema": {
+              "title": "Tracking Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Track Email Open",
+        "tags": [
+          "email_tracking"
+        ]
+      }
+    },
+    "/api/email/track-sent": {
+      "post": {
+        "description": "Record a ``sent`` event after a digest email is successfully delivered.\n\nCalled by the digest sender after Resend confirms delivery. Inserts a row\ninto ``email_tracking_events`` so the admin dashboard can count sent\ndigests per day.\n\nThe tracking_id is generated by the digest sender and embedded in the\nemail HTML for open/click tracking correlation.",
+        "operationId": "track_digest_sent_api_email_track_sent_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TrackSentRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TrackSentResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Track Digest Sent",
+        "tags": [
+          "email_tracking"
+        ]
+      }
+    },
+    "/api/email/unsubscribe": {
+      "post": {
+        "description": "Unsubscribe from digest emails \u2014 fires ``digest_unsubscribe`` Mixpanel event.\n\nRecords an ``unsubscribed`` event in ``email_tracking_events`` and fires\na fire-and-forget Mixpanel ``digest_unsubscribe`` event.",
+        "operationId": "track_email_unsubscribe_api_email_unsubscribe_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UnsubscribeRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnsubscribeResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Track Email Unsubscribe",
+        "tags": [
+          "email_tracking"
         ]
       }
     },
@@ -18959,9 +19395,36 @@
         ]
       }
     },
+    "/v1/admin/metrics/digest": {
+      "get": {
+        "description": "Return digest email engagement metrics for the last 30 days.\n\nRates computed:\n  - open_rate_30d: opened / sent (as a float 0.0-1.0)\n  - click_rate_30d: clicked / sent\n  - unsubscribe_rate_30d: unsubscribed / sent\n  - daily_avg_sent: total sent / 30\n\nBreakdown by frequency provides raw counts per frequency tier.\nGraceful degradation: if the table doesn't exist or the query fails,\nreturns zeros.",
+        "operationId": "get_digest_metrics_v1_admin_metrics_digest_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminDigestMetricsResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Get Digest Metrics",
+        "tags": [
+          "admin"
+        ]
+      }
+    },
     "/v1/admin/metrics/revenue": {
       "get": {
-        "description": "Return financial and engagement metrics for the founder dashboard.\n\nCalls six PostgreSQL functions (FOUNDER-001) + inline queries for\nactivation_d7, retention_d1, retention_d30. All DB calls run in\nparallel via ``asyncio.gather``.\n\nFires a Mixpanel ``founder_metrics_viewed`` event and logs an audit\nevent. Both are fire-and-forget \u2014 they never block the response.\n\n**Requires:** admin or master role.",
+        "description": "Return financial and engagement metrics for the founder dashboard.\n\nCalls six PostgreSQL functions (FOUNDER-001) + inline queries for\nactivation_d7, retention_d1, retention_d30.\n\nAll percentage fields are normalized to the 0.0\u20131.0 range.\nResponse shape follows the FOUNDER-003 schema plus mrr_history (FOUNDER-004).\n\n**Requires:** admin or master role.\n**Target:** p95 <500ms (all DB calls run in parallel).",
         "operationId": "get_revenue_metrics_v1_admin_metrics_revenue_get",
         "responses": {
           "200": {
