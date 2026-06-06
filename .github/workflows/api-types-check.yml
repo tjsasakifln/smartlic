@@ -1,15 +1,15 @@
 # STORY-2.1 (EPIC-TD-2026Q2) — Pydantic → TypeScript type sync gate.
 #
 # Purpose: Prevent schema drift between backend Pydantic models and frontend
-# TypeScript types. On every PR touching backend schemas/routes or the generated
-# file itself, we extract the OpenAPI schema directly from FastAPI, regenerate
-# TypeScript types with openapi-typescript, and fail if the committed
-# `frontend/app/api-types.generated.ts` doesn't match.
+# TypeScript types. On every PR touching backend schemas/routes, we extract
+# the OpenAPI schema directly from FastAPI, regenerate TypeScript types with
+# openapi-typescript, and:
 #
-# Local fix when CI fails:
-#   1. Run backend: `cd backend && uvicorn main:app --port 8000`
-#   2. In another shell: `npm --prefix frontend run generate:api-types`
-#   3. `git add frontend/app/api-types.generated.ts && git commit`
+#   - On PRs: auto-commit the regenerated types to the PR branch (shift-left).
+#   - On push to main: fail if committed types are stale (safety net).
+#
+# The auto-commit eliminates the #1 cause of CI failures (devs forgetting to
+# run `npm --prefix frontend run generate:api-types` after schema changes).
 
 name: "API Types Check"
 
@@ -36,7 +36,7 @@ on:
       - '.github/workflows/api-types-check.yml'
 
 permissions:
-  contents: read
+  contents: write  # Required for auto-commit on PR branches
 
 concurrency:
   group: api-types-${{ github.ref }}
@@ -46,9 +46,6 @@ jobs:
   api-types-check:
     name: Verify frontend types match backend OpenAPI schema
     runs-on: ubuntu-latest
-    # Env stubs mirror .github/workflows/backend-tests.yml so that
-    # `from main import app` succeeds at import time (config.py + Sentry init
-    # read these during app_factory.create_app()).
     env:
       SUPABASE_URL: https://test.supabase.co
       SUPABASE_SERVICE_ROLE_KEY: test-service-role-key
@@ -60,8 +57,12 @@ jobs:
       LOG_LEVEL: WARNING
 
     steps:
-      - name: Checkout code
+      - name: Checkout code (full depth for auto-commit)
         uses: actions/checkout@v6
+        with:
+          ref: ${{ github.head_ref || github.ref_name }}
+          token: ${{ secrets.GITHUB_TOKEN }}
+          fetch-depth: 0
 
       - name: Setup Python 3.12
         uses: actions/setup-python@v6
@@ -108,29 +109,49 @@ jobs:
             --output /tmp/api-types.generated.new.ts
           echo "Generated /tmp/api-types.generated.new.ts ($(wc -l < /tmp/api-types.generated.new.ts) lines)"
 
-      - name: Diff check — fail if committed types are stale
+      - name: Check for drift
+        id: drift
         run: |
-          if ! diff -u \
+          if diff -u \
               frontend/app/api-types.generated.ts \
               /tmp/api-types.generated.new.ts \
               > /tmp/diff.out; then
-            echo "::error title=API types drift::frontend/app/api-types.generated.ts is out of sync with backend schemas."
-            echo ""
-            echo "First 100 lines of diff:"
-            head -100 /tmp/diff.out
-            echo ""
-            echo "::group::How to fix"
-            echo "Run locally (with backend running at http://localhost:8000):"
-            echo "  npm --prefix frontend run generate:api-types"
-            echo "Then commit the updated frontend/app/api-types.generated.ts"
-            echo "::endgroup::"
-            exit 1
+            echo "drift=false" >> $GITHUB_OUTPUT
+            echo "✅ frontend/app/api-types.generated.ts is in sync with backend schemas"
+          else
+            echo "drift=true" >> $GITHUB_OUTPUT
+            echo "Drift detected (first 50 lines):"
+            head -50 /tmp/diff.out
           fi
-          echo "✅ frontend/app/api-types.generated.ts is in sync with backend schemas"
 
-      # Defense-in-depth: ensure the frontend still type-checks with the
-      # committed generated file (catches accidental manual edits).
+      - name: Auto-commit regenerated types (PR only)
+        if: steps.drift.outputs.drift == 'true' && github.event_name == 'pull_request'
+        run: |
+          cp /tmp/api-types.generated.new.ts frontend/app/api-types.generated.ts
+
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          git add frontend/app/api-types.generated.ts
+          git commit -m "chore: auto-regenerate api-types.generated.ts [skip ci]" || {
+            echo "⚠️ No changes to commit (already in sync)"
+            exit 0
+          }
+
+          git push origin HEAD:${{ github.head_ref }}
+          echo "✅ Auto-committed regenerated api-types.generated.ts to ${{ github.head_ref }}"
+
+      - name: Fail on main push drift (safety net)
+        if: steps.drift.outputs.drift == 'true' && github.event_name == 'push'
+        run: |
+          echo "::error title=API types drift on main::frontend/app/api-types.generated.ts is out of sync on main. This should never happen — PR auto-commit should have prevented it."
+          echo ""
+          echo "Full diff:"
+          cat /tmp/diff.out
+          exit 1
+
       - name: TypeScript compile check
+        if: always() && steps.drift.outputs.drift != 'cancelled'
         run: |
           cd frontend
           npx tsc --noEmit --pretty
