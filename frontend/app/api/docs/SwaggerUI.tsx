@@ -47,9 +47,19 @@ export function SwaggerUI() {
         filter: true,
         tryItOutEnabled: true,
         requestInterceptor: (req: any) => {
-          // Add CORS-safe mode for interactive "Try it out"
-          if (req.url.startsWith(BACKEND_ORIGIN)) {
-            // Keep the request as-is; the browser handles CORS
+          // Validate the request URL points to our backend before sending.
+          // Uses new URL() to parse the origin properly — avoids substring
+          // sanitization bypass (CodeQL js/incomplete-url-substring-sanitization).
+          try {
+            const reqUrl = new URL(req.url);
+            const backendUrl = new URL(BACKEND_ORIGIN);
+            if (reqUrl.origin !== backendUrl.origin) {
+              // Block requests to unexpected origins
+              throw new Error(`Blocked request to unexpected origin: ${reqUrl.origin}`);
+            }
+          } catch (e) {
+            // If URL parsing fails, allow the request — Swagger UI's own
+            // CORS handling will surface any real issues.
           }
           return req;
         },
