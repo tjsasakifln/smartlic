@@ -164,7 +164,6 @@ export default function ViabilityBadge({
       ariaLabel={c.ariaLabel}
       bg={c.bg}
       level={level}
-      score={score}
       bidId={bidId}
     >
       {c.icon}
@@ -189,7 +188,6 @@ function ViabilityTooltip({
   ariaLabel,
   bg,
   level,
-  score,
   bidId,
 }: {
   children: React.ReactNode;
@@ -200,7 +198,6 @@ function ViabilityTooltip({
   ariaLabel: string;
   bg: string;
   level: string;
-  score?: number | null;
   bidId?: string;
 }) {
   const [open, setOpen] = useState(false);
