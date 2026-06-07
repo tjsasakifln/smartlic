@@ -76,8 +76,12 @@ def _arbiter_cache_set(key: str, value: Any) -> None:
     # Lazy import via facade so tests can override _ARBITER_CACHE_MAX on llm_arbiter (AC2)
     import llm_arbiter as _lm
     while len(_arbiter_cache) > _lm._ARBITER_CACHE_MAX:
-        _arbiter_cache.popitem(last=False)
+        evicted_key, _ = _arbiter_cache.popitem(last=False)
         ARBITER_CACHE_EVICTIONS.inc()
+        logger.debug(
+            f"STORY-292: Arbiter cache LRU eviction — key={evicted_key[:16]}... "
+            f"cache_size={len(_arbiter_cache)} max={_lm._ARBITER_CACHE_MAX}"
+        )
     ARBITER_CACHE_SIZE.set(len(_arbiter_cache))
 
 
