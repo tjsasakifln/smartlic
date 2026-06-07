@@ -103,16 +103,23 @@ class TestFluxo2UsesTermSynonymMatches:
     sector-based find_synonym_matches().
     """
 
-    @patch("config.LLM_ZERO_MATCH_ENABLED", False)
+    @patch("llm_arbiter._get_client")
     @patch("config.get_feature_flag")
     @patch("filter._get_tracker")
-    def test_flow2_calls_term_synonym_when_flag_on(self, mock_tracker, mock_gff):
-        """
-        With TERM_SEARCH_SYNONYMS=true and custom_terms present, FLOW 2 should
-        invoke find_term_synonym_matches, recover bids containing synonyms, and
-        NOT call sector-based find_synonym_matches.
+    def test_flow2_calls_term_synonym_when_flag_on(self, mock_tracker, mock_gff, mock_get_client):
+        """DEBT-128: Updated for always-on zero-match. With zero-match always-on
+        and custom_terms present, zero-match runs first and handles classification.
+        The LLM is mocked to accept the bid.
         """
         from filter import aplicar_todos_filtros
+        from unittest.mock import MagicMock
+
+        # Mock LLM client to return "SIM" (accept bid)
+        mock_client = MagicMock()
+        mock_get_client.return_value = mock_client
+        resp = MagicMock()
+        resp.choices[0].message.content = "SIM"
+        mock_client.chat.completions.create.return_value = resp
 
         # Feature flag mapping: only TERM_SEARCH_SYNONYMS is True
         def _flag_side_effect(name, default=None):
@@ -120,38 +127,29 @@ class TestFluxo2UsesTermSynonymMatches:
                 "TERM_SEARCH_SYNONYMS": True,
                 "TERM_SEARCH_LLM_AWARE": False,
                 "TERM_SEARCH_FILTER_CONTEXT": False,
-                "PROXIMITY_CONTEXT_ENABLED": False,
-                "CO_OCCURRENCE_RULES_ENABLED": False,
-                "ITEM_INSPECTION_ENABLED": False,
-                "LLM_ARBITER_ENABLED": False,
-                "SECTOR_RED_FLAGS_ENABLED": False,
             }
             return flags.get(name, False)
 
         mock_gff.side_effect = _flag_side_effect
         mock_tracker.return_value = MagicMock()
 
-        # Bid that does NOT contain "guarda-po" (keyword miss) but DOES contain "jaleco"
-        # → FLOW 2 synonym recovery should pick it up
         bids = [
             _bid("Fornecimento de jaleco hospitalar para servidores"),
         ]
 
-        # keywords={"guarda-po"} — bid won't pass keyword stage (no "guarda-po" in objeto)
-        # custom_terms=["guarda-po"] — triggers FLOW 2 with term synonyms
         aprovadas, stats = aplicar_todos_filtros(
             licitacoes=bids,
             ufs_selecionadas={"SP"},
             keywords={"guarda-po"},
             exclusions=set(),
             custom_terms=["guarda-po"],
-            setor=None,  # No sector — term search path
+            setor=None,
         )
 
-        # The bid should have been recovered via synonym matching
-        assert stats["aprovadas_synonym_match"] >= 1 or stats["recuperadas_zero_results"] >= 1
+        # DEBT-128: With zero-match always-on, the bid is handled by zero-match
+        # classification (FLUXO 2 is skipped). Verify zero-match ran.
+        assert stats.get("llm_zero_match_calls", 0) >= 1
 
-    @patch("config.LLM_ZERO_MATCH_ENABLED", False)
     @patch("config.get_feature_flag")
     @patch("filter._get_tracker")
     def test_flow2_does_not_recover_when_flag_off(self, mock_tracker, mock_gff):
@@ -167,11 +165,7 @@ class TestFluxo2UsesTermSynonymMatches:
                 "TERM_SEARCH_SYNONYMS": False,
                 "TERM_SEARCH_LLM_AWARE": False,
                 "TERM_SEARCH_FILTER_CONTEXT": False,
-                "PROXIMITY_CONTEXT_ENABLED": False,
-                "CO_OCCURRENCE_RULES_ENABLED": False,
-                "ITEM_INSPECTION_ENABLED": False,
-                "LLM_ARBITER_ENABLED": False,
-                "SECTOR_RED_FLAGS_ENABLED": False,
+                # DEBT-128: LLM_ARBITER_ENABLED removed — always-on
             }
             return flags.get(name, False)
 

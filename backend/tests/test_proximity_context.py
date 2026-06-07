@@ -206,8 +206,11 @@ class TestProximityContextPipeline:
             mock_tracker.return_value = tracker
             yield tracker
 
-    def test_feature_flag_off_zero_rejections(self, mock_pipeline_deps):
-        """Feature flag OFF → zero proximity rejections."""
+    # DEBT-128: PROXIMITY_CONTEXT_ENABLED removed — always-on.
+    # The old "feature flag OFF" test is replaced with a check that proximity
+    # stats key is present when the filter runs, consistent with test_feature_flag_on.
+    def test_proximity_rejections_key_present_when_filter_runs(self, mock_pipeline_deps):
+        """Proximity filter always runs — verify stats key present."""
         from filter import aplicar_todos_filtros
 
         licitacoes = [
@@ -218,12 +221,11 @@ class TestProximityContextPipeline:
             }
         ]
 
-        with patch("config.get_feature_flag", side_effect=lambda name, **kw: name != "PROXIMITY_CONTEXT_ENABLED"):
-            aprovadas, stats = aplicar_todos_filtros(
-                licitacoes, {"SP"}, setor="vestuario"
-            )
+        aprovadas, stats = aplicar_todos_filtros(
+            licitacoes, {"SP"}, setor="vestuario"
+        )
 
-        assert stats.get("proximity_rejections", 0) == 0
+        assert "proximity_rejections" in stats
 
     def test_feature_flag_on_proximity_rejections_counted(self, mock_pipeline_deps):
         """Feature flag ON → proximity rejections counted in stats."""

@@ -5,7 +5,6 @@ Contains the OpenAI client, in-memory/Redis cache, LLMClassification model,
 parsing helpers, and the main classify_contract_primary_match() function.
 """
 
-import hashlib
 import json
 import logging
 import os
@@ -13,13 +12,13 @@ import time as _time_module
 from collections import OrderedDict
 from typing import Any, Literal, Optional
 
+from openai import OpenAI
 from pydantic import BaseModel, Field, field_validator
 
-from openai import OpenAI
 from metrics import (
-    EVIDENCE_PREFIX_STRIPPED,
-    ARBITER_CACHE_SIZE,
     ARBITER_CACHE_EVICTIONS,
+    ARBITER_CACHE_SIZE,
+    EVIDENCE_PREFIX_STRIPPED,
 )
 
 logger = logging.getLogger(__name__)
@@ -47,7 +46,7 @@ def _get_client() -> OpenAI:
 LLM_MODEL = os.getenv("LLM_ARBITER_MODEL", "gpt-4.1-nano")
 LLM_MAX_TOKENS = int(os.getenv("LLM_ARBITER_MAX_TOKENS", "1"))
 LLM_TEMPERATURE = float(os.getenv("LLM_ARBITER_TEMPERATURE", "0"))
-LLM_ENABLED = os.getenv("LLM_ARBITER_ENABLED", "true").lower() == "true"
+# DEBT-128: LLM_ENABLED flag removed — arbiter is always-on (stable since Oct 2025)
 
 # D-02 AC5: Structured output max tokens
 LLM_STRUCTURED_MAX_TOKENS = int(os.getenv("LLM_STRUCTURED_MAX_TOKENS", "800"))
@@ -210,6 +209,7 @@ def _log_token_usage(
     # loop (long-term Option A = run_coroutine_threadsafe on main app loop).
     try:
         import asyncio as _asyncio
+
         from llm_budget import track_llm_cost as _track
 
         try:
@@ -392,21 +392,7 @@ def classify_contract_primary_match(
 
     D-02: Returns structured dict with confidence, evidence, and rejection reason.
     """
-    # Lazy import via facade so patch("llm_arbiter.LLM_ENABLED", False) works in tests (AC2)
-    import llm_arbiter as _lm
-
-    if not _lm.LLM_ENABLED:
-        logger.warning(
-            "LLM arbiter disabled (LLM_ARBITER_ENABLED=false). "
-            "Accepting ambiguous contract by default."
-        )
-        return {
-            "is_primary": True,
-            "confidence": 50,
-            "evidence": [],
-            "rejection_reason": None,
-            "needs_more_data": False,
-        }
+    # DEBT-128: LLM_ARBITER_ENABLED removed — always-on. Lazy import via facade kept for test backward compat.
 
     if not setor_name and not termos_busca:
         logger.error(

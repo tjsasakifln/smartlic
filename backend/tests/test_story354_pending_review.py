@@ -66,9 +66,7 @@ def _make_busca_response(**overrides) -> BuscaResponse:
 @pytest.fixture(autouse=True)
 def _setup_env(monkeypatch):
     """Ensure LLM-related env vars are set for every test, then clear cache."""
-    monkeypatch.setenv("LLM_ARBITER_ENABLED", "true")
     monkeypatch.setenv("OPENAI_API_KEY", "test-key-354")
-    monkeypatch.setenv("LLM_ZERO_MATCH_ENABLED", "true")
     monkeypatch.setenv("LLM_FALLBACK_PENDING_ENABLED", "true")
     clear_cache()
     yield

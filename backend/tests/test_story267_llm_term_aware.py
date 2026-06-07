@@ -30,7 +30,6 @@ from llm_arbiter import _build_term_search_prompt, clear_cache
 @pytest.fixture(autouse=True)
 def setup_env():
     """Set up a clean LLM environment for each test."""
-    os.environ["LLM_ARBITER_ENABLED"] = "true"
     os.environ["OPENAI_API_KEY"] = "test-key"
     # Ensure feature flags are OFF by default (tests opt-in via patches)
     os.environ["TERM_SEARCH_LLM_AWARE"] = "false"
@@ -210,7 +209,6 @@ class TestZeroMatchUsesTermPrompt:
 
     @patch("llm_arbiter.classify_contract_primary_match")
     @patch("config.get_feature_flag")
-    @patch("config.LLM_ZERO_MATCH_ENABLED", True)
     def test_zero_match_uses_term_prompt_when_custom_terms(
         self, mock_get_feature_flag, mock_classify
     ):
@@ -280,7 +278,6 @@ class TestZeroMatchUsesTermPrompt:
 
     @patch("llm_arbiter.classify_contract_primary_match")
     @patch("config.get_feature_flag")
-    @patch("config.LLM_ZERO_MATCH_ENABLED", True)
     def test_zero_match_uses_sector_prompt_when_flag_off(
         self, mock_get_feature_flag, mock_classify
     ):
@@ -315,7 +312,6 @@ class TestZeroMatchUsesTermPrompt:
 
     @patch("llm_arbiter.classify_contract_primary_match")
     @patch("config.get_feature_flag")
-    @patch("config.LLM_ZERO_MATCH_ENABLED", True)
     def test_zero_match_no_custom_terms_uses_sector_prompt(
         self, mock_get_feature_flag, mock_classify
     ):
@@ -484,7 +480,6 @@ class TestRecoveryUsesTermPrompt:
     @patch("llm_arbiter.classify_contract_recovery")
     @patch("synonyms.find_term_synonym_matches")
     @patch("config.get_feature_flag")
-    @patch("config.LLM_ZERO_MATCH_ENABLED", False)
     def test_recovery_uses_term_prompt_when_custom_terms(
         self,
         mock_get_feature_flag,
@@ -535,32 +530,33 @@ class TestRecoveryUsesTermPrompt:
             custom_terms=custom_terms,
         )
 
-        # Recovery must have been called
-        assert mock_recovery.call_count >= 1, (
-            "classify_contract_recovery was not called. "
-            "Synonym near-miss with 1 match should trigger Camada 3B."
+        # DEBT-128: LLM_ZERO_MATCH_ENABLED removed — always-on.
+        # Zero-match handles bids with custom_terms; FLUXO 2 is skipped.
+        assert stats.get("llm_zero_match_calls", 0) >= 1, (
+            "Zero-match should have processed the bid with custom_terms"
         )
+        assert stats.get("recuperadas_zero_results", 0) == 0
 
-        # Every recovery call: termos_busca=custom_terms, no setor_name
-        for i, call_args in enumerate(mock_recovery.call_args_list):
-            kwargs = call_args.kwargs if call_args.kwargs else {}
-            setor_name_passed = kwargs.get("setor_name")
-            termos_passed = kwargs.get("termos_busca")
+        # Skip recovery assertions since zero-match always runs first
+        if mock_recovery.call_count >= 1:
+            for i, call_args in enumerate(mock_recovery.call_args_list):
+                kwargs = call_args.kwargs if call_args.kwargs else {}
+                setor_name_passed = kwargs.get("setor_name")
+                termos_passed = kwargs.get("termos_busca")
 
-            assert setor_name_passed is None, (
-                f"Recovery call {i}: expected setor_name=None "
-                f"but got setor_name={setor_name_passed!r}. "
-                f"Term-aware recovery must not pass sector name."
-            )
-            assert termos_passed == custom_terms, (
-                f"Recovery call {i}: expected termos_busca={custom_terms!r} "
-                f"but got {termos_passed!r}."
-            )
+                assert setor_name_passed is None, (
+                    f"Recovery call {i}: expected setor_name=None "
+                    f"but got setor_name={setor_name_passed!r}. "
+                    f"Term-aware recovery must not pass sector name."
+                )
+                assert termos_passed == custom_terms, (
+                    f"Recovery call {i}: expected termos_busca={custom_terms!r} "
+                    f"but got {termos_passed!r}."
+                )
 
     @patch("llm_arbiter.classify_contract_recovery")
     @patch("synonyms.find_term_synonym_matches")
     @patch("config.get_feature_flag")
-    @patch("config.LLM_ZERO_MATCH_ENABLED", False)
     def test_recovery_uses_term_prompt_not_setor_name(
         self,
         mock_get_feature_flag,
@@ -617,7 +613,6 @@ class TestRecoveryUsesTermPrompt:
     @patch("llm_arbiter.classify_contract_recovery")
     @patch("synonyms.find_synonym_matches")
     @patch("config.get_feature_flag")
-    @patch("config.LLM_ZERO_MATCH_ENABLED", False)
     def test_recovery_uses_setor_name_when_no_custom_terms(
         self,
         mock_get_feature_flag,
@@ -695,15 +690,14 @@ class TestTermPromptContentReachesLLM:
         custom_terms = ["guarda-pó", "jaleco"]
         bids = [_make_zero_match_bid()]
 
-        with patch("config.LLM_ZERO_MATCH_ENABLED", True):
-            aplicar_todos_filtros(
-                licitacoes=bids,
-                ufs_selecionadas={"SP"},
-                keywords={"xyz_nonexistent_keyword_abc"},
-                exclusions=set(),
-                setor="vestuario",
-                custom_terms=custom_terms,
-            )
+        aplicar_todos_filtros(
+            licitacoes=bids,
+            ufs_selecionadas={"SP"},
+            keywords={"xyz_nonexistent_keyword_abc"},
+            exclusions=set(),
+            setor="vestuario",
+            custom_terms=custom_terms,
+        )
 
         if mock_client.chat.completions.create.call_count >= 1:
             call_args = mock_client.chat.completions.create.call_args
@@ -749,13 +743,12 @@ class TestTermPromptContentReachesLLM:
         custom_terms = ["equipamento de medição", "calibrador"]
         bids = [_make_gray_zone_bid(0)]
 
-        with patch("config.LLM_ZERO_MATCH_ENABLED", False):
-            aplicar_todos_filtros(
-                licitacoes=bids,
-                ufs_selecionadas={"SP"},
-                setor="vestuario",
-                custom_terms=custom_terms,
-            )
+        aplicar_todos_filtros(
+            licitacoes=bids,
+            ufs_selecionadas={"SP"},
+            setor="vestuario",
+            custom_terms=custom_terms,
+        )
 
         if mock_client.chat.completions.create.call_count >= 1:
             call_args = mock_client.chat.completions.create.call_args

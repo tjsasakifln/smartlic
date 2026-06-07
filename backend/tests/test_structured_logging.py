@@ -236,7 +236,6 @@ class TestImportTimeLogging:
 
         messages = " ".join(r.message for r in caplog.records)
         assert "ENABLE_NEW_PRICING" in messages
-        assert "LLM_ARBITER_ENABLED" in messages
         assert "ZERO_RESULTS_RELAXATION_ENABLED" in messages
 
     def test_config_import_does_not_emit_feature_flag_logs(self, caplog):

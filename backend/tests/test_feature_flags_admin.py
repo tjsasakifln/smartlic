@@ -94,11 +94,11 @@ class TestListFeatureFlags:
     @patch("redis_pool.is_redis_available", new_callable=AsyncMock, return_value=False)
     @patch("routes.feature_flags._redis_get_override", new_callable=AsyncMock, return_value=None)
     def test_list_contains_known_flags(self, mock_redis_override, mock_redis, client):
-        """Should include well-known flags like LLM_ARBITER_ENABLED."""
+        """Should include well-known flags like DATALAKE_ENABLED."""
         resp = client.get("/admin/feature-flags")
         assert resp.status_code == 200
         flag_names = [f["name"] for f in resp.json()["flags"]]
-        assert "LLM_ARBITER_ENABLED" in flag_names
+        assert "DATALAKE_ENABLED" in flag_names
         assert "TRIAL_PAYWALL_ENABLED" in flag_names
 
     @patch("redis_pool.is_redis_available", new_callable=AsyncMock, return_value=False)
@@ -129,12 +129,12 @@ class TestUpdateFeatureFlag:
     def test_update_flag_success(self, mock_get, mock_set, client):
         """Should update a flag and return previous/new values."""
         resp = client.patch(
-            "/admin/feature-flags/LLM_ARBITER_ENABLED",
+            "/admin/feature-flags/DATALAKE_ENABLED",
             json={"value": False},
         )
         assert resp.status_code == 200
         data = resp.json()
-        assert data["name"] == "LLM_ARBITER_ENABLED"
+        assert data["name"] == "DATALAKE_ENABLED"
         assert data["value"] is False
         assert data["source"] == "redis"
         assert "previous_value" in data
@@ -167,7 +167,7 @@ class TestUpdateFeatureFlag:
     def test_update_flag_invalid_body(self, client):
         """Should return 422 for missing value field."""
         resp = client.patch(
-            "/admin/feature-flags/LLM_ARBITER_ENABLED",
+            "/admin/feature-flags/DATALAKE_ENABLED",
             json={},
         )
         assert resp.status_code == 422
@@ -186,13 +186,13 @@ class TestUpdateFeatureFlag:
         from routes.feature_flags import _runtime_overrides
 
         resp = client.patch(
-            "/admin/feature-flags/LLM_ARBITER_ENABLED",
+            "/admin/feature-flags/DATALAKE_ENABLED",
             json={"value": False},
         )
         assert resp.status_code == 200
 
         # Route set the runtime override — canonical state for get_feature_flag.
-        assert _runtime_overrides.get("LLM_ARBITER_ENABLED") is False, (
+        assert _runtime_overrides.get("DATALAKE_ENABLED") is False, (
             "Route did not set _runtime_overrides after admin PATCH"
         )
 
@@ -217,7 +217,7 @@ class TestUpdateFeatureFlag:
         """Should be able to toggle a flag off then on."""
         # Toggle off
         resp = client.patch(
-            "/admin/feature-flags/LLM_ARBITER_ENABLED",
+            "/admin/feature-flags/DATALAKE_ENABLED",
             json={"value": False},
         )
         assert resp.status_code == 200
@@ -225,7 +225,7 @@ class TestUpdateFeatureFlag:
 
         # Toggle on
         resp = client.patch(
-            "/admin/feature-flags/LLM_ARBITER_ENABLED",
+            "/admin/feature-flags/DATALAKE_ENABLED",
             json={"value": True},
         )
         assert resp.status_code == 200
@@ -239,7 +239,7 @@ class TestReloadFeatureFlags:
     def test_reload_clears_overrides(self, mock_clear, client):
         """Should clear all overrides and return current values."""
         from routes.feature_flags import _runtime_overrides
-        _runtime_overrides["LLM_ARBITER_ENABLED"] = False
+        _runtime_overrides["DATALAKE_ENABLED"] = False
         # FILTER_DEBUG_MODE was removed from _FEATURE_FLAG_REGISTRY (BTS-010a);
         # use DIGEST_ENABLED as the second override fixture.
         _runtime_overrides["DIGEST_ENABLED"] = True
@@ -289,7 +289,7 @@ class TestUpdateFeatureFlagAudit:
         mock_audit_logger.log = AsyncMock()
 
         resp = client.patch(
-            "/admin/feature-flags/LLM_ARBITER_ENABLED",
+            "/admin/feature-flags/DATALAKE_ENABLED",
             json={"value": False},
         )
         assert resp.status_code == 200
@@ -298,9 +298,9 @@ class TestUpdateFeatureFlagAudit:
         call_kwargs = mock_audit_logger.log.call_args
         assert call_kwargs.kwargs["event_type"] == "admin.feature_flag_change"
         assert call_kwargs.kwargs["actor_id"] == ADMIN_UUID
-        assert call_kwargs.kwargs["target_id"] == "LLM_ARBITER_ENABLED"
+        assert call_kwargs.kwargs["target_id"] == "DATALAKE_ENABLED"
         details = call_kwargs.kwargs["details"]
-        assert details["flag_name"] == "LLM_ARBITER_ENABLED"
+        assert details["flag_name"] == "DATALAKE_ENABLED"
         assert details["new_value"] == "False"
 
     @patch("routes.feature_flags._redis_set_override", new_callable=AsyncMock, return_value=True)
@@ -329,7 +329,7 @@ class TestFeatureFlagsSecurity:
     def test_update_requires_admin(self, unauth_client):
         """Should return 401 without authentication."""
         resp = unauth_client.patch(
-            "/admin/feature-flags/LLM_ARBITER_ENABLED",
+            "/admin/feature-flags/DATALAKE_ENABLED",
             json={"value": False},
         )
         assert resp.status_code in (401, 403)

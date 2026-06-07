@@ -22,7 +22,6 @@ from llm_arbiter.strategies import (
 
 @pytest.fixture(autouse=True)
 def _env() -> None:
-    os.environ["LLM_ARBITER_ENABLED"] = "true"
     os.environ["LLM_ARBITER_MODEL"] = "gpt-4.1-nano"
     os.environ["LLM_ARBITER_MAX_TOKENS"] = "1"
     os.environ["LLM_ARBITER_TEMPERATURE"] = "0"

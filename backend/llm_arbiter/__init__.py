@@ -23,8 +23,8 @@ from llm_arbiter.prompt_builder import (
 )
 
 # classification: core LLM logic
+# DEBT-128: LLM_ENABLED removed — always-on (stable since Oct 2025)
 from llm_arbiter.classification import (
-    LLM_ENABLED,
     LLM_MAX_TOKENS,
     LLM_MODEL,
     LLM_STRUCTURED_MAX_TOKENS,

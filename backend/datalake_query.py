@@ -130,7 +130,8 @@ async def query_datalake(
         List of flat bid dicts compatible with _normalize_item() output.
         Returns [] on any error (fail-open).
     """
-    from config.features import TRIGRAM_FALLBACK_ENABLED, EMBEDDING_ENABLED
+    # DEBT-128: TRIGRAM_FALLBACK_ENABLED removed — always-on (stable since Mar 2026)
+    from config.features import EMBEDDING_ENABLED
 
     tsquery, websearch_text = _build_tsquery(keywords, custom_terms)
 
@@ -231,8 +232,9 @@ async def query_datalake(
                 logger.warning(f"[DatalakeQuery] RPC failed for UF={uf}: {type(e).__name__}: {e}")
 
         if not rows:
+            # DEBT-128: TRIGRAM_FALLBACK_ENABLED removed — always-on (stable since Mar 2026)
             # STORY-437 AC3: Trigram fallback when FTS returns 0
-            if TRIGRAM_FALLBACK_ENABLED and (tsquery or websearch_text):
+            if tsquery or websearch_text:
                 trigram_term = _build_trigram_term(keywords, custom_terms)
                 if trigram_term:
                     rows = await asyncio.to_thread(_query_trigram_fallback, sb, trigram_term, ufs, limit)

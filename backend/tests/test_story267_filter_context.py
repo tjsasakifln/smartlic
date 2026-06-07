@@ -274,24 +274,22 @@ class TestFilterContextAdjustments:
             objeto="Uniformização de procedimento administrativo interno de pessoal",
         )
 
-        with patch("config.LLM_ZERO_MATCH_ENABLED", False):
-            aprovadas_colete, stats_colete = aplicar_todos_filtros(
-                licitacoes=[bid_colete],
-                ufs_selecionadas={"SP"},
-                keywords=keywords,
-                exclusions=partial_exclusions,
-                setor="vestuario",
-                custom_terms=custom_terms,
-            )
-
-            aprovadas_uniformizacao, stats_uniformizacao = aplicar_todos_filtros(
-                licitacoes=[bid_uniformizacao],
-                ufs_selecionadas={"SP"},
-                keywords=keywords,
-                exclusions=partial_exclusions,
-                setor="vestuario",
-                custom_terms=custom_terms,
-            )
+        aprovadas_colete, stats_colete = aplicar_todos_filtros(
+            licitacoes=[bid_colete],
+            ufs_selecionadas={"SP"},
+            keywords=keywords,
+            exclusions=partial_exclusions,
+            setor="vestuario",
+            custom_terms=custom_terms,
+        )
+        aprovadas_uniformizacao, stats_uniformizacao = aplicar_todos_filtros(
+            licitacoes=[bid_uniformizacao],
+            ufs_selecionadas={"SP"},
+            keywords=keywords,
+            exclusions=partial_exclusions,
+            setor="vestuario",
+            custom_terms=custom_terms,
+        )
 
         assert len(aprovadas_colete) == 1, (
             "Bid about 'colete refletivo' should be approved when "
@@ -323,7 +321,6 @@ class TestFilterContextAdjustments:
 
         # --- WITHOUT flag: ceiling applies → bid rejected by Camada 1A ---
         with (
-            patch("config.LLM_ZERO_MATCH_ENABLED", False),
             patch("config.get_feature_flag", return_value=False),
         ):
             aprovadas_without, stats_without = aplicar_todos_filtros(
@@ -337,7 +334,6 @@ class TestFilterContextAdjustments:
 
         # --- WITH flag: ceiling skipped → bid reaches keyword stage and is approved ---
         with (
-            patch("config.LLM_ZERO_MATCH_ENABLED", False),
             patch("config.get_feature_flag", return_value=True),
         ):
             aprovadas_with, stats_with = aplicar_todos_filtros(
@@ -391,7 +387,6 @@ class TestFilterContextAdjustments:
             return flag_name == "CO_OCCURRENCE_RULES_ENABLED"
 
         with (
-            patch("config.LLM_ZERO_MATCH_ENABLED", False),
             patch("config.get_feature_flag", side_effect=_flag_co_on_term_off),
         ):
             aprovadas_with_co, stats_with_co = aplicar_todos_filtros(
@@ -409,7 +404,6 @@ class TestFilterContextAdjustments:
             return flag_name in ("CO_OCCURRENCE_RULES_ENABLED", "TERM_SEARCH_FILTER_CONTEXT")
 
         with (
-            patch("config.LLM_ZERO_MATCH_ENABLED", False),
             patch("config.get_feature_flag", side_effect=_flag_both_on),
         ):
             aprovadas_skipped_co, stats_skipped_co = aplicar_todos_filtros(
@@ -467,7 +461,6 @@ class TestFilterContextAdjustments:
 
         # --- Proximity enabled, no custom_terms: filter runs (counter initialized) ---
         with (
-            patch("config.LLM_ZERO_MATCH_ENABLED", False),
             patch("config.get_feature_flag", side_effect=_flag_prox_on_term_off),
         ):
             _, stats_no_terms = aplicar_todos_filtros(
@@ -481,7 +474,6 @@ class TestFilterContextAdjustments:
 
         # --- Proximity enabled, custom_terms present + TERM_SEARCH_FILTER_CONTEXT=true ---
         with (
-            patch("config.LLM_ZERO_MATCH_ENABLED", False),
             patch("config.get_feature_flag", side_effect=_flag_prox_on_term_on),
         ):
             _, stats_with_terms = aplicar_todos_filtros(
@@ -521,7 +513,6 @@ class TestFilterContextAdjustments:
 
         # All feature flags return False → sector behavior fully active
         with (
-            patch("config.LLM_ZERO_MATCH_ENABLED", False),
             patch("config.get_feature_flag", return_value=False),
         ):
             aprovadas, stats = aplicar_todos_filtros(

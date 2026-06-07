@@ -439,7 +439,6 @@ class TestQueryDatalake:
     # --- STORY-437 AC3: Trigram fallback ---
 
     @pytest.mark.asyncio
-    @patch("config.features.TRIGRAM_FALLBACK_ENABLED", True)
     @patch("supabase_client.get_supabase")
     async def test_trigram_fallback_activates_when_fts_returns_empty(self, mock_get_sb):
         """When FTS returns 0 results and TRIGRAM_FALLBACK_ENABLED, must call trigram RPC."""
@@ -474,28 +473,6 @@ class TestQueryDatalake:
         assert result[0]["_source"] == "trigram_fallback"
 
     @pytest.mark.asyncio
-    @patch("config.features.TRIGRAM_FALLBACK_ENABLED", False)
-    @patch("supabase_client.get_supabase")
-    async def test_trigram_fallback_not_called_when_disabled(self, mock_get_sb):
-        """When TRIGRAM_FALLBACK_ENABLED=False, must NOT call trigram RPC."""
-        mock_sb = MagicMock()
-        mock_sb.rpc.return_value.execute.return_value.data = []
-        mock_get_sb.return_value = mock_sb
-
-        result = await query_datalake(
-            ufs=["SP"],
-            data_inicial="2026-03-01",
-            data_final="2026-03-31",
-            keywords=["construção"],
-        )
-
-        # Only search_datalake should have been called
-        rpc_names = [call[0][0] for call in mock_sb.rpc.call_args_list]
-        assert "search_datalake_trigram_fallback" not in rpc_names
-        assert result == []
-
-    @pytest.mark.asyncio
-    @patch("config.features.TRIGRAM_FALLBACK_ENABLED", True)
     @patch("supabase_client.get_supabase")
     async def test_trigram_fallback_not_called_when_fts_returns_results(self, mock_get_sb):
         """When FTS returns results, trigram fallback must NOT be called."""
@@ -515,7 +492,6 @@ class TestQueryDatalake:
         assert len(result) == 1
 
     @pytest.mark.asyncio
-    @patch("config.features.TRIGRAM_FALLBACK_ENABLED", True)
     @patch("supabase_client.get_supabase")
     async def test_trigram_fallback_not_called_when_no_search_terms(self, mock_get_sb):
         """Without any search terms, trigram fallback must NOT be called."""

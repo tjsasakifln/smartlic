@@ -27,7 +27,6 @@ from llm_arbiter import (
 @pytest.fixture(autouse=True)
 def setup_env():
     """Set up environment variables for testing."""
-    os.environ["LLM_ARBITER_ENABLED"] = "true"
     os.environ["LLM_ARBITER_MODEL"] = "gpt-4.1-nano"
     os.environ["OPENAI_API_KEY"] = "test-key-12345"
     os.environ["LLM_ZERO_MATCH_BATCH_SIZE"] = "20"
@@ -272,7 +271,6 @@ class TestFilterBatchIntegration:
     """Integration tests for batch zero-match in filter.py."""
 
     @patch("llm_arbiter._get_client")
-    @patch("config.LLM_ZERO_MATCH_ENABLED", True)
     def test_50_items_completes_via_batch(self, mock_get_client):
         """Integration: 50 zero-match items processed via batch (mocked LLM)."""
         call_count = [0]  # noqa: F841

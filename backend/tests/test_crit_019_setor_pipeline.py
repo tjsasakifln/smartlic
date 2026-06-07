@@ -181,7 +181,6 @@ class TestAC3SetorPassedToFilter:
 class TestAC4ZeroMatchActivated:
     """AC4: Integration test — LLM Zero-Match (Camada 3B) is activated when setor is passed."""
 
-    @patch("config.LLM_ZERO_MATCH_ENABLED", True)
     @patch("filter._get_tracker")
     def test_zero_match_path_entered_with_setor(self, mock_tracker):
         """When setor != None and LLM_ZERO_MATCH_ENABLED, zero-match pool is collected.
@@ -219,7 +218,6 @@ class TestAC4ZeroMatchActivated:
         )
 
     @pytest.mark.asyncio
-    @patch("config.LLM_ZERO_MATCH_ENABLED", True)
     @patch("filter._get_tracker")
     async def test_zero_match_path_skipped_without_setor(self, mock_tracker):
         """When setor is None, zero-match stats are initialized but pool is not processed."""

@@ -9,11 +9,15 @@ import json
 import logging
 import time as sync_time_module
 
-from search_context import SearchContext
-from metrics import FILTER_DECISIONS, FILTER_INPUT_TOTAL, FILTER_OUTPUT_TOTAL, FILTER_DISCARD_RATE
-from status_inference import enriquecer_com_status_inferido
-
 import quota
+from metrics import (
+    FILTER_DECISIONS,
+    FILTER_DISCARD_RATE,
+    FILTER_INPUT_TOTAL,
+    FILTER_OUTPUT_TOTAL,
+)
+from search_context import SearchContext
+from status_inference import enriquecer_com_status_inferido
 
 logger = logging.getLogger(__name__)
 
@@ -76,7 +80,7 @@ async def stage_filter(pipeline, ctx: SearchContext) -> None:
             # AC4: flag long-running filter after 30s (legacy emit for compatibility)
             if elapsed > 30 and not _long_running_emitted[0]:
                 _long_running_emitted[0] = True
-                coro2 = ctx.tracker.emit("filtering", 65, f"Filtragem demorada...", is_long_running=True)
+                coro2 = ctx.tracker.emit("filtering", 65, "Filtragem demorada...", is_long_running=True)
                 _loop.call_soon_threadsafe(_loop.create_task, coro2)
     else:
         _on_filter_progress = None
@@ -348,8 +352,8 @@ async def stage_filter(pipeline, ctx: SearchContext) -> None:
             f"Status distribution: {_diag_statuses}, raw_pool={len(ctx.licitacoes_raw)}"
         )
         ctx.filter_summary = (
-            f"Nenhuma licitação encontrada para o setor selecionado nos estados "
-            f"e período informados. Tente ampliar os estados ou o período de busca."
+            "Nenhuma licitação encontrada para o setor selecionado nos estados "
+            "e período informados. Tente ampliar os estados ou o período de busca."
         )
 
     # SSE: Filtering complete
@@ -369,16 +373,15 @@ async def stage_filter(pipeline, ctx: SearchContext) -> None:
             filter_stats=stats,
         )
 
+        # DEBT-128: PARTIAL_DATA_SSE_ENABLED removed — always-on (stable since Dec 2025)
         # CRIT-071: Emit partial_data with filtered results
         if ctx.licitacoes_filtradas:
-            from config import get_feature_flag as _gff_071b
-            if _gff_071b("PARTIAL_DATA_SSE_ENABLED"):
-                await ctx.tracker.emit_partial_data(
-                    licitacoes=ctx.licitacoes_filtradas,
-                    batch_index=2,
-                    ufs_completed=list(ctx.succeeded_ufs or ctx.request.ufs),
-                    is_final=True,
-                )
+            await ctx.tracker.emit_partial_data(
+                licitacoes=ctx.licitacoes_filtradas,
+                batch_index=2,
+                ufs_completed=list(ctx.succeeded_ufs or ctx.request.ufs),
+                is_final=True,
+            )
 
     # CRIT-059: Dispatch async zero-match job if candidates were collected
     _zm_candidates = ctx.filter_stats.get("zero_match_candidates", [])
@@ -386,7 +389,7 @@ async def stage_filter(pipeline, ctx: SearchContext) -> None:
         ctx.zero_match_candidates = _zm_candidates
         ctx.zero_match_candidates_count = len(_zm_candidates)
         try:
-            from job_queue import is_queue_available, enqueue_job
+            from job_queue import enqueue_job, is_queue_available
             if await is_queue_available():
                 _sector_name = ctx.sector.name if ctx.sector else (ctx.request.setor_id or "")
                 _sector_id = ctx.request.setor_id or ""
