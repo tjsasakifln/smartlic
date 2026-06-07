@@ -1,6 +1,6 @@
 # ROADMAP — SmartLic
 
-**Versao:** 6.4 | **Atualizado:** 2026-06-06 | **Status:** Intel Reports 87.5%, Reposicionamento 100%, Q2 Multi-Camada ~78%, Wave 4 87.0%
+**Versao:** 6.5 | **Atualizado:** 2026-06-07 | **Status:** Intel Reports 87.5%, Reposicionamento 100%, Q2 Multi-Camada ~68%, Wave 4 89.3%
 
 ## 2026-04-24 — EPIC-GROWTH-VIRAL-2026-Q3: On-Page CAC-Zero
 
@@ -46,8 +46,8 @@ FOUNDERS PLAN:       [####################] 100% (23 issues — #782–#795, #86
 TECH DEBT (TD):      [####################] 100% (61/61 issues fechadas)
 INTEL REPORTS:       [################....] 87.5% (7/8 issues, 1 open blocker)
 UX PREMIUM:          [....................] 0% (issues nao criados — spec em docs/stories/)
-Q2 MULTI-CAMADA:     [###############......] ~78% (5 EPICs + CONV + Verticais, ~143 issues, ~107 closed, ~36 open — recálculo pendente)
-Q2 WAVE 4 (JUN):     [#################...] 87.0% (54 issues, 47 closed, 7 open — #1400–#1453)
+Q2 MULTI-CAMADA:     [#############.........] ~68% (5 EPICs + CONV + Verticais, 89 issues core mapeados, 60 closed, 29 open + 24 novas Wave 2/3 em #1509–#1532)
+Q2 WAVE 4 (JUN):     [##################..] 89.3% (56 issues, 50 closed, 6 open — #1400–#1453)
 ```
 
 **Production:** https://smartlic.tech
@@ -417,7 +417,7 @@ Lançados 2026-06-04. 47 de 54 closed (87.0%) — todos fechados entre Jun 4-6. 
 | #1436 | FEEDBACK-002: Atualizar affinity no feedback — correct +0.1, false_positive -0.2 por setor | Closed |
 | #1437 | FEEDBACK-003: Combined score adjustment — fator de afinidade no enrich pipeline | Closed |
 | #1438 | FEEDBACK-004: Endpoint GET /profile/sector-affinity — transparência de afinidades | Closed |
-| #1439 | FEEDBACK-005: Frontend — 'Setores que não me interessam' + mute/unmute na /conta/preferencias | Open |
+| #1439 | FEEDBACK-005: Frontend — 'Setores que não me interessam' + mute/unmute na /conta/preferencias | Closed |
 
 **NO-JARGON — Replace Technical Jargon (#1440–#1443, estende #1407)**
 
@@ -462,6 +462,65 @@ Lançados 2026-06-04. 47 de 54 closed (87.0%) — todos fechados entre Jun 4-6. 
 |-------|--------|--------|
 | #1403 | feat: Founder Revenue Dashboard — MRR, Churn, Activation, Retention | Closed (subs #1414-#1417,#1422 fechados) |
 | #1404 | feat: Activate Daily/Weekly Digest Email — Motor de Retenção Semanal | Closed (subs #1410-#1413,#1421 fechados) |
+
+
+### Q2 Wave Extensions — 2026-06-07 (24 novas issues)
+
+Extensões dos 5 EPICs Q2 + CONV. Issues criadas em 2026-06-07.
+
+**CONV — Wave 3+ Extensions (#1509–#1515)**
+
+| Issue | Título | Status |
+|-------|--------|--------|
+| #1509 | CONV-010-2: AutonomousLandingShell + integração de templates em entity pages | Open |
+| #1510 | CONV-010-3: Homepage refatorada como terminal de inteligência | Open |
+| #1511 | CONV-007-2: IntentRouter + IntentTrail — detecção de intenção e roteamento dinâmico | Open |
+| #1512 | CONV-007-3: Analytics Mixpanel + dashboard por cluster de intenção | Open |
+| #1513 | CONV-003-2: ContextualCapture em páginas de Perguntas jurídicas | Open |
+| #1514 | CONV-003-3: ContextualCapture em páginas de Glossário | Open |
+| #1515 | CONV-003-4: PartialReportPreview + integração LeadCaptureIntermediate | Open |
+
+**NETINT — Wave 2 Extensions (#1516–#1519)**
+
+| Issue | Título | Status |
+|-------|--------|--------|
+| #1516 | NETINT-011 — Sinais de Mercado: Trending Sectors & UFs (bloco aditivo na dashboard) | Open |
+| #1517 | NETINT-012 — Network Graph: Visualização de co-ocorrência de fornecedores por órgão | Open |
+| #1518 | NETINT-013 — API de Sinais Coletivos: endpoint público para dados agregados anonimizados | Open |
+| #1519 | NETINT-014 — Widget embedável de Inteligência Coletiva para SEO pages | Open |
+
+**B2GOPS — Wave 2 Extensions (#1520–#1523)**
+
+| Issue | Título | Status |
+|-------|--------|--------|
+| #1520 | B2GOPS-013 — Documentos Colaborativos: editor + templates de documentos de licitação | Open |
+| #1521 | B2GOPS-014 — Timeline Intelligence: feed cronológico de eventos do edital | Open |
+| #1522 | B2GOPS-015 — API Integrations: webhooks para Slack, Teams e Email | Open |
+| #1523 | B2GOPS-016 — Mobile Command Center: PWA otimizado para operadores em campo | Open |
+
+**COMPINT — Wave 2 Extensions (#1524–#1526)**
+
+| Issue | Título | Status |
+|-------|--------|--------|
+| #1524 | COMPINT-012 — Alertas Competitivos: 'Seu concorrente acaba de vencer' (notificações + email) | Open |
+| #1525 | COMPINT-013 — Benchmarks Setoriais: comparativos de performance por setor (bloco aditivo em /intel-concorrente) | Open |
+| #1526 | COMPINT-014 — Dossiê Competitivo PDF: relatório executivo de concorrente (download) | Open |
+
+**PREDINT — Wave 2 Extensions (#1527–#1529)**
+
+| Issue | Título | Status |
+|-------|--------|--------|
+| #1527 | PREDINT-013 — Pipeline Preditivo: 'O que vem aí nos próximos 90 dias' (bloco aditivo na dashboard) | Open |
+| #1528 | PREDINT-014 — Alertas Preditivos: notificações de oportunidades futuras (in-app + email) | Open |
+| #1529 | PREDINT-015 — API de Inteligência Preditiva: endpoints para dados de previsão (Wave 2) | Open |
+
+**SUBINTEL — Wave 3 Extensions (#1530–#1532)**
+
+| Issue | Título | Status |
+|-------|--------|--------|
+| #1530 | SUBINTEL-032 — Onboarding + trial específico para vertical de subcontratação (Wave 3) | Open |
+| #1531 | SUBINTEL-033 — Relatórios de Subcontratação: PDF executivo para parceiros (Wave 3) | Open |
+| #1532 | SUBINTEL-034 — API de Subcontratação: endpoints para integração externa (Wave 3) | Open |
 
 ---
 
@@ -512,7 +571,8 @@ Obsolete stories and docs moved to `docs/archive/` (Feb 20, 2026):
 | 2026-06-03 | ROADMAP v6.1 — audit sync: 601 issues (565 closed, 36 open), Q2 69.1% |
 | 2026-06-04 | ROADMAP v6.2 — audit sync: 655 issues (567 closed, 88 open). Fix #1339/#1340 states, +4 capabilities, +54 Wave 4 issues. Q2 recalculado: 61.2% (85 issues, não 110) |
 | 2026-06-06 | ROADMAP v6.4 — audit sync: 655 issues (618 closed, 37 open). 19 state mismatches corrigidos, 6 EPIC TRACKERs fechados. Q2 Multi-Camada ~78%, Wave 4 87.0% (47/54). Velocity ~12/dia. |
+| 2026-06-07 | ROADMAP v6.5 — audit sync: 679 issues (619 closed, 60 open). 24 novas issues #1509–#1532 (Q2 Wave Extensions). Fix #1439 state. Q2 Multi-Camada ~68% (89 core, 60 closed). Wave 4 89.3% (50/56). Velocity ~13/dia. |
 
 ---
 
-*Ultima atualizacao: 2026-06-06*
+*Ultima atualizacao: 2026-06-07*
