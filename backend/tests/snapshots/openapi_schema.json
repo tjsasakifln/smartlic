@@ -1256,6 +1256,52 @@
         "title": "ApiKeyCreated",
         "type": "object"
       },
+      "ApiKeyInfo": {
+        "description": "Public representation of a user's API key (no hash, no plaintext).",
+        "properties": {
+          "created_at": {
+            "title": "Created At",
+            "type": "string"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "last_used_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Used At"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "revoked_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Revoked At"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "created_at"
+        ],
+        "title": "ApiKeyInfo",
+        "type": "object"
+      },
       "ApiKeyListItem": {
         "description": "Public representation of an API key (no plaintext).",
         "properties": {
@@ -1447,6 +1493,51 @@
           "session_id"
         ],
         "title": "ApiSubscriptionCheckoutResponse",
+        "type": "object"
+      },
+      "ApiUsageResponse": {
+        "description": "GET /v1/conta/api-usage \u2014 API usage dashboard data.",
+        "properties": {
+          "api_keys": {
+            "items": {
+              "$ref": "#/components/schemas/ApiKeyInfo"
+            },
+            "title": "Api Keys",
+            "type": "array"
+          },
+          "current_month_usage": {
+            "title": "Current Month Usage",
+            "type": "integer"
+          },
+          "daily_usage": {
+            "items": {
+              "$ref": "#/components/schemas/DailyUsage"
+            },
+            "title": "Daily Usage",
+            "type": "array"
+          },
+          "month": {
+            "title": "Month",
+            "type": "string"
+          },
+          "monthly_limit": {
+            "title": "Monthly Limit",
+            "type": "integer"
+          },
+          "tier": {
+            "title": "Tier",
+            "type": "string"
+          }
+        },
+        "required": [
+          "api_keys",
+          "current_month_usage",
+          "monthly_limit",
+          "tier",
+          "daily_usage",
+          "month"
+        ],
+        "title": "ApiUsageResponse",
         "type": "object"
       },
       "AppConfigPatchRequest": {
@@ -5221,6 +5312,25 @@
           "total_value"
         ],
         "title": "DailyUf",
+        "type": "object"
+      },
+      "DailyUsage": {
+        "description": "Usage count for a single day.",
+        "properties": {
+          "count": {
+            "title": "Count",
+            "type": "integer"
+          },
+          "date": {
+            "title": "Date",
+            "type": "string"
+          }
+        },
+        "required": [
+          "date",
+          "count"
+        ],
+        "title": "DailyUsage",
         "type": "object"
       },
       "DailyVolumeResponse": {
@@ -24327,6 +24437,33 @@
         "summary": "Perfil de due diligence B2G: CEIS + CNEP por CNPJ",
         "tags": [
           "compliance-publicos"
+        ]
+      }
+    },
+    "/v1/conta/api-usage": {
+      "get": {
+        "description": "API-SELF-006: Return API usage data for the authenticated user's dashboard.\n\nIncludes API keys, current month usage, daily breakdown, tier, and limits.",
+        "operationId": "get_api_usage_v1_conta_api_usage_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiUsageResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Get Api Usage",
+        "tags": [
+          "conta"
         ]
       }
     },

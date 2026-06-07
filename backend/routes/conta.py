@@ -404,3 +404,179 @@ async def update_preferencias(
         enabled=row.get("enabled", True),
         last_digest_sent_at=row.get("last_digest_sent_at"),
     )
+
+
+# ============================================================================
+# API-SELF-006: API usage dashboard endpoint
+# ============================================================================
+
+
+class ApiKeyInfo(BaseModel):
+    """Public representation of a user's API key (no hash, no plaintext)."""
+
+    id: str
+    name: str
+    created_at: str
+    last_used_at: str | None = None
+    revoked_at: str | None = None
+
+
+class DailyUsage(BaseModel):
+    """Usage count for a single day."""
+
+    date: str  # YYYY-MM-DD
+    count: int
+
+
+class ApiUsageResponse(BaseModel):
+    """GET /v1/conta/api-usage — API usage dashboard data."""
+
+    api_keys: list[ApiKeyInfo]
+    current_month_usage: int
+    monthly_limit: int
+    tier: str  # "starter" | "pro" | "scale" | "unlimited" | "none"
+    daily_usage: list[DailyUsage]
+    month: str  # YYYY-MM
+
+
+def _get_tier_for_plan(plan_type: str | None) -> str:
+    """Map plan_type to API tier."""
+    if not plan_type:
+        return "none"
+    from api_key_rate_limit import _API_KEY_TIER_MAP  # reuse existing mapping
+    return _API_KEY_TIER_MAP.get(plan_type, "starter")
+
+
+def _get_monthly_limit(tier: str) -> int:
+    """Get monthly request limit for a tier."""
+    from api_key_rate_limit import API_KEY_TIER_LIMITS  # reuse existing limits
+    return API_KEY_TIER_LIMITS.get(tier, 1000)
+
+
+@router.get("/api-usage", response_model=ApiUsageResponse)
+async def get_api_usage(
+    user: dict = Depends(require_auth),
+) -> ApiUsageResponse:
+    """API-SELF-006: Return API usage data for the authenticated user's dashboard.
+
+    Includes API keys, current month usage, daily breakdown, tier, and limits.
+    """
+    user_id = user["id"]
+    sb = get_supabase()
+
+    # 1. Fetch user's API keys (non-revoked)
+    keys_result = await _run_with_budget(
+        sb_execute(
+            sb.table("api_keys")
+            .select("id, name, created_at, last_used_at, revoked_at")
+            .eq("user_id", user_id)
+            .is_("revoked_at", None)
+            .order("created_at", desc=True),
+            category="read",
+        ),
+        budget=3.0,
+        phase="route",
+        source="conta.get_api_usage.keys",
+    )
+
+    api_keys: list[ApiKeyInfo] = []
+    if keys_result.data:
+        for row in keys_result.data:
+            api_keys.append(ApiKeyInfo(
+                id=row["id"],
+                name=row.get("name", ""),
+                created_at=row.get("created_at", ""),
+                last_used_at=row.get("last_used_at"),
+                revoked_at=row.get("revoked_at"),
+            ))
+
+    # 2. Get current month (BRT)
+    from datetime import datetime, timedelta, timezone
+    now_brt = datetime.now(timezone.utc) - timedelta(hours=3)
+    current_month = now_brt.strftime("%Y-%m")
+
+    # 3. Fetch current month usage for user's API keys
+    key_ids = [k.id for k in api_keys]
+    current_month_usage = 0
+    daily_usage_map: dict[str, int] = {}
+
+    if key_ids:
+        usage_result = await _run_with_budget(
+            sb_execute(
+                sb.table("api_usage_records")
+                .select("api_key_id, request_count, month")
+                .eq("user_id", user_id)
+                .eq("month", current_month)
+                .in_("api_key_id", key_ids),
+                category="read",
+            ),
+            budget=3.0,
+            phase="route",
+            source="conta.get_api_usage.records",
+        )
+
+        if usage_result.data:
+            for row in usage_result.data:
+                current_month_usage += row.get("request_count", 0)
+
+    # 4. Get daily usage from Redis (faster than DB for daily granularity)
+    try:
+        from redis_pool import get_redis_pool
+        redis = get_redis_pool()
+        if redis:
+            # Scan Redis keys for daily usage: api_key_daily:{key_id}:{YYYY-MM-DD}
+            for key_id in key_ids:
+                cursor = 0
+                pattern = f"api_key_daily:{key_id}:{current_month}-*"
+                while True:
+                    cursor, keys = redis.scan(cursor, match=pattern, count=100)
+                    for k in keys:
+                        day_str = k.decode().rsplit(":", 1)[-1]  # YYYY-MM-DD
+                        count = int(redis.get(k) or 0)
+                        daily_usage_map[day_str] = daily_usage_map.get(day_str, 0) + count
+                    if cursor == 0:
+                        break
+    except Exception:
+        # Redis unavailable — fall back to aggregated monthly total only
+        logger.warning("Redis unavailable for daily usage breakdown, returning monthly total only")
+
+    # 5. Get user's plan tier for API limits
+    profile_result = await _run_with_budget(
+        sb_execute(
+            sb.table("profiles")
+            .select("plan_type, api_tier")
+            .eq("id", user_id)
+            .single(),
+            category="read",
+        ),
+        budget=2.0,
+        phase="route",
+        source="conta.get_api_usage.profile",
+    )
+
+    tier = "none"
+    if profile_result.data:
+        plan_type = profile_result.data.get("plan_type")
+        api_tier = profile_result.data.get("api_tier")
+        if api_tier:
+            # Map api_tier (api_starter/api_pro/api_scale) to short form
+            tier = api_tier.replace("api_", "")
+        elif plan_type:
+            tier = _get_tier_for_plan(plan_type)
+
+    monthly_limit = _get_monthly_limit(tier)
+
+    # 6. Build daily usage sorted by date
+    daily_usage = [
+        DailyUsage(date=date, count=count)
+        for date, count in sorted(daily_usage_map.items())
+    ]
+
+    return ApiUsageResponse(
+        api_keys=api_keys,
+        current_month_usage=current_month_usage,
+        monthly_limit=monthly_limit,
+        tier=tier,
+        daily_usage=daily_usage,
+        month=current_month,
+    )
