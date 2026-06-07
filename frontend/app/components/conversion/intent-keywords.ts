@@ -125,10 +125,10 @@ export const CLUSTER_KEYWORDS: Record<Exclude<IntentCluster, 'geral'>, string[]>
  * Matched via RegExp.test against document.referrer.
  */
 export const REFERRER_PATTERNS: Record<Exclude<IntentCluster, 'geral'>, RegExp[]> = {
-  comercial: [/sebrae/i, /abring/i, /industria/i, /comercio/i, /associacao\w*\.com\.br/i],
-  investigativa: [/gov\.br/i, /ibge/i, /ipea/i, /jornal/i, /noticia/i],
-  juridica: [/jusbrasil/i, /oab/i, /trf/i, /stj/i, /tcu/i, /conjur/i, /migalhas/i],
-  subcontratacao: [/construcao/i, /engenharia/i, /fornecedore/i, /b2b/i],
+  comercial: [/\bsebrae\b/i, /\babring\b/i, /\bindustria\b/i, /\bcomercio\b/i, /\bassociacao\w*\.com\.br\b/i],
+  investigativa: [/\bgov\.br\b/i, /\bibge\b/i, /\bipea\b/i, /\bjornal\b/i, /\bnoticia\b/i],
+  juridica: [/\bjusbrasil\b/i, /\boab\b/i, /\btrf\b/i, /\bstj\b/i, /\btcu\b/i, /\bconjur\b/i, /\bmigalhas\b/i],
+  subcontratacao: [/\bconstrucao\b/i, /\bengenharia\b/i, /\bfornecedore\b/i, /\bb2b\b/i],
 };
 
 /**
