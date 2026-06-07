@@ -4,7 +4,7 @@
 **Effort:** S (0.5 day)
 **Squad:** @dev
 **Fundamentacao:** GTM Readiness Audit Track 6 (Performance) — sem connection pool config, timeout inconsistente
-**Status:** TODO
+**Status:** InProgress
 **Sprint:** GTM Sprint 1
 
 ---
@@ -22,24 +22,28 @@ O audit identificou dois gaps de performance:
 ## Acceptance Criteria
 
 ### AC1: Configure Supabase connection pool
-- [ ] Investigar se `supabase-py` expone configuracao de pool (httpx pool limits)
-- [ ] Se sim: configurar `max_connections=50`, `max_keepalive_connections=20` via env vars
-- [ ] Se nao: documentar limitacao e considerar usar httpx diretamente para operacoes criticas
+- [x] Investigar se `supabase-py` expone configuracao de pool (httpx pool limits)
+- [x] Configurado via `_configure_httpx_pool()` em `supabase_client.py` (CRIT-046/DEBT-018)
+  - `max_connections=10`, `max_keepalive_connections=5` via env vars (reduzido intencionalmente para free tier)
+  - `timeout=30s`, `connect_timeout=10s`
+  - Pool health logging periodico (cada ~50 calls)
+- [ ] N/A: Limitacao ja documentada no codigo (supabase-py expoe pool via httpx)
 - [ ] Teste de carga: 10 buscas concorrentes sem connection errors
 
 ### AC2: Reduce SEARCH_FETCH_TIMEOUT
-- [ ] Reduzir `SEARCH_FETCH_TIMEOUT` de 360s para 180s em `config.py`
-- [ ] Manter como env-configurable para override em producao se necessario
-- [ ] Documentar razao da mudanca
+- [x] Reduzir `SEARCH_FETCH_TIMEOUT` de 360s para 180s (via `3 * 60` nos arquivos)
+- [x] Manter como env-configurable via `SEARCH_FETCH_TIMEOUT` env var
+- [x] Documentar razao da mudanca (comentarios nos arquivos)
 
 ### AC3: Reconcile CONSOLIDATION_TIMEOUT values
-- [ ] Investigar se `CONSOLIDATION_TIMEOUT_GLOBAL` (300s em sources.py) e `CONSOLIDATION_TIMEOUT` (100s em config.py) sao para code paths diferentes
-- [ ] Se sao o mesmo conceito: unificar em config.py
-- [ ] Se sao diferentes: renomear para clarificar e documentar
+- [x] Investigado: CONSOLIDATION_TIMEOUT (90s em config/pncp.py) e CONSOLIDATION_TIMEOUT_GLOBAL (90s em sources.py) ja estao sincronizados em 90s
+- [x] Story desatualizada: valores originais mencionados (300s/100s) foram reconciliados por STORY-4.4 TD-SYS-003
+- [ ] N/A: Nao requer acao — valores ja reconciliados
 
 ### AC4: Documentation cleanup
-- [ ] Atualizar CLAUDE.md timeout chain se valores mudaram
-- [ ] Atualizar docs/summaries/gtm-resilience-summary.md se aplicavel
+- [x] Atualizar arquivos de configuracao (comentarios nos arquivos alterados)
+- [ ] N/A: CLAUDE.md timeout chain ja reflete waterfall STORY-4.4 (nada mudou)
+- [ ] N/A: gtm-resilience-summary.md nao requer atualizacao
 
 ---
 
@@ -47,6 +51,6 @@ O audit identificou dois gaps de performance:
 
 | Arquivo | Mudanca |
 |---------|---------|
-| `backend/config.py` | SEARCH_FETCH_TIMEOUT, pool config |
-| `backend/source_config/sources.py` | CONSOLIDATION_TIMEOUT_GLOBAL clarification |
-| `backend/supabase_client.py` | Connection pool config |
+| `backend/pipeline/stages/execute.py` | SEARCH_FETCH_TIMEOUT: 360s -> 180s |
+| `backend/routes/search_state.py` | SEARCH_FETCH_TIMEOUT: 360s -> 180s |
+| `backend/supabase_client.py` | Pool health logging adicionado (periodico a cada ~50 calls) |

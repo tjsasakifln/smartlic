@@ -426,7 +426,8 @@ async def _execute_background_fetch(
     """
     import os
 
-    FETCH_TIMEOUT = int(os.environ.get("SEARCH_FETCH_TIMEOUT", str(6 * 60)))  # 6 minutes
+    # STORY-287: Reduced from 6min->3min to prevent request hanging.
+    FETCH_TIMEOUT = int(os.environ.get("SEARCH_FETCH_TIMEOUT", str(3 * 60)))  # 3 minutes
 
     tracker = await get_tracker(search_id)
 

@@ -59,6 +59,9 @@ _RETRY_BASE_DELAY_S = float(os.getenv("SUPABASE_RETRY_BASE_DELAY", "0.5"))
 # Thread-safe active connection counter (for high-water logging)
 _pool_active_lock = threading.Lock()
 _pool_active_count = 0
+# STORY-287: Periodic pool health log counter (log every ~50 calls)
+_pool_health_log_counter = 0
+_POOL_HEALTH_LOG_INTERVAL = 50
 
 
 def _get_config():
@@ -744,6 +747,15 @@ async def sb_execute(query, *, category: str = "read"):
         logger.warning(
             "CRIT-046: Supabase pool > 80%% utilization: %d/%d active",
             current_active, _POOL_MAX_CONNECTIONS,
+        )
+
+    # STORY-287: Periodic pool health log (~every 50 calls)
+    global _pool_health_log_counter
+    _pool_health_log_counter = (_pool_health_log_counter + 1) % _POOL_HEALTH_LOG_INTERVAL
+    if _pool_health_log_counter == 0:
+        logger.info(
+            "STORY-287: Supabase pool health — active=%d/%d, keepalive=%d, timeout=%.0fs",
+            current_active, _POOL_MAX_CONNECTIONS, _POOL_MAX_KEEPALIVE, _POOL_TIMEOUT,
         )
 
     def _record_success_all() -> None:
