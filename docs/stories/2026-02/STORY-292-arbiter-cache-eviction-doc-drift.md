@@ -22,10 +22,10 @@ O audit identificou 3 items de debt tecnico menores no pipeline:
 ## Acceptance Criteria
 
 ### AC1: Add LRU eviction to arbiter cache
-- [ ] Substituir `_arbiter_cache = {}` por `OrderedDict` com max 5000 entries
-- [ ] Ou usar `functools.lru_cache` se aplicavel
-- [ ] Quando cache atinge max, evictar entries mais antigas (LRU)
-- [ ] Teste: cache nao cresce alem do limite
+- [x] Substituir `_arbiter_cache = {}` por `OrderedDict` com max 5000 entries
+- [x] Ou usar `functools.lru_cache` se aplicavel
+- [x] Quando cache atinge max, evictar entries mais antigas (LRU)
+- [x] Teste: cache nao cresce alem do limite
 
 ### AC2: Fix CLAUDE.md documentation drift
 - [ ] Corrigir secao "PNCP API Critical Notes": health canary usa tamanhoPagina=50 (nao 10)
@@ -43,6 +43,5 @@ O audit identificou 3 items de debt tecnico menores no pipeline:
 
 | Arquivo | Mudanca |
 |---------|---------|
-| `backend/llm_arbiter.py` | LRU cache eviction |
-| `CLAUDE.md` | Documentation corrections |
-| `frontend/__tests__/components/GoogleAnalytics.test.tsx` | Fix old price |
+| `backend/llm_arbiter/classification.py` | LRU cache eviction + eviction logging |
+| `docs/stories/2026-02/STORY-292-arbiter-cache-eviction-doc-drift.md` | Story progress update |
