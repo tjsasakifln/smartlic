@@ -1,6 +1,6 @@
 # ROADMAP — SmartLic
 
-**Versao:** 6.3 | **Atualizado:** 2026-06-06 | **Status:** Intel Reports 87.5%, Reposicionamento 100%, Q2 Multi-Camada 98.8%, Wave 4 63.0%
+**Versao:** 6.4 | **Atualizado:** 2026-06-06 | **Status:** Intel Reports 87.5%, Reposicionamento 100%, Q2 Multi-Camada ~78%, Wave 4 87.0%
 
 ## 2026-04-24 — EPIC-GROWTH-VIRAL-2026-Q3: On-Page CAC-Zero
 
@@ -46,8 +46,8 @@ FOUNDERS PLAN:       [####################] 100% (23 issues — #782–#795, #86
 TECH DEBT (TD):      [####################] 100% (61/61 issues fechadas)
 INTEL REPORTS:       [################....] 87.5% (7/8 issues, 1 open blocker)
 UX PREMIUM:          [....................] 0% (issues nao criados — spec em docs/stories/)
-Q2 MULTI-CAMADA:     [###################.] 98.8% (5 EPICs + CONV + Verticais, 85 issues, 84 closed, 1 open)
-Q2 WAVE 4 (JUN):     [#############.......] 63.0% (54 issues, 34 closed, 20 open — #1400–#1453)
+Q2 MULTI-CAMADA:     [###############......] ~78% (5 EPICs + CONV + Verticais, ~143 issues, ~107 closed, ~36 open — recálculo pendente)
+Q2 WAVE 4 (JUN):     [#################...] 87.0% (54 issues, 47 closed, 7 open — #1400–#1453)
 ```
 
 **Production:** https://smartlic.tech
@@ -194,7 +194,7 @@ Status: todas Draft — Milestone criado (#4), issues a criar.
 
 ## Q2 2026 — Inteligencia Multi-Camada (em execucao)
 
-5 EPICs lançados 2026-05-16 a 2026-06-02 + CONV + Verticais Premium. 85 issues (84 closed, 1 open). Foco: camada de inteligência B2G profunda além da busca. Progresso real: 98.8% concluído (recálculo audit 2026-06-06 — 33 issues do Wave 4 fechados em 3 dias).
+5 EPICs lançados 2026-05-16 a 2026-06-02 + CONV + Verticais Premium. ~143 issues (~107 closed, ~36 open). Foco: camada de inteligência B2G profunda além da busca. Progresso real: ~78% concluído (recálculo audit 2026-06-06 — 19 state mismatches corrigidos, 6 EPIC TRACKERs fechados).
 
 ### EPIC-SUBINTEL — Inteligencia de Cadeia de Fornecimento (#1224)
 
@@ -266,7 +266,7 @@ Status: todas Draft — Milestone criado (#4), issues a criar.
 | #1294 | B2GOPS-004 — Schema workspace_war_rooms + RPCs + SSE channel | Closed |
 | #1293 | B2GOPS-000 — Capability allow_workspace_basic + feature flag | Closed |
 
-### CONV — Conversao pSEO (39 issues — 13 open, 26 closed)
+### CONV — Conversao pSEO (45 issues — 12 open, 33 closed)
 
 14 issues originais (#1310–#1323) criados 2026-05-31 + 25 sub-issues expandidos 2026-06-01 a 2026-06-02. Foco: otimizacao de conversao em paginas programaticas.
 
@@ -286,7 +286,7 @@ Status: todas Draft — Milestone criado (#4), issues a criar.
 | #1319 | CONV-010: Landing pages autônomas — Cada página = proposta comercial | P0 | Open |
 | #1320 | CONV-006a: Quick Win SERP — Reescrever 4 piores páginas (deploy 24h) | P0 | Closed |
 | #1321 | CONV-008b: Subcontratação — Blocos aditivos em páginas existentes | P1 | Open |
-| #1322 | CONV-011: Sequência de pós-compra — Email transacional + upsell 0h/48h/7d | P0 | Open |
+| #1322 | CONV-011: Sequência de pós-compra — Email transacional + upsell 0h/48h/7d | P0 | Closed (substituída por #1331 CONV-011b) |
 | #1323 | CONV-012: Infraestrutura de A/B testing para páginas pSEO | P1 | Closed |
 
 **Wave 1b — Novas issues (2026-06-01 a 2026-06-02)**
@@ -317,7 +317,7 @@ Status: todas Draft — Milestone criado (#4), issues a criar.
 | Issue | Título | Status |
 |-------|--------|--------|
 | #1338 | CONV-011b-1: Schema post_purchase_sequences + webhook | Closed |
-| #1331 | CONV-011b: Sequência de pós-compra — email + upsell 0h/48h/7d | Open |
+| #1331 | CONV-011b: Sequência de pós-compra — email + upsell 0h/48h/7d | Closed (subs #1338-#1340 fechados) |
 | #1339 | CONV-011b-2: 3 templates email (delivery, followup, reengagement) | Closed |
 | #1340 | CONV-011b-3: ARQ jobs post_purchase_sequence + tracking Mixpanel | Closed |
 
@@ -340,18 +340,18 @@ Status: todas Draft — Milestone criado (#4), issues a criar.
 | #1376 | P0: Ativar SUBCONTRACT_INTEL_ENABLED — Supplier Intelligence add-on | Closed |
 | #1377 | P0: Ativar COMPETITIVE_INTEL_ENABLED — Competitive Intelligence add-on | Closed |
 | #1378 | P0: Ativar PREDICTIVE_INTEL_ENABLED — Predictive Intelligence add-on | Closed |
-| #1372 | P0: Datalake API Self-Service — monetização imediata via API REST | Open |
+| #1372 | P0: Datalake API Self-Service — monetização imediata via API REST | Closed |
 
 ### REPO — Extensoes pos-Phase 0
 
 | Issue | Título | Status |
 |-------|--------|--------|
 | #1289 | REPO-COMMS — Overhaul de Copy/Homepage (posicionamento 'vantagem competitiva') | Closed |
-| #1290 | REPO-TIER-COMMAND — Novo tier premium 'SmartLic Command' (R$970/mês) | Open |
+| #1290 | REPO-TIER-COMMAND — Novo tier premium 'SmartLic Command' (R$970/mês) | Closed |
 
 ### Q2 Wave 4 — Core Features (Jun 2026) — 54 issues novas
 
-Lançados 2026-06-04. 34 de 54 closed (63.0%) — todos fechados entre Jun 4-6. Foco: retenção, revenue visibility, API self-service, UX repositioning, feedback loop.
+Lançados 2026-06-04. 47 de 54 closed (87.0%) — todos fechados entre Jun 4-6. Foco: retenção, revenue visibility, API self-service, UX repositioning, feedback loop.
 
 **DIGEST — Motor de Retenção Semanal (#1410–#1413, #1421)**
 
@@ -359,9 +359,9 @@ Lançados 2026-06-04. 34 de 54 closed (63.0%) — todos fechados entre Jun 4-6. 
 |-------|--------|--------|
 | #1410 | DIGEST-001: Migration + config — coluna frequency, cron pg_cron, flag DIGEST_ENABLED | Closed |
 | #1411 | DIGEST-002: Lógica de build do digest — query por setor, top N por tier, fallback | Closed |
-| #1412 | DIGEST-003: Template HTML + integração Resend — viability badges, CTA, List-Unsubscribe | Open |
-| #1413 | DIGEST-004: Endpoint de preferências — PATCH /conta/preferencias para frequency toggle | Open |
-| #1421 | DIGEST-005: Métricas + Mixpanel — digest_sent/opened/clicked/unsubscribe | Open |
+| #1412 | DIGEST-003: Template HTML + integração Resend — viability badges, CTA, List-Unsubscribe | Closed |
+| #1413 | DIGEST-004: Endpoint de preferências — PATCH /conta/preferencias para frequency toggle | Closed |
+| #1421 | DIGEST-005: Métricas + Mixpanel — digest_sent/opened/clicked/unsubscribe | Closed |
 
 **FOUNDER — Revenue Dashboard (#1414–#1417, #1422)**
 
@@ -369,9 +369,9 @@ Lançados 2026-06-04. 34 de 54 closed (63.0%) — todos fechados entre Jun 4-6. 
 |-------|--------|--------|
 | #1414 | FOUNDER-001: SQL queries — MRR, churn 30d, trial-to-paid 30d/90d, D7 retention, ARPA | Closed |
 | #1415 | FOUNDER-002: Cron diário + cache Redis — computar métricas, invalidar a cada 1h | Closed |
-| #1416 | FOUNDER-003: Endpoint GET /admin/metrics/revenue — JSON, p95 <500ms | Open |
-| #1417 | FOUNDER-004: Frontend /admin/metrics — cards numéricos + gráfico de coortes (Recharts) | Open |
-| #1422 | FOUNDER-005: Mixpanel founder_metrics_viewed + permission check admin-only | Open |
+| #1416 | FOUNDER-003: Endpoint GET /admin/metrics/revenue — JSON, p95 <500ms | Closed |
+| #1417 | FOUNDER-004: Frontend /admin/metrics — cards numéricos + gráfico de coortes (Recharts) | Closed |
+| #1422 | FOUNDER-005: Mixpanel founder_metrics_viewed + permission check admin-only | Closed |
 
 **API-SELF — Datalake API Self-Service (#1418–#1425, estende #1372)**
 
@@ -380,16 +380,16 @@ Lançados 2026-06-04. 34 de 54 closed (63.0%) — todos fechados entre Jun 4-6. 
 | #1372 | P0: Datalake API Self-Service — monetização imediata via API REST | Closed |
 | #1418 | API-SELF-001: Migration api_keys + modelo Pydantic + rotas CRUD | Closed |
 | #1419 | API-SELF-002: Middleware require_api_key + rota GET /v1/api/search | Closed |
-| #1420 | API-SELF-003: Rate limiting por API key via Redis token bucket (respeita tier) | Open |
-| #1423 | API-SELF-004: Stripe — 3 products/prices + webhook + metered billing cron | Open |
-| #1424 | API-SELF-005: Landing page /api + Swagger UI público + pricing cards | Open |
-| #1425 | API-SELF-006: Dashboard de uso no /conta — consumo/mês, gráfico, checkout | Open |
+| #1420 | API-SELF-003: Rate limiting por API key via Redis token bucket (respeita tier) | Closed |
+| #1423 | API-SELF-004: Stripe — 3 products/prices + webhook + metered billing cron | Closed |
+| #1424 | API-SELF-005: Landing page /api + Swagger UI público + pricing cards | Closed |
+| #1425 | API-SELF-006: Dashboard de uso no /conta — consumo/mês, gráfico, checkout | Closed |
 
 **LIFECYCLE — User Lifecycle State Machine (#1426–#1429, estende #1408)**
 
 | Issue | Título | Status |
 |-------|--------|--------|
-| #1408 | feat: Implement User Lifecycle State Machine + Login Tracking | Open |
+| #1408 | feat: Implement User Lifecycle State Machine + Login Tracking | Closed |
 | #1426 | LIFECYCLE-001: Migration — profiles.last_login_at, login_count, tabela login_activity | Closed |
 | #1427 | LIFECYCLE-002: Auth middleware — atualizar last_login_at + login_activity (Redis write-behind) | Closed |
 | #1428 | LIFECYCLE-003: SQL function compute_user_lifecycle() + endpoint GET /admin/users/segments | Closed |
@@ -404,7 +404,7 @@ Lançados 2026-06-04. 34 de 54 closed (63.0%) — todos fechados entre Jun 4-6. 
 | #1431 | VIAB-UX-002: ViabilityBadge inline em cada linha da listagem principal | Closed |
 | #1432 | VIAB-UX-003: Tooltip com breakdown dos 4 fatores — Modalidade, Prazo, Valor, Geografia | Closed |
 | #1433 | VIAB-UX-004: Seção 'Por que esta oportunidade?' — expandable section no card | Closed |
-| #1434 | VIAB-UX-005: A/B test — feature flag VIABILITY_DEFAULT_SORT + métricas de comparação | Open |
+| #1434 | VIAB-UX-005: A/B test — feature flag VIABILITY_DEFAULT_SORT + métricas de comparação | Closed (substituída por #1452+#1453) |
 | #1452 | VIAB-UX-005a: Feature flag VIABILITY_DEFAULT_SORT + split 50/50 via hash user_id | Closed |
 | #1453 | VIAB-UX-005b: Admin dashboard de A/B test — metricas comparativas + significancia estatistica | Open |
 
@@ -433,7 +433,7 @@ Lançados 2026-06-04. 34 de 54 closed (63.0%) — todos fechados entre Jun 4-6. 
 
 | Issue | Título | Status |
 |-------|--------|--------|
-| #1409 | feat: Enable "Follow Organ/Competitor" Entity Tracking | Open |
+| #1409 | feat: Enable "Follow Organ/Competitor" Entity Tracking | Closed (subs #1444-#1447 fechados) |
 | #1444 | ENTITY-001: Migration — adicionar tracked_orgaos e tracked_fornecedores ao schema de alertas | Closed |
 | #1445 | ENTITY-002: Alert matcher — cruzar novos bids com CNPJ dos órgãos/fornecedores trackeados | Closed |
 | #1446 | ENTITY-003: Frontend — botão 'Seguir' nas páginas de órgão e CNPJ | Closed |
@@ -456,12 +456,12 @@ Lançados 2026-06-04. 34 de 54 closed (63.0%) — todos fechados entre Jun 4-6. 
 | #1401 | CONV-007-1: 4 landing pages de intenção (comercial/investigativa/jurídica/subcontratação) | Open |
 | #1402 | CONV-010-1: Template "Proposta Comercial" — bloco aditivo em entity pages | Open |
 
-**CORE-FEAT — Core Features Avulsas (#1403, #1404)**
+**CORE-FEAT — Core Features Avulsas (#1403, #1404) — Concluído**
 
 | Issue | Título | Status |
 |-------|--------|--------|
-| #1403 | feat: Founder Revenue Dashboard — MRR, Churn, Activation, Retention | Open |
-| #1404 | feat: Activate Daily/Weekly Digest Email — Motor de Retenção Semanal | Open |
+| #1403 | feat: Founder Revenue Dashboard — MRR, Churn, Activation, Retention | Closed (subs #1414-#1417,#1422 fechados) |
+| #1404 | feat: Activate Daily/Weekly Digest Email — Motor de Retenção Semanal | Closed (subs #1410-#1413,#1421 fechados) |
 
 ---
 
@@ -511,7 +511,7 @@ Obsolete stories and docs moved to `docs/archive/` (Feb 20, 2026):
 | 2026-06-02 | Verticais Premium: 6 feature flags ativados + Datalake API Self-Service |
 | 2026-06-03 | ROADMAP v6.1 — audit sync: 601 issues (565 closed, 36 open), Q2 69.1% |
 | 2026-06-04 | ROADMAP v6.2 — audit sync: 655 issues (567 closed, 88 open). Fix #1339/#1340 states, +4 capabilities, +54 Wave 4 issues. Q2 recalculado: 61.2% (85 issues, não 110) |
-| 2026-06-06 | ROADMAP v6.3 — audit sync: 655 issues (600 closed, 55 open). +33 Wave 4 issues closed em 3 dias. Q2 Multi-Camada 98.8%, Wave 4 63.0%. Velocity ~12/dia. |
+| 2026-06-06 | ROADMAP v6.4 — audit sync: 655 issues (618 closed, 37 open). 19 state mismatches corrigidos, 6 EPIC TRACKERs fechados. Q2 Multi-Camada ~78%, Wave 4 87.0% (47/54). Velocity ~12/dia. |
 
 ---
 
