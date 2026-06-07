@@ -1,6 +1,6 @@
 # ROADMAP — SmartLic
 
-**Versao:** 6.5 | **Atualizado:** 2026-06-07 | **Status:** Intel Reports 87.5%, Reposicionamento 100%, Q2 Multi-Camada ~68%, Wave 4 89.3%
+**Versao:** 6.6 | **Atualizado:** 2026-06-07 | **Status:** Intel Reports 87.5%, Reposicionamento 100%, Q2 Multi-Camada ~90%, Wave 4 92.9%
 
 ## 2026-04-24 — EPIC-GROWTH-VIRAL-2026-Q3: On-Page CAC-Zero
 
@@ -46,8 +46,8 @@ FOUNDERS PLAN:       [####################] 100% (23 issues — #782–#795, #86
 TECH DEBT (TD):      [####################] 100% (61/61 issues fechadas)
 INTEL REPORTS:       [################....] 87.5% (7/8 issues, 1 open blocker)
 UX PREMIUM:          [....................] 0% (issues nao criados — spec em docs/stories/)
-Q2 MULTI-CAMADA:     [#############.........] ~68% (5 EPICs + CONV + Verticais, 89 issues core mapeados, 60 closed, 29 open + 24 novas Wave 2/3 em #1509–#1532)
-Q2 WAVE 4 (JUN):     [##################..] 89.3% (56 issues, 50 closed, 6 open — #1400–#1453)
+Q2 MULTI-CAMADA:     [##################..] ~90% (5 EPICs + CONV + Verticais, ~143 issues, ~128 closed, ~15 open — 28 fechados hoje)
+Q2 WAVE 4 (JUN):     [##################..] 92.9% (56 issues, 52 closed, 4 open — #1400–#1453)
 ```
 
 **Production:** https://smartlic.tech
@@ -194,7 +194,7 @@ Status: todas Draft — Milestone criado (#4), issues a criar.
 
 ## Q2 2026 — Inteligencia Multi-Camada (em execucao)
 
-5 EPICs lançados 2026-05-16 a 2026-06-02 + CONV + Verticais Premium. ~143 issues (~107 closed, ~36 open). Foco: camada de inteligência B2G profunda além da busca. Progresso real: ~78% concluído (recálculo audit 2026-06-06 — 19 state mismatches corrigidos, 6 EPIC TRACKERs fechados).
+5 EPICs lançados 2026-05-16 a 2026-06-02 + CONV + Verticais Premium. ~143 issues (~128 closed, ~15 open). Foco: camada de inteligência B2G profunda além da busca. Progresso real: ~90% concluído (recálculo audit 2026-06-07 — 28 state mismatches corrigidos, páginas flagship + Wave 2/3 fechadas em massa).
 
 ### EPIC-SUBINTEL — Inteligencia de Cadeia de Fornecimento (#1224)
 
@@ -205,12 +205,12 @@ Status: todas Draft — Milestone criado (#4), issues a criar.
 | #1226 | SUBINTEL-002 — RPC subcontract_regional_dependency | Closed |
 | #1227 | SUBINTEL-003 — RPC supplier_growth_anomaly (Wave 0) | Closed |
 | #1228 | SUBINTEL-010 — Radar de Subcontratação: score + página + narrativa LLM | Closed |
-| #1229 | SUBINTEL-011 — Score de Oportunidade de Parceria em /fornecedores/[cnpj] | Open |
-| #1230 | SUBINTEL-012 — Índice de Dependência Regional: heatmap visual (Wave 1) | Open |
-| #1231 | SUBINTEL-020 — Rede de fornecedores recorrentes por órgão (Wave 2) | Open |
-| #1232 | SUBINTEL-021 — Matching B2B entre fornecedores opt-in LGPD (Wave 2) | Open |
-| #1233 | SUBINTEL-022 — Potenciais subcontratações por edital aberto: bloco aditivo | Open |
-| #1235 | SUBINTEL-031 — Novo tier premium "SmartLic Insight" (empacotamento) | Open |
+| #1229 | SUBINTEL-011 — Score de Oportunidade de Parceria em /fornecedores/[cnpj] | Closed |
+| #1230 | SUBINTEL-012 — Índice de Dependência Regional: heatmap visual (Wave 1) | Closed |
+| #1231 | SUBINTEL-020 — Rede de fornecedores recorrentes por órgão (Wave 2) | Closed |
+| #1232 | SUBINTEL-021 — Matching B2B entre fornecedores opt-in LGPD (Wave 2) | Closed |
+| #1233 | SUBINTEL-022 — Potenciais subcontratações por edital aberto: bloco aditivo | Closed |
+| #1235 | SUBINTEL-031 — Novo tier premium "SmartLic Insight" (empacotamento) | Closed |
 | #1234 | SUBINTEL-030 — Capability allow_subcontract_intel + feature flag (Wave 3) | Closed |
 
 ### EPIC-PREDINT — Inteligencia Preditiva de Demanda Governamental (#1260)
@@ -223,9 +223,9 @@ Status: todas Draft — Milestone criado (#4), issues a criar.
 | #1266 | PREDINT-003 — RPC predict_seasonal_calendar | Closed |
 | #1267 | PREDINT-004 — RPC predict_incumbent_decay | Closed |
 | #1268 | PREDINT-005 — RPC predict_expansion_organs | Closed |
-| #1269 | PREDINT-010 — Radar de Recorrência Governamental (página flagship) | Open |
-| #1270 | PREDINT-011 — Heatmap Nacional de Oportunidades Futuras | Open |
-| #1271 | PREDINT-012 — Calendário Sazonal Interativo (grid UF × setor × mês) | Open |
+| #1269 | PREDINT-010 — Radar de Recorrência Governamental (página flagship) | Closed |
+| #1270 | PREDINT-011 — Heatmap Nacional de Oportunidades Futuras | Closed |
+| #1271 | PREDINT-012 — Calendário Sazonal Interativo (grid UF × setor × mês) | Closed |
 | #1291 | PREDINT-000 — Capability allow_predictive_intel + feature flag | Closed |
 
 ### EPIC-COMPINT — Inteligencia Concorrencial Profunda (#1261)
@@ -236,8 +236,8 @@ Status: todas Draft — Milestone criado (#4), issues a criar.
 | #1272 | COMPINT-001 — RPC competitor_territory_map | Closed |
 | #1273 | COMPINT-002 — RPC competitor_win_metrics | Closed |
 | #1274 | COMPINT-003 — RPC competitor_shadow_network | Closed |
-| #1275 | COMPINT-010 — Mapa de Território Competitivo (página flagship) | Open |
-| #1276 | COMPINT-011 — Seção 'Inteligência Concorrencial' em /fornecedores/[cnpj] | Open |
+| #1275 | COMPINT-010 — Mapa de Território Competitivo (página flagship) | Closed |
+| #1276 | COMPINT-011 — Seção 'Inteligência Concorrencial' em /fornecedores/[cnpj] | Closed |
 | #1292 | COMPINT-000 — Capability allow_competitive_intel + feature flag | Closed |
 
 ### EPIC-NETINT — Camada de Rede / Inteligencia Coletiva B2G (#1263)
@@ -249,7 +249,7 @@ Status: todas Draft — Milestone criado (#4), issues a criar.
 | #1284 | NETINT-002 — RPC network_intel_snapshot | Closed |
 | #1285 | NETINT-003 — RPC network_orgao_patterns | Closed |
 | #1286 | NETINT-004 — RPC network_discount_trends | Closed |
-| #1287 | NETINT-010 — Feed de Inteligência Coletiva (bloco aditivo na dashboard) | Open |
+| #1287 | NETINT-010 — Feed de Inteligência Coletiva (bloco aditivo na dashboard) | Closed |
 | #1288 | NETINT-011 — Bloco 'Padrões de Mercado' em páginas de setor (pSEO aditivo) | Closed |
 
 ### EPIC-B2GOPS — Sistema Operacional B2G (#1262)
@@ -260,9 +260,9 @@ Status: todas Draft — Milestone criado (#4), issues a criar.
 | #1277 | B2GOPS-001 — Schema workspace_watchlists + RPCs | Closed |
 | #1278 | B2GOPS-002 — Schema workspace_documents + RPCs de gestão documental | Closed |
 | #1279 | B2GOPS-003 — Schema workspace_timeline + RPCs de timeline operacional | Closed |
-| #1280 | B2GOPS-010 — Workspace Colaborativo (página flagship /workspace) | Open |
-| #1281 | B2GOPS-011 — Alertas Inteligentes (watchlist + contratos + timeline) | Open |
-| #1282 | B2GOPS-012 — Centro de Guerra de Pregão (/workspace/centro-guerra/[id]) | Open |
+| #1280 | B2GOPS-010 — Workspace Colaborativo (página flagship /workspace) | Closed |
+| #1281 | B2GOPS-011 — Alertas Inteligentes (watchlist + contratos + timeline) | Closed |
+| #1282 | B2GOPS-012 — Centro de Guerra de Pregão (/workspace/centro-guerra/[id]) | Closed |
 | #1294 | B2GOPS-004 — Schema workspace_war_rooms + RPCs + SSE channel | Closed |
 | #1293 | B2GOPS-000 — Capability allow_workspace_basic + feature flag | Closed |
 
@@ -351,7 +351,7 @@ Status: todas Draft — Milestone criado (#4), issues a criar.
 
 ### Q2 Wave 4 — Core Features (Jun 2026) — 54 issues novas
 
-Lançados 2026-06-04. 47 de 54 closed (87.0%) — todos fechados entre Jun 4-6. Foco: retenção, revenue visibility, API self-service, UX repositioning, feedback loop.
+Lançados 2026-06-04. 52 de 56 closed (92.9%) — todos fechados entre Jun 4-7. Foco: retenção, revenue visibility, API self-service, UX repositioning, feedback loop.
 
 **DIGEST — Motor de Retenção Semanal (#1410–#1413, #1421)**
 
@@ -399,14 +399,14 @@ Lançados 2026-06-04. 47 de 54 closed (87.0%) — todos fechados entre Jun 4-6. 
 
 | Issue | Título | Status |
 |-------|--------|--------|
-| #1405 | feat: Reposition Viability Score as Central UX Element | Open |
+| #1405 | feat: Reposition Viability Score as Central UX Element | Closed |
 | #1430 | VIAB-UX-001: Mudar default sort para confianca — backend schema + frontend SearchForm | Closed |
 | #1431 | VIAB-UX-002: ViabilityBadge inline em cada linha da listagem principal | Closed |
 | #1432 | VIAB-UX-003: Tooltip com breakdown dos 4 fatores — Modalidade, Prazo, Valor, Geografia | Closed |
 | #1433 | VIAB-UX-004: Seção 'Por que esta oportunidade?' — expandable section no card | Closed |
 | #1434 | VIAB-UX-005: A/B test — feature flag VIABILITY_DEFAULT_SORT + métricas de comparação | Closed (substituída por #1452+#1453) |
 | #1452 | VIAB-UX-005a: Feature flag VIABILITY_DEFAULT_SORT + split 50/50 via hash user_id | Closed |
-| #1453 | VIAB-UX-005b: Admin dashboard de A/B test — metricas comparativas + significancia estatistica | Open |
+| #1453 | VIAB-UX-005b: Admin dashboard de A/B test — metricas comparativas + significancia estatistica | Closed |
 
 **FEEDBACK — Feedback Loop + Sector Affinity (#1435–#1439, estende #1406)**
 
@@ -475,28 +475,28 @@ Extensões dos 5 EPICs Q2 + CONV. Issues criadas em 2026-06-07.
 | #1509 | CONV-010-2: AutonomousLandingShell + integração de templates em entity pages | Open |
 | #1510 | CONV-010-3: Homepage refatorada como terminal de inteligência | Open |
 | #1511 | CONV-007-2: IntentRouter + IntentTrail — detecção de intenção e roteamento dinâmico | Open |
-| #1512 | CONV-007-3: Analytics Mixpanel + dashboard por cluster de intenção | Open |
-| #1513 | CONV-003-2: ContextualCapture em páginas de Perguntas jurídicas | Open |
-| #1514 | CONV-003-3: ContextualCapture em páginas de Glossário | Open |
+| #1512 | CONV-007-3: Analytics Mixpanel + dashboard por cluster de intenção | Closed |
+| #1513 | CONV-003-2: ContextualCapture em páginas de Perguntas jurídicas | Closed |
+| #1514 | CONV-003-3: ContextualCapture em páginas de Glossário | Closed |
 | #1515 | CONV-003-4: PartialReportPreview + integração LeadCaptureIntermediate | Open |
 
 **NETINT — Wave 2 Extensions (#1516–#1519)**
 
 | Issue | Título | Status |
 |-------|--------|--------|
-| #1516 | NETINT-011 — Sinais de Mercado: Trending Sectors & UFs (bloco aditivo na dashboard) | Open |
-| #1517 | NETINT-012 — Network Graph: Visualização de co-ocorrência de fornecedores por órgão | Open |
-| #1518 | NETINT-013 — API de Sinais Coletivos: endpoint público para dados agregados anonimizados | Open |
-| #1519 | NETINT-014 — Widget embedável de Inteligência Coletiva para SEO pages | Open |
+| #1516 | NETINT-011 — Sinais de Mercado: Trending Sectors & UFs (bloco aditivo na dashboard) | Closed |
+| #1517 | NETINT-012 — Network Graph: Visualização de co-ocorrência de fornecedores por órgão | Closed |
+| #1518 | NETINT-013 — API de Sinais Coletivos: endpoint público para dados agregados anonimizados | Closed |
+| #1519 | NETINT-014 — Widget embedável de Inteligência Coletiva para SEO pages | Closed |
 
 **B2GOPS — Wave 2 Extensions (#1520–#1523)**
 
 | Issue | Título | Status |
 |-------|--------|--------|
-| #1520 | B2GOPS-013 — Documentos Colaborativos: editor + templates de documentos de licitação | Open |
-| #1521 | B2GOPS-014 — Timeline Intelligence: feed cronológico de eventos do edital | Open |
-| #1522 | B2GOPS-015 — API Integrations: webhooks para Slack, Teams e Email | Open |
-| #1523 | B2GOPS-016 — Mobile Command Center: PWA otimizado para operadores em campo | Open |
+| #1520 | B2GOPS-013 — Documentos Colaborativos: editor + templates de documentos de licitação | Closed |
+| #1521 | B2GOPS-014 — Timeline Intelligence: feed cronológico de eventos do edital | Closed |
+| #1522 | B2GOPS-015 — API Integrations: webhooks para Slack, Teams e Email | Closed |
+| #1523 | B2GOPS-016 — Mobile Command Center: PWA otimizado para operadores em campo | Closed |
 
 **COMPINT — Wave 2 Extensions (#1524–#1526)**
 
@@ -572,7 +572,8 @@ Obsolete stories and docs moved to `docs/archive/` (Feb 20, 2026):
 | 2026-06-04 | ROADMAP v6.2 — audit sync: 655 issues (567 closed, 88 open). Fix #1339/#1340 states, +4 capabilities, +54 Wave 4 issues. Q2 recalculado: 61.2% (85 issues, não 110) |
 | 2026-06-06 | ROADMAP v6.4 — audit sync: 655 issues (618 closed, 37 open). 19 state mismatches corrigidos, 6 EPIC TRACKERs fechados. Q2 Multi-Camada ~78%, Wave 4 87.0% (47/54). Velocity ~12/dia. |
 | 2026-06-07 | ROADMAP v6.5 — audit sync: 679 issues (619 closed, 60 open). 24 novas issues #1509–#1532 (Q2 Wave Extensions). Fix #1439 state. Q2 Multi-Camada ~68% (89 core, 60 closed). Wave 4 89.3% (50/56). Velocity ~13/dia. |
+| 2026-06-07 | ROADMAP v6.6 — audit sync: 679 issues (647 closed, 32 open). 28 state mismatches corrigidos (flagships + Wave 2/3 fechados em massa ~19:44 UTC). Q2 Multi-Camada ~90% (~128 closed). Wave 4 92.9% (52/56). Velocity ~19/dia. |
 
 ---
 
-*Ultima atualizacao: 2026-06-07*
+*Ultima atualizacao: 2026-06-07 (v6.6)*
