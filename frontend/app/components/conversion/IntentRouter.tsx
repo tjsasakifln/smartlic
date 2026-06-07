@@ -48,6 +48,21 @@ export function detectIntentFromSearchTerm(term: string): IntentCluster {
 }
 
 /**
+ * Check if a keyword appears as a standalone segment within a hostname/string.
+ * Matches when keyword is at start, end, or surrounded by dots — prevents
+ * substring false-positives (e.g. "industria" won't match "industrial").
+ */
+function hostnameMatches(hostname: string, keyword: string): boolean {
+  const lower = hostname.toLowerCase();
+  const kw = keyword.toLowerCase();
+  if (lower === kw) return true;
+  if (lower.startsWith(kw + '.')) return true;
+  if (lower.endsWith('.' + kw)) return true;
+  if (lower.includes('.' + kw + '.')) return true;
+  return false;
+}
+
+/**
  * Detect intent cluster from a referrer URL by pattern matching.
  * Extracts the hostname from valid URLs first to prevent domain-spoofing bypass.
  * Falls back to raw-string matching for shorthand values (e.g. query param ref=sebrae).
@@ -63,8 +78,8 @@ export function detectIntentFromReferrer(referrer: string): IntentCluster | null
   }
 
   for (const [cluster, patterns] of Object.entries(REFERRER_PATTERNS)) {
-    for (const pattern of patterns) {
-      if (pattern.test(target)) {
+    for (const kw of patterns) {
+      if (hostnameMatches(target, kw)) {
         return cluster as IntentCluster;
       }
     }

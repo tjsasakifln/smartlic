@@ -76,21 +76,19 @@ describe('IntentRouter', () => {
   // ── detectIntentFromReferrer ──────────────────────────────────────────
 
   describe('detectIntentFromReferrer', () => {
-    const refEntries = Object.entries(REFERRER_PATTERNS) as [string, RegExp[]][];
+    const refEntries = Object.entries(REFERRER_PATTERNS) as [string, string[]][];
 
     for (const [cluster, patterns] of refEntries) {
       describe(`${cluster} cluster`, () => {
-        it.each(patterns.map((p) => p.source))(
+        it.each(patterns)(
           'detects pattern "%s" as %s',
-          (patternSource: string) => {
-            const testUrl = `https://www.${patternSource.replace(/\\/g, '').replace(/[.^$|()\[\]{}?*+]/g, (c) => (c === '.' ? '.' : ''))}example.com`;
-            // Use a simpler test: test the pattern matches a mock URL
-            const result = detectIntentFromReferrer(`https://www.${patternSource}example.com.br`);
-            // We just verify the pattern exists in REFERRER_PATTERNS for the expected cluster
-            const found = REFERRER_PATTERNS[cluster as keyof typeof REFERRER_PATTERNS]?.some(
-              (p) => p.source === patternSource,
-            );
+          (kw: string) => {
+            // Verify the keyword exists in REFERRER_PATTERNS for the expected cluster
+            const found = REFERRER_PATTERNS[cluster as keyof typeof REFERRER_PATTERNS]?.includes(kw);
             expect(found).toBe(true);
+            // Verify hostname matching: keyword as subdomain → should match
+            const result = detectIntentFromReferrer(`https://www.${kw}.example.com/`);
+            expect(result).toBe(cluster);
           },
         );
       });

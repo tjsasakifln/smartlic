@@ -121,14 +121,18 @@ export const CLUSTER_KEYWORDS: Record<Exclude<IntentCluster, 'geral'>, string[]>
 };
 
 /**
- * URL pattern mappings for referrer-based intent detection.
- * Matched via RegExp.test against document.referrer.
+ * Referrer hostname patterns for intent detection.
+ *
+ * Matching via hostnameIncludes() — checks the keyword appears as a
+ * standalone segment (preceded/followed by dot or at start/end).
+ * This prevents substring false-positives (e.g. "industria" not matching
+ * "industrial") without using RegExp on URLs (CodeQL js/incomplete-url-regexp).
  */
-export const REFERRER_PATTERNS: Record<Exclude<IntentCluster, 'geral'>, RegExp[]> = {
-  comercial: [/\bsebrae\b/i, /\babring\b/i, /\bindustria\b/i, /\bcomercio\b/i, /\bassociacao\w*\.com\.br\b/i],
-  investigativa: [/\bgov\.br\b/i, /\bibge\b/i, /\bipea\b/i, /\bjornal\b/i, /\bnoticia\b/i],
-  juridica: [/\bjusbrasil\b/i, /\boab\b/i, /\btrf\b/i, /\bstj\b/i, /\btcu\b/i, /\bconjur\b/i, /\bmigalhas\b/i],
-  subcontratacao: [/\bconstrucao\b/i, /\bengenharia\b/i, /\bfornecedore\b/i, /\bb2b\b/i],
+export const REFERRER_PATTERNS: Record<Exclude<IntentCluster, 'geral'>, string[]> = {
+  comercial: ['sebrae', 'abring', 'industria', 'comercio', 'associacao'],
+  investigativa: ['gov.br', 'ibge', 'ipea', 'jornal', 'noticia'],
+  juridica: ['jusbrasil', 'oab', 'trf', 'stj', 'tcu', 'conjur', 'migalhas'],
+  subcontratacao: ['construcao', 'engenharia', 'fornecedore', 'b2b'],
 };
 
 /**
