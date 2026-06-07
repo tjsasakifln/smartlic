@@ -13964,6 +13964,12 @@
             "title": "Affinity Score",
             "type": "number"
           },
+          "muted": {
+            "default": false,
+            "description": "Whether this sector is muted by the user",
+            "title": "Muted",
+            "type": "boolean"
+          },
           "sector_id": {
             "description": "Sector identifier (e.g., 'vestuario')",
             "title": "Sector Id",
@@ -14109,6 +14115,21 @@
           "description"
         ],
         "title": "SectorListItem",
+        "type": "object"
+      },
+      "SectorMuteRequest": {
+        "description": "FEEDBACK-005: Mute/unmute a sector.\n\nPATCH /v1/profile/sector-affinity/{sector_id}",
+        "properties": {
+          "muted": {
+            "description": "True to mute, False to unmute",
+            "title": "Muted",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "muted"
+        ],
+        "title": "SectorMuteRequest",
         "type": "object"
       },
       "SectorStatsResponse": {
@@ -27714,6 +27735,64 @@
           }
         ],
         "summary": "Get Sector Affinity",
+        "tags": [
+          "user"
+        ]
+      }
+    },
+    "/v1/profile/sector-affinity/{sector_id}": {
+      "patch": {
+        "description": "FEEDBACK-005: Mute or unmute a sector for the current user.\n\nMute: sets affinity_score to 0.0, saves pre-mute value.\nUnmute: restores pre-mute value. Never deletes the row or sets affinity to 0 permanently.",
+        "operationId": "mute_unmute_sector_v1_profile_sector_affinity__sector_id__patch",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "sector_id",
+            "required": true,
+            "schema": {
+              "title": "Sector Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SectorMuteRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SectorAffinityResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Mute Unmute Sector",
         "tags": [
           "user"
         ]
