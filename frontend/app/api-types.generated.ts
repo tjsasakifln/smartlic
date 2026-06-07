@@ -5056,6 +5056,29 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/profile/sector-affinity/{sector_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Mute Unmute Sector
+         * @description FEEDBACK-005: Mute or unmute a sector for the current user.
+         *
+         *     Mute: sets affinity_score to 0.0, saves pre-mute value.
+         *     Unmute: restores pre-mute value. Never deletes the row or sets affinity to 0 permanently.
+         */
+        patch: operations["mute_unmute_sector_v1_profile_sector_affinity__sector_id__patch"];
+        trace?: never;
+    };
     "/v1/pseo/recent-editais": {
         parameters: {
             query?: never;
@@ -12574,6 +12597,12 @@ export interface components {
              */
             affinity_score: number;
             /**
+             * Muted
+             * @description Whether this sector is muted by the user
+             * @default false
+             */
+            muted: boolean;
+            /**
              * Sector Id
              * @description Sector identifier (e.g., 'vestuario')
              */
@@ -12630,6 +12659,19 @@ export interface components {
             name: string;
             /** Slug */
             slug: string;
+        };
+        /**
+         * SectorMuteRequest
+         * @description FEEDBACK-005: Mute/unmute a sector.
+         *
+         *     PATCH /v1/profile/sector-affinity/{sector_id}
+         */
+        SectorMuteRequest: {
+            /**
+             * Muted
+             * @description True to mute, False to unmute
+             */
+            muted: boolean;
         };
         /** SectorStatsResponse */
         SectorStatsResponse: {
@@ -20680,6 +20722,41 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["SectorAffinityResponse"][];
+                };
+            };
+        };
+    };
+    mute_unmute_sector_v1_profile_sector_affinity__sector_id__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                sector_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SectorMuteRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SectorAffinityResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };
