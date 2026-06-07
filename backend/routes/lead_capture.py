@@ -55,6 +55,7 @@ LeadCaptureSource = Literal[
     "newsletter",
     "exit_intent",
     "seo_banner",
+    "partial_preview",
 ]
 
 ALL_SOURCES = frozenset({
@@ -62,11 +63,13 @@ ALL_SOURCES = frozenset({
     "consultoria", "radar", "report", "intel", "diagnostico",
     "lead_magnet_1", "lead_magnet_2", "lead_magnet_3",
     "newsletter", "exit_intent", "seo_banner",
+    "partial_preview",
 })
 
 NEW_SOURCES = frozenset({
     "lead_magnet_1", "lead_magnet_2", "lead_magnet_3",
     "newsletter", "exit_intent", "seo_banner",
+    "partial_preview",
 })
 
 ModalidadeInteresse = Literal["radar", "report", "intel", "nao_sei"]
