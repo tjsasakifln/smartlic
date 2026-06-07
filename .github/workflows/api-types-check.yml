@@ -133,11 +133,14 @@ jobs:
           git config user.email "github-actions[bot]@users.noreply.github.com"
 
           git add frontend/app/api-types.generated.ts
-          git commit -m "chore: auto-regenerate api-types.generated.ts [skip ci]" || {
+          git commit -m "chore: auto-regenerate api-types.generated.ts" || {
             echo "⚠️ No changes to commit (already in sync)"
             exit 0
           }
 
+          git pull --rebase origin ${{ github.head_ref }} || {
+            echo "⚠️ Rebase failed — pushing anyway"
+          }
           git push origin HEAD:${{ github.head_ref }}
           echo "✅ Auto-committed regenerated api-types.generated.ts to ${{ github.head_ref }}"
 

@@ -23,7 +23,7 @@ from database import get_db, get_user_db
 from schemas import (
     UserProfileResponse, SuccessResponse, DeleteAccountResponse,
     PerfilContexto, PerfilContextoResponse, ProfileCompletenessResponse, validate_password,
-    SectorAffinityResponse,
+    SectorAffinityResponse, SectorMuteRequest,
 )
 from schemas.parity import TrialExitSurveysResponse
 from log_sanitizer import mask_user_id, log_user_action
@@ -1013,6 +1013,7 @@ async def get_sector_affinity(
             sector_id=sector_id,
             sector_name=sector_names.get(sector_id, sector_id),
             affinity_score=float(row.get("affinity_score", 0.0)),
+            muted=bool(row.get("muted", False)),
         ))
 
     # Cache the result
@@ -1021,9 +1022,132 @@ async def get_sector_affinity(
             "sector_id": item.sector_id,
             "sector_name": item.sector_name,
             "affinity_score": item.affinity_score,
+            "muted": item.muted,
         }
         for item in result_items
     ]
     await _set_cached_sector_affinity(cache_key, data_for_cache)
 
     return result_items
+
+
+@router.patch("/profile/sector-affinity/{sector_id}", response_model=SectorAffinityResponse)
+async def mute_unmute_sector(
+    sector_id: str,
+    body: SectorMuteRequest,
+    user: dict = Depends(require_auth),
+):
+    """FEEDBACK-005: Mute or unmute a sector for the current user.
+
+    Mute: sets affinity_score to 0.0, saves pre-mute value.
+    Unmute: restores pre-mute value. Never deletes the row or sets affinity to 0 permanently.
+    """
+    user_id = user.get("sub") or user.get("id")
+    if not user_id:
+        raise HTTPException(status_code=401, detail="User ID not found in token")
+
+    # Resolve sector_name for response
+    sector_names = _get_sector_names()
+    sector_name = sector_names.get(sector_id, sector_id)
+
+    try:
+        from supabase_client import get_supabase
+        db = get_supabase()
+
+        # Get current row
+        result = await sb_execute(
+            db.table("user_sector_affinity")
+            .select("affinity_score, muted, pre_mute_score")
+            .eq("user_id", user_id)
+            .eq("sector_id", sector_id),
+            category="read",
+        )
+
+        current_row = result.data[0] if result.data else None
+
+        if body.muted:
+            # Mute: save current score, set to 0.0
+            current_score = float(current_row["affinity_score"]) if current_row else 0.5
+            pre_mute_score = float(current_row["pre_mute_score"]) if (current_row and current_row.get("pre_mute_score") is not None) else current_score
+
+            await sb_execute(
+                db.table("user_sector_affinity").upsert(
+                    {
+                        "user_id": user_id,
+                        "sector_id": sector_id,
+                        "affinity_score": 0.0,
+                        "muted": True,
+                        "pre_mute_score": pre_mute_score,
+                    },
+                    on_conflict="user_id,sector_id",
+                ),
+                category="write",
+            )
+
+            new_score = 0.0
+            new_muted = True
+        else:
+            # Unmute: restore pre-mute score
+            pre_mute = float(current_row["pre_mute_score"]) if (current_row and current_row.get("pre_mute_score") is not None) else 0.5
+
+            await sb_execute(
+                db.table("user_sector_affinity").upsert(
+                    {
+                        "user_id": user_id,
+                        "sector_id": sector_id,
+                        "affinity_score": pre_mute,
+                        "muted": False,
+                        "pre_mute_score": None,
+                    },
+                    on_conflict="user_id,sector_id",
+                ),
+                category="write",
+            )
+
+            new_score = pre_mute
+            new_muted = False
+
+        # Invalidate cache
+        cache_key = f"sector_affinity:{user_id}"
+        try:
+            from redis_pool import get_redis_pool
+            redis = await get_redis_pool()
+            if redis:
+                await redis.delete(cache_key)
+        except Exception:
+            pass
+
+        logger.info(
+            "Sector %s %s by user %s (score: %.2f)",
+            sector_id,
+            "muted" if body.muted else "unmuted",
+            mask_user_id(user_id),
+            new_score,
+        )
+
+        return SectorAffinityResponse(
+            sector_id=sector_id,
+            sector_name=sector_name,
+            affinity_score=new_score,
+            muted=new_muted,
+        )
+
+    except HTTPException:
+        raise
+    except Exception as exc:
+        error_str = str(exc).lower()
+        if "relation" in error_str and "does not exist" in error_str:
+            raise HTTPException(
+                status_code=503,
+                detail="Sector affinity table not available yet. Please try again later.",
+            )
+        logger.error(
+            "Failed to mute/unmute sector %s for %s: %s",
+            sector_id,
+            mask_user_id(user_id),
+            exc,
+        )
+        raise HTTPException(
+            status_code=500,
+            detail="Failed to update sector preference. Please try again.",
+        )

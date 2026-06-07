@@ -144,10 +144,13 @@ jobs:
           fi
 
           git add tests/snapshots/openapi_schema.json
-          git commit -m "chore: auto-regenerate OpenAPI snapshot [skip ci]" || {
+          git commit -m "chore: auto-regenerate OpenAPI snapshot" || {
             echo "⚠️ No changes to commit"
             exit 0
           }
 
+          git pull --rebase origin ${{ github.head_ref }} || {
+            echo "⚠️ Rebase failed — pushing anyway"
+          }
           git push origin HEAD:${{ github.head_ref }}
           echo "✅ Auto-committed regenerated OpenAPI snapshot to ${{ github.head_ref }}"

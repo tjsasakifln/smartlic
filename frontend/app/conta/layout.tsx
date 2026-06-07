@@ -3,7 +3,7 @@
 import { usePathname } from "next/navigation";
 import Link from "next/link";
 import { Suspense } from "react";
-import { User, ShieldCheck, CreditCard, Database, Users, Code } from "lucide-react";
+import { User, ShieldCheck, CreditCard, Database, Users, Code, SlidersHorizontal } from "lucide-react";
 import { PageHeader } from "../../components/PageHeader";
 import { ErrorBoundary } from "../../components/ErrorBoundary";
 
@@ -18,6 +18,7 @@ const NAV_ITEMS = [
   { href: "/conta/api", label: "API", icon: "code" },
   { href: "/conta/dados", label: "Dados e LGPD", icon: "database" },
   { href: "/conta/equipe", label: "Equipe", icon: "users" },
+  { href: "/conta/preferencias", label: "Preferências", icon: "sliders" },
 ] as const;
 
 const ICON_MAP = {
@@ -27,6 +28,7 @@ const ICON_MAP = {
   "database": Database,
   "users": Users,
   "code": Code,
+  "sliders": SlidersHorizontal,
 } as const;
 
 function NavIcon({ icon, className }: { icon: string; className?: string }) {
