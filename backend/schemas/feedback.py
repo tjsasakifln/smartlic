@@ -72,6 +72,15 @@ class SectorAffinityResponse(BaseModel):
     sector_id: str = Field(..., description="Sector identifier (e.g., 'vestuario')")
     sector_name: str = Field(..., description="Display name of the sector")
     affinity_score: float = Field(..., ge=0.0, le=1.0, description="Affinity score from 0.0 to 1.0")
+    muted: bool = Field(default=False, description="Whether this sector is muted by the user")
+
+
+class SectorMuteRequest(BaseModel):
+    """FEEDBACK-005: Mute/unmute a sector.
+
+    PATCH /v1/profile/sector-affinity/{sector_id}
+    """
+    muted: bool = Field(..., description="True to mute, False to unmute")
 
 
 class FeedbackPatternsResponse(BaseModel):
