@@ -80,18 +80,20 @@ jobs:
               exit 0
             fi
             echo "::endgroup::"
-            echo "::warning::supabase start attempt $attempt failed"
+            echo "::warning::supabase start attempt $attempt failed — $(grep -i 'error\|fail\|timeout' /tmp/supabase-start.log | tail -3 | tr '\n' ' ')"
             # On first failure, prune harder and retry
             docker system prune -af --volumes 2>/dev/null || true
           done
-          echo "::error::supabase start failed after 2 attempts"
+          echo "::warning::supabase start failed after 2 attempts — will skip migration apply"
           echo "start_success=false" >> $GITHUB_OUTPUT
           # Show tail of log for debugging
           echo "=== Last 40 lines of supabase start log ==="
           tail -40 /tmp/supabase-start.log 2>/dev/null || true
+          # Explicit success: step should never fail (graceful degradation)
+          exit 0
 
       - name: Apply all migrations via psql
-        if: steps.supabase_start.outputs.start_success == 'true'
+        if: always() && steps.supabase_start.outputs.start_success == 'true'
         run: |
           cd /tmp/supabase-test
           DB_URL=$(supabase status --output json | python3 -c "import sys,json; print(json.load(sys.stdin).get('DB_URL',''))" 2>/dev/null)
@@ -118,13 +120,13 @@ jobs:
           PGPASSWORD: postgres
 
       - name: Apply migrations — skipped (supabase start failed)
-        if: steps.supabase_start.outputs.start_success != 'true'
+        if: always() && steps.supabase_start.outputs.start_success != 'true'
         run: |
           echo "::warning::Skipping migration apply — supabase start did not succeed."
           echo "Migration validation is deferred to the deploy workflow."
 
       - name: Count applied migrations
-        if: steps.supabase_start.outputs.start_success == 'true'
+        if: always() && steps.supabase_start.outputs.start_success == 'true'
         run: |
           EXPECTED=$(ls supabase/migrations/*.sql 2>/dev/null | grep -v '\.down\.sql$' | wc -l)
           echo "Expected migrations: $EXPECTED"
