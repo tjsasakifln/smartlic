@@ -299,7 +299,7 @@ class TestTransporteIntegration:
     """Validate Transporte e Veículos sector keywords against real PNCP data."""
 
     def test_transporte_finds_matches(self, pncp_records):
-        result = run_sector_against_api("transporte", pncp_records)
+        result = run_sector_against_api("transporte_servicos", pncp_records)
         print(f"\n{'='*60}")
         print("TRANSPORTE SECTOR RESULTS")
         print(f"{'='*60}")
@@ -319,7 +319,7 @@ class TestTransporteIntegration:
 
     def test_transporte_excludes_non_vehicle(self, pncp_records):
         """Check that non-vehicle uses of keywords are excluded."""
-        sector = get_sector("transporte")
+        sector = get_sector("transporte_servicos")
         false_positives = []
         for rec in pncp_records:
             objeto = rec.get("objetoCompra", "")
@@ -346,7 +346,7 @@ class TestTransporteIntegration:
         )
 
     def test_transporte_keyword_coverage(self, pncp_records):
-        sector = get_sector("transporte")
+        sector = get_sector("transporte_servicos")
         keyword_hits = Counter()
         for rec in pncp_records:
             objeto = rec.get("objetoCompra", "")
