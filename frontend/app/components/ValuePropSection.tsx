@@ -35,10 +35,22 @@ export default function ValuePropSection() {
     'zeroWaste',
   ];
 
+  // Asymmetric bento sizes for visual hierarchy (FIX-LP-001):
+  //   timeSaved (Foco)         → large (2x2) — hero card top-left
+  //   relevanceRate (87%)      → medium (2x1)
+  //   nationalCoverage (27 UFs)→ full (4x1) — full-width, no empty column
+  //   zeroWaste (Foco)         → medium (2x1)
+  const propSizes: Record<keyof typeof valueProps, 'large' | 'medium' | 'full'> = {
+    timeSaved: 'large',
+    relevanceRate: 'medium',
+    nationalCoverage: 'full',
+    zeroWaste: 'medium',
+  };
+
   const props = propOrder.map((key) => ({
     ...valueProps[key],
     icon: propIcons[key],
-    size: 'medium' as const,
+    size: propSizes[key],
   }));
 
   return (
