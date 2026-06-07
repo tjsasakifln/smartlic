@@ -48,16 +48,23 @@ export function detectIntentFromSearchTerm(term: string): IntentCluster {
 }
 
 /**
- * Check if a keyword appears within a hostname/string as a domain segment
- * (exact or prefix). Dot-delimited segments prevent substring false-positives
- * across TLD boundaries (e.g. "industria" won't match "industrial.evil.com").
+ * Check if a keyword appears within a hostname/string.
+ *
+ * Dot-containing keywords (e.g. "gov.br") match as suffix/substring
+ * of the full hostname. Single-segment keywords match as exact or prefix
+ * of dot-delimited segments — prevents substring false-positives across
+ * TLD boundaries (e.g. "industria" won't match "industrial.evil.com").
  */
 function hostnameMatches(hostname: string, keyword: string): boolean {
   const lower = hostname.toLowerCase();
   const kw = keyword.toLowerCase();
   // Exact match (shorthand query param values like "sebrae")
   if (lower === kw) return true;
-  // Check each dot-delimited segment
+  // Dot-containing keyword: match as suffix or substring (e.g. "gov.br")
+  if (kw.includes('.')) {
+    return lower.endsWith('.' + kw) || lower === kw || lower.includes('.' + kw + '.') || lower.startsWith(kw + '.');
+  }
+  // Single-segment keyword: match within dot-delimited segments
   const segments = lower.split('.');
   for (const seg of segments) {
     if (seg === kw) return true;
