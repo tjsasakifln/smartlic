@@ -52,7 +52,6 @@ class TestFilterAsyncZeroMatch:
         assert stats.get("zero_match_candidates") is None or stats.get("zero_match_candidates") == []
 
     @patch("config.ASYNC_ZERO_MATCH_ENABLED", True)
-    @patch("config.LLM_ZERO_MATCH_ENABLED", True)
     @patch("config.MAX_ZERO_MATCH_ITEMS", 200)
     def test_async_enabled_collects_candidates(self):
         """When ASYNC_ZERO_MATCH_ENABLED=True, filter stats contract is preserved.
@@ -84,7 +83,6 @@ class TestFilterAsyncZeroMatch:
         assert candidates_count == len(candidates)
 
     @patch("config.ASYNC_ZERO_MATCH_ENABLED", True)
-    @patch("config.LLM_ZERO_MATCH_ENABLED", False)
     def test_async_enabled_but_llm_disabled_no_candidates(self):
         """When LLM_ZERO_MATCH_ENABLED=False, no candidates collected."""
         from filter import aplicar_todos_filtros

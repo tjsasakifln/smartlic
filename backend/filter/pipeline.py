@@ -10,7 +10,6 @@ import re
 import threading
 import time
 import uuid
-from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime, timezone
 from typing import Callable, Dict, List, Optional, Set, Tuple
 
@@ -631,13 +630,14 @@ def aplicar_todos_filtros(
     # After keyword match, before co-occurrence. Rejects bids where a matched
     # keyword appears near signature terms of ANOTHER sector (cross-sector FP).
     # 100% deterministic, zero LLM cost.
-    from config import get_feature_flag, PROXIMITY_WINDOW_SIZE
+    from config import PROXIMITY_WINDOW_SIZE, get_feature_flag
 
     stats["proximity_rejections"] = 0
 
     # STORY-267 AC13: Disable proximity filter for custom_terms searches
     _skip_proximity = bool(custom_terms) and get_feature_flag("TERM_SEARCH_FILTER_CONTEXT")
-    if get_feature_flag("PROXIMITY_CONTEXT_ENABLED") and setor and not _skip_proximity:
+    # DEBT-128: PROXIMITY_CONTEXT_ENABLED removed — always-on (stable since Dec 2025)
+    if setor and not _skip_proximity:
         from sectors import SECTORS as _SECTORS_PROX
 
         # Build other_sectors_signatures: all sectors except current
@@ -759,8 +759,8 @@ def aplicar_todos_filtros(
     stats["negative_keyword_postfilter"] = 0
     if setor and resultado_keyword:
         try:
-            from sectors import get_sector as _get_sector_negpost
             from filter.keywords import normalize_text as _normalize_negpost
+            from sectors import get_sector as _get_sector_negpost
             _neg_post_sec = _get_sector_negpost(setor)
             _neg_post_kws = [
                 _normalize_negpost(kw)
@@ -795,10 +795,9 @@ def aplicar_todos_filtros(
     # ========================================================================
     # GTM-FIX-028: LLM Zero Match Classification
     # ========================================================================
+    # DEBT-128: LLM_ZERO_MATCH_ENABLED removed — always-on (stable since Oct 2025)
     # Instead of auto-rejecting bids with 0 keyword matches, collect them
     # and send to LLM for sector-aware classification.
-    from config import LLM_ZERO_MATCH_ENABLED
-
     resultado_llm_zero: List[dict] = []
     stats["llm_zero_match_calls"] = 0
     stats["llm_zero_match_aprovadas"] = 0
@@ -814,7 +813,8 @@ def aplicar_todos_filtros(
         _use_term_prompt_zm = _gff_ac2("TERM_SEARCH_LLM_AWARE")
 
     # ISSUE-017: Also run zero-match LLM when custom_terms present (no sector needed)
-    if LLM_ZERO_MATCH_ENABLED and (setor or custom_terms):
+    # DEBT-128: LLM_ZERO_MATCH_ENABLED removed — condition simplified
+    if setor or custom_terms:
         # Collect bids that were rejected by keyword gate (in resultado_valor but not in resultado_keyword)
         keyword_approved_ids = {id(lic) for lic in resultado_keyword}
         zero_match_pool: List[dict] = []
@@ -917,8 +917,11 @@ def aplicar_todos_filtros(
             # _classify_one remains sync; async_runtime.run_bounded_in_thread executes
             # it in a worker thread under the shared semaphore + Prometheus gauge.
             import asyncio as _asyncio_zm
+
             from llm_arbiter.async_runtime import (
                 gather_classifications as _gather_zm,
+            )
+            from llm_arbiter.async_runtime import (
                 unwrap_result as _unwrap_zm,
             )
 
@@ -1061,10 +1064,10 @@ def aplicar_todos_filtros(
     # from PNCP API. Majority rule on items can accept bids directly,
     # saving LLM calls and improving precision.
     from config import (
-        TERM_DENSITY_HIGH_THRESHOLD,
-        TERM_DENSITY_MEDIUM_THRESHOLD,
-        TERM_DENSITY_LOW_THRESHOLD,
         QA_AUDIT_SAMPLE_RATE,
+        TERM_DENSITY_HIGH_THRESHOLD,
+        TERM_DENSITY_LOW_THRESHOLD,
+        TERM_DENSITY_MEDIUM_THRESHOLD,
         get_feature_flag,
     )
 
@@ -1346,8 +1349,11 @@ def aplicar_todos_filtros(
         # remains sync; gather_classifications runs it in threads under the shared
         # semaphore + Prometheus gauge.
         import asyncio as _asyncio_ar
+
         from llm_arbiter.async_runtime import (
             gather_classifications as _gather_ar,
+        )
+        from llm_arbiter.async_runtime import (
             unwrap_result as _unwrap_ar,
         )
 
@@ -1491,7 +1497,7 @@ def aplicar_todos_filtros(
     # Etapa 8b: Minimum Match Floor (STORY-178 AC2.2)
     # When min_match_floor is provided, apply additional filtering
     if min_match_floor is not None and min_match_floor > 1:
-        from relevance import should_include, count_phrase_matches
+        from relevance import count_phrase_matches, should_include
 
         resultado_min_match: List[dict] = []
         for lic in resultado_keyword:
@@ -1672,7 +1678,8 @@ def aplicar_todos_filtros(
 
     # GTM-FIX-028 AC10: When LLM zero-match is enabled, skip FLUXO 2 to avoid
     # double-classification (zero-match bids already went through LLM)
-    _skip_fluxo_2 = LLM_ZERO_MATCH_ENABLED and stats.get("llm_zero_match_calls", 0) > 0
+    # DEBT-128: LLM_ZERO_MATCH_ENABLED removed — zero-match is always-on
+    _skip_fluxo_2 = stats.get("llm_zero_match_calls", 0) > 0
     if _skip_fluxo_2:
         logger.info(
             "GTM-FIX-028 AC10: FLUXO 2 DISABLED — LLM zero-match already classified "

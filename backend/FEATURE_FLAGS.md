@@ -58,19 +58,14 @@ These flags gate features that are not yet shipped. They will be removed once ea
 
 ## ALWAYS-ON (Candidates for Future Cleanup)
 
-These flags default to `true` and still have conditional `if` checks in the code, but are not being removed in this pass. If they remain `true` for 30+ consecutive days without being toggled, they are candidates for permanent removal: keep the `True` code path, delete the flag and the dead `False` branch.
+These flags default to `true` and still have conditional `if` checks in the code. If they remain `true` for 30+ consecutive days without being toggled, they are candidates for permanent removal: keep the `True` code path, delete the flag and the dead `False` branch.
 
 | Flag | Default | Purpose |
 |------|---------|---------|
-| `LLM_ZERO_MATCH_BATCH_ENABLED` | `true` | Batch processing for zero-match LLM calls |
 | `LLM_FALLBACK_PENDING_ENABLED` | `true` | Return fallback summary if LLM job is pending |
-| `PARTIAL_DATA_SSE_ENABLED` | `true` | Emit partial data via SSE before LLM completes |
-| `LLM_STRUCTURED_OUTPUT_ENABLED` | `true` | Use LLM structured output for summaries |
-| `TRIAL_14_DAYS_ENABLED` | `true` | 14-day free trial for new users |
 | `TRIAL_EMAILS_ENABLED` | `true` | Send trial reminder emails at day 7 |
 | `TRIAL_PAYWALL_ENABLED` | `true` | Enforce trial paywall after day 7 |
 | `ZERO_RESULTS_RELAXATION_ENABLED` | `true` | Auto-relax filters when zero results are returned |
-| `PROXIMITY_CONTEXT_ENABLED` | `true` | Proximity context for term matching |
 | `BID_ANALYSIS_ENABLED` | `true` | Bid analysis feature |
 | `CO_OCCURRENCE_RULES_ENABLED` | `true` | Keyword co-occurrence rules |
 | `RATE_LIMITING_ENABLED` | `true` | Redis token-bucket rate limiting |
@@ -78,19 +73,24 @@ These flags default to `true` and still have conditional `if` checks in the code
 
 ---
 
+---
+
 ## REMOVED (DEBT-128)
 
-These flags were permanently enabled and removed on 2026-03-11. The `true` code path remains; the `false` branch and the flag itself have been deleted.
+These flags were permanently enabled and the flag + dead code path has been deleted. The `true` code path remains.
 
 | Flag | Removed Date | Reason |
 |------|-------------|--------|
-| `LLM_ZERO_MATCH_ENABLED` | 2026-03-11 | Stable since Feb 2026, promoted to core feature |
-| `LLM_ARBITER_ENABLED` | 2026-03-11 | Stable since Feb 2026, promoted to core feature |
 | `VIABILITY_ASSESSMENT_ENABLED` | 2026-03-11 | Stable since Feb 2026, promoted to core feature |
 | `SYNONYM_MATCHING_ENABLED` | 2026-03-11 | Was always `true`, conditional branch never exercised |
-| `ITEM_INSPECTION_ENABLED` | 2026-03-11 | Stable since Feb 2026, promoted to core feature |
-| `USER_FEEDBACK_ENABLED` | 2026-03-11 | Stable since Feb 2026, promoted to core feature |
-| `ENABLE_NEW_PRICING` | 2026-03-11 | Stable since STORY-165, core billing behavior |
+| `LLM_ZERO_MATCH_BATCH_ENABLED` | 2026-03-11 | Batch mode always-on |
+| `LLM_STRUCTURED_OUTPUT_ENABLED` | 2026-03-11 | Structured JSON always-on |
+| `TRIAL_14_DAYS_ENABLED` | 2026-03-11 | Always true, no code references |
+| `LLM_ARBITER_ENABLED` | 2026-06-06 | Always-on since Oct 2025 (>8 months stable) |
+| `LLM_ZERO_MATCH_ENABLED` | 2026-06-06 | Always-on since Oct 2025 (>8 months stable) |
+| `PARTIAL_DATA_SSE_ENABLED` | 2026-06-06 | Always-on since Dec 2025 (>6 months stable) |
+| `PROXIMITY_CONTEXT_ENABLED` | 2026-06-06 | Always-on since Dec 2025 (>6 months stable) |
+| `TRIGRAM_FALLBACK_ENABLED` | 2026-06-06 | Always-on since Mar 2026 (>3 months stable) |
 
 ---
 

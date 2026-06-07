@@ -157,7 +157,6 @@ class TestFilterProgressCallback:
 class TestLlmProgressCallback:
     """AC3: Test LLM zero-match emits progress with llm_classify phase."""
 
-    @patch("config.LLM_ZERO_MATCH_ENABLED", True)
     def test_llm_classify_phase_emitted(self):
         """LLM zero-match should emit on_progress with phase='llm_classify'."""
         # Create bids that will NOT match keywords (trigger zero-match)

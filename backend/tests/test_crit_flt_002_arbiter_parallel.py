@@ -27,7 +27,6 @@ from llm_arbiter import clear_cache
 @pytest.fixture(autouse=True)
 def setup_env():
     """Set up environment for testing."""
-    os.environ["LLM_ARBITER_ENABLED"] = "true"
     os.environ["OPENAI_API_KEY"] = "test-key"
     clear_cache()
     yield

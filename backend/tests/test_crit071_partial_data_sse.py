@@ -144,70 +144,9 @@ def test_add_partial_licitacoes_empty_list():
 
 
 # ===========================================================================
-# 5. Feature flag gating — PARTIAL_DATA_SSE_ENABLED=false
+# DEBT-128: PARTIAL_DATA_SSE_ENABLED removed — always-on (stable since Dec 2025)
+# Sections 5 and 6 removed — flag gating and env var tests no longer apply.
 # ===========================================================================
-
-
-@pytest.mark.asyncio
-@patch("progress.get_redis_pool", new_callable=AsyncMock, return_value=None)
-async def test_partial_data_not_emitted_when_flag_disabled(_mock_redis):
-    """When PARTIAL_DATA_SSE_ENABLED is false, emit_partial_data is never called."""
-    patches = _patch_event_deps()
-    for p in patches:
-        p.start()
-    try:
-        tracker = _make_tracker("test-flag-off", uf_count=2)
-        tracker.emit_partial_data = AsyncMock()
-        tracker.add_partial_licitacoes = MagicMock()
-
-        # Simulate the pipeline gating logic from search_pipeline.py stage_execute
-        licitacoes_raw = _make_licitacoes(5)
-
-        def _gated_emit(flag_value: bool):
-            """Replicate the gating pattern from search_pipeline.py."""
-            if flag_value:
-                # Would call emit_partial_data
-                tracker.emit_partial_data(
-                    licitacoes=licitacoes_raw,
-                    batch_index=1,
-                    ufs_completed=["SP"],
-                    is_final=False,
-                )
-                tracker.add_partial_licitacoes(licitacoes_raw)
-
-        # Flag disabled — nothing should be called
-        _gated_emit(False)
-        tracker.emit_partial_data.assert_not_called()
-        tracker.add_partial_licitacoes.assert_not_called()
-
-        # Flag enabled — both should be called
-        _gated_emit(True)
-        tracker.emit_partial_data.assert_called_once()
-        tracker.add_partial_licitacoes.assert_called_once()
-    finally:
-        for p in patches:
-            p.stop()
-
-
-# ===========================================================================
-# 6. config.get_feature_flag returns correct value for PARTIAL_DATA_SSE_ENABLED
-# ===========================================================================
-
-
-def test_feature_flag_default_true():
-    """PARTIAL_DATA_SSE_ENABLED defaults to true in config."""
-    from config import PARTIAL_DATA_SSE_ENABLED
-    assert PARTIAL_DATA_SSE_ENABLED is True
-
-
-@patch.dict("os.environ", {"PARTIAL_DATA_SSE_ENABLED": "false"})
-def test_get_feature_flag_respects_env():
-    """get_feature_flag reads PARTIAL_DATA_SSE_ENABLED from environment."""
-    from config import get_feature_flag
-    # Clear the flag cache so the env var takes effect
-    with patch("config._feature_flag_cache", {}):
-        result = get_feature_flag("PARTIAL_DATA_SSE_ENABLED")
-        assert result is False
 
 
 # ===========================================================================

@@ -11,24 +11,21 @@ import re
 import time as _time_module
 from typing import Optional
 
-from metrics import LLM_CALLS, LLM_DURATION
-
 from llm_arbiter.classification import (
-    LLM_MODEL,
     LLM_MAX_TOKENS,
+    LLM_MODEL,
     LLM_TEMPERATURE,
-    LLM_ENABLED,
     _arbiter_cache,
-    _arbiter_cache_set,
     _arbiter_cache_get_redis,
+    _arbiter_cache_set,
     _arbiter_cache_set_redis,
-    _get_client,
     _log_token_usage,
 )
 from llm_arbiter.prompt_builder import (
     _build_zero_match_batch_prompt,
     _build_zero_match_batch_prompt_terms,
 )
+from metrics import LLM_CALLS, LLM_DURATION
 
 logger = logging.getLogger(__name__)
 
@@ -181,15 +178,7 @@ def classify_contract_recovery(
 
     Recovery always uses binary mode (no structured output needed).
     """
-    # Lazy import via facade so patch("llm_arbiter.LLM_ENABLED", False) works in tests (AC2)
-    import llm_arbiter as _lm
-    if not _lm.LLM_ENABLED:
-        logger.warning(
-            "LLM arbiter disabled (LLM_ARBITER_ENABLED=false). "
-            "Not recovering rejected contract."
-        )
-        return False
-
+    # DEBT-128: LLM_ARBITER_ENABLED removed — always-on.
     if not setor_name and not termos_busca:
         logger.error(
             "classify_contract_recovery called without setor_name or termos_busca"

@@ -23,7 +23,6 @@ from fastapi.testclient import TestClient
 
 def test_arbiter_rejects_when_budget_exceeded(monkeypatch):
     """Com budget flag=True, classify retorna PENDING_REVIEW sem OpenAI call."""
-    monkeypatch.setenv("LLM_ARBITER_ENABLED", "true")
 
     # Importa depois de setar env
     from llm_arbiter.classification import classify_contract_primary_match
@@ -65,7 +64,6 @@ def test_arbiter_rejects_when_budget_exceeded(monkeypatch):
 
 
 def test_arbiter_rejects_increments_rejection_metric(monkeypatch):
-    monkeypatch.setenv("LLM_ARBITER_ENABLED", "true")
 
     from llm_arbiter.classification import classify_contract_primary_match, _arbiter_cache
     import llm_arbiter as _lm
@@ -97,7 +95,6 @@ def test_arbiter_rejects_increments_rejection_metric(monkeypatch):
 
 def test_arbiter_proceeds_when_budget_not_exceeded(monkeypatch):
     """Budget OK → fluxo normal, OpenAI é chamada."""
-    monkeypatch.setenv("LLM_ARBITER_ENABLED", "true")
 
     from llm_arbiter.classification import classify_contract_primary_match, _arbiter_cache
     import llm_arbiter as _lm

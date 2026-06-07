@@ -20,7 +20,7 @@ SCHEMA_CONTRACT_STRICT: bool = str_to_bool(os.getenv("SCHEMA_CONTRACT_STRICT", "
 # ============================================
 # LLM Arbiter Configuration (STORY-179 AC6)
 # ============================================
-LLM_ARBITER_ENABLED: bool = str_to_bool(os.getenv("LLM_ARBITER_ENABLED", "true"))
+# DEBT-128: LLM_ARBITER_ENABLED removed — always-on since Oct 2025
 LLM_ARBITER_MODEL: str = os.getenv("LLM_ARBITER_MODEL", "gpt-4.1-nano")
 LLM_ARBITER_MAX_TOKENS: int = int(os.getenv("LLM_ARBITER_MAX_TOKENS", "1"))
 LLM_ARBITER_TEMPERATURE: float = float(os.getenv("LLM_ARBITER_TEMPERATURE", "0"))
@@ -66,7 +66,7 @@ QA_AUDIT_SAMPLE_RATE: float = float(os.getenv("QA_AUDIT_SAMPLE_RATE", "0.10"))
 ZERO_RESULTS_RELAXATION_ENABLED: bool = str_to_bool(os.getenv("ZERO_RESULTS_RELAXATION_ENABLED", "true"))
 
 # LLM Zero Match
-LLM_ZERO_MATCH_ENABLED: bool = str_to_bool(os.getenv("LLM_ZERO_MATCH_ENABLED", "true"))
+# DEBT-128: LLM_ZERO_MATCH_ENABLED removed — always-on since Oct 2025
 LLM_ZERO_MATCH_BATCH_SIZE: int = int(os.getenv("LLM_ZERO_MATCH_BATCH_SIZE", "20"))
 LLM_ZERO_MATCH_BATCH_TIMEOUT: float = float(os.getenv("LLM_ZERO_MATCH_BATCH_TIMEOUT", "5.0"))
 FILTER_ZERO_MATCH_BUDGET_S: float = float(os.getenv("FILTER_ZERO_MATCH_BUDGET_S", "30"))
@@ -75,7 +75,7 @@ ZERO_MATCH_VALUE_RATIO: float = float(os.getenv("ZERO_MATCH_VALUE_RATIO", "1.0")
 ASYNC_ZERO_MATCH_ENABLED: bool = str_to_bool(os.getenv("ASYNC_ZERO_MATCH_ENABLED", "false"))
 ZERO_MATCH_JOB_TIMEOUT_S: int = int(os.getenv("ZERO_MATCH_JOB_TIMEOUT_S", "120"))
 LLM_FALLBACK_PENDING_ENABLED: bool = str_to_bool(os.getenv("LLM_FALLBACK_PENDING_ENABLED", "true"))
-PARTIAL_DATA_SSE_ENABLED: bool = str_to_bool(os.getenv("PARTIAL_DATA_SSE_ENABLED", "true"))
+# DEBT-128: PARTIAL_DATA_SSE_ENABLED removed — SSE always-on since Dec 2025
 PENDING_REVIEW_TTL_SECONDS: int = int(os.getenv("PENDING_REVIEW_TTL_SECONDS", "86400"))
 PENDING_REVIEW_MAX_RETRIES: int = int(os.getenv("PENDING_REVIEW_MAX_RETRIES", "3"))
 PENDING_REVIEW_RETRY_DELAY: int = int(os.getenv("PENDING_REVIEW_RETRY_DELAY", "300"))
@@ -148,7 +148,7 @@ USER_FEEDBACK_ENABLED: bool = str_to_bool(os.getenv("USER_FEEDBACK_ENABLED", "tr
 USER_FEEDBACK_RATE_LIMIT: int = int(os.getenv("USER_FEEDBACK_RATE_LIMIT", "50"))
 
 # SECTOR-PROX: Proximity Context
-PROXIMITY_CONTEXT_ENABLED: bool = str_to_bool(os.getenv("PROXIMITY_CONTEXT_ENABLED", "true"))
+# DEBT-128: PROXIMITY_CONTEXT_ENABLED removed — always-on since Dec 2025
 PROXIMITY_WINDOW_SIZE: int = int(os.getenv("PROXIMITY_WINDOW_SIZE", "8"))
 
 # STORY-259: Bid Analysis
@@ -186,8 +186,7 @@ TERM_SEARCH_FILTER_CONTEXT: bool = str_to_bool(os.getenv("TERM_SEARCH_FILTER_CON
 TERM_SEARCH_VALUE_RANGE_MIN: float = float(os.getenv("TERM_SEARCH_VALUE_RANGE_MIN", "10000"))
 TERM_SEARCH_VALUE_RANGE_MAX: float = float(os.getenv("TERM_SEARCH_VALUE_RANGE_MAX", "50000000"))
 
-# STORY-437: Trigram fuzzy fallback when FTS returns 0 results
-TRIGRAM_FALLBACK_ENABLED: bool = str_to_bool(os.getenv("TRIGRAM_FALLBACK_ENABLED", "true"))
+# DEBT-128: TRIGRAM_FALLBACK_ENABLED removed — always-on since Mar 2026
 
 # STORY-438: Semantic search via pgvector embeddings
 EMBEDDING_ENABLED: bool = str_to_bool(os.getenv("EMBEDDING_ENABLED", "false"))
@@ -232,8 +231,7 @@ _runtime_overrides: dict[str, bool] = {}
 _FEATURE_FLAG_REGISTRY: dict[str, tuple[str, str]] = {
     # --- LLM & Classification ---
     "ENABLE_NEW_PRICING": ("ENABLE_NEW_PRICING", "true"),
-    "LLM_ARBITER_ENABLED": ("LLM_ARBITER_ENABLED", "true"),
-    "LLM_ZERO_MATCH_ENABLED": ("LLM_ZERO_MATCH_ENABLED", "true"),
+    # DEBT-128: LLM_ARBITER_ENABLED and LLM_ZERO_MATCH_ENABLED removed — always-on
     "ASYNC_ZERO_MATCH_ENABLED": ("ASYNC_ZERO_MATCH_ENABLED", "false"),
     "LLM_FALLBACK_PENDING_ENABLED": ("LLM_FALLBACK_PENDING_ENABLED", "true"),
     "BID_ANALYSIS_ENABLED": ("BID_ANALYSIS_ENABLED", "true"),
@@ -241,7 +239,7 @@ _FEATURE_FLAG_REGISTRY: dict[str, tuple[str, str]] = {
     "ZERO_RESULTS_RELAXATION_ENABLED": ("ZERO_RESULTS_RELAXATION_ENABLED", "true"),
     "CO_OCCURRENCE_RULES_ENABLED": ("CO_OCCURRENCE_RULES_ENABLED", "true"),
     "SECTOR_RED_FLAGS_ENABLED": ("SECTOR_RED_FLAGS_ENABLED", "true"),
-    "PROXIMITY_CONTEXT_ENABLED": ("PROXIMITY_CONTEXT_ENABLED", "true"),
+    # DEBT-128: PROXIMITY_CONTEXT_ENABLED removed — always-on (stable since Dec 2025)
     "ITEM_INSPECTION_ENABLED": ("ITEM_INSPECTION_ENABLED", "true"),
     # --- Term Search Quality ---
     "TERM_SEARCH_LLM_AWARE": ("TERM_SEARCH_LLM_AWARE", "false"),
@@ -262,8 +260,8 @@ _FEATURE_FLAG_REGISTRY: dict[str, tuple[str, str]] = {
     "SHOW_CACHE_FALLBACK_BANNER": ("SHOW_CACHE_FALLBACK_BANNER", "true"),
     "SERVE_EXPIRED_CACHE_ON_TOTAL_OUTAGE": ("SERVE_EXPIRED_CACHE_ON_TOTAL_OUTAGE", "true"),
     # --- Search Pipeline ---
+    # DEBT-128: PARTIAL_DATA_SSE_ENABLED removed — always-on (stable since Dec 2025)
     "SEARCH_ASYNC_ENABLED": ("SEARCH_ASYNC_ENABLED", "false"),
-    "PARTIAL_DATA_SSE_ENABLED": ("PARTIAL_DATA_SSE_ENABLED", "true"),
     # --- Cron & Operations ---
     "HEALTH_CANARY_ENABLED": ("HEALTH_CANARY_ENABLED", "true"),
     "DIGEST_ENABLED": ("DIGEST_ENABLED", "false"),
@@ -295,8 +293,7 @@ _FEATURE_FLAG_REGISTRY: dict[str, tuple[str, str]] = {
     "COMPRASGOV_CB_ENABLED": ("COMPRASGOV_CB_ENABLED", "true"),
     # --- STORY-414: Schema contract gate (faseado 14d, default off in prod) ---
     "SCHEMA_CONTRACT_STRICT": ("SCHEMA_CONTRACT_STRICT", "false"),
-    # --- STORY-437: Datalake search improvements ---
-    "TRIGRAM_FALLBACK_ENABLED": ("TRIGRAM_FALLBACK_ENABLED", "true"),
+    # DEBT-128: TRIGRAM_FALLBACK_ENABLED removed — always-on (stable since Mar 2026)
     # --- STORY-438: Semantic embeddings ---
     "EMBEDDING_ENABLED": ("EMBEDDING_ENABLED", "false"),
     # --- TIER-COMMAND-003: Command tier feature flags (fail-closed: all default false) ---
@@ -496,7 +493,6 @@ def log_feature_flags() -> None:
     from config.pncp import COMPRASGOV_ENABLED as _cg_enabled
 
     logger.info(f"Feature Flag - ENABLE_NEW_PRICING: {ENABLE_NEW_PRICING}")
-    logger.info(f"Feature Flag - LLM_ARBITER_ENABLED: {LLM_ARBITER_ENABLED}")
     logger.info(f"Feature Flag - ZERO_RESULTS_RELAXATION_ENABLED: {ZERO_RESULTS_RELAXATION_ENABLED}")
     if not _cg_enabled:
         logger.warning(

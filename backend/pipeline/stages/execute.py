@@ -8,37 +8,44 @@ import asyncio
 import json
 import logging
 import time as sync_time_module
-from datetime import datetime, timezone as _tz
+from datetime import datetime
+from datetime import timezone as _tz
 
-from error_response import ErrorCode
-from utils.error_reporting import report_error  # GTM-RESILIENCE-E02: centralized error emission
-from search_context import SearchContext
-from schemas import DataSourceStatus
-from pncp_client import get_circuit_breaker, PNCPDegradedError, ParallelFetchResult
-from consolidation import AllSourcesFailedError
 from fastapi import HTTPException
+
+from consolidation import AllSourcesFailedError
+from error_response import ErrorCode
 from metrics import (
-    CACHE_HITS, CACHE_MISSES, FETCH_DURATION,
-    SOURCE_DEGRADATION_TOTAL, BIDS_PROCESSED_TOTAL,
+    BIDS_PROCESSED_TOTAL,
+    CACHE_HITS,
+    CACHE_MISSES,
+    FETCH_DURATION,
+    SOURCE_DEGRADATION_TOTAL,
 )
+from pipeline.budget import _run_with_budget  # STORY-4.4 TD-SYS-003
 from pipeline.cache_manager import (
     SEARCH_CACHE_TTL,
+    _build_cache_params,
     _compute_cache_key,
+    _maybe_trigger_revalidation,
     _read_cache,
     _read_cache_composed,
     _write_cache,
     _write_cache_per_uf,
-    _build_cache_params,
-    _maybe_trigger_revalidation,
 )
-from pipeline.budget import _run_with_budget  # STORY-4.4 TD-SYS-003
+from pncp_client import ParallelFetchResult, PNCPDegradedError, get_circuit_breaker
+from schemas import DataSourceStatus
+from search_context import SearchContext
+from utils.error_reporting import (
+    report_error,  # GTM-RESILIENCE-E02: centralized error emission
+)
 
 logger = logging.getLogger(__name__)
 
 
 import quota  # noqa: E402
-from status_inference import enriquecer_com_status_inferido  # noqa: E402
 from cache.cascade import get_from_cache_cascade  # noqa: E402
+from status_inference import enriquecer_com_status_inferido  # noqa: E402
 
 
 async def stage_execute(pipeline, ctx: SearchContext) -> None:
@@ -137,8 +144,10 @@ async def stage_execute(pipeline, ctx: SearchContext) -> None:
                 CACHE_HITS.labels(level="composed", freshness="fresh").inc()
                 # CRIT-056 AC2: Quality-stale -> serve but trigger revalidation
                 if composed.get("_swr_stale") and ctx.user and ctx.user.get("id"):
+                    from cache.swr import (
+                        trigger_background_revalidation as _trigger_reval,
+                    )
                     from metrics import CACHE_QUALITY_REVALIDATION_TOTAL
-                    from cache.swr import trigger_background_revalidation as _trigger_reval
                     CACHE_QUALITY_REVALIDATION_TOTAL.inc()
                     _cache_params = _build_cache_params(request)
                     _request_data = {
@@ -177,8 +186,8 @@ async def stage_execute(pipeline, ctx: SearchContext) -> None:
             CACHE_HITS.labels(level="memory", freshness="fresh").inc()
             # CRIT-056 AC2: Quality-stale -> serve but trigger revalidation
             if cached.get("_swr_stale") and ctx.user and ctx.user.get("id"):
-                from metrics import CACHE_QUALITY_REVALIDATION_TOTAL
                 from cache.swr import trigger_background_revalidation as _trigger_reval
+                from metrics import CACHE_QUALITY_REVALIDATION_TOTAL
                 CACHE_QUALITY_REVALIDATION_TOTAL.inc()
                 _cache_params = _build_cache_params(request)
                 _request_data = {
@@ -326,17 +335,16 @@ async def stage_execute(pipeline, ctx: SearchContext) -> None:
     enriquecer_com_status_inferido(ctx.licitacoes_raw)
     logger.debug(f"Status inference complete for {len(ctx.licitacoes_raw)} bids")
 
+    # DEBT-128: PARTIAL_DATA_SSE_ENABLED removed — always-on (stable since Dec 2025)
     # CRIT-071: Emit partial_data SSE event with raw results before filtering
     if ctx.tracker and ctx.licitacoes_raw:
-        from config import get_feature_flag as _gff_071
-        if _gff_071("PARTIAL_DATA_SSE_ENABLED"):
-            await ctx.tracker.emit_partial_data(
-                licitacoes=ctx.licitacoes_raw,
-                batch_index=1,
-                ufs_completed=list(ctx.succeeded_ufs or ctx.request.ufs),
-                is_final=False,
-            )
-            ctx.tracker.add_partial_licitacoes(ctx.licitacoes_raw)
+        await ctx.tracker.emit_partial_data(
+            licitacoes=ctx.licitacoes_raw,
+            batch_index=1,
+            ufs_completed=list(ctx.succeeded_ufs or ctx.request.ufs),
+            is_final=False,
+        )
+        ctx.tracker.add_partial_licitacoes(ctx.licitacoes_raw)
 
     # CRIT-051 AC3: Merge cached results with fresh results (hybrid fetch)
     _composed_cached = getattr(ctx, "_composed_cached_results", None)
@@ -371,7 +379,7 @@ async def stage_execute(pipeline, ctx: SearchContext) -> None:
         _quality = 0.0
 
     # CRIT-056 AC5: Track quality metrics
-    from metrics import CACHE_QUALITY_WRITE_TOTAL, CACHE_QUALITY_SCORE
+    from metrics import CACHE_QUALITY_SCORE, CACHE_QUALITY_WRITE_TOTAL
     _q_bucket = "full" if _quality >= 1.0 else ("partial" if _quality > 0 else "empty")
 
     # CRIT-056 AC3: Don't cache empty results from degraded sources
@@ -456,11 +464,11 @@ async def _execute_multi_source(
     """
 
     logger.debug("Multi-source fetch enabled, using ConsolidationService")
-    from consolidation import ConsolidationService
     from clients.compras_gov_client import ComprasGovAdapter
     from clients.portal_compras_client import PortalComprasAdapter
-    from source_config.sources import get_source_config
+    from consolidation import ConsolidationService
     from pncp_client import PNCPLegacyAdapter
+    from source_config.sources import get_source_config
 
     source_config = get_source_config()
 

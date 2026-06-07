@@ -23,8 +23,9 @@ from fastapi import APIRouter, Depends, HTTPException, Path
 from pydantic import BaseModel, Field
 
 from admin import require_admin
-from schemas.parity import ExperimentsListResponse
+from audit import audit_logger
 from auth import require_auth
+from config.base import str_to_bool
 from config.features import (
     _FEATURE_FLAG_REGISTRY,
     _feature_flag_cache,
@@ -32,9 +33,8 @@ from config.features import (
     get_feature_flag,
     reload_feature_flags,
 )
-from config.base import str_to_bool
-from audit import audit_logger
 from log_sanitizer import log_admin_action
+from schemas.parity import ExperimentsListResponse
 
 logger = logging.getLogger(__name__)
 
@@ -166,8 +166,7 @@ async def _resolve_flag_value(flag_name: str) -> tuple[bool, str]:
 _FLAG_DESCRIPTIONS: dict[str, str] = {
     # LLM & Classification
     "ENABLE_NEW_PRICING": "New pricing model (STORY-165)",
-    "LLM_ARBITER_ENABLED": "LLM classification arbiter for relevance scoring",
-    "LLM_ZERO_MATCH_ENABLED": "LLM zero-match classification (GPT-4.1-nano YES/NO)",
+    # DEBT-128: LLM_ARBITER_ENABLED and LLM_ZERO_MATCH_ENABLED removed — always-on
     "ASYNC_ZERO_MATCH_ENABLED": "Async background zero-match via ARQ jobs",
     "LLM_FALLBACK_PENDING_ENABLED": "LLM fallback to pending-review status on failure",
     "BID_ANALYSIS_ENABLED": "Deep bid analysis with LLM",
@@ -175,7 +174,7 @@ _FLAG_DESCRIPTIONS: dict[str, str] = {
     "ZERO_RESULTS_RELAXATION_ENABLED": "Relax filters when zero results found",
     "CO_OCCURRENCE_RULES_ENABLED": "Keyword co-occurrence filtering rules",
     "SECTOR_RED_FLAGS_ENABLED": "Sector-specific red flag detection",
-    "PROXIMITY_CONTEXT_ENABLED": "Proximity context window for keyword matching",
+    # DEBT-128: PROXIMITY_CONTEXT_ENABLED removed — always-on
     "ITEM_INSPECTION_ENABLED": "Item-level inspection for gray-zone contracts",
     # Term Search Quality
     "TERM_SEARCH_LLM_AWARE": "LLM-aware term search quality parity",
@@ -193,7 +192,7 @@ _FLAG_DESCRIPTIONS: dict[str, str] = {
     "SERVE_EXPIRED_CACHE_ON_TOTAL_OUTAGE": "Serve expired cache during total outage",
     # Search Pipeline
     "SEARCH_ASYNC_ENABLED": "Async search via ARQ job queue",
-    "PARTIAL_DATA_SSE_ENABLED": "Partial data delivery via SSE events",
+    # DEBT-128: PARTIAL_DATA_SSE_ENABLED removed — always-on
     # Cron & Operations
     "HEALTH_CANARY_ENABLED": "PNCP health canary checks (5-min interval)",
     "DIGEST_ENABLED": "Email digest cron job",
@@ -221,7 +220,7 @@ _FLAG_DESCRIPTIONS: dict[str, str] = {
     # Schema Contract (STORY-414)
     "SCHEMA_CONTRACT_STRICT": "Strict schema contract validation for external responses (STORY-414)",
     # Datalake Search Improvements
-    "TRIGRAM_FALLBACK_ENABLED": "Trigram fallback for datalake search (STORY-437)",
+    # DEBT-128: TRIGRAM_FALLBACK_ENABLED removed — always-on
     "EMBEDDING_ENABLED": "Semantic embedding search for datalake (STORY-438)",
     # Founders Offer
     "FOUNDERS_OFFER_ENABLED": "Kill switch for the Founders lifetime offer (epic:fundadores — BIZ-FOUND-002)",
@@ -243,8 +242,7 @@ _FLAG_DESCRIPTIONS: dict[str, str] = {
 _FLAG_LIFECYCLE: dict[str, dict] = {
     # LLM & Classification — permanent, core pipeline
     "ENABLE_NEW_PRICING": {"owner": "billing", "category": "billing", "lifecycle": "permanent", "created": "2025-11"},
-    "LLM_ARBITER_ENABLED": {"owner": "search", "category": "llm", "lifecycle": "permanent", "created": "2025-10"},
-    "LLM_ZERO_MATCH_ENABLED": {"owner": "search", "category": "llm", "lifecycle": "permanent", "created": "2025-10"},
+    # DEBT-128: LLM_ARBITER_ENABLED and LLM_ZERO_MATCH_ENABLED removed — always-on
     "ASYNC_ZERO_MATCH_ENABLED": {"owner": "search", "category": "llm", "lifecycle": "experimental", "created": "2025-12"},
     "LLM_FALLBACK_PENDING_ENABLED": {"owner": "search", "category": "llm", "lifecycle": "permanent", "created": "2025-12"},
     "BID_ANALYSIS_ENABLED": {"owner": "search", "category": "llm", "lifecycle": "permanent", "created": "2026-01"},
@@ -252,7 +250,7 @@ _FLAG_LIFECYCLE: dict[str, dict] = {
     "ZERO_RESULTS_RELAXATION_ENABLED": {"owner": "search", "category": "filter", "lifecycle": "permanent", "created": "2025-11"},
     "CO_OCCURRENCE_RULES_ENABLED": {"owner": "search", "category": "filter", "lifecycle": "permanent", "created": "2025-12"},
     "SECTOR_RED_FLAGS_ENABLED": {"owner": "search", "category": "filter", "lifecycle": "permanent", "created": "2025-12"},
-    "PROXIMITY_CONTEXT_ENABLED": {"owner": "search", "category": "filter", "lifecycle": "permanent", "created": "2025-12"},
+    # DEBT-128: PROXIMITY_CONTEXT_ENABLED removed — always-on
     "ITEM_INSPECTION_ENABLED": {"owner": "search", "category": "filter", "lifecycle": "permanent", "created": "2025-12"},
     # Term Search Quality — experimental, remove when graduated
     "TERM_SEARCH_LLM_AWARE": {"owner": "search", "category": "experimental", "lifecycle": "experimental", "created": "2026-01"},
@@ -270,7 +268,7 @@ _FLAG_LIFECYCLE: dict[str, dict] = {
     "SERVE_EXPIRED_CACHE_ON_TOTAL_OUTAGE": {"owner": "infra", "category": "cache", "lifecycle": "permanent", "created": "2026-01"},
     # Search Pipeline
     "SEARCH_ASYNC_ENABLED": {"owner": "search", "category": "pipeline", "lifecycle": "experimental", "created": "2025-12"},
-    "PARTIAL_DATA_SSE_ENABLED": {"owner": "search", "category": "pipeline", "lifecycle": "permanent", "created": "2025-12"},
+    # DEBT-128: PARTIAL_DATA_SSE_ENABLED removed — always-on
     # Cron & Operations
     "HEALTH_CANARY_ENABLED": {"owner": "infra", "category": "ops", "lifecycle": "permanent", "created": "2025-11"},
     "DIGEST_ENABLED": {"owner": "email", "category": "ops", "lifecycle": "experimental", "created": "2025-12"},
@@ -294,7 +292,7 @@ _FLAG_LIFECYCLE: dict[str, dict] = {
     # STORY-414: Schema contract gate
     "SCHEMA_CONTRACT_STRICT": {"owner": "data", "category": "validation", "lifecycle": "experimental", "created": "2026-03"},
     # STORY-437: Datalake search improvements
-    "TRIGRAM_FALLBACK_ENABLED": {"owner": "search", "category": "search", "lifecycle": "experimental", "created": "2026-03"},
+    # DEBT-128: TRIGRAM_FALLBACK_ENABLED removed — always-on
     # STORY-438: Semantic embeddings
     "EMBEDDING_ENABLED": {"owner": "search", "category": "search", "lifecycle": "experimental", "created": "2026-03"},
     # BIZ-FOUND-002: Founders lifetime offer kill switch

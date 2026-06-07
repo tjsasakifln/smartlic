@@ -99,9 +99,8 @@ class TestRegistryCompleteness:
 # ---------------------------------------------------------------------------
 # 2. get_feature_flag — on/off for 10 critical flags
 # ---------------------------------------------------------------------------
+# DEBT-128: LLM_ARBITER_ENABLED, LLM_ZERO_MATCH_ENABLED, PARTIAL_DATA_SSE_ENABLED removed — always-on
 _CRITICAL_FLAGS = [
-    "LLM_ARBITER_ENABLED",
-    "LLM_ZERO_MATCH_ENABLED",
     "DATALAKE_ENABLED",
     "DATALAKE_QUERY_ENABLED",
     # CACHE_WARMING_ENABLED removed 2026-04-18 (STORY-CIG-BE-cache-warming-deprecate)
@@ -109,7 +108,6 @@ _CRITICAL_FLAGS = [
     "TRIAL_PAYWALL_ENABLED",
     "SEARCH_ASYNC_ENABLED",
     "RATE_LIMITING_ENABLED",
-    "PARTIAL_DATA_SSE_ENABLED",
 ]
 
 
@@ -164,15 +162,7 @@ class TestCriticalFlagsOnOff:
 class TestCriticalCombinations:
     """5 combinations of flags that interact in the search pipeline."""
 
-    def test_combo1_datalake_off_llm_zero_match_on(self):
-        """DATALAKE_QUERY_ENABLED=false + LLM_ZERO_MATCH_ENABLED=true."""
-        with patch.dict("os.environ", {
-            "DATALAKE_QUERY_ENABLED": "false",
-            "LLM_ZERO_MATCH_ENABLED": "true",
-        }):
-            _features_mod._feature_flag_cache.clear()
-            assert get_feature_flag("DATALAKE_QUERY_ENABLED") is False
-            assert get_feature_flag("LLM_ZERO_MATCH_ENABLED") is True
+    # DEBT-128: combo1 (LLM_ZERO_MATCH_ENABLED) removed — always-on
 
     def test_combo2_search_async_on(self):
         """SEARCH_ASYNC_ENABLED=true — background processing validated."""
@@ -200,15 +190,7 @@ class TestCriticalCombinations:
             assert get_feature_flag("COMPRASGOV_ENABLED") is False
             assert get_feature_flag("DATALAKE_ENABLED") is False
 
-    def test_combo5_llm_arbiter_off_zero_match_off(self):
-        """LLM_ARBITER_ENABLED=false + LLM_ZERO_MATCH_ENABLED=false."""
-        with patch.dict("os.environ", {
-            "LLM_ARBITER_ENABLED": "false",
-            "LLM_ZERO_MATCH_ENABLED": "false",
-        }):
-            _features_mod._feature_flag_cache.clear()
-            assert get_feature_flag("LLM_ARBITER_ENABLED") is False
-            assert get_feature_flag("LLM_ZERO_MATCH_ENABLED") is False
+    # DEBT-128: combo5 (LLM_ARBITER_ENABLED + LLM_ZERO_MATCH_ENABLED) removed — always-on
 
 
 # ---------------------------------------------------------------------------

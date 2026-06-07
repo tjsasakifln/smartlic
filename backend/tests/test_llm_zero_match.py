@@ -20,14 +20,12 @@ from llm_arbiter import _build_zero_match_prompt, clear_cache
 @pytest.fixture(autouse=True)
 def setup_env():
     """Set up environment for testing."""
-    os.environ["LLM_ARBITER_ENABLED"] = "true"
-    os.environ["LLM_ZERO_MATCH_ENABLED"] = "true"
     os.environ["OPENAI_API_KEY"] = "test-key"
     clear_cache()
     yield
     clear_cache()
-    # Restore defaults
-    os.environ.pop("LLM_ZERO_MATCH_ENABLED", None)
+    # DEBT-128: LLM_ZERO_MATCH_ENABLED env var removed — keep the fixture clean
+    pass
 
 
 @pytest.fixture(autouse=True)
@@ -489,22 +487,7 @@ class TestAC26Fluxo2Disabled:
 class TestEdgeCases:
     """Edge cases for LLM zero-match classification."""
 
-    @patch("config.LLM_ZERO_MATCH_ENABLED", False)
-    def test_feature_flag_disabled(self):
-        """When LLM_ZERO_MATCH_ENABLED=False, zero-match bids rejected immediately."""
-        bids = [
-            make_zero_match_bid(codigo=f"OFF-{i}", objeto=f"Consultoria e assessoria empresarial completa número {i}")
-            for i in range(5)
-        ]
-
-        aprovadas, stats = aplicar_todos_filtros(
-            licitacoes=bids,
-            ufs_selecionadas={"SP"},
-            setor="vestuario",
-        )
-
-        assert len(aprovadas) == 0
-        assert stats.get("llm_zero_match_calls", 0) == 0
+    # DEBT-128: LLM_ZERO_MATCH_ENABLED removed — always-on. test_feature_flag_disabled removed.
 
     def test_no_sector_skips_zero_match(self):
         """Without setor param, zero-match classification is skipped."""

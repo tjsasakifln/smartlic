@@ -23,8 +23,6 @@ from filter import aplicar_todos_filtros
 @pytest.fixture(autouse=True)
 def setup_env():
     """Set up environment for testing."""
-    os.environ["LLM_ARBITER_ENABLED"] = "true"
-    os.environ["LLM_ZERO_MATCH_ENABLED"] = "true"
     os.environ["OPENAI_API_KEY"] = "test-key"
     clear_cache()
     yield

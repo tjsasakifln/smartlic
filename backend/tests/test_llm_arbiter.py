@@ -39,7 +39,6 @@ from llm_arbiter import (
 @pytest.fixture(autouse=True)
 def setup_env():
     """Set up environment variables for testing."""
-    os.environ["LLM_ARBITER_ENABLED"] = "true"
     os.environ["LLM_ARBITER_MODEL"] = "gpt-4.1-nano"
     os.environ["LLM_ARBITER_MAX_TOKENS"] = "1"
     os.environ["LLM_ARBITER_TEMPERATURE"] = "0"
@@ -551,15 +550,7 @@ class TestFallback:
 
         assert result["is_primary"] is False
 
-    def test_feature_flag_disabled(self, mock_openai_client):
-        """Test behavior when LLM_ARBITER_ENABLED=false."""
-        with patch("llm_arbiter.LLM_ENABLED", False):
-            result = classify_contract_primary_match(
-                objeto="Objeto qualquer", valor=10_000_000, setor_name="Vestuário",
-            )
-
-            assert result["is_primary"] is True
-            assert not mock_openai_client.chat.completions.create.called
+    # DEBT-128: LLM_ARBITER_ENABLED removed — always-on. test_feature_flag_disabled removed.
 
     def test_missing_inputs_defaults_to_accept(self, mock_openai_client):
         """Test behavior when neither setor_name nor termos_busca provided."""
