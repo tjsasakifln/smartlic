@@ -49,12 +49,22 @@ export function detectIntentFromSearchTerm(term: string): IntentCluster {
 
 /**
  * Detect intent cluster from a referrer URL by pattern matching.
+ * Extracts the hostname from valid URLs first to prevent domain-spoofing bypass.
+ * Falls back to raw-string matching for shorthand values (e.g. query param ref=sebrae).
  * Returns the first matching cluster, or null when no pattern matches.
  */
 export function detectIntentFromReferrer(referrer: string): IntentCluster | null {
+  let target = referrer;
+  try {
+    // Extract hostname from valid URLs for anchored domain matching
+    target = new URL(referrer).hostname;
+  } catch {
+    // Not a valid URL — match raw string (for query param shorthand values)
+  }
+
   for (const [cluster, patterns] of Object.entries(REFERRER_PATTERNS)) {
     for (const pattern of patterns) {
-      if (pattern.test(referrer)) {
+      if (pattern.test(target)) {
         return cluster as IntentCluster;
       }
     }
