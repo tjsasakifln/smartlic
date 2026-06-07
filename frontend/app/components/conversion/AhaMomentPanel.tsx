@@ -77,6 +77,7 @@ export default function AhaMomentPanel({
             key={`insight-${entityType}-${index}`}
             variants={cardVariants}
             className="rounded-card border border-border bg-surface-1 p-4 text-center shadow-sm"
+            data-testid={`insight-card-${index}`}
           >
             {insight.icon && (
               <span

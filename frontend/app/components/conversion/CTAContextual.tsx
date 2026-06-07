@@ -85,6 +85,7 @@ export default function CTAContextual({
       <Link
         href={href}
         onClick={handleClick}
+        data-testid="cta-contextual"
         className="inline-block w-full rounded-xl bg-green-600 px-8 py-3 text-center font-bold text-white shadow-lg transition-colors hover:bg-green-700 sm:w-auto"
       >
         {text}
