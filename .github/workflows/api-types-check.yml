@@ -138,6 +138,7 @@ jobs:
             exit 0
           }
 
+          # Pull to avoid race with other auto-commit workflows (e.g. OpenAPI snapshot)
           git pull --rebase origin ${{ github.head_ref }} || {
             echo "⚠️ Rebase failed — pushing anyway"
           }
