@@ -280,9 +280,12 @@ async def stage_execute(pipeline, ctx: SearchContext) -> None:
         async def uf_status_callback(uf: str, status: str, **detail):
             await ctx.tracker.emit_uf_status(uf, status, **detail)
 
-    # GTM-FIX-029 AC16/AC17: Raised from 4min->6min, configurable via env
-    # Hierarchy: FE proxy (480s) > Pipeline (360s) > Consolidation (300s) > Per-Source (180s) > Per-UF (90s)
-    FETCH_TIMEOUT = int(os.environ.get("SEARCH_FETCH_TIMEOUT", str(6 * 60)))  # 6 minutes
+    # STORY-287: Reduced from 6min->3min to prevent request hanging.
+    # 180s budget: pipeline must complete within Railway's ~120s hard limit
+    # for async background dispatch; extending beyond 180s consumes resources
+    # without benefit (DL p95 <100ms).
+    # Hierarchy: FE proxy (480s) > Pipeline (180s) > Consolidation (90s) > Per-Source (70s) > Per-UF (25s)
+    FETCH_TIMEOUT = int(os.environ.get("SEARCH_FETCH_TIMEOUT", str(3 * 60)))  # 3 minutes
 
     # CRIT-051 AC3: Hybrid fetch — only fetch missing UFs if partial cache hit
     _hybrid_ufs = getattr(ctx, "_missing_ufs", None)
