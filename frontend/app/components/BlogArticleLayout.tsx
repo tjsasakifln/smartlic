@@ -8,6 +8,7 @@ import Footer from './Footer';
 import ShareButtons from '@/components/share/ShareButtons';
 import type { BlogArticleMeta } from '@/lib/blog';
 import { getAuthorBySlug, DEFAULT_AUTHOR_SLUG } from '@/lib/authors';
+import { ContextualCapture } from '@/app/blog/components/ContextualCapture';
 
 /**
  * STORY-261 AC1/AC2/AC3/AC14: Blog article layout component
@@ -277,6 +278,27 @@ export default function BlogArticleLayout({
               {/* Article Body — AC14: prose-lg for generous spacing */}
               <div className="prose prose-lg prose-gray dark:prose-invert max-w-none prose-headings:text-ink prose-headings:font-bold prose-headings:tracking-tight prose-p:text-ink-secondary prose-p:leading-relaxed prose-strong:text-ink prose-a:text-brand-blue prose-a:no-underline hover:prose-a:underline prose-li:text-ink-secondary prose-h2:border-b prose-h2:border-[var(--border)] prose-h2:pb-3 prose-blockquote:border-l-brand-blue prose-blockquote:bg-surface-1 prose-blockquote:rounded-r-lg prose-blockquote:py-1 prose-blockquote:px-4">
                 {children}
+
+                {/* REV-004: Contextual lead capture — appears after ~60% scroll */}
+                <ContextualCapture
+                  previewData={[
+                    { label: "Total de editais no setor (12 meses)", value: "2.847" },
+                    { label: "Valor total adjudicado", value: "R$ 89,2 M" },
+                    { label: "Ticket medio por contrato", value: "R$ 31.340" },
+                  ]}
+                  blurredData={[
+                    { label: "Principais orgaos contratantes" },
+                    { label: "Concorrentes frequentes por orgao" },
+                    { label: "Prazo medio de publicacao a sessao" },
+                    { label: "Taxa de sucesso por modalidade" },
+                    { label: "Valor estimado vs adjudicado medio" },
+                  ]}
+                  productSku="relatorio-setorial"
+                  contextInfo={{
+                    entity_type: "setor",
+                    entity_id: "geral",
+                  }}
+                />
               </div>
 
               {/* Tags */}
