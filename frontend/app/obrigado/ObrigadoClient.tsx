@@ -5,20 +5,14 @@ import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { CheckCircle, Loader2, AlertCircle, PartyPopper } from "lucide-react";
 import { toast } from "sonner";
+import type { components } from "../api-types.generated";
 
 // ---------------------------------------------------------------------------
 // Types
 // ---------------------------------------------------------------------------
 
 type FetchState = "loading" | "success" | "not_found" | "error";
-
-interface SessionStatus {
-  status: string; // "pending" | "generating" | "ready" | "failed" | "completed"
-  product_name?: string | null;
-  sku?: string | null;
-  pdf_url?: string | null;
-  created_at?: string | null;
-}
+type SessionStatus = components["schemas"]["CheckoutSessionStatusResponse"];
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -170,18 +164,29 @@ export default function ObrigadoClient() {
     sessionStatus?.status === "ready" || sessionStatus?.status === "completed";
   const isFailed = sessionStatus?.status === "failed";
 
+  // Derive visual status from fetchState to avoid showing green success
+  // when sessionStatus is null in error/not_found states (CodeRabbit fix).
+  const visualStatus: string =
+    fetchState === "loading"
+      ? "loading"
+      : fetchState === "not_found"
+        ? "pending"
+        : fetchState === "error"
+          ? "failed"
+          : sessionStatus?.status ?? "completed";
+
   return (
     <div className="min-h-screen bg-[var(--canvas)] flex items-center justify-center px-4">
       <div className="max-w-lg w-full text-center">
         <div className="bg-[var(--surface-0)] border border-[var(--border)] rounded-card p-8 shadow-lg">
           {/* Status Icon */}
           <div
-            className={`w-16 h-16 mx-auto mb-6 rounded-full flex items-center justify-center ${statusBgClass(sessionStatus?.status || "completed")}`}
+            className={`w-16 h-16 mx-auto mb-6 rounded-full flex items-center justify-center ${statusBgClass(visualStatus)}`}
           >
             {fetchState === "loading" ? (
               <Loader2 className="w-8 h-8 text-[var(--brand-blue)] animate-spin" />
             ) : (
-              statusIcon(sessionStatus?.status || "completed")
+              statusIcon(visualStatus)
             )}
           </div>
 

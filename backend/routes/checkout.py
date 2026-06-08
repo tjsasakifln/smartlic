@@ -24,6 +24,7 @@ from typing import Any, Optional
 from fastapi import APIRouter, Depends, HTTPException
 
 from auth import require_auth
+from log_sanitizer import sanitize
 from rate_limiter import require_rate_limit
 from supabase_client import get_supabase, sb_execute
 
@@ -456,7 +457,7 @@ async def get_checkout_session_status(session_id: str):
     except Exception as exc:
         logger.warning(
             "checkout: purchase lookup failed for session=%s: %s",
-            session_id[:8] if session_id else "?",
+            sanitize(session_id, context="stripe_session"),
             exc,
         )
         raise HTTPException(
@@ -471,7 +472,7 @@ async def get_checkout_session_status(session_id: str):
         )
 
     purchase = result.data[0]
-    status = purchase.get("status", "pending")
+    status = purchase.get("status") or "pending"
     sku = purchase.get("entity_key")  # For digital_product rows, entity_key = product_sku
     pdf_url = purchase.get("pdf_url")
     created_at = purchase.get("created_at")
@@ -495,7 +496,7 @@ async def get_checkout_session_status(session_id: str):
 
     logger.info(
         "checkout: session status checked — session=%s status=%s sku=%s",
-        session_id[:8] if session_id else "?",
+        sanitize(session_id, context="stripe_session"),
         status,
         sku,
     )
