@@ -285,23 +285,23 @@ describe("Historico empty state (AC4-AC6)", () => {
     await waitFor(() => {
       expect(screen.getByTestId("empty-state")).toBeInTheDocument();
     }, { timeout: 3000 });
-    // EmptyState renders the Histórico de Análises title
+    // EmptyState renders the "Nenhuma busca salva ainda" title
     const emptyStateEl = screen.getByTestId("empty-state");
-    expect(emptyStateEl.textContent).toMatch(/Hist.*rico de An.*lises/);
+    expect(emptyStateEl.textContent).toMatch(/Nenhuma busca salva/);
   });
 
-  it("AC5: mentions revisiting doesn't cost a new analysis", async () => {
+  it("AC5: mentions searches are saved automatically", async () => {
     render(<HistoricoPage />);
 
     await waitFor(() => {
       expect(screen.getByTestId("empty-state")).toBeInTheDocument();
     }, { timeout: 3000 });
-    // Description mentions revisiting without spending a new analysis
+    // Description mentions automatic saving
     const emptyStateEl = screen.getByTestId("empty-state");
-    expect(emptyStateEl.textContent).toMatch(/nova an.*lise/);
+    expect(emptyStateEl.textContent).toMatch(/salvas automaticamente/);
   });
 
-  it("AC6: CTA 'Fazer primeira análise' links to /buscar", async () => {
+  it("AC6: CTA 'Fazer primeira busca' links to /buscar", async () => {
     render(<HistoricoPage />);
 
     await waitFor(() => {

@@ -210,7 +210,7 @@ describe('HistoricoPage Component', () => {
 
       render(<HistoricoPage />);
 
-      const searchLink = screen.getByRole('link', { name: /Fazer primeira análise/i });
+      const searchLink = screen.getByRole('link', { name: /Fazer primeira busca/i });
       expect(searchLink).toBeInTheDocument();
       expect(searchLink).toHaveAttribute('href', '/buscar');
     });

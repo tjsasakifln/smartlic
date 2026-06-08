@@ -401,7 +401,7 @@ describe('UX-354: Histórico Unicode, Sector Slugs, English Errors', () => {
       expect(screen.getByTestId('empty-state')).toBeInTheDocument();
     });
     // Verify the CTA link text is rendered
-    expect(screen.getByText(/Fazer primeira análise/i)).toBeInTheDocument();
+    expect(screen.getByText(/Fazer primeira busca/i)).toBeInTheDocument();
   });
 
   test('AC8: UF display works correctly', async () => {
