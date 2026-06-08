@@ -446,3 +446,4 @@ frontend/e2e-tests/billing/fixtures/*.secret.yaml
 # Squads aiox-* local downgrade sentinels (feat/squads-integration)
 squads/*/.disabled
 .reversa/
+node_modules_broken/
