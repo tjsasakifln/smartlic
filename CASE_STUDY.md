@@ -176,14 +176,15 @@ Tender text
     ├── Prompt includes: sector definition, keywords, context_required_keywords
     ├── Must cite EVIDENCE from tender text for each classification
     ├── temperature=0 (deterministic, no creative variance)
-    └── Fallback: PENDING_REVIEW on malformed JSON or timeout
+    └── Fallback: naive SIM/NAO substring detection (confianca 40-45) on malformed JSON
 ```
 
 ### Anti-Hallucination Measures
 
-1. **Structured output only.** LLM response is parsed against a Pydantic schema. Malformed
-   responses are rejected — the system falls back to PENDING_REVIEW, never passes bad data
-   to the user.
+1. **Structured output only.** LLM response is parsed against a Pydantic schema (`LLMClassification`).
+   Malformed responses fall back to naive SIM/NAO substring detection with low confidence
+   (confianca=40-45) and `motivo_exclusao` recording the fallback reason. The system never
+   passes unvalidated LLM output downstream.
 2. **Evidence requirement.** The prompt requires the LLM to quote the relevant text snippet
    that supports its classification. This is checked for presence (non-empty string) in
    post-processing.
@@ -191,8 +192,8 @@ Tender text
    (`contracts/schemas/pncp_search_response.schema.json`) every 10 minutes. Shape drift
    triggers Sentry fatal alert.
 4. **Bounded role.** The LLM is an *arbiter*, not a *generator*. Its output space is
-   `{APPROVE, REJECT}` with required evidence. No free-text generation in the classification
-   path. Executive summaries are a separate, non-critical path.
+   `{SIM, NAO}` (conceptually APPROVE/REJECT) with required evidence. No free-text generation
+   in the classification path. Executive summaries are a separate, non-critical path.
 5. **Cost control.** LLM is invoked only for ambiguous cases (~2-4% of tender volume).
    Classification cost is tracked per sector, per search session. Prometheus counter
    `smartlic_llm_fallback_rejects_total` surfaces misclassification trends.
