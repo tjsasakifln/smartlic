@@ -36,6 +36,10 @@ export interface DigitalProductPreviewProps {
   /** Optional override for inline variant: inline elements are skipped inside
    *  a wrapping card; set `noWrapper={true}` if the parent already provides one. */
   noWrapper?: boolean;
+  /** Override label for the checkout button. Defaults to "Comprar por R$XX". */
+  checkoutLabel?: string;
+  /** Optional callback fired when the user clicks the buy button (before modal opens). */
+  onCheckoutStart?: () => void;
   /** Class name override for the outermost container. */
   className?: string;
 }
@@ -183,6 +187,8 @@ export function DigitalProductPreview({
   context,
   variant = "card",
   noWrapper = false,
+  checkoutLabel,
+  onCheckoutStart,
   className = "",
 }: DigitalProductPreviewProps) {
   const { product, loadState, loadError, refetch } = useProduct(sku);
@@ -263,6 +269,7 @@ export function DigitalProductPreview({
 
   const handleCheckoutStart = () => {
     trackEventInternal("product_checkout_started", { source_template: variant });
+    onCheckoutStart?.();
     setShowModal(true);
   };
 
@@ -342,6 +349,7 @@ export function DigitalProductPreview({
               variant="banner"
               onClick={handleCheckoutStart}
               onComplete={handleCheckoutComplete}
+              label={checkoutLabel}
             />
           </div>
         </div>
@@ -392,6 +400,7 @@ export function DigitalProductPreview({
           variant={variant}
           onClick={handleCheckoutStart}
           onComplete={handleCheckoutComplete}
+          label={checkoutLabel}
         />
       </div>
 
