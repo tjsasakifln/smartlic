@@ -1,7 +1,6 @@
-// Landing Page Institucional — REPO-COMMS #1289
+// Landing Page Institucional
 // Route: / (root)
-// Reposicionamento B2G: "terminal de inteligência" — dark theme, sem IA/monitoramento/alerta
-import B2GIntelTheme from './components/landing/B2GIntelTheme';
+// Tema claro padrão (light theme) — brand-navy (#0a1e3f) distinto de brand-blue (#116dff)
 import LandingNavbar from './components/landing/LandingNavbar';
 import HeroB2GIntel from './components/landing/HeroB2GIntel';
 import AntecipeDecidaExecute from './components/landing/AntecipeDecidaExecute';
@@ -17,7 +16,7 @@ import { ExitIntentPopup } from './components/ExitIntentPopup';
 
 export default function LandingPage() {
   return (
-    <B2GIntelTheme>
+    <>
       <HomeFaqStructuredData />
       <LandingNavbar />
 
@@ -34,6 +33,6 @@ export default function LandingPage() {
       <NewsletterFooter />
       <Footer />
       <ExitIntentPopup />
-    </B2GIntelTheme>
+    </>
   );
 }
