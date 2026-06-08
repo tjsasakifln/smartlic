@@ -9,6 +9,11 @@ import { ErrorBoundary } from "../../components/ErrorBoundary";
 
 /**
  * DEBT-011 FE-001 AC3: Shared sidebar layout for /conta sub-routes.
+ *
+ * UX-306: Consistent header/navigation via NavigationShell (root layout)
+ * and PageHeader. Outer wrapper uses flex-1 instead of min-h-screen to
+ * integrate properly within NavigationShell's flex column layout —
+ * prevents overflow with footer and BottomNav.
  */
 
 const NAV_ITEMS = [
@@ -42,7 +47,7 @@ export default function ContaLayout({ children }: { children: React.ReactNode })
   const pathname = usePathname();
 
   return (
-    <div className="min-h-screen bg-[var(--canvas)]">
+    <div className="bg-[var(--canvas)] flex-1">
       <PageHeader title="Minha Conta" />
 
       <div className="max-w-4xl mx-auto px-4 py-6">
