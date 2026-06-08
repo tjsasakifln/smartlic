@@ -75,6 +75,12 @@ export default function SearchCustomizePanel({
   compactSummary,
 }: SearchCustomizePanelProps) {
   const [subcontratacaoFilter, setSubcontratacaoFilter] = useState(false);
+  const activeFiltersCount =
+    (esferas.length > 0 && esferas.length < 3 ? 1 : 0) +
+    (municipios.length > 0 ? 1 : 0) +
+    (status !== "recebendo_proposta" ? 1 : 0) +
+    (modalidades.length > 0 ? 1 : 0) +
+    (valorMin !== null || valorMax !== null ? 1 : 0);
   return (
     <section className="mb-6 animate-fade-in-up stagger-3">
       <button
@@ -86,6 +92,14 @@ export default function SearchCustomizePanel({
       >
         <SlidersHorizontal className="w-5 h-5 text-ink-muted" strokeWidth={2} aria-hidden="true" />
         Personalizar análise
+        {activeFiltersCount > 0 && (
+          <span
+            className="inline-flex items-center justify-center px-2 py-0.5 text-xs font-bold rounded-full bg-brand-blue text-white"
+            aria-label={`${activeFiltersCount} filtro${activeFiltersCount > 1 ? 's' : ''} ativo${activeFiltersCount > 1 ? 's' : ''}`}
+          >
+            {activeFiltersCount}
+          </span>
+        )}
         <ChevronDown className={`w-4 h-4 ml-auto transition-transform ${customizeOpen ? 'rotate-180' : ''}`} strokeWidth={2} aria-hidden="true" />
       </button>
 
