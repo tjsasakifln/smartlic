@@ -180,7 +180,24 @@ async def _generate_intel_report_pdf(db: Any, purchase: dict) -> bytes:
             _generate_sector_uf_report_pdf(db, entity_key),
             timeout=90,
         )
+    if product_type == "subcontract":
+        return await asyncio.wait_for(
+            _generate_subcontract_report_pdf(db, entity_key),
+            timeout=90,
+        )
     raise ValueError(f"unsupported intel report product_type={product_type!r}")
+
+
+async def _generate_subcontract_report_pdf(db: Any, entity_key: str) -> bytes:
+    try:
+        from pdf_generator_subcontract_report import generate_subcontract_report
+    except ImportError as exc:
+        raise NotImplementedError("subcontract report generator is not available") from exc
+
+    buffer = generate_subcontract_report(db=db, entity_key=entity_key)
+    if asyncio.iscoroutine(buffer):
+        buffer = await buffer
+    return buffer.getvalue() if hasattr(buffer, "getvalue") else buffer.read()
 
 
 def _is_duplicate_storage_error(exc: Exception) -> bool:
@@ -226,6 +243,8 @@ async def _upload_intel_report_pdf(db: Any, purchase_id: str, user_id: str, pdf_
 def _intel_report_product_name(product_type: str) -> str:
     if product_type == "sector_uf":
         return "Relatório Setor/UF SmartLic"
+    if product_type == "subcontract":
+        return "Relatório de Subcontratação SmartLic"
     return "Raio-X do Concorrente SmartLic"
 
 

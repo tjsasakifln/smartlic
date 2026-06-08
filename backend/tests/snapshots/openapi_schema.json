@@ -8422,7 +8422,8 @@
           "product_type": {
             "enum": [
               "cnpj",
-              "sector_uf"
+              "sector_uf",
+              "subcontract"
             ],
             "title": "Product Type",
             "type": "string"
