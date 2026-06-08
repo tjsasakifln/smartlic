@@ -10,19 +10,20 @@ from pydantic import BaseModel
 
 
 # Valid product types for Intel Reports
-VALID_PRODUCT_TYPES = ("cnpj", "sector_uf")
+VALID_PRODUCT_TYPES = ("cnpj", "sector_uf", "subcontract")
 
 # Prices in BRL cents
 INTEL_REPORT_PRICES: dict[str, int] = {
-    "cnpj": 19700,       # R$197.00
-    "sector_uf": 14700,  # R$147.00
+    "cnpj": 19700,        # R$197.00 — INTEL-REPORT-001
+    "sector_uf": 14700,   # R$147.00 — INTEL-REPORT-002
+    "subcontract": 9700,  # R$97.00  — SUBINTEL-033
 }
 
 
 class IntelReportCheckoutRequest(BaseModel):
     """Request body for POST /v1/intel-reports/checkout."""
 
-    product_type: Literal["cnpj", "sector_uf"]
+    product_type: Literal["cnpj", "sector_uf", "subcontract"]
     entity_key: str  # CNPJ value (e.g. "12345678000195") or "sector:uf" (e.g. "limpeza:SP")
 
 

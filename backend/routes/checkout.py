@@ -24,6 +24,7 @@ from typing import Any, Optional
 from fastapi import APIRouter, Depends, HTTPException
 
 from auth import require_auth
+from log_sanitizer import sanitize
 from rate_limiter import require_rate_limit
 from supabase_client import get_supabase, sb_execute
 
@@ -32,6 +33,7 @@ from schemas.checkout import (
     ApiSubscriptionCheckoutResponse,
     CheckoutRequest,
     CheckoutResponse,
+    CheckoutSessionStatusResponse,
 )
 
 logger = logging.getLogger(__name__)
@@ -414,4 +416,95 @@ async def create_api_subscription_checkout(
     return ApiSubscriptionCheckoutResponse(
         checkout_url=session.url,
         session_id=session.id,
+    )
+
+
+# ---------------------------------------------------------------------------
+# #1337: Session status lookup for /obrigado thank-you page
+# ---------------------------------------------------------------------------
+
+
+@router.get("/session/{session_id}", response_model=CheckoutSessionStatusResponse)
+async def get_checkout_session_status(session_id: str):
+    """Return the status of a one-time digital product purchase.
+
+    The /obrigado thank-you page calls this endpoint after the user is
+    redirected back from Stripe Checkout.  The endpoint looks up the
+    purchase by ``stripe_checkout_session_id`` in the
+    ``intel_report_purchases`` table and resolves the product name from
+    ``digital_products`` when applicable.
+
+    No auth required — the session_id is a Stripe-generated unique
+    identifier known only to the user who initiated the checkout.
+    """
+    try:
+        sb = get_supabase()
+    except Exception as exc:
+        logger.warning("checkout: failed to get supabase client: %s", exc)
+        raise HTTPException(
+            status_code=503,
+            detail="Erro temporario ao conectar com o banco de dados.",
+        ) from exc
+
+    # Lookup purchase by stripe_checkout_session_id
+    try:
+        result = await sb_execute(
+            sb.table("intel_report_purchases")
+            .select("*")
+            .eq("stripe_checkout_session_id", session_id)
+            .limit(1)
+        )
+    except Exception as exc:
+        logger.warning(
+            "checkout: purchase lookup failed for session=%s: %s",
+            sanitize(session_id, context="stripe_session"),
+            exc,
+        )
+        raise HTTPException(
+            status_code=503,
+            detail="Erro temporario ao consultar compra. Tente novamente.",
+        ) from exc
+
+    if not result.data:
+        raise HTTPException(
+            status_code=404,
+            detail="Compra nao encontrada para esta sessao.",
+        )
+
+    purchase = result.data[0]
+    status = purchase.get("status") or "pending"
+    sku = purchase.get("entity_key")  # For digital_product rows, entity_key = product_sku
+    pdf_url = purchase.get("pdf_url")
+    created_at = purchase.get("created_at")
+
+    # Resolve product name from digital_products table (best-effort)
+    product_name: str | None = None
+    if sku:
+        try:
+            prod_result = await sb_execute(
+                sb.table("digital_products")
+                .select("name")
+                .eq("sku", sku)
+                .limit(1)
+            )
+            if prod_result.data:
+                product_name = prod_result.data[0].get("name")
+        except Exception:
+            logger.debug(
+                "checkout: product name lookup failed for sku=%s (non-blocking)", sku
+            )
+
+    logger.info(
+        "checkout: session status checked — session=%s status=%s sku=%s",
+        sanitize(session_id, context="stripe_session"),
+        status,
+        sku,
+    )
+
+    return CheckoutSessionStatusResponse(
+        status=status,
+        product_name=product_name,
+        sku=sku,
+        pdf_url=pdf_url,
+        created_at=created_at,
     )

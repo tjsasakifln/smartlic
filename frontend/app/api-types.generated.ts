@@ -80,6 +80,35 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/checkout/session/{session_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Checkout Session Status
+         * @description Return the status of a one-time digital product purchase.
+         *
+         *     The /obrigado thank-you page calls this endpoint after the user is
+         *     redirected back from Stripe Checkout.  The endpoint looks up the
+         *     purchase by ``stripe_checkout_session_id`` in the
+         *     ``intel_report_purchases`` table and resolves the product name from
+         *     ``digital_products`` when applicable.
+         *
+         *     No auth required — the session_id is a Stripe-generated unique
+         *     identifier known only to the user who initiated the checkout.
+         */
+        get: operations["get_checkout_session_status_api_checkout_session__session_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/email/click/{tracking_id}": {
         parameters: {
             query?: never;
@@ -7754,6 +7783,25 @@ export interface components {
             /** Checkout Url */
             checkout_url: string;
         };
+        /**
+         * CheckoutSessionStatusResponse
+         * @description Response for GET /api/checkout/session/{session_id}.
+         *
+         *     Returns the status of a one-time digital product purchase after
+         *     the user is redirected back from Stripe to the /obrigado page.
+         */
+        CheckoutSessionStatusResponse: {
+            /** Created At */
+            created_at?: string | null;
+            /** Pdf Url */
+            pdf_url?: string | null;
+            /** Product Name */
+            product_name?: string | null;
+            /** Sku */
+            sku?: string | null;
+            /** Status */
+            status: string;
+        };
         /** CidadeSectorStats */
         CidadeSectorStats: {
             /** Avg Value */
@@ -10064,7 +10112,7 @@ export interface components {
              * Product Type
              * @enum {string}
              */
-            product_type: "cnpj" | "sector_uf";
+            product_type: "cnpj" | "sector_uf" | "subcontract";
         };
         /**
          * IntelReportCheckoutResponse
@@ -14368,6 +14416,37 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["CheckoutResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_checkout_session_status_api_checkout_session__session_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                session_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CheckoutSessionStatusResponse"];
                 };
             };
             /** @description Validation Error */

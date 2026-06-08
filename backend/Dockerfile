@@ -16,10 +16,12 @@ WORKDIR /app
 
 # Install system dependencies (invalidated by ARG above)
 # HARDEN-002: jemalloc reduces RSS fragmentation in async FastAPI
+# RES-BE-017: embed redis-server as ephemeral cache/queue (Upstash fallback)
 RUN echo "Build: ${CACHEBUST}" && apt-get update && apt-get install -y \
     --no-install-recommends \
     gcc \
     libjemalloc2 \
+    redis-server \
     && rm -rf /var/lib/apt/lists/*
 
 # HARDEN-002: jemalloc DISABLED — causes SIGSEGV with cryptography>=46 OpenSSL bindings

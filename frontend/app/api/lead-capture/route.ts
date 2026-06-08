@@ -8,6 +8,10 @@ export async function POST(request: NextRequest) {
       source,
       setor,
       uf,
+      // CONV-003-4: new fields for PartialReportPreview
+      sector_id,       // maps to sector on backend
+      source_page,     // maps to origin_url on backend
+      report_type,     // maps to source on backend (e.g. "partial_preview")
       // REPO-014: extended fields for DiagnosticForm
       nome,
       empresa,
@@ -33,6 +37,11 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Resolve fields: normalize new CONV-003-4 naming to backend field names
+    const resolvedSource = report_type || source || 'partial_preview';
+    const resolvedSector = sector_id || setor || null;
+    const resolvedOriginUrl = source_page || null;
+
     // Store in Supabase via backend proxy
     const backendUrl = process.env.BACKEND_URL || process.env.NEXT_PUBLIC_BACKEND_URL;
     const res = await fetch(`${backendUrl}/v1/lead-capture`, {
@@ -40,8 +49,9 @@ export async function POST(request: NextRequest) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         email,
-        source,
-        setor: setor || null,
+        source: resolvedSource,
+        sector: resolvedSector,
+        origin_url: resolvedOriginUrl,
         uf: uf || null,
         nome: nome || null,
         empresa: empresa || null,

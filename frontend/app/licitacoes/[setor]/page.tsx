@@ -30,6 +30,7 @@ import WhatsAppCTA from "@/app/components/whatsapp/WhatsAppCTA";
 import { PseoPageTracker } from "@/app/components/seo/PseoPageTracker";
 import { PseoLink } from "@/app/components/seo/PseoLink";
 import PreviewCTA from "@/app/components/programmatic/PreviewCTA";
+import SectorUfIntelReportCTA from "@/app/components/SectorUfIntelReportCTA";
 import { AbTest } from "@/components/AbTest";
 
 /**
@@ -244,6 +245,15 @@ export default async function SectorPage({
           </div>
         </section>
       )}
+
+      {/* #633: Mapa de Oportunidade Setorial — first microtransaction CTA */}
+      <div className="max-w-5xl mx-auto px-4 py-6">
+        <SectorUfIntelReportCTA
+          sectorName={setor}
+          uf="BR"
+          variant="inline"
+        />
+      </div>
 
       {/* #1007: 5 últimos editais abertos — social proof DataLake */}
       <RecentEditaisBlock

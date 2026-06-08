@@ -24,6 +24,7 @@ import AlertEntityCta from '@/components/seo/AlertEntityCta';
 import { PseoPageTracker } from '@/app/components/seo/PseoPageTracker';
 import { PseoLink } from '@/app/components/seo/PseoLink';
 import PreviewCTA from '@/app/components/programmatic/PreviewCTA';
+import SectorUfIntelReportCTA from '@/app/components/SectorUfIntelReportCTA';
 import { OpportunitySignalsPanel } from '@/app/components/OpportunitySignalsPanel';
 import { resolveJourney } from '@/lib/seo/relatedResolver';
 import { JourneyLinks } from '@/app/components/navigation/JourneyLinks';
@@ -392,6 +393,15 @@ export default async function ContratosSetorUfPage({ params }: Props) {
                       />
                     </div>
                   )}
+
+                  {/* #633: Mapa de Oportunidade Setorial — first microtransaction CTA */}
+                  <div className="mb-8">
+                    <SectorUfIntelReportCTA
+                      sectorName={setor}
+                      uf={ufUpper.toLowerCase()}
+                      variant="inline"
+                    />
+                  </div>
 
                   {/* Top Orgaos */}
                   {data.top_orgaos.length > 0 && (

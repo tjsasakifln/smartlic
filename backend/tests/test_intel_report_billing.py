@@ -13,8 +13,7 @@ Coverage:
 """
 
 import pytest
-import asyncio
-from unittest.mock import Mock, AsyncMock, patch, MagicMock, call
+from unittest.mock import AsyncMock, patch, MagicMock
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
@@ -98,6 +97,20 @@ class TestIntelReportSchemas:
         from schemas.intel_report import INTEL_REPORT_PRICES
         assert INTEL_REPORT_PRICES["cnpj"] == 19700       # R$197.00
         assert INTEL_REPORT_PRICES["sector_uf"] == 14700  # R$147.00
+        assert INTEL_REPORT_PRICES["subcontract"] == 9700  # R$97.00
+
+    def test_valid_product_type_subcontract(self):
+        from schemas.intel_report import IntelReportCheckoutRequest
+        req = IntelReportCheckoutRequest(
+            product_type="subcontract",
+            entity_key="12345678000195",
+        )
+        assert req.product_type == "subcontract"
+        assert req.entity_key == "12345678000195"
+
+    def test_valid_product_types_tuple_contains_subcontract(self):
+        from schemas.intel_report import VALID_PRODUCT_TYPES
+        assert "subcontract" in VALID_PRODUCT_TYPES
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -150,6 +163,44 @@ class TestCreateIntelReportCheckout:
                 assert len(line_items) == 1
                 assert line_items[0]["price_data"]["unit_amount"] == 14700  # R$147.00
                 assert line_items[0]["price_data"]["currency"] == "brl"
+
+    def test_subcontract_creates_session_with_correct_price(self):
+        fake_session = self._make_fake_session()
+        with patch.dict("os.environ", {"STRIPE_SECRET_KEY": "sk_test_fake"}):
+            with patch("stripe.checkout.Session.create", return_value=fake_session) as mock_create:
+                from services.billing import create_intel_report_checkout
+
+                create_intel_report_checkout(
+                    product_type="subcontract",
+                    entity_key="12345678000195",
+                    user_id="user-test-uuid-0001",
+                )
+
+                call_kwargs = mock_create.call_args.kwargs
+                line_items = call_kwargs["line_items"]
+                assert len(line_items) == 1
+                assert line_items[0]["price_data"]["unit_amount"] == 9700  # R$97.00
+                assert line_items[0]["price_data"]["currency"] == "brl"
+
+    def test_subcontract_creates_session_with_correct_metadata(self):
+        fake_session = self._make_fake_session()
+        with patch.dict("os.environ", {"STRIPE_SECRET_KEY": "sk_test_fake", "FRONTEND_URL": "http://localhost:3000"}):
+            with patch("stripe.checkout.Session.create", return_value=fake_session) as mock_create:
+                from services.billing import create_intel_report_checkout
+
+                result = create_intel_report_checkout(
+                    product_type="subcontract",
+                    entity_key="12345678000195",
+                    user_id="user-test-uuid-0001",
+                )
+
+                assert result["checkout_url"] == fake_session.url
+                assert result["session_id"] == "cs_test_abc"
+
+                call_kwargs = mock_create.call_args.kwargs
+                assert call_kwargs["metadata"]["product_type"] == "subcontract"
+                assert call_kwargs["metadata"]["entity_key"] == "12345678000195"
+                assert call_kwargs["metadata"]["user_id"] == "user-test-uuid-0001"
 
     def test_cnpj_price_is_19700(self):
         fake_session = self._make_fake_session()

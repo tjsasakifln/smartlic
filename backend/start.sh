@@ -21,18 +21,55 @@ set -e
 # Railway filters stdout from entrypoint; redirect to stderr for visibility.
 echo "[start.sh] DIAGNOSTIC: PID=$$ PROCESS_TYPE=${PROCESS_TYPE:-web} WORKER_COLOCATED=${WORKER_COLOCATED:-false} RUNNER=${RUNNER:-uvicorn} WORKERS=${WEB_CONCURRENCY:-2}" >&2
 
+# ── RES-BE-017: Start embedded redis-server (ephemeral, no disk persistence) ──
+# Upstash DNS outage recovery — local redis avoids external dependency.
+# REDIS_URL is overridden to redis://localhost:6379/0 for all modes.
+_start_redis() {
+  echo "[start.sh] Starting embedded redis-server (ephemeral, no AOF/RDB)..." >&2
+  redis-server \
+    --port 6379 \
+    --save "" \
+    --appendonly no \
+    --maxmemory 128mb \
+    --maxmemory-policy allkeys-lru \
+    --loglevel warning \
+    --daemonize no \
+    &
+  _redis_pid=$!
+  echo "[start.sh] redis-server started (PID $_redis_pid)" >&2
+  # Wait for redis to be ready
+  for i in $(seq 1 30); do
+    if redis-cli -p 6379 ping >/dev/null 2>&1; then
+      echo "[start.sh] redis-server ready after ${i}s" >&2
+      break
+    fi
+    sleep 1
+  done
+}
+
+# Override REDIS_URL to use local redis (unless explicitly set to something else)
+if [ -z "${REDIS_URL_OVERRIDE}" ]; then
+  export REDIS_URL="redis://localhost:6379/0"
+  echo "[start.sh] REDIS_URL set to localhost (RES-BE-017 embedded redis)" >&2
+else
+  echo "[start.sh] REDIS_URL_OVERRIDE set, using: ${REDIS_URL_OVERRIDE}" >&2
+  export REDIS_URL="${REDIS_URL_OVERRIDE}"
+fi
+
 # ── Signal propagation ──────────────────────────────────────────────────
 # When Railway sends SIGTERM (drainingSeconds=120), forward to both processes.
 _uvicorn_pid=""
 _worker_pid=""
+_redis_pid=""
 _shutting_down=false
 
 _forward_signal() {
   local sig="$1"
-  echo "[start.sh] Received $sig — forwarding to child processes (uvicorn=$_uvicorn_pid, worker=$_worker_pid)"
+  echo "[start.sh] Received $sig — forwarding to child processes (uvicorn=$_uvicorn_pid, worker=$_worker_pid, redis=$_redis_pid)"
   _shutting_down=true
   [ -n "$_uvicorn_pid" ] && kill "$sig" "$_uvicorn_pid" 2>/dev/null || true
   [ -n "$_worker_pid" ] && kill "$sig" "$_worker_pid" 2>/dev/null || true
+  [ -n "$_redis_pid" ] && kill "$sig" "$_redis_pid" 2>/dev/null || true
 }
 
 trap '_forward_signal TERM' TERM
@@ -112,6 +149,7 @@ case "$PROCESS_TYPE" in
     if [ "${WORKER_COLOCATED:-false}" = "true" ]; then
       echo "=== COST-OPT: Colocated mode — web + worker in same container ===" >&2
       echo "[start.sh] WORKER_COLOCATED=true, starting ARQ worker in background..." >&2
+      _start_redis
       # Reduce web concurrency when sharing memory with worker
       if [ -z "${WEB_CONCURRENCY}" ]; then
         export WEB_CONCURRENCY=1
@@ -132,6 +170,7 @@ case "$PROCESS_TYPE" in
       exit 0
     else
       # Original behavior: uvicorn only (exec replaces shell)
+      _start_redis
       exec uvicorn main:app \
         --host "0.0.0.0" \
         --port "${PORT:-8000}" \
@@ -144,6 +183,7 @@ case "$PROCESS_TYPE" in
     ;;
   worker)
     echo "Starting ARQ worker process (standalone)..."
+    _start_redis
     _start_worker "standalone"
     ;;
   *)

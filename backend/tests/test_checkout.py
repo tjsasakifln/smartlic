@@ -400,3 +400,125 @@ class TestRateLimit:
                 json={"sku": "relatorio-oportunidade"},
             )
             assert resp.status_code == 429
+
+
+# ---------------------------------------------------------------------------
+# #1337: GET /api/checkout/session/{session_id}
+# ---------------------------------------------------------------------------
+
+
+class TestCheckoutSessionStatus:
+    """GET /api/checkout/session/{session_id} behavior."""
+
+    MOCK_PURCHASE = {
+        "id": "purchase-abc-123",
+        "user_id": "user-abc-123",
+        "product_type": "digital_product",
+        "entity_key": "relatorio-oportunidade",
+        "status": "completed",
+        "stripe_checkout_session_id": "cs_test_session123",
+        "pdf_url": None,
+        "created_at": "2026-06-07T00:00:00Z",
+    }
+
+    MOCK_PURCHASE_READY = {
+        **MOCK_PURCHASE,
+        "status": "ready",
+        "pdf_url": "https://storage.example.com/report.pdf",
+    }
+
+    MOCK_PRODUCT_NAME = {"name": "Relatorio de Oportunidade Setorial"}
+
+    @pytest.fixture
+    def client(self):
+        """TestClient with app that overrides rate limit but not auth."""
+        from routes.checkout import router as checkout_router
+
+        app = FastAPI()
+        app.dependency_overrides[checkout_rate_limit] = lambda: None
+        app.include_router(checkout_router)
+        return TestClient(app)
+
+    def _mock_supabase_purchase(
+        self, mock_get_supabase, purchases: list[dict], product_names: list[dict] | None = None
+    ) -> None:
+        """Configure supabase mock for purchase + optional product name lookups."""
+        mock_sb = MagicMock()
+        mock_query = MagicMock()
+        mock_sb.table.return_value = mock_query
+        mock_query.select.return_value = mock_query
+        mock_query.eq.return_value = mock_query
+        mock_query.limit.return_value = mock_query
+
+        # First eq call filters by stripe_checkout_session_id (purchase lookup),
+        # second eq call filters by sku (product name lookup).
+        # We use side_effect to return different data based on table name.
+        original_table = mock_sb.table
+
+        def table_side_effect(table_name: str):
+            if table_name == "intel_report_purchases":
+                return mock_query
+            elif table_name == "digital_products" and product_names is not None:
+                prod_query = MagicMock()
+                prod_query.select.return_value = prod_query
+                prod_query.eq.return_value = prod_query
+                prod_query.limit.return_value = prod_query
+                prod_query.execute.return_value = MagicMock(data=product_names)
+                return prod_query
+            return mock_query
+
+        mock_sb.table.side_effect = table_side_effect
+        mock_query.execute.return_value = MagicMock(data=purchases)
+        mock_get_supabase.return_value = mock_sb
+
+    @patch("routes.checkout.get_supabase")
+    def test_valid_session_returns_status(self, mock_get_supabase, client):
+        """Valid session_id should return 200 with purchase status."""
+        self._mock_supabase_purchase(mock_get_supabase, [self.MOCK_PURCHASE], [self.MOCK_PRODUCT_NAME])
+
+        resp = client.get("/api/checkout/session/cs_test_session123")
+
+        assert resp.status_code == 200, resp.json()
+        data = resp.json()
+        assert data["status"] == "completed"
+        assert data["product_name"] == "Relatorio de Oportunidade Setorial"
+        assert data["sku"] == "relatorio-oportunidade"
+        assert data["pdf_url"] is None
+
+    @patch("routes.checkout.get_supabase")
+    def test_ready_purchase_includes_pdf_url(self, mock_get_supabase, client):
+        """Ready purchase should include pdf_url in response."""
+        self._mock_supabase_purchase(mock_get_supabase, [self.MOCK_PURCHASE_READY], [self.MOCK_PRODUCT_NAME])
+
+        resp = client.get("/api/checkout/session/cs_test_session123")
+
+        assert resp.status_code == 200, resp.json()
+        data = resp.json()
+        assert data["status"] == "ready"
+        assert data["pdf_url"] == "https://storage.example.com/report.pdf"
+
+    @patch("routes.checkout.get_supabase")
+    def test_invalid_session_returns_404(self, mock_get_supabase, client):
+        """Non-existent session_id should return 404."""
+        self._mock_supabase_purchase(mock_get_supabase, [])
+
+        resp = client.get("/api/checkout/session/cs_test_invalid")
+
+        assert resp.status_code == 404
+        assert "nao encontrada" in resp.json()["detail"].lower()
+
+    @patch("routes.checkout.get_supabase")
+    def test_supabase_error_returns_503(self, mock_get_supabase, client):
+        """Transient Supabase error should return 503."""
+        mock_sb = MagicMock()
+        mock_query = MagicMock()
+        mock_sb.table.return_value = mock_query
+        mock_query.select.return_value = mock_query
+        mock_query.eq.return_value = mock_query
+        mock_query.limit.return_value = mock_query
+        mock_query.execute.side_effect = Exception("Connection refused")
+        mock_get_supabase.return_value = mock_sb
+
+        resp = client.get("/api/checkout/session/cs_test_session123")
+
+        assert resp.status_code == 503
