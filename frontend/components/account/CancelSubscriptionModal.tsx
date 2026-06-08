@@ -4,6 +4,22 @@ import { useState, useEffect, useRef } from "react";
 import { toast } from "sonner";
 import FocusTrap from "focus-trap-react";
 
+// ---------------------------------------------------------------------------
+// Tracking
+// ---------------------------------------------------------------------------
+function trackEvent(name: string, props?: Record<string, unknown>) {
+  if (typeof window === "undefined") return;
+  const mp = (
+    window as unknown as { mixpanel?: { track: (e: string, p?: Record<string, unknown>) => void } }
+  ).mixpanel;
+  if (!mp) return;
+  try {
+    mp.track(name, props ?? {});
+  } catch {
+    // best-effort
+  }
+}
+
 type CancelReason =
   | "too_expensive"
   | "not_using"
@@ -43,7 +59,7 @@ export function CancelSubscriptionModal({
 }: CancelSubscriptionModalProps) {
   const [step, setStep] = useState<Step>("reason");
   const [reason, setReason] = useState<CancelReason | null>(null);
-  const [confirmed, setConfirmed] = useState(false);
+  const [confirmationText, setConfirmationText] = useState("");
   const [cancelling, setCancelling] = useState(false);
   const [submittingFeedback, setSubmittingFeedback] = useState(false);
   const [feedback, setFeedback] = useState("");
@@ -68,7 +84,7 @@ export function CancelSubscriptionModal({
   const resetAndClose = () => {
     setStep("reason");
     setReason(null);
-    setConfirmed(false);
+    setConfirmationText("");
     setCancelling(false);
     setSubmittingFeedback(false);
     setFeedback("");
@@ -93,6 +109,9 @@ export function CancelSubscriptionModal({
   const handleCancel = async () => {
     setCancelling(true);
     setError(null);
+
+    trackEvent("plan_cancel_confirmed", { reason });
+
     try {
       const res = await fetch("/api/subscriptions/cancel", {
         method: "POST",
@@ -381,17 +400,27 @@ export function CancelSubscriptionModal({
               ))}
             </ul>
 
-            <label className="flex items-start gap-3 p-3 rounded-input border border-[var(--border)] mb-4 cursor-pointer">
+            <div className="mb-4">
+              <label
+                htmlFor="cancel-confirm-input"
+                className="block text-sm font-medium text-[var(--ink)] mb-2"
+              >
+                Digite <span className="font-bold tracking-wider text-[var(--error)]">CANCELAR</span> para confirmar
+              </label>
               <input
-                type="checkbox"
-                checked={confirmed}
-                onChange={(e) => setConfirmed(e.target.checked)}
-                className="mt-0.5 accent-[var(--error)]"
+                id="cancel-confirm-input"
+                type="text"
+                autoComplete="off"
+                value={confirmationText}
+                onChange={(e) => setConfirmationText(e.target.value)}
+                placeholder="Digite CANCELAR para confirmar"
+                className="w-full p-3 rounded-input border border-[var(--border)] bg-[var(--surface-0)]
+                           text-sm text-[var(--ink)] placeholder:text-[var(--ink-muted)]
+                           focus:outline-none focus:ring-2 focus:ring-[var(--error)]
+                           uppercase tracking-widest text-center font-bold"
+                data-testid="cancel-confirm-input"
               />
-              <span className="text-sm text-[var(--ink)]">
-                Entendo que perderei acesso aos benefícios ao final do período atual
-              </span>
-            </label>
+            </div>
 
             {error && (
               <div className="mb-4 p-3 bg-[var(--error-subtle)] text-[var(--error)] rounded-input text-sm">
@@ -402,7 +431,7 @@ export function CancelSubscriptionModal({
             <div className="flex gap-3">
               <button
                 onClick={() => {
-                  setConfirmed(false);
+                  setConfirmationText("");
                   setError(null);
                   if (reason === "too_expensive" || reason === "not_using") {
                     setStep("retention");
@@ -419,7 +448,7 @@ export function CancelSubscriptionModal({
               </button>
               <button
                 onClick={handleCancel}
-                disabled={!confirmed || cancelling}
+                disabled={confirmationText !== "CANCELAR" || cancelling}
                 className="flex-1 px-4 py-2.5 rounded-button bg-[var(--error)] text-white
                            hover:opacity-90 transition-opacity text-sm
                            disabled:opacity-50 disabled:cursor-not-allowed"

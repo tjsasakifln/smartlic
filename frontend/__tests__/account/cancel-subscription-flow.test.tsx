@@ -1,7 +1,7 @@
 /**
  * Tests for 4-step cancel subscription flow (UX-308).
  * Covers: AC1 (reason selection), AC2 (retention flow), AC3 (discount offer),
- * AC4 (pause offer), AC5 (confirmation checkbox), AC6 (feedback form).
+ * AC4 (pause offer), AC5 (confirmation text input), AC6 (feedback form).
  */
 import React from "react";
 import {
@@ -48,6 +48,11 @@ function mockFetchFeedback() {
     ok: true,
     json: async () => ({ success: true, message: "Obrigado!" }),
   });
+}
+
+function typeCANCELAR() {
+  const input = screen.getByTestId("cancel-confirm-input");
+  fireEvent.change(input, { target: { value: "CANCELAR" } });
 }
 
 describe("CancelSubscriptionModal — UX-308 4-Step Flow", () => {
@@ -222,26 +227,32 @@ describe("CancelSubscriptionModal — UX-308 4-Step Flow", () => {
       ).toBeInTheDocument();
     });
 
-    it("shows confirmation checkbox", () => {
+    it("shows confirmation text input for typing CANCELAR", () => {
       render(<CancelSubscriptionModal {...defaultProps} />);
       navigateToConfirm();
 
       expect(
-        screen.getByText(
-          /Entendo que perderei acesso aos benefícios/
-        )
+        screen.getByTestId("cancel-confirm-input")
+      ).toBeInTheDocument();
+      expect(
+        screen.getByText(/Digite/)
       ).toBeInTheDocument();
     });
 
-    it("disables confirm button until checkbox is checked", () => {
+    it("disables confirm button until CANCELAR is typed", () => {
       render(<CancelSubscriptionModal {...defaultProps} />);
       navigateToConfirm();
 
       const confirmBtn = screen.getByRole("button", { name: "Confirmar cancelamento" });
       expect(confirmBtn).toBeDisabled();
 
-      const checkbox = screen.getByRole("checkbox");
-      fireEvent.click(checkbox);
+      const input = screen.getByTestId("cancel-confirm-input");
+      // Lowercase not accepted
+      fireEvent.change(input, { target: { value: "cancelar" } });
+      expect(confirmBtn).toBeDisabled();
+
+      // Exact uppercase match enables button
+      fireEvent.change(input, { target: { value: "CANCELAR" } });
       expect(confirmBtn).not.toBeDisabled();
     });
 
@@ -250,8 +261,7 @@ describe("CancelSubscriptionModal — UX-308 4-Step Flow", () => {
 
       render(<CancelSubscriptionModal {...defaultProps} />);
       navigateToConfirm();
-
-      fireEvent.click(screen.getByRole("checkbox"));
+      typeCANCELAR();
 
       await act(async () => {
         fireEvent.click(screen.getByRole("button", { name: "Confirmar cancelamento" }));
@@ -286,8 +296,7 @@ describe("CancelSubscriptionModal — UX-308 4-Step Flow", () => {
 
       render(<CancelSubscriptionModal {...defaultProps} />);
       navigateToConfirm();
-
-      fireEvent.click(screen.getByRole("checkbox"));
+      typeCANCELAR();
 
       await act(async () => {
         fireEvent.click(screen.getByRole("button", { name: "Confirmar cancelamento" }));
@@ -311,8 +320,7 @@ describe("CancelSubscriptionModal — UX-308 4-Step Flow", () => {
 
       render(<CancelSubscriptionModal {...defaultProps} />);
       navigateToConfirm();
-
-      fireEvent.click(screen.getByRole("checkbox"));
+      typeCANCELAR();
 
       await act(async () => {
         fireEvent.click(screen.getByRole("button", { name: "Confirmar cancelamento" }));
@@ -342,8 +350,7 @@ describe("CancelSubscriptionModal — UX-308 4-Step Flow", () => {
       fireEvent.click(screen.getByText("Está caro para mim"));
       fireEvent.click(screen.getByText("Continuar"));
       fireEvent.click(screen.getByText("Continuar cancelamento"));
-
-      fireEvent.click(screen.getByRole("checkbox"));
+      typeCANCELAR();
 
       await act(async () => {
         fireEvent.click(screen.getByRole("button", { name: "Confirmar cancelamento" }));
@@ -366,7 +373,7 @@ describe("CancelSubscriptionModal — UX-308 4-Step Flow", () => {
 
       fireEvent.click(screen.getByText("Outro motivo"));
       fireEvent.click(screen.getByText("Continuar"));
-      fireEvent.click(screen.getByRole("checkbox"));
+      typeCANCELAR();
 
       await act(async () => {
         fireEvent.click(screen.getByRole("button", { name: "Confirmar cancelamento" }));
@@ -515,8 +522,8 @@ describe("CancelSubscriptionModal — UX-308 4-Step Flow", () => {
       ).toBeInTheDocument();
       fireEvent.click(screen.getByText("Continuar cancelamento"));
 
-      // Step 3: Check checkbox and confirm
-      fireEvent.click(screen.getByRole("checkbox"));
+      // Step 3: Type CANCELAR and confirm
+      typeCANCELAR();
       global.fetch = mockFetchCancel();
 
       await act(async () => {
@@ -562,8 +569,8 @@ describe("CancelSubscriptionModal — UX-308 4-Step Flow", () => {
       ).toBeInTheDocument();
       fireEvent.click(screen.getByText("Continuar cancelamento"));
 
-      // Step 3
-      fireEvent.click(screen.getByRole("checkbox"));
+      // Step 3: Type CANCELAR and confirm
+      typeCANCELAR();
       global.fetch = mockFetchCancel();
 
       await act(async () => {
