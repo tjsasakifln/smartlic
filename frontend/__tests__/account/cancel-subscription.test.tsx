@@ -63,6 +63,26 @@ describe("CancelSubscriptionModal", () => {
     expect(defaultProps.onClose).toHaveBeenCalledTimes(1);
   });
 
+  it("shows text input requiring CANCELAR on confirm step", () => {
+    render(<CancelSubscriptionModal {...defaultProps} />);
+    fireEvent.click(screen.getByText("Outro motivo"));
+    fireEvent.click(screen.getByText("Continuar"));
+
+    expect(screen.getByTestId("cancel-confirm-input")).toBeInTheDocument();
+
+    const confirmBtn = screen.getByRole("button", { name: "Confirmar cancelamento" });
+    expect(confirmBtn).toBeDisabled();
+
+    // Partial match still disabled
+    const input = screen.getByTestId("cancel-confirm-input");
+    fireEvent.change(input, { target: { value: "cancel" } });
+    expect(confirmBtn).toBeDisabled();
+
+    // Exact match enables
+    fireEvent.change(input, { target: { value: "CANCELAR" } });
+    expect(confirmBtn).not.toBeDisabled();
+  });
+
   it("calls API and onCancelled on successful cancellation", async () => {
     const mockEndsAt = "2026-03-15T00:00:00Z";
     global.fetch = jest.fn().mockResolvedValueOnce({
@@ -72,10 +92,12 @@ describe("CancelSubscriptionModal", () => {
 
     render(<CancelSubscriptionModal {...defaultProps} />);
 
-    // Navigate: reason → confirm → cancel
+    // Navigate: reason → confirm → type CANCELAR → cancel
     fireEvent.click(screen.getByText("Outro motivo"));
     fireEvent.click(screen.getByText("Continuar"));
-    fireEvent.click(screen.getByRole("checkbox"));
+
+    const input = screen.getByTestId("cancel-confirm-input");
+    fireEvent.change(input, { target: { value: "CANCELAR" } });
 
     await act(async () => {
       fireEvent.click(screen.getByRole("button", { name: "Confirmar cancelamento" }));
@@ -100,10 +122,12 @@ describe("CancelSubscriptionModal", () => {
 
     render(<CancelSubscriptionModal {...defaultProps} />);
 
-    // Navigate: reason → confirm → cancel
+    // Navigate: reason → confirm → type CANCELAR → cancel
     fireEvent.click(screen.getByText("Outro motivo"));
     fireEvent.click(screen.getByText("Continuar"));
-    fireEvent.click(screen.getByRole("checkbox"));
+
+    const input = screen.getByTestId("cancel-confirm-input");
+    fireEvent.change(input, { target: { value: "CANCELAR" } });
 
     await act(async () => {
       fireEvent.click(screen.getByRole("button", { name: "Confirmar cancelamento" }));
@@ -126,10 +150,12 @@ describe("CancelSubscriptionModal", () => {
 
     render(<CancelSubscriptionModal {...defaultProps} />);
 
-    // Navigate: reason → confirm → cancel
+    // Navigate: reason → confirm → type CANCELAR → cancel
     fireEvent.click(screen.getByText("Outro motivo"));
     fireEvent.click(screen.getByText("Continuar"));
-    fireEvent.click(screen.getByRole("checkbox"));
+
+    const input = screen.getByTestId("cancel-confirm-input");
+    fireEvent.change(input, { target: { value: "CANCELAR" } });
 
     await act(async () => {
       fireEvent.click(screen.getByRole("button", { name: "Confirmar cancelamento" }));
