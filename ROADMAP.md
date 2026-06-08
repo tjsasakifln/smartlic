@@ -1,6 +1,6 @@
 # ROADMAP — SmartLic
 
-**Versao:** 6.6 | **Atualizado:** 2026-06-07 | **Status:** Intel Reports 87.5%, Reposicionamento 100%, Q2 Multi-Camada ~90%, Wave 4 92.9%
+**Versao:** 7.0 | **Atualizado:** 2026-06-08 | **Status:** Intel Reports 100%, Reposicionamento 100%, Q2 Multi-Camada ~94%, Wave 4 100%, UX Premium 22.9%, SDD Gaps 9.5%
 
 ## 2026-04-24 — EPIC-GROWTH-VIRAL-2026-Q3: On-Page CAC-Zero
 
@@ -44,10 +44,11 @@ RELIABILITY SPRINT:  [####################] 100% (13/13 stories, 4 sprints)
 REPOSICIONAMENTO B2G:[####################] 100% (23/23 issues — milestone fechado)
 FOUNDERS PLAN:       [####################] 100% (23 issues — #782–#795, #861–#872)
 TECH DEBT (TD):      [####################] 100% (61/61 issues fechadas)
-INTEL REPORTS:       [################....] 87.5% (7/8 issues, 1 open blocker)
-UX PREMIUM:          [....................] 0% (issues nao criados — spec em docs/stories/)
-Q2 MULTI-CAMADA:     [##################..] ~90% (5 EPICs + CONV + Verticais, ~143 issues, ~128 closed, ~15 open — 28 fechados hoje)
-Q2 WAVE 4 (JUN):     [##################..] 92.9% (56 issues, 52 closed, 4 open — #1400–#1453)
+INTEL REPORTS:       [####################] 100% (8/8 issues, todas fechadas)
+UX PREMIUM:          [#####...............] 22.9% (12/35 issues criadas, 8 closed, 4 open)
+Q2 MULTI-CAMADA:     [##################..] ~94% (5 EPICs + CONV + Verticais, ~85 issues, ~80 closed, ~5 open — fechamento em massa 2026-06-08)
+Q2 WAVE 4 (JUN):     [####################] 100% (55 issues, 55 closed, 0 open — #1400–#1453)
+SDD GAPS (Reversa):  [##..................] 9.5% (21 issues, 2 closed, 19 open — #1579–#1599)
 ```
 
 **Production:** https://smartlic.tech
@@ -136,9 +137,9 @@ Plano Fundadores vitalício R$997 one-time. 23 issues implementados em 2 dias.
 
 ## Backlog Ativo
 
-### Intel Reports Epic (87.5% — 1 blocker open)
+### Intel Reports Epic (100% — todas fechadas)
 
-Milestone: `Intel Reports Epic` (#1) — open:1, closed:7.
+Milestone: `Intel Reports Epic` (#1) — open:0, closed:8.
 
 | Story | Título | Status |
 |-------|--------|--------|
@@ -149,7 +150,7 @@ Milestone: `Intel Reports Epic` (#1) — open:1, closed:7.
 | #632 | Frontend CTA + checkout flow + polling | Closed |
 | #826 | RPC sector_uf_intel (INTEL-REPORT-002) | Closed |
 | #634 | EPIC: One-Time Data Products — Raio-X + Mapa Setorial | Closed |
-| #633 | Mapa de Oportunidade Setorial (R47) | **OPEN — BLOCKER** |
+| #633 | Mapa de Oportunidade Setorial (R47) | Closed |
 
 ### Technical Debt (TD — 100% concluido)
 
@@ -166,16 +167,28 @@ Milestone: `Intel Reports Epic` (#1) — open:1, closed:7.
 | Sprint 6 | TD-OPS-001 a TD-OPS-014 | DevOps (CI coverage, deploy pipeline, health checks, load tests) |
 | Sprint 7 | TD-TEST-012 a TD-TEST-028 | Testing (async concurrency, E2E scenarios, accessibility, security, error recovery) |
 
-### UX Premium (UX-301 to UX-335) — Spec pendente
+### UX Premium (UX-301 to UX-335) — 22.9% (12/35 issues criadas)
 
-Source: `docs/stories/EPIC-UX-PREMIUM-2026-02.md` (35 problems from production audit). Issues ainda nao criados no tracker.
+Source: `docs/stories/EPIC-UX-PREMIUM-2026-02.md` (35 problems from production audit). 12 issues criadas no tracker (#1559–#1573), 8 closed, 4 open.
 
-| Priority | Stories | Examples |
-|----------|---------|----------|
-| P0 Critical | UX-301, UX-302, UX-304 | Timeout, progress, filter issues |
-| P1 High | UX-305 to UX-318 | Landing, navigation, validation, confirmations |
-| P2 Medium | UX-319 to UX-331 | Heartbeat, dark mode, skeletons, keyboard nav |
-| P3 Low | UX-332 to UX-335 | Sound feedback, SEO, accessibility |
+**Issues Criadas (2026-06-08):**
+
+| Issue | Título | Status |
+|-------|--------|--------|
+| #1559 | UX-306: Add Header/Navigation na Página de Conta | Closed |
+| #1560 | UX-313: Empty State em 'Buscas Salvas' | Closed |
+| #1561 | UX-312: Indicador de Quota de Análises visível no header | Closed |
+| #1562 | UX-307: Validação de Senha em Tempo Real no Signup/Reset | Closed |
+| #1564 | UX-314: Indicador de Estado em 'Personalizar busca' | Closed |
+| #1565 | UX-315: Slider de Valor com Tooltip em Drag | Closed |
+| #1566 | UX-316: Hover States em Cards de Modalidade | Closed |
+| #1567 | UX-308: Confirmação em Cancelamento de Plano | Closed |
+| #1570 | UX-309: Fix Estados 'Aguardando...' Indefinidamente | **Open** |
+| #1571 | UX-310: Mensagens de Erro Acionáveis (Não Genéricas) | **Open** |
+| #1572 | UX-311: Estimativa de Tempo Realista (Calibração) | **Open** |
+| #1573 | UX-317: Fix Links Quebrados no Footer | **Open** |
+
+**Pendentes de criação (23 issues):** UX-301 a UX-305, UX-318 a UX-335 — backlog.
 
 ### Growth Viral Epic Q3 (GV-001 to GV-021) — Draft
 
@@ -194,7 +207,7 @@ Status: todas Draft — Milestone criado (#4), issues a criar.
 
 ## Q2 2026 — Inteligencia Multi-Camada (em execucao)
 
-5 EPICs lançados 2026-05-16 a 2026-06-02 + CONV + Verticais Premium. ~143 issues (~128 closed, ~15 open). Foco: camada de inteligência B2G profunda além da busca. Progresso real: ~90% concluído (recálculo audit 2026-06-07 — 28 state mismatches corrigidos, páginas flagship + Wave 2/3 fechadas em massa).
+5 EPICs lançados 2026-05-16 a 2026-06-02 + CONV + Verticais Premium. ~85 issues (~80 closed, ~5 open). Foco: camada de inteligência B2G profunda além da busca. Progresso real: ~94% concluído (recálculo audit 2026-06-08 — 27 state mismatches corrigidos, Wave 4 + CONV 100% fechados, Intel Reports 100%).
 
 ### EPIC-SUBINTEL — Inteligencia de Cadeia de Fornecimento (#1224)
 
@@ -276,16 +289,16 @@ Status: todas Draft — Milestone criado (#4), issues a criar.
 |-------|--------|-----------|--------|
 | #1310 | CONV-001: pSEO — Caixa de valor agressiva acima da dobra | P0 | Closed |
 | #1311 | CONV-002: Landing pages transacionais — Fornecedor/CNPJ/Órgão/Contrato | P0 | Closed |
-| #1312 | CONV-003: Captura contextual — Blog/Perguntas/Glossário com simulador | P0 | Open |
+| #1312 | CONV-003: Captura contextual — Blog/Perguntas/Glossário com simulador | P0 | Closed |
 | #1313 | CONV-004: 'Aha moment' pré-cadastro — Insight grátis | P0 | Closed |
-| #1314 | CONV-005: Monetização de entrada — Microtransações (relatórios avulsos) | P0 | Open |
+| #1314 | CONV-005: Monetização de entrada — Microtransações (relatórios avulsos) | P0 | Closed |
 | #1315 | CONV-006b: Rollout SERP — Reescrever títulos/metadescriptions 74 páginas | P0 | Closed |
-| #1316 | CONV-007: Trilhas por intenção — 4 clusters de busca | P0 | Open |
-| #1317 | CONV-008a: Subcontratação como categoria central — Páginas flagship | P0 | Open |
+| #1316 | CONV-007: Trilhas por intenção — 4 clusters de busca | P0 | Closed |
+| #1317 | CONV-008a: Subcontratação como categoria central — Páginas flagship | P0 | Closed |
 | #1318 | CONV-009: Instrumentar conversão — Scroll/CTA/Checkout/Abandono | P0 | Closed |
-| #1319 | CONV-010: Landing pages autônomas — Cada página = proposta comercial | P0 | Open |
+| #1319 | CONV-010: Landing pages autônomas — Cada página = proposta comercial | P0 | Closed |
 | #1320 | CONV-006a: Quick Win SERP — Reescrever 4 piores páginas (deploy 24h) | P0 | Closed |
-| #1321 | CONV-008b: Subcontratação — Blocos aditivos em páginas existentes | P1 | Open |
+| #1321 | CONV-008b: Subcontratação — Blocos aditivos em páginas existentes | P1 | Closed |
 | #1322 | CONV-011: Sequência de pós-compra — Email transacional + upsell 0h/48h/7d | P0 | Closed (substituída por #1331 CONV-011b) |
 | #1323 | CONV-012: Infraestrutura de A/B testing para páginas pSEO | P1 | Closed |
 
@@ -308,9 +321,9 @@ Status: todas Draft — Milestone criado (#4), issues a criar.
 |-------|--------|--------|
 | #1334 | CONV-005b-1: Schema digital_products + migration + seed | Closed |
 | #1335 | CONV-005b-2: Endpoint POST /api/checkout/one-time genérico | Closed |
-| #1326 | CONV-005b: Checkout modular para microtransações | Open |
-| #1336 | CONV-005b-3: Preview configurável + componente checkout frontend | Open |
-| #1337 | CONV-005b-4: ARQ job delivery + página obrigado pós-compra | Open |
+| #1326 | CONV-005b: Checkout modular para microtransações | Closed |
+| #1336 | CONV-005b-3: Preview configurável + componente checkout frontend | Closed |
+| #1337 | CONV-005b-4: ARQ job delivery + página obrigado pós-compra | Closed |
 
 **Wave 3 — Pós-compra (CONV-011b, #1331, #1338–#1340)**
 
@@ -349,9 +362,9 @@ Status: todas Draft — Milestone criado (#4), issues a criar.
 | #1289 | REPO-COMMS — Overhaul de Copy/Homepage (posicionamento 'vantagem competitiva') | Closed |
 | #1290 | REPO-TIER-COMMAND — Novo tier premium 'SmartLic Command' (R$970/mês) | Closed |
 
-### Q2 Wave 4 — Core Features (Jun 2026) — 54 issues novas
+### Q2 Wave 4 — Core Features (Jun 2026) — 55 issues (100% closed)
 
-Lançados 2026-06-04. 52 de 56 closed (92.9%) — todos fechados entre Jun 4-7. Foco: retenção, revenue visibility, API self-service, UX repositioning, feedback loop.
+Lançados 2026-06-04. 55 de 55 closed (100%) — todos fechados entre Jun 4-8. Foco: retenção, revenue visibility, API self-service, UX repositioning, feedback loop.
 
 **DIGEST — Motor de Retenção Semanal (#1410–#1413, #1421)**
 
@@ -412,7 +425,7 @@ Lançados 2026-06-04. 52 de 56 closed (92.9%) — todos fechados entre Jun 4-7. 
 
 | Issue | Título | Status |
 |-------|--------|--------|
-| #1406 | feat: Close the Feedback Loop — Learn from User Behavior | Open |
+| #1406 | feat: Close the Feedback Loop — Learn from User Behavior | Closed |
 | #1435 | FEEDBACK-001: Migration user_sector_affinity — tabela + RLS + seed inicial | Closed |
 | #1436 | FEEDBACK-002: Atualizar affinity no feedback — correct +0.1, false_positive -0.2 por setor | Closed |
 | #1437 | FEEDBACK-003: Combined score adjustment — fator de afinidade no enrich pipeline | Closed |
@@ -452,9 +465,9 @@ Lançados 2026-06-04. 52 de 56 closed (92.9%) — todos fechados entre Jun 4-7. 
 
 | Issue | Título | Status |
 |-------|--------|--------|
-| #1400 | CONV-003-1: Simulador de Oportunidades — widget interativo para Blog/SEO | Open |
-| #1401 | CONV-007-1: 4 landing pages de intenção (comercial/investigativa/jurídica/subcontratação) | Open |
-| #1402 | CONV-010-1: Template "Proposta Comercial" — bloco aditivo em entity pages | Open |
+| #1400 | CONV-003-1: Simulador de Oportunidades — widget interativo para Blog/SEO | Closed |
+| #1401 | CONV-007-1: 4 landing pages de intenção (comercial/investigativa/jurídica/subcontratação) | Closed |
+| #1402 | CONV-010-1: Template "Proposta Comercial" — bloco aditivo em entity pages | Closed |
 
 **CORE-FEAT — Core Features Avulsas (#1403, #1404) — Concluído**
 
@@ -472,13 +485,13 @@ Extensões dos 5 EPICs Q2 + CONV. Issues criadas em 2026-06-07.
 
 | Issue | Título | Status |
 |-------|--------|--------|
-| #1509 | CONV-010-2: AutonomousLandingShell + integração de templates em entity pages | Open |
-| #1510 | CONV-010-3: Homepage refatorada como terminal de inteligência | Open |
-| #1511 | CONV-007-2: IntentRouter + IntentTrail — detecção de intenção e roteamento dinâmico | Open |
+| #1509 | CONV-010-2: AutonomousLandingShell + integração de templates em entity pages | Closed |
+| #1510 | CONV-010-3: Homepage refatorada como terminal de inteligência | Closed |
+| #1511 | CONV-007-2: IntentRouter + IntentTrail — detecção de intenção e roteamento dinâmico | Closed |
 | #1512 | CONV-007-3: Analytics Mixpanel + dashboard por cluster de intenção | Closed |
 | #1513 | CONV-003-2: ContextualCapture em páginas de Perguntas jurídicas | Closed |
 | #1514 | CONV-003-3: ContextualCapture em páginas de Glossário | Closed |
-| #1515 | CONV-003-4: PartialReportPreview + integração LeadCaptureIntermediate | Open |
+| #1515 | CONV-003-4: PartialReportPreview + integração LeadCaptureIntermediate | Closed |
 
 **NETINT — Wave 2 Extensions (#1516–#1519)**
 
@@ -502,25 +515,72 @@ Extensões dos 5 EPICs Q2 + CONV. Issues criadas em 2026-06-07.
 
 | Issue | Título | Status |
 |-------|--------|--------|
-| #1524 | COMPINT-012 — Alertas Competitivos: 'Seu concorrente acaba de vencer' (notificações + email) | Open |
-| #1525 | COMPINT-013 — Benchmarks Setoriais: comparativos de performance por setor (bloco aditivo em /intel-concorrente) | Open |
-| #1526 | COMPINT-014 — Dossiê Competitivo PDF: relatório executivo de concorrente (download) | Open |
+| #1524 | COMPINT-012 — Alertas Competitivos: 'Seu concorrente acaba de vencer' (notificações + email) | Closed |
+| #1525 | COMPINT-013 — Benchmarks Setoriais: comparativos de performance por setor (bloco aditivo em /intel-concorrente) | Closed |
+| #1526 | COMPINT-014 — Dossiê Competitivo PDF: relatório executivo de concorrente (download) | Closed |
 
 **PREDINT — Wave 2 Extensions (#1527–#1529)**
 
 | Issue | Título | Status |
 |-------|--------|--------|
-| #1527 | PREDINT-013 — Pipeline Preditivo: 'O que vem aí nos próximos 90 dias' (bloco aditivo na dashboard) | Open |
-| #1528 | PREDINT-014 — Alertas Preditivos: notificações de oportunidades futuras (in-app + email) | Open |
-| #1529 | PREDINT-015 — API de Inteligência Preditiva: endpoints para dados de previsão (Wave 2) | Open |
+| #1527 | PREDINT-013 — Pipeline Preditivo: 'O que vem aí nos próximos 90 dias' (bloco aditivo na dashboard) | Closed |
+| #1528 | PREDINT-014 — Alertas Preditivos: notificações de oportunidades futuras (in-app + email) | Closed |
+| #1529 | PREDINT-015 — API de Inteligência Preditiva: endpoints para dados de previsão (Wave 2) | Closed |
 
 **SUBINTEL — Wave 3 Extensions (#1530–#1532)**
 
 | Issue | Título | Status |
 |-------|--------|--------|
-| #1530 | SUBINTEL-032 — Onboarding + trial específico para vertical de subcontratação (Wave 3) | Open |
-| #1531 | SUBINTEL-033 — Relatórios de Subcontratação: PDF executivo para parceiros (Wave 3) | Open |
-| #1532 | SUBINTEL-034 — API de Subcontratação: endpoints para integração externa (Wave 3) | Open |
+| #1530 | SUBINTEL-032 — Onboarding + trial específico para vertical de subcontratação (Wave 3) | Closed |
+| #1531 | SUBINTEL-033 — Relatórios de Subcontratação: PDF executivo para parceiros (Wave 3) | Closed |
+| #1532 | SUBINTEL-034 — API de Subcontratação: endpoints para integração externa (Wave 3) | Closed |
+
+---
+
+### Reversa SDD Confidence Gaps — 9.5% (21 issues, 2 closed, 19 open)
+
+Issues de engenharia reversa e confidence tracking criadas em 2026-06-08 via Reversa SDD. Lacunas de documentação, resiliência e core-logic identificadas no codebase.
+
+**🔴 CRITICAL (P0) — 3 issues:**
+
+| Issue | Título | Status |
+|-------|--------|--------|
+| #1579 | GAP-002: Provisionamento do plano Command — fluxo de ativação enterprise | Open |
+| #1580 | GAP-003: Estratégia de limpeza de cache stale — L1 Redis + L2 Supabase | Open |
+| #1581 | GAP-004: Estratégia de retry ARQ — exponential backoff configurável por job | Open |
+
+**🟡 MODERATE (P1) — 12 issues:**
+
+| Issue | Título | Status |
+|-------|--------|--------|
+| #1582 | GAP-001: Atualizar spec billing — sincronização Stripe → plan_billing_periods | Open |
+| #1583 | GAP-005: Fallback SSE quando Redis pub/sub falha — heartbeat + polling | Open |
+| #1584 | GAP-006: Limite de concorrência de buscas por usuário — 3 simultâneas | Open |
+| #1585 | GAP-007: Limpeza de checkpoints órfãos — pg_cron semanal | Open |
+| #1586 | GAP-008: RPC dedicada upsert_supplier_contracts — schema independente de bids | Open |
+| #1587 | GAP-009: Threshold fuzzy dedup configurável — DEDUP_FUZZY_THRESHOLD via env | Open |
+| #1588 | GAP-010: Lista de stopwords PT-BR para dedup — NLTK + termos de licitação | Open |
+| #1589 | GAP-011: Pesos de viabilidade configuráveis por setor — override em sectors_data.yaml | Open |
+| #1590 | GAP-012: Fallback de quota com Supabase offline — fail open com limite conservador | Open |
+| #1591 | GAP-013: Retry com exponential backoff + jitter para OpenAI — 3 tentativas | Open |
+| #1592 | GAP-014: Documentar mecanismo de isenção de auth — FastAPI Depends nativo | Open |
+| #1593 | DEC-BIL-GAP-02: Estratégia se Stripe offline — grace period + notificação founder | Open |
+
+**🟢 COSMETIC (P2) — 4 issues:**
+
+| Issue | Título | Status |
+|-------|--------|--------|
+| #1596 | GAP-016: Definir modelo fallback se GPT-4.1-nano for deprecated | Open |
+| #1597 | GAP-017: Documentar ordem dos 65 routers em startup/routes.py | Open |
+| #1598 | GAP-018: Expandir code-spec-matrix com cobertura frontend completa | Open |
+| #1599 | GAP-019: Mapear módulos cross-cutting (utils, config, templates) no code-spec-matrix | Open |
+
+**✅ Closed — 2 issues:**
+
+| Issue | Título | Status |
+|-------|--------|--------|
+| #1594 | DEC-SRC-GAP-01: Documentar mecanismo específico de TTL de cache | Closed |
+| #1595 | GAP-015: Confirmar e documentar mecanismo de TTL de cache L1/L2 | Closed |
 
 ---
 
@@ -573,7 +633,8 @@ Obsolete stories and docs moved to `docs/archive/` (Feb 20, 2026):
 | 2026-06-06 | ROADMAP v6.4 — audit sync: 655 issues (618 closed, 37 open). 19 state mismatches corrigidos, 6 EPIC TRACKERs fechados. Q2 Multi-Camada ~78%, Wave 4 87.0% (47/54). Velocity ~12/dia. |
 | 2026-06-07 | ROADMAP v6.5 — audit sync: 679 issues (619 closed, 60 open). 24 novas issues #1509–#1532 (Q2 Wave Extensions). Fix #1439 state. Q2 Multi-Camada ~68% (89 core, 60 closed). Wave 4 89.3% (50/56). Velocity ~13/dia. |
 | 2026-06-07 | ROADMAP v6.6 — audit sync: 679 issues (647 closed, 32 open). 28 state mismatches corrigidos (flagships + Wave 2/3 fechados em massa ~19:44 UTC). Q2 Multi-Camada ~90% (~128 closed). Wave 4 92.9% (52/56). Velocity ~19/dia. |
+| 2026-06-08 | ROADMAP v7.0 — audit sync: 712 issues (684 closed, 28 open). 27 state mismatches corrigidos (Wave 4 + CONV + Wave Extensions 100% fechados). Intel Reports 100% (#633 closed). +UX Premium (12 issues) + SDD Gaps (21 issues). Velocity ~20/dia. |
 
 ---
 
-*Ultima atualizacao: 2026-06-07 (v6.6)*
+*Ultima atualizacao: 2026-06-08 (v7.0)*
