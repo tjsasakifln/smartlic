@@ -8,5 +8,6 @@ export const { GET } = createProxyRoute({
   backendPath: "/v1/intel-reports/",
   methods: ["GET"],
   requireAuth: true,
+    allowRefresh: true,
   errorMessage: "Não foi possível carregar seus relatórios.",
 });

@@ -10,5 +10,6 @@ export const { POST } = createProxyRoute({
   backendPath: "/api/checkout/one-time",
   methods: ["POST"],
   requireAuth: true,
+    allowRefresh: true,
   errorMessage: "Não foi possível iniciar o checkout do produto digital.",
 });

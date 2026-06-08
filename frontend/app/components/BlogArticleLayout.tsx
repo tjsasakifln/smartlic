@@ -74,6 +74,19 @@ export default function BlogArticleLayout({
   relatedArticles,
 }: BlogArticleLayoutProps) {
   const canonicalUrl = `https://smartlic.tech/blog/${article.slug}`;
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+
+  // Detect Supabase SSR session cookie to skip email gate for logged-in users
+  useEffect(() => {
+    try {
+      const hasAuthCookie = document.cookie.includes(
+        'sb-fqqyovlzdzimiwfofdjk-auth-token'
+      );
+      setIsAuthenticated(hasAuthCookie);
+    } catch {
+      // cookie access denied — treat as anonymous
+    }
+  }, []);
 
   // AC2 + MKT-001 AC4 + S7: Article JSON-LD with Person author (E-E-A-T)
   const resolvedAuthor = getAuthorBySlug(article.authorSlug || DEFAULT_AUTHOR_SLUG);
@@ -281,6 +294,7 @@ export default function BlogArticleLayout({
 
                 {/* REV-004: Contextual lead capture — appears after ~60% scroll */}
                 <ContextualCapture
+                  isAuthenticated={isAuthenticated}
                   previewData={[
                     { label: "Total de editais no setor (12 meses)", value: "2.847" },
                     { label: "Valor total adjudicado", value: "R$ 89,2 M" },

@@ -9,5 +9,6 @@ export const { POST } = createProxyRoute({
   backendPath: "/v1/intel-reports/checkout",
   methods: ["POST"],
   requireAuth: true,
+  allowRefresh: true,
   errorMessage: "Não foi possível iniciar o checkout do Intel Report.",
 });

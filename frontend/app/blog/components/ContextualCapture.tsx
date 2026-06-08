@@ -22,6 +22,11 @@ export interface ContextualCaptureProps {
    * this fraction of the page. Defaults to 0.6 (60%).
    */
   scrollThreshold?: number;
+  /**
+   * When true, skips the email gate and shows PartialReportPreview directly
+   * once the scroll threshold is reached. For authenticated users.
+   */
+  isAuthenticated?: boolean;
 }
 
 // ---------------------------------------------------------------------------
@@ -58,6 +63,7 @@ export function ContextualCapture({
   productSku,
   contextInfo,
   scrollThreshold = 0.6,
+  isAuthenticated = false,
 }: ContextualCaptureProps) {
   const [visible, setVisible] = useState(false);
   const [emailSubmitted, setEmailSubmitted] = useState(false);
@@ -132,6 +138,19 @@ export function ContextualCapture({
         className="not-prose h-px w-full"
         aria-hidden="true"
         data-testid="contextual-capture-sentinel"
+      />
+    );
+  }
+
+  // After scroll threshold reached: show PartialReportPreview directly
+  // for authenticated users, or after email submit for anonymous users.
+  if (isAuthenticated) {
+    return (
+      <PartialReportPreview
+        previewData={previewData}
+        blurredData={blurredData}
+        productSku={productSku}
+        contextInfo={contextInfo}
       />
     );
   }

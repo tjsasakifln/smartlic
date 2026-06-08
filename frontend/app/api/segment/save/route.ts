@@ -9,5 +9,6 @@ export const { POST } = createProxyRoute({
   backendPath: "/v1/segment/save",
   methods: ["POST"],
   requireAuth: true,
+    allowRefresh: true,
   errorMessage: "Erro ao salvar segmentação",
 });

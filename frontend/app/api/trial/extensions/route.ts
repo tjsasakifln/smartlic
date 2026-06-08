@@ -8,5 +8,6 @@ export const { GET } = createProxyRoute({
   backendPath: "/v1/trial/extensions",
   methods: ["GET"],
   requireAuth: true,
+    allowRefresh: true,
   errorMessage: "Erro ao carregar extensoes do trial",
 });

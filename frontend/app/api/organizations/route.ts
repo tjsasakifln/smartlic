@@ -11,6 +11,7 @@ const getHandlers = createProxyRoute({
   backendPath: "/v1/organizations/me",
   methods: ["GET"],
   requireAuth: true,
+    allowRefresh: true,
   errorMessage: "Erro ao obter organizacao",
 });
 
@@ -19,6 +20,7 @@ const postHandlers = createProxyRoute({
   backendPath: "/v1/organizations",
   methods: ["POST"],
   requireAuth: true,
+    allowRefresh: true,
   errorMessage: "Erro ao criar organizacao",
 });
 

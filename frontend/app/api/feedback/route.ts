@@ -14,6 +14,7 @@ export const { POST } = createProxyRoute({
   backendPath: "/v1/feedback",
   methods: ["POST"],
   requireAuth: true,
+    allowRefresh: true,
   errorMessage: "Erro ao enviar feedback",
 });
 
@@ -25,6 +26,7 @@ const deleteHandlers = createProxyRoute({
   },
   methods: ["DELETE"],
   requireAuth: true,
+    allowRefresh: true,
   forwardQuery: false,
   errorMessage: "Erro ao remover feedback",
 });

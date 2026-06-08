@@ -7,5 +7,6 @@ export const { POST } = createProxyRoute({
   backendPath: "/v1/change-password",
   methods: ["POST"],
   requireAuth: true,
+    allowRefresh: true,
   errorMessage: "Erro ao alterar senha",
 });

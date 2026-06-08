@@ -9,5 +9,6 @@ export const { POST } = createProxyRoute({
   backendPath: "/api/founders/hall/consent",
   methods: ["POST"],
   requireAuth: true,
+    allowRefresh: true,
   errorMessage: "Erro ao atualizar preferência de listagem pública",
 });

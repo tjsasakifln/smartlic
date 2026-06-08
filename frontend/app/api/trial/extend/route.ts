@@ -8,5 +8,6 @@ export const { POST } = createProxyRoute({
   backendPath: "/v1/trial/extend",
   methods: ["POST"],
   requireAuth: true,
+    allowRefresh: true,
   errorMessage: "Erro ao estender trial",
 });

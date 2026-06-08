@@ -13,5 +13,6 @@ export const { POST } = createProxyRoute({
   backendPath: "/v1/survey/export-time-saved",
   methods: ["POST"],
   requireAuth: true,
+    allowRefresh: true,
   errorMessage: "Erro ao enviar resposta da pesquisa",
 });

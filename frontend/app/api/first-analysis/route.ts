@@ -7,5 +7,6 @@ export const { POST } = createProxyRoute({
   backendPath: "/v1/first-analysis",
   methods: ["POST"],
   requireAuth: true,
+    allowRefresh: true,
   errorMessage: "Erro ao iniciar analise",
 });

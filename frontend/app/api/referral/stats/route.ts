@@ -6,5 +6,6 @@ import { createProxyRoute } from "../../../../lib/create-proxy-route";
 export const { GET } = createProxyRoute({
   backendPath: "/v1/referral/stats",
   requireAuth: true,
+    allowRefresh: true,
   errorMessage: "Erro ao obter estatísticas de indicação.",
 });

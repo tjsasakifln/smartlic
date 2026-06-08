@@ -7,5 +7,6 @@ export const { POST } = createProxyRoute({
   backendPath: "/v1/trial/exit-survey",
   methods: ["POST"],
   requireAuth: true,
+    allowRefresh: true,
   errorMessage: "Erro ao enviar resposta",
 });
