@@ -1,6 +1,7 @@
 "use client";
 
 import type { ValidationErrors } from "../../types";
+import { useState } from "react";
 import { RegionSelector } from "../../components/RegionSelector";
 import { CustomDateInput } from "../../components/CustomDateInput";
 import { Tooltip } from "../../components/ui/Tooltip";
@@ -8,6 +9,7 @@ import type { StatusLicitacao } from "./StatusFilter";
 import type { Esfera } from "../../components/EsferaFilter";
 import type { Municipio } from "../../components/MunicipioFilter";
 import FilterPanel from "./FilterPanel";
+import { SubcontratacaoBuscaFilter } from "../../components/SubcontratacaoBuscaFilter";
 import { UFS, UF_NAMES } from "../../../lib/constants/uf-names";
 import { dateDiffInDays } from "../../../lib/utils/dateDiffInDays";
 import {
@@ -72,6 +74,7 @@ export default function SearchCustomizePanel({
   planInfo, onShowUpgradeModal,
   compactSummary,
 }: SearchCustomizePanelProps) {
+  const [subcontratacaoFilter, setSubcontratacaoFilter] = useState(false);
   return (
     <section className="mb-6 animate-fade-in-up stagger-3">
       <button
@@ -276,6 +279,15 @@ export default function SearchCustomizePanel({
             loading={loading}
             clearResult={clearResult}
           />
+
+          {/* CONV-REV-005 (#1321): Subcontratação filter toggle */}
+          <div className="mt-4">
+            <SubcontratacaoBuscaFilter
+              checked={subcontratacaoFilter}
+              onChange={setSubcontratacaoFilter}
+              disabled={loading}
+            />
+          </div>
         </div>
       )}
     </section>
