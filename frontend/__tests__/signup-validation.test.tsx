@@ -85,7 +85,7 @@ function fillValidForm(overrides: { email?: string; password?: string; fullName?
   const passwordInput = screen.getByLabelText("Senha");
   const confirmInput = screen.getByLabelText("Confirmar senha");
 
-  const pw = overrides.password ?? "Senha1234";
+  const pw = overrides.password ?? "Senha1234!";
 
   fireEvent.change(nameInput, {
     target: { value: overrides.fullName ?? "João da Silva" },
@@ -178,7 +178,7 @@ describe("SignupPage — form validation (STORY-258 AC22)", () => {
     render(<SignupPage />);
 
     const passwordInput = screen.getByLabelText("Senha");
-    fireEvent.change(passwordInput, { target: { value: "Senha123" } });
+    fireEvent.change(passwordInput, { target: { value: "Senha123!" } });
 
     await waitFor(() => {
       expect(screen.queryByText(/mínimo 8 caracteres/i)).not.toBeInTheDocument();
@@ -207,7 +207,7 @@ describe("SignupPage — form validation (STORY-258 AC22)", () => {
     mockSignUpWithEmail.mockResolvedValueOnce(undefined);
     render(<SignupPage />);
 
-    fillValidForm({ email: "test@empresa.com", password: "Abc12345", fullName: "Maria" });
+    fillValidForm({ email: "test@empresa.com", password: "Abc12345!", fullName: "Maria" });
 
     const submitBtn = screen.getByRole("button", { name: /criar conta/i });
     fireEvent.click(submitBtn);
@@ -215,7 +215,7 @@ describe("SignupPage — form validation (STORY-258 AC22)", () => {
     await waitFor(() => {
       expect(mockSignUpWithEmail).toHaveBeenCalledWith(
         "test@empresa.com",
-        "Abc12345",
+        "Abc12345!",
         "Maria"
       );
     });
@@ -513,7 +513,7 @@ describe("SignupPage — SAB-007 inline validation", () => {
     const passwordInput = screen.getByLabelText("Senha");
     const confirmInput = screen.getByLabelText("Confirmar senha");
 
-    fireEvent.change(passwordInput, { target: { value: "Senha1234" } });
+    fireEvent.change(passwordInput, { target: { value: "Senha1234!" } });
     fireEvent.change(confirmInput, { target: { value: "Different" } });
     fireEvent.blur(confirmInput);
 
@@ -529,8 +529,8 @@ describe("SignupPage — SAB-007 inline validation", () => {
     const passwordInput = screen.getByLabelText("Senha");
     const confirmInput = screen.getByLabelText("Confirmar senha");
 
-    fireEvent.change(passwordInput, { target: { value: "Senha1234" } });
-    fireEvent.change(confirmInput, { target: { value: "Senha1234" } });
+    fireEvent.change(passwordInput, { target: { value: "Senha1234!" } });
+    fireEvent.change(confirmInput, { target: { value: "Senha1234!" } });
 
     expect(screen.getByTestId("confirm-password-match")).toBeInTheDocument();
   });
@@ -630,8 +630,8 @@ describe("SignupPage — SAB-007 inline validation", () => {
     const passwordInput = screen.getByLabelText("Senha");
     const confirmInput = screen.getByLabelText("Confirmar senha");
 
-    fireEvent.change(passwordInput, { target: { value: "ValidPass1" } });
-    fireEvent.change(confirmInput, { target: { value: "WrongPass2" } });
+    fireEvent.change(passwordInput, { target: { value: "ValidPass1!" } });
+    fireEvent.change(confirmInput, { target: { value: "WrongPass2!" } });
     fireEvent.blur(confirmInput);
 
     await waitFor(() => {

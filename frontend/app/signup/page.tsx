@@ -108,7 +108,7 @@ function SignupPageContent() {
   const resendAttemptRef = useRef<number>(0);
 
   const passwordMeetsPolicy =
-    password.length >= 8 && /[A-Z]/.test(password) && /\d/.test(password);
+    password.length >= 8 && /[A-Z]/.test(password) && /\d/.test(password) && /[^A-Za-z0-9]/.test(password);
   const isEmailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
   const isFormValid = isMobile
     ? email.trim() !== "" && isEmailValid && passwordMeetsPolicy

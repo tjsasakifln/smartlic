@@ -70,7 +70,7 @@ async function fillForm(
   const {
     name = 'John Doe',
     email = 'john@example.com',
-    password = 'Password123',
+    password = 'Password123!',
   } = options;
   const confirmPw = options.confirmPassword ?? password;
 
@@ -212,6 +212,7 @@ describe('SignupPage Component', () => {
       expect(screen.getByText(/Mínimo 8 caracteres/i)).toBeInTheDocument();
       expect(screen.getByText(/Pelo menos 1 letra maiúscula/i)).toBeInTheDocument();
       expect(screen.getByText(/Pelo menos 1 número/i)).toBeInTheDocument();
+      expect(screen.getByText(/Pelo menos 1 caractere especial/i)).toBeInTheDocument();
     });
   });
 
@@ -321,7 +322,7 @@ describe('SignupPage Component', () => {
       await fillForm({
         name: 'John Doe',
         email: 'john@example.com',
-        password: 'Password123',
+        password: 'Password123!',
       });
 
       const submitButton = screen.getByRole('button', { name: /Criar conta$/i });
@@ -333,7 +334,7 @@ describe('SignupPage Component', () => {
       await waitFor(() => {
         expect(mockSignUpWithEmail).toHaveBeenCalledWith(
           'john@example.com',
-          'Password123',
+          'Password123!',
           'John Doe'
         );
       });
