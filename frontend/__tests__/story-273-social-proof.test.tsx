@@ -1,13 +1,12 @@
 /**
- * STORY-273: Social Proof & Trust Signals — Integration Tests
- * REPO-COMMS #1289: Updated for B2G repositioning landing page (7 sections).
+ * CONV-010-3 (#1510): Homepage refatorada como terminal de inteligência.
+ *
+ * Substitui STORY-273 + REPO-COMMS #1289 — a homepage antiga tinha 7 seções
+ * estáticas; a nova é um "terminal de inteligência" com busca + 6 intent cards.
  *
  * Tests:
- * - AC3: Social proof message present on landing page (now in SocialProofMetrics)
- * - AC5: LGPD badge in Portuguese in Footer
- * - Regression: B2G landing page structure (#1289)
- *
- * NOTE: SAB-006 FinalCTA section replaced by MarketSocialProof in REPO-COMMS #1289.
+ * - Estrutura: search bar acima da dobra, 6 intent cards
+ * - LGPD badge em português no Footer (mantido da STORY-273)
  */
 
 import { render, screen } from '@testing-library/react';
@@ -41,93 +40,21 @@ jest.mock('framer-motion', () => {
   return { motion, AnimatePresence: ({ children }: { children: React.ReactNode }) => children };
 });
 
-// Mock animations lib (REPO-COMMS #1289: added useLandingAnimation + usePrefersReducedMotion)
-jest.mock('../lib/animations', () => ({
-  useScrollAnimation: () => ({ ref: { current: null }, isVisible: true }),
-  useLandingAnimation: () => ({ ref: { current: null }, isVisible: true, shouldAnimate: true }),
-  usePrefersReducedMotion: () => false,
-  fadeInUp: {},
-  staggerContainer: {},
-  scaleIn: {},
+// Mock IntentRouter hook (CONV-007-2, #1511)
+jest.mock('../app/components/conversion/IntentRouter', () => ({
+  useIntentDetection: () => ({ cluster: 'geral' as const, source: 'fallback' as const }),
+  detectIntentFromSearchTerm: () => 'geral',
+  detectIntentFromReferrer: () => null,
 }));
 
-// Mock all landing page sections (REPO-COMMS #1289 B2G repositioning set)
-jest.mock('../app/components/landing/LandingNavbar', () => {
-  return function MockLandingNavbar() {
-    return <nav data-testid="landing-navbar">Navbar</nav>;
-  };
-});
-
-jest.mock('../app/components/landing/HeroB2GIntel', () => {
-  return function MockHeroB2GIntel() {
-    return <section data-testid="hero-b2g">HeroB2GIntel</section>;
-  };
-});
-
-jest.mock('../app/components/landing/AntecipeDecidaExecute', () => {
-  return function MockAntecipeDecidaExecute() {
-    return <section data-testid="antecipe-decida-execute">AntecipeDecidaExecute</section>;
-  };
-});
-
-jest.mock('../app/components/landing/TerminalComparison', () => {
-  return function MockTerminalComparison() {
-    return <section data-testid="terminal-comparison">TerminalComparison</section>;
-  };
-});
-
-jest.mock('../app/components/landing/SocialProofMetrics', () => {
-  return function MockSocialProofMetrics() {
-    return (
-      <section data-testid="social-proof-metrics">
-        <p data-testid="beta-counter">
-          Empresas de engenharia, TI, saúde, uniformes e facilities já analisam oportunidades com SmartLic
-        </p>
-        SocialProofMetrics
-      </section>
-    );
-  };
-});
-
-jest.mock('../app/components/landing/PersonasSection', () => {
-  return function MockPersonasSection() {
-    return <section data-testid="personas-section">PersonasSection</section>;
-  };
-});
-
-jest.mock('../app/components/landing/PricingSectionB2G', () => {
-  return function MockPricingSectionB2G() {
-    return <section data-testid="pricing-b2g">PricingSectionB2G</section>;
-  };
-});
-
-jest.mock('../app/components/landing/MarketSocialProof', () => {
-  return function MockMarketSocialProof() {
-    return <section data-testid="market-social-proof">MarketSocialProof</section>;
-  };
-});
-
-jest.mock('../app/components/landing/NewsletterFooter', () => {
-  return function MockNewsletterFooter() {
-    return <section data-testid="newsletter-footer">NewsletterFooter</section>;
-  };
-});
-
-// Mock B2GIntelTheme (passes children through)
-jest.mock('../app/components/landing/B2GIntelTheme', () => {
-  return function MockB2GIntelTheme({ children }: { children: React.ReactNode }) {
-    return <div data-testid="b2g-intel-theme">{children}</div>;
-  };
-});
-
-// Mock Footer (uses framer-motion and copy imports)
+// Mock Footer
 jest.mock('../app/components/Footer', () => {
   return function MockFooter() {
     return <footer data-testid="footer">Footer</footer>;
   };
 });
 
-// Mock HomeFaqStructuredData (JSON-LD, no visual output)
+// Mock HomeFaqStructuredData
 jest.mock('../app/components/HomeFaqStructuredData', () => ({
   HomeFaqStructuredData: function MockHomeFaqStructuredData() {
     return null;
@@ -141,90 +68,97 @@ jest.mock('../app/components/ExitIntentPopup', () => ({
   },
 }));
 
-// ---- Imports ----
+// ---- Import ----
+
 import LandingPage from '../app/page';
 
 // ---- Tests ----
 
-describe('STORY-273 + REPO-COMMS #1289: Landing Page Social Proof Integration', () => {
+describe('CONV-010-3 (#1510): Homepage — Terminal de Inteligência', () => {
   beforeEach(() => {
     render(<LandingPage />);
   });
 
-  describe('AC3: Social proof message (absorbed into SocialProofMetrics)', () => {
-    it('should render the beta counter inside SocialProofMetrics', () => {
-      expect(screen.getByTestId('beta-counter')).toBeInTheDocument();
+  describe('Estrutura principal', () => {
+    it('renderiza a search bar acima da dobra', () => {
+      expect(screen.getByPlaceholderText(/Busque editais/i)).toBeInTheDocument();
     });
 
-    it('should display sector-based social proof message', () => {
-      expect(screen.getByText(/Empresas de engenharia, TI, saúde, uniformes e facilities/)).toBeInTheDocument();
+    it('renderiza o seletor de setor', () => {
+      expect(screen.getByRole('combobox', { name: /setor/i })).toBeInTheDocument();
     });
 
-    it('should use present continuous "já analisam" instead of past tense', () => {
-      expect(screen.getByText(/já analisam oportunidades com SmartLic/)).toBeInTheDocument();
+    it('renderiza o botão Buscar', () => {
+      expect(screen.getByRole('button', { name: /Buscar/i })).toBeInTheDocument();
     });
   });
 
-  describe('REPO-COMMS #1289: B2G landing page structure', () => {
-    it('should have exactly 7 content sections + navbar + newsletter + footer', () => {
-      expect(screen.getByTestId('landing-navbar')).toBeInTheDocument();
-      expect(screen.getByTestId('hero-b2g')).toBeInTheDocument();
-      expect(screen.getByTestId('antecipe-decida-execute')).toBeInTheDocument();
-      expect(screen.getByTestId('terminal-comparison')).toBeInTheDocument();
-      expect(screen.getByTestId('social-proof-metrics')).toBeInTheDocument();
-      expect(screen.getByTestId('personas-section')).toBeInTheDocument();
-      expect(screen.getByTestId('pricing-b2g')).toBeInTheDocument();
-      expect(screen.getByTestId('market-social-proof')).toBeInTheDocument();
-      expect(screen.getByTestId('newsletter-footer')).toBeInTheDocument();
+  describe('Intent Cards (6)', () => {
+    const expectedCards = [
+      'Quero vender para o governo',
+      'Quero pesquisar um concorrente',
+      'Quero encontrar parceiros',
+      'Quero entender meu mercado',
+      'Quero acompanhar editais',
+      'Quero me preparar para licitar',
+    ];
+
+    it('renderiza exatamente 6 intent cards', () => {
+      const cards = screen.getAllByRole('article');
+      expect(cards).toHaveLength(6);
+    });
+
+    for (const title of expectedCards) {
+      it(`renderiza o card "${title}"`, () => {
+        expect(screen.getByText(title)).toBeInTheDocument();
+      });
+    }
+
+    it('cada card tem um link "Saiba mais"', () => {
+      const links = screen.getAllByText(/Saiba mais/);
+      expect(links).toHaveLength(6);
+    });
+  });
+
+  describe('Seções removidas (intencionalmente)', () => {
+    const removedIds = [
+      'hero-b2g',
+      'antecipe-decida-execute',
+      'terminal-comparison',
+      'social-proof-metrics',
+      'personas-section',
+      'pricing-b2g',
+      'market-social-proof',
+      'newsletter-footer',
+      'b2g-intel-theme',
+      'beta-counter',
+    ];
+
+    for (const testId of removedIds) {
+      it(`NÃO renderiza a seção antiga "${testId}"`, () => {
+        expect(screen.queryByTestId(testId)).not.toBeInTheDocument();
+      });
+    }
+  });
+
+  describe('Footer (mantido)', () => {
+    it('renderiza o footer', () => {
       expect(screen.getByTestId('footer')).toBeInTheDocument();
-    });
-
-    it('should NOT contain old SAB-006 sections', () => {
-      expect(screen.queryByTestId('hero-section')).not.toBeInTheDocument();
-      expect(screen.queryByTestId('opportunity-cost')).not.toBeInTheDocument();
-      expect(screen.queryByTestId('before-after')).not.toBeInTheDocument();
-      expect(screen.queryByTestId('how-it-works')).not.toBeInTheDocument();
-      expect(screen.queryByTestId('stats-section')).not.toBeInTheDocument();
-      expect(screen.queryByTestId('final-cta')).not.toBeInTheDocument();
-      expect(screen.queryByTestId('founder-transparency-section')).not.toBeInTheDocument();
-      expect(screen.queryByTestId('credibility-section')).not.toBeInTheDocument();
-    });
-
-    it('should maintain correct section order: Hero → Antecipe → Terminal → SocialProof → Personas → Pricing → MarketSocialProof', () => {
-      const main = screen.getByRole('main');
-      const html = main.innerHTML;
-
-      const heroIdx = html.indexOf('data-testid="hero-b2g"');
-      const antecipeIdx = html.indexOf('data-testid="antecipe-decida-execute"');
-      const terminalIdx = html.indexOf('data-testid="terminal-comparison"');
-      const socialIdx = html.indexOf('data-testid="social-proof-metrics"');
-      const personasIdx = html.indexOf('data-testid="personas-section"');
-      const pricingIdx = html.indexOf('data-testid="pricing-b2g"');
-      const marketIdx = html.indexOf('data-testid="market-social-proof"');
-
-      expect(heroIdx).toBeLessThan(antecipeIdx);
-      expect(antecipeIdx).toBeLessThan(terminalIdx);
-      expect(terminalIdx).toBeLessThan(socialIdx);
-      expect(socialIdx).toBeLessThan(personasIdx);
-      expect(personasIdx).toBeLessThan(pricingIdx);
-      expect(pricingIdx).toBeLessThan(marketIdx);
     });
   });
 });
 
 // ---- AC5: LGPD Badge Test (Footer) ----
 
-// ---- AC5: LGPD Badge Test (Footer) — separate describe to avoid mock conflicts ----
-
-describe('STORY-273 AC5: LGPD Badge in Portuguese', () => {
+describe('CONV-010-3: LGPD Badge em Português (mantido da STORY-273)', () => {
   beforeEach(() => {
     jest.resetModules();
   });
 
-  it('should display LGPD badge in Portuguese in Footer', async () => {
+  it('deve exibir o selo LGPD em português no Footer', async () => {
     jest.unmock('../app/components/Footer');
 
-    // Mock FooterNewsletterForm (COPY-COP-006) to avoid useState hook error
+    // Mock FooterNewsletterForm
     jest.mock('../app/components/FooterNewsletterForm', () => ({
       FooterNewsletterForm: function MockFooterNewsletterForm() {
         return <div data-testid="newsletter-form">Newsletter</div>;
@@ -246,7 +180,6 @@ describe('STORY-273 AC5: LGPD Badge in Portuguese', () => {
 
     const { default: Footer } = await import('../app/components/Footer');
 
-    // Use already-imported render/screen (cannot dynamically import @testing-library/react)
     render(React.createElement(Footer));
 
     expect(screen.getByText('Em conformidade com a LGPD')).toBeInTheDocument();
