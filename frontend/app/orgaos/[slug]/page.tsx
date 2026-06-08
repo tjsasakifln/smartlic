@@ -20,6 +20,7 @@ import {
   buildOperationalDescription,
 } from '@/lib/seo';
 import { OrgaoUrgency } from '@/components/pseo/OrgaoUrgency';
+import { SubcontratacaoOrgaoBlock } from '@/app/components/SubcontratacaoOrgaoBlock';
 
 const BACKEND_URL = getBackendUrl();
 
@@ -469,6 +470,12 @@ export default async function OrgaoPerfilPage({
           Solicitar análise de edital
         </Link>
       </section>
+
+      {/* CONV-REV-005 (#1321): Subcontratação block — mapear pontes no órgão */}
+      <SubcontratacaoOrgaoBlock
+        slug={slug}
+        nome={stats.nome}
+      />
 
       {/* CONV-013: WhatsApp CTA — falar com founder */}
       <div className="mt-8">

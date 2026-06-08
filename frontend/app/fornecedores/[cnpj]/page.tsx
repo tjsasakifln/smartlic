@@ -12,6 +12,7 @@ import { PseoPageTracker } from '@/app/components/seo/PseoPageTracker';
 import PreviewCTA from '@/app/components/programmatic/PreviewCTA';
 import { OpportunitySignalsPanel } from '@/app/components/OpportunitySignalsPanel';
 import AhaMomentPanel from '@/app/components/AhaMomentPanel';
+import { SubcontratacaoFornecedorBlock } from '@/app/components/SubcontratacaoFornecedorBlock';
 import type { InsightCard } from '@/app/components/AhaMomentPanel';
 import { resolveJourney } from '@/lib/seo/relatedResolver';
 import { JourneyLinks } from '@/app/components/navigation/JourneyLinks';
@@ -615,6 +616,12 @@ export default async function FornecedorCnpjPage({ params }: Props) {
               </div>
             </section>
           )}
+
+          {/* CONV-REV-005 (#1321): Subcontratação block — pontes de subcontratação */}
+          <SubcontratacaoFornecedorBlock
+            cnpj={cnpj}
+            razaoSocial={profile.razao_social}
+          />
 
           {/* FAQ */}
           <section className="mb-8">

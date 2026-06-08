@@ -21,6 +21,7 @@ import { AdvisoryDisclaimer } from "@/components/legal/AdvisoryDisclaimer";
 import { RecentEditaisBlock } from "@/app/components/programmatic/RecentEditaisBlock";
 import { TopSuppliersBlock } from "@/app/components/programmatic/TopSuppliersBlock";
 import { MarketPatternsBlock } from "@/components/pseo/MarketPatternsBlock";
+import { SubcontratacaoSetorBlock } from "@/app/components/SubcontratacaoSetorBlock";
 import { TrackedCTALink } from "@/app/components/seo/TrackedCTALink";
 import { SeoOpportunityBanner } from "@/app/components/seo/SeoOpportunityBanner";
 import { LeadCapture } from "@/components/LeadCapture";
@@ -315,6 +316,14 @@ export default async function SectorPage({
 
       {/* #1288 (NETINT-011): Padrões de Mercado — aggregated market intelligence */}
       <MarketPatternsBlock setor={setor} />
+
+      {/* CONV-REV-005 (#1321): Subcontratação block — pontes no setor */}
+      <div className="max-w-5xl mx-auto px-4">
+        <SubcontratacaoSetorBlock
+          setor={setor}
+          setorLabel={sector.name}
+        />
+      </div>
 
       {/* AC6: Como Funciona */}
       <section className="max-w-5xl mx-auto py-16 px-4">
