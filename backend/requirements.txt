@@ -17,6 +17,12 @@ pydantic[email]==2.13.4
 pydantic-settings==2.14.1
 starlette==0.52.1
 python-multipart>=0.0.32           # CVE-2026-24486: Path Traversal fix (STORY-279)
+# python-dateutil era dependência transitiva de supabase/uvicorn.
+# Tornado explícito em 2026-06-08 (PR #1555) após supabase 2.31.0 +
+# uvicorn 0.49.0 removerem a transitividade → ModuleNotFoundError no CI.
+# Usado em: admin.py, cron/notifications.py, jobs/cron/notifications.py,
+# jobs/cron/founders_auto_disable.py, routes/messages.py
+python-dateutil>=2.8.2,<3.0.0
 
 # HTTP client
 httpx==0.28.1

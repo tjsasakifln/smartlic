@@ -25,10 +25,13 @@ echo "[start.sh] DIAGNOSTIC: PID=$$ PROCESS_TYPE=${PROCESS_TYPE:-web} WORKER_COL
 # Upstash DNS outage recovery — local redis avoids external dependency.
 # REDIS_URL is overridden to redis://localhost:6379/0 for all modes.
 _start_redis() {
-  echo "[start.sh] Starting embedded redis-server (ephemeral, no AOF/RDB)..." >&2
+  # RES-BE-017: Embedded redis with RDB snapshot persistence.
+  # --save 900 1: snapshot every 15min if >=1 key changed (survives deploy/restart).
+  # Previously --save "" (zero persistence) — all state lost on container restart.
+  echo "[start.sh] Starting embedded redis-server (RDB snapshots every 15min)..." >&2
   redis-server \
     --port 6379 \
-    --save "" \
+    --save 900 1 \
     --appendonly no \
     --maxmemory 128mb \
     --maxmemory-policy allkeys-lru \
