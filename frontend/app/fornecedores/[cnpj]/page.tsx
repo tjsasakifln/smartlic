@@ -1,11 +1,9 @@
 import { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import { buildCanonical, buildOperationalTitle, buildOperationalDescription, getFreshnessLabel } from '@/lib/seo';
+import { buildCanonical, buildOperationalTitle, buildOperationalDescription } from '@/lib/seo';
 import { ssgLimitedFetch } from '@/lib/concurrency';
 import EmptyStateSEO from '@/components/seo/EmptyStateSEO';
-import LandingNavbar from '@/app/components/landing/LandingNavbar';
-import Footer from '@/app/components/Footer';
 import FornecedorPseoCTA from './FornecedorPseoCTA';
 import { isNoindexed } from '@/lib/seo/noindex';
 import AlertEntityCta from '@/components/seo/AlertEntityCta';
@@ -18,6 +16,7 @@ import type { InsightCard } from '@/app/components/AhaMomentPanel';
 import { resolveJourney } from '@/lib/seo/relatedResolver';
 import { JourneyLinks } from '@/app/components/navigation/JourneyLinks';
 import { FornecedorUrgency } from '@/components/pseo/FornecedorUrgency';
+import AutonomousLandingShell from '@/app/components/AutonomousLandingShell';
 
 // Sprint 3 Parte 13: paginas de perfil de fornecedor por CNPJ
 // ISR 24h — dados do PNCP atualizados diariamente
@@ -352,8 +351,20 @@ export default async function FornecedorCnpjPage({ params }: Props) {
         sourceTemplate="fornecedor_page"
         entityId={cnpj}
       />
-      <LandingNavbar />
-      <main className="min-h-screen bg-gray-50 pt-20 pb-16">
+      <AutonomousLandingShell
+        entityType="fornecedor"
+        entityName={profile.razao_social}
+        entityDescription={`CNPJ ${cnpj.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})$/, '$1.$2.$3/$4-$5')}${profile.cnae_descricao ? ' · ' + profile.cnae_descricao : ''} · Dados das fontes oficiais`}
+        ctaComponent={
+          <Link
+            href={`/signup?ref=fornecedor&cnpj=${cnpj}`}
+            data-testid="pseo-cta-primary"
+            className="inline-block whitespace-nowrap rounded-lg bg-white px-5 py-2.5 text-sm font-semibold text-blue-700 hover:bg-blue-50 transition-colors min-h-[44px] leading-[44px] sm:leading-normal sm:py-2.5"
+          >
+            Receber alertas grátis →
+          </Link>
+        }
+      >
         {jsonLd.map((ld, i) => (
           <script
             key={i}
@@ -363,7 +374,7 @@ export default async function FornecedorCnpjPage({ params }: Props) {
         ))}
 
         {/* Breadcrumb */}
-        <nav className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 text-sm text-gray-500">
+        <nav className="py-3 text-sm text-gray-500">
           {breadcrumbs.map((b, i) => (
             <span key={b.url + i}>
               {i > 0 && <span className="mx-1">/</span>}
@@ -376,42 +387,9 @@ export default async function FornecedorCnpjPage({ params }: Props) {
           ))}
         </nav>
 
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-1">
-            {profile.razao_social}
-          </h1>
-          <p className="text-sm text-gray-500 mb-1">
-            CNPJ {cnpj.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})$/, '$1.$2.$3/$4-$5')}
-            {profile.cnae_descricao && <> &middot; {profile.cnae_descricao}</>}
-          </p>
-          <p className="text-sm text-gray-400 mb-4">
-            {profile.last_updated ? getFreshnessLabel(profile.last_updated) : 'Dados das fontes oficiais'}
-            {' · Fonte: Portal Nacional de Contratacoes Publicas'}
-          </p>
+        {/* CONV-002b: Primary CTA above the fold moved to AutonomousLandingShell ctaComponent */}
 
-          {/* CONV-002b: Primary CTA above the fold — contextual + "Só quero ver os dados" */}
-          <div className="mb-6 rounded-lg bg-blue-600 px-4 py-4 text-center sm:text-left sm:flex sm:items-center sm:justify-between sm:gap-4">
-            <p className="text-sm text-blue-100 mb-3 sm:mb-0">
-              Monitore editais do setor de <span className="font-semibold text-white">{profile.razao_social}</span> e receba alertas automáticos.
-            </p>
-            <div className="flex flex-col sm:flex-row gap-2">
-              <Link
-                href={`/signup?ref=fornecedor&cnpj=${cnpj}`}
-                data-testid="pseo-cta-primary"
-                className="inline-block whitespace-nowrap rounded-lg bg-white px-5 py-2.5 text-sm font-semibold text-blue-700 hover:bg-blue-50 transition-colors min-h-[44px] leading-[44px] sm:leading-normal sm:py-2.5"
-              >
-                Receber alertas grátis →
-              </Link>
-              <Link
-                href="/observatorio"
-                className="inline-block whitespace-nowrap rounded-lg border border-white/30 px-5 py-2.5 text-sm font-medium text-white hover:bg-white/10 transition-colors"
-              >
-                Só quero ver os dados
-              </Link>
-            </div>
-          </div>
-
-          {/* KPI Cards */}
+        {/* KPI Cards */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-8">
             <div className="bg-white rounded-lg shadow-sm border p-4">
               <p className="text-xs text-gray-500 mb-1">Total de Contratos</p>
@@ -674,9 +652,7 @@ export default async function FornecedorCnpjPage({ params }: Props) {
           />
 
           <p className="text-xs text-gray-400 mt-8">{profile.aviso_legal}</p>
-        </div>
-      </main>
-      <Footer />
+      </AutonomousLandingShell>
 
       {/* CONV-002b: Sticky bottom mobile CTA — contextual */}
       <div
