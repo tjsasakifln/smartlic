@@ -70,8 +70,8 @@ with structured output, evidence requirements, and automated fallback on malform
 │                                                         │
 │  Invocation conditions:                                  │
 │    • Density 0-5% (ambiguous or zero keyword match)     │
-│    • Feature flag LLM_ARBITER_ENABLED=true              │
-│    • Sector has LLM prompt defined                      │
+│    • Arbiter is always-on (flag removed Oct 2025)       │
+│    • Sector has LLM prompt defined in sectors_data.yaml │
 │    • Not rate-limited (concurrent call cap)             │
 │                                                         │
 │  Cost: ~$0.0001–0.0003 per classification               │
@@ -111,16 +111,18 @@ User: Tender: {title} | {description}
 LLM response is validated against this Pydantic schema:
 
 ```python
-class LlmArbiterVerdict(BaseModel):
-    decision: Literal["APPROVE", "REJECT"]
-    evidence: str  # Must be non-empty, must be a substring of tender text
-    confidence: float  # 0.0–1.0
-    reasoning: str  # Max 200 chars, explanation of decision
+class LLMClassification(BaseModel):
+    classe: Literal["SIM", "NAO"]
+    confianca: int = Field(ge=0, le=100)  # 0–100 confidence scale
+    evidencias: list[str] = Field(default_factory=list)  # Quotes from tender text
+    motivo_exclusao: Optional[str] = Field(default=None)  # Reason if NAO
+    precisa_mais_dados: bool = False  # Signals insufficient context for decision
 ```
 
-If the LLM returns malformed JSON, the parser catches it and falls back to `PENDING_REVIEW`
-(when `LLM_FALLBACK_PENDING_ENABLED=true`) or `REJECT` (when disabled). The system never
-passes unvalidated LLM output downstream.
+If the LLM returns malformed JSON or ambiguous output, the parser falls back to
+`classe="SIM"` (confianca=45) or `classe="NAO"` (confianca=40) based on naive SIM/NAO
+substring detection in the raw response. The `motivo_exclusao` field records the fallback
+reason. The system never passes unvalidated LLM output downstream.
 
 ### Temperature
 

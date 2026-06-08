@@ -311,7 +311,8 @@ merge on any failure.
 
 ### CI Gates
 
-- **Backend:** `ruff check` + `pytest` (71% coverage threshold) + `mypy` + `pip-audit`
+- **Backend (blocking):** `pytest` (71% coverage threshold) + per-module coverage check + `pip-audit` (CVE scan)
+- **Backend (advisory):** `ruff check` + `mypy` — non-blocking, output reported but does not fail CI
 - **Frontend:** `tsc --noEmit` + `npm test` (60% coverage threshold) + `npm run build`
 - **API types:** CI fails if committed `api-types.generated.ts` drifts from backend OpenAPI schema
 - **Resilience:** `audit-execute-without-budget.yml` blocks PRs with `.execute()` outside

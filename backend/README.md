@@ -11,7 +11,7 @@ lifespan tasks, exception handlers, Sentry, OpenTelemetry — lives in the `star
 
 ```python
 # main.py — the whole file
-import faulthunter
+import faulthandler
 faulthandler.enable()
 
 from dotenv import load_dotenv

@@ -167,7 +167,7 @@ For detailed metrics, request the investor data room: tiago.sasaki@confenge.com.
 
 ## Team
 
-**Tiago Sasaki — Founder & Engineer**
+**Tiago Sasaki — Solo Technical Founder / Applied AI Engineer**
 [GitHub](https://github.com/tjsasakifln) · tiago.sasaki@confenge.com.br
 
 Solo technical founder. Built the full stack: DataLake architecture, AI classification pipeline,
