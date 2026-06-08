@@ -19,6 +19,7 @@ import {
   Menu,
   Shield,
 } from "lucide-react";
+import { QuotaBadge } from "../app/components/QuotaBadge";
 
 const STORAGE_KEY = "smartlic-sidebar-collapsed";
 
@@ -141,6 +142,11 @@ export function Sidebar() {
       <div className="border-t border-[var(--border)] py-3 px-2 space-y-1">
         {SECONDARY_NAV.map(renderNavItem)}
         {isAdmin && renderNavItem({ href: "/admin", label: "Admin", icon: <Shield className="w-5 h-5" aria-hidden="true" /> })}
+
+        {/* Quota Indicator — UX-312 */}
+        <div className={`${collapsed ? "flex justify-center" : "px-3"}`}>
+          <QuotaBadge />
+        </div>
 
         {/* Sign Out */}
         <button
