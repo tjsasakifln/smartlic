@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, Optional
 
 from pydantic import BaseModel
 
@@ -31,3 +31,17 @@ class ApiSubscriptionCheckoutResponse(BaseModel):
 
     checkout_url: str
     session_id: str
+
+
+class CheckoutSessionStatusResponse(BaseModel):
+    """Response for GET /api/checkout/session/{session_id}.
+
+    Returns the status of a one-time digital product purchase after
+    the user is redirected back from Stripe to the /obrigado page.
+    """
+
+    status: str  # "pending" | "generating" | "ready" | "failed" | "completed"
+    product_name: Optional[str] = None
+    sku: Optional[str] = None
+    pdf_url: Optional[str] = None
+    created_at: Optional[str] = None

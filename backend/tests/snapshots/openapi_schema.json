@@ -3293,6 +3293,64 @@
         "title": "CheckoutResponse",
         "type": "object"
       },
+      "CheckoutSessionStatusResponse": {
+        "description": "Response for GET /api/checkout/session/{session_id}.\n\nReturns the status of a one-time digital product purchase after\nthe user is redirected back from Stripe to the /obrigado page.",
+        "properties": {
+          "created_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Created At"
+          },
+          "pdf_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pdf Url"
+          },
+          "product_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Product Name"
+          },
+          "sku": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sku"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "status"
+        ],
+        "title": "CheckoutSessionStatusResponse",
+        "type": "object"
+      },
       "CidadeSectorStats": {
         "properties": {
           "avg_value": {
@@ -18055,6 +18113,49 @@
           }
         ],
         "summary": "Create One Time Checkout",
+        "tags": [
+          "checkout"
+        ]
+      }
+    },
+    "/api/checkout/session/{session_id}": {
+      "get": {
+        "description": "Return the status of a one-time digital product purchase.\n\nThe /obrigado thank-you page calls this endpoint after the user is\nredirected back from Stripe Checkout.  The endpoint looks up the\npurchase by ``stripe_checkout_session_id`` in the\n``intel_report_purchases`` table and resolves the product name from\n``digital_products`` when applicable.\n\nNo auth required \u2014 the session_id is a Stripe-generated unique\nidentifier known only to the user who initiated the checkout.",
+        "operationId": "get_checkout_session_status_api_checkout_session__session_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "session_id",
+            "required": true,
+            "schema": {
+              "title": "Session Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CheckoutSessionStatusResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Checkout Session Status",
         "tags": [
           "checkout"
         ]
