@@ -146,8 +146,9 @@ export function ModalidadeFilter({
         title={modalidade.descricao}
         className={`
           flex items-center gap-3 p-3 rounded-button cursor-pointer
-          transition-colors duration-200
-          ${disabled ? "cursor-not-allowed opacity-50" : "hover:bg-surface-1"}
+          border border-transparent
+          transition-all duration-150
+          ${disabled ? "cursor-not-allowed opacity-50" : "hover:bg-surface-1 hover:border-brand-blue hover:scale-[1.02]"}
           focus:outline-none focus:ring-2 focus:ring-brand-blue focus:ring-inset
         `}
       >
