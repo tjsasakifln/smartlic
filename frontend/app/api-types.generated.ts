@@ -10064,7 +10064,7 @@ export interface components {
              * Product Type
              * @enum {string}
              */
-            product_type: "cnpj" | "sector_uf";
+            product_type: "cnpj" | "sector_uf" | "subcontract";
         };
         /**
          * IntelReportCheckoutResponse
