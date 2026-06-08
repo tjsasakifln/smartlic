@@ -5,6 +5,7 @@ import { UseFormReturn } from "react-hook-form";
 import { Button } from "../../../components/ui/button";
 import { Input } from "../../../components/ui/Input";
 import { Label } from "../../../components/ui/Label";
+import { PasswordStrengthIndicator } from "../../../components/ui/PasswordStrengthIndicator";
 import { getPasswordStrength, type SignupFormData } from "../../../lib/schemas/forms";
 import { useAnalytics } from "../../../hooks/useAnalytics";
 import { currentDeviceType } from "../../../lib/device-type";
@@ -164,7 +165,7 @@ export function SignupForm({ form, loading, error, onSubmit, isFormValid }: Sign
   // Password strength
   const passwordStrength = getPasswordStrength(password);
   const passwordMeetsPolicy =
-    password.length >= 8 && /[A-Z]/.test(password) && /\d/.test(password);
+    password.length >= 8 && /[A-Z]/.test(password) && /\d/.test(password) && /[^A-Za-z0-9]/.test(password);
   const confirmPasswordMatch = confirmPassword !== "" && confirmPassword === password;
 
   // STORY-258: Email check on blur
@@ -488,20 +489,8 @@ export function SignupForm({ form, loading, error, onSubmit, isFormValid }: Sign
               </p>
             </div>
           )}
-          {/* Password policy requirements */}
-          {password && !passwordMeetsPolicy && (
-            <ul className="mt-1 text-xs space-y-0.5">
-              <li className={password.length >= 8 ? "text-green-600" : "text-error"}>
-                {password.length >= 8 ? "✓" : "✗"} Mínimo 8 caracteres
-              </li>
-              <li className={/[A-Z]/.test(password) ? "text-green-600" : "text-error"}>
-                {/[A-Z]/.test(password) ? "✓" : "✗"} Pelo menos 1 letra maiúscula
-              </li>
-              <li className={/\d/.test(password) ? "text-green-600" : "text-error"}>
-                {/\d/.test(password) ? "✓" : "✗"} Pelo menos 1 número
-              </li>
-            </ul>
-          )}
+          {/* UX-307: Real-time password validation checklist */}
+          <PasswordStrengthIndicator password={password} />
         </div>
 
         {/* COPY-COP-005: Mobile note — coleta progressiva pós-cadastro */}

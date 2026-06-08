@@ -80,8 +80,8 @@ async function signupAndGetToConfirmation(
   await act(async () => {
     fireEvent.change(nameInput, { target: { value: "Test User" } });
     fireEvent.change(emailInput, { target: { value: email } });
-    fireEvent.change(passwordInput, { target: { value: "Password123" } });
-    fireEvent.change(confirmInput, { target: { value: "Password123" } });
+    fireEvent.change(passwordInput, { target: { value: "Password123!" } });
+    fireEvent.change(confirmInput, { target: { value: "Password123!" } });
   });
 
   // Submit

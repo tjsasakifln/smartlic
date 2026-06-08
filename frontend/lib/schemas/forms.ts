@@ -19,7 +19,8 @@ export const signupSchema = z
       .string()
       .min(8, "Mínimo 8 caracteres")
       .regex(/[A-Z]/, "Pelo menos 1 letra maiúscula")
-      .regex(/\d/, "Pelo menos 1 número"),
+      .regex(/\d/, "Pelo menos 1 número")
+      .regex(/[^A-Za-z0-9]/, "Pelo menos 1 caractere especial"),
     confirmPassword: z.string().min(1, "Confirme sua senha"),
   })
   .refine((data) => data.password === data.confirmPassword, {
@@ -137,7 +138,10 @@ export const redefinirSenhaSchema = z
   .object({
     password: z
       .string()
-      .min(8, "A senha deve ter pelo menos 8 caracteres"),
+      .min(8, "A senha deve ter pelo menos 8 caracteres")
+      .regex(/[A-Z]/, "Pelo menos 1 letra maiúscula")
+      .regex(/\d/, "Pelo menos 1 número")
+      .regex(/[^A-Za-z0-9]/, "Pelo menos 1 caractere especial"),
     confirmPassword: z
       .string()
       .min(1, "Confirme sua senha"),

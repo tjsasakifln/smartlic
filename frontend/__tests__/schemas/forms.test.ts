@@ -14,8 +14,8 @@ describe("signupSchema", () => {
     fullName: "João da Silva",
     email: "joao@email.com",
     phone: "",
-    password: "Senha1234",
-    confirmPassword: "Senha1234",
+    password: "Senha1234!",
+    confirmPassword: "Senha1234!",
   };
 
   it("accepts valid signup data", () => {
@@ -76,12 +76,24 @@ describe("signupSchema", () => {
   it("rejects password without digit", () => {
     const result = signupSchema.safeParse({
       ...validData,
-      password: "SenhaForte",
-      confirmPassword: "SenhaForte",
+      password: "SenhaForte!",
+      confirmPassword: "SenhaForte!",
     });
     expect(result.success).toBe(false);
     if (!result.success) {
       expect(result.error.issues[0].message).toBe("Pelo menos 1 número");
+    }
+  });
+
+  it("rejects password without special character", () => {
+    const result = signupSchema.safeParse({
+      ...validData,
+      password: "Senha1234",
+      confirmPassword: "Senha1234",
+    });
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.error.issues[0].message).toBe("Pelo menos 1 caractere especial");
     }
   });
 

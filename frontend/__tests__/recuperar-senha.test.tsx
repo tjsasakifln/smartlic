@@ -307,10 +307,10 @@ describe('RedefinirSenhaPage (/redefinir-senha)', () => {
 
     // DEBT-FE-003: With react-hook-form + zod refine, mismatch is checked on change
     fireEvent.change(screen.getByLabelText('Nova senha'), {
-      target: { value: '12345678' },
+      target: { value: 'Newpass1!' },
     });
     fireEvent.change(screen.getByLabelText('Confirmar nova senha'), {
-      target: { value: '12345679' },
+      target: { value: 'Newpass2!' },
     });
     fireEvent.blur(screen.getByLabelText('Confirmar nova senha'));
 
@@ -331,10 +331,10 @@ describe('RedefinirSenhaPage (/redefinir-senha)', () => {
     // DEBT-FE-003: fill both fields, then submit (RHF validates async)
     await act(async () => {
       fireEvent.change(screen.getByLabelText('Nova senha'), {
-        target: { value: 'newpassword123' },
+        target: { value: 'Newpass123!' },
       });
       fireEvent.change(screen.getByLabelText('Confirmar nova senha'), {
-        target: { value: 'newpassword123' },
+        target: { value: 'Newpass123!' },
       });
     });
 
@@ -343,7 +343,7 @@ describe('RedefinirSenhaPage (/redefinir-senha)', () => {
     });
 
     await waitFor(() => {
-      expect(mockUpdateUser).toHaveBeenCalledWith({ password: 'newpassword123' });
+      expect(mockUpdateUser).toHaveBeenCalledWith({ password: 'Newpass123!' });
     });
     jest.useFakeTimers();
   });
@@ -358,10 +358,10 @@ describe('RedefinirSenhaPage (/redefinir-senha)', () => {
 
     await act(async () => {
       fireEvent.change(screen.getByLabelText('Nova senha'), {
-        target: { value: 'newpassword123' },
+        target: { value: 'Newpass123!' },
       });
       fireEvent.change(screen.getByLabelText('Confirmar nova senha'), {
-        target: { value: 'newpassword123' },
+        target: { value: 'Newpass123!' },
       });
     });
 
@@ -389,10 +389,10 @@ describe('RedefinirSenhaPage (/redefinir-senha)', () => {
 
     await act(async () => {
       fireEvent.change(screen.getByLabelText('Nova senha'), {
-        target: { value: 'newpassword123' },
+        target: { value: 'Newpass123!' },
       });
       fireEvent.change(screen.getByLabelText('Confirmar nova senha'), {
-        target: { value: 'newpassword123' },
+        target: { value: 'Newpass123!' },
       });
     });
 

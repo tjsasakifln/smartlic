@@ -122,10 +122,10 @@ describe("recuperarSenhaSchema", () => {
 // ============================================================================
 
 describe("redefinirSenhaSchema", () => {
-  it("accepts matching passwords with 8+ chars", () => {
+  it("accepts matching passwords with 8+ chars, uppercase, digit, and special char", () => {
     const result = redefinirSenhaSchema.safeParse({
-      password: "newpass12",
-      confirmPassword: "newpass12",
+      password: "Newpass12!",
+      confirmPassword: "Newpass12!",
     });
     expect(result.success).toBe(true);
   });
@@ -143,10 +143,49 @@ describe("redefinirSenhaSchema", () => {
     }
   });
 
+  it("rejects password without uppercase letter", () => {
+    const result = redefinirSenhaSchema.safeParse({
+      password: "nouppercase1!",
+      confirmPassword: "nouppercase1!",
+    });
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      const pwError = result.error.issues.find((i) => i.path[0] === "password");
+      expect(pwError).toBeDefined();
+      expect(pwError?.message).toContain("maiúscula");
+    }
+  });
+
+  it("rejects password without digit", () => {
+    const result = redefinirSenhaSchema.safeParse({
+      password: "NoDigitAbc!",
+      confirmPassword: "NoDigitAbc!",
+    });
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      const pwError = result.error.issues.find((i) => i.path[0] === "password");
+      expect(pwError).toBeDefined();
+      expect(pwError?.message).toContain("número");
+    }
+  });
+
+  it("rejects password without special character", () => {
+    const result = redefinirSenhaSchema.safeParse({
+      password: "NoSpecial1A",
+      confirmPassword: "NoSpecial1A",
+    });
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      const pwError = result.error.issues.find((i) => i.path[0] === "password");
+      expect(pwError).toBeDefined();
+      expect(pwError?.message).toContain("especial");
+    }
+  });
+
   it("rejects mismatched passwords", () => {
     const result = redefinirSenhaSchema.safeParse({
-      password: "newpass12",
-      confirmPassword: "different1",
+      password: "Newpass12!",
+      confirmPassword: "Diffpass1!",
     });
     expect(result.success).toBe(false);
     if (!result.success) {
@@ -160,16 +199,16 @@ describe("redefinirSenhaSchema", () => {
 
   it("rejects empty confirmPassword", () => {
     const result = redefinirSenhaSchema.safeParse({
-      password: "newpass12",
+      password: "Newpass12!",
       confirmPassword: "",
     });
     expect(result.success).toBe(false);
   });
 
-  it("accepts password with exactly 8 characters", () => {
+  it("accepts password with exactly 8 characters meeting all rules", () => {
     const result = redefinirSenhaSchema.safeParse({
-      password: "12345678",
-      confirmPassword: "12345678",
+      password: "Ab12!xyz",
+      confirmPassword: "Ab12!xyz",
     });
     expect(result.success).toBe(true);
   });

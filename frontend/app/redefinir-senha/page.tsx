@@ -6,12 +6,14 @@ import Link from "next/link";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { redefinirSenhaSchema, type RedefinirSenhaFormData } from "../../lib/schemas/forms";
+import { PasswordStrengthIndicator } from "../../components/ui/PasswordStrengthIndicator";
 
 export default function RedefinirSenhaPage() {
   // DEBT-FE-003: react-hook-form + zod for form validation
   const {
     register,
     handleSubmit: rhfHandleSubmit,
+    watch,
     formState: { errors: formErrors, isValid: formIsValid },
   } = useForm<RedefinirSenhaFormData>({
     resolver: zodResolver(redefinirSenhaSchema),
@@ -22,6 +24,7 @@ export default function RedefinirSenhaPage() {
 
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+  const password = watch("password");
   const [status, setStatus] = useState<"form" | "success" | "error" | "checking">("checking");
   const [error, setError] = useState<string | null>(null);
   const [hasRecoverySession, setHasRecoverySession] = useState(false);
@@ -269,6 +272,8 @@ export default function RedefinirSenhaPage() {
                 {formErrors.password.message}
               </p>
             )}
+            {/* UX-307: Real-time password validation checklist */}
+            <PasswordStrengthIndicator password={password} />
           </div>
 
           <div>
