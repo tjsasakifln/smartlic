@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useAuth } from "../app/components/AuthProvider";
 import { usePlan } from "../hooks/usePlan";
+import { QuotaBadge } from "../app/components/QuotaBadge";
 import {
   Search,
   LayoutDashboard,
@@ -262,6 +263,11 @@ export function BottomNav() {
                   <span>Admin</span>
                 </Link>
               )}
+
+              {/* Quota indicator — UX-312 */}
+              <div className="px-4 py-1">
+                <QuotaBadge />
+              </div>
 
               <div className="border-t border-[var(--border)] my-2" />
 
