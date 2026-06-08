@@ -84,8 +84,9 @@ def create_intel_report_checkout(
     """Create a Stripe Checkout session for an Intel Report one-time purchase.
 
     Products:
-        - cnpj    → R$197.00 (INTEL-REPORT-001)
-        - sector_uf → R$147.00 (INTEL-REPORT-002)
+        - cnpj        → R$197.00 (INTEL-REPORT-001)
+        - sector_uf   → R$147.00 (INTEL-REPORT-002)
+        - subcontract → R$97.00  (SUBINTEL-033)
 
     NOTE: Stripe Products and Prices are created MANUALLY in the Stripe Dashboard.
     This function uses price_data with unit_amount so it works without pre-created
@@ -93,7 +94,7 @@ def create_intel_report_checkout(
     their price IDs in line_items instead of price_data.
 
     Args:
-        product_type: "cnpj" or "sector_uf"
+        product_type: "cnpj", "sector_uf", or "subcontract"
         entity_key: CNPJ value or "sector:uf" string
         user_id: Supabase user UUID
 
@@ -123,6 +124,7 @@ def create_intel_report_checkout(
     product_names = {
         "cnpj": "SmartLic Intel Report — Análise de Empresa",
         "sector_uf": "SmartLic Intel Report — Relatório Setor/UF",
+        "subcontract": "SmartLic Intel Report — Subcontratação",
     }
 
     # IMPORTANT: {CHECKOUT_SESSION_ID} is a Stripe template literal (server-side substitution).
