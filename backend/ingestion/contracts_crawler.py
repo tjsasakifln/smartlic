@@ -204,10 +204,37 @@ def _normalize_contract(item: dict) -> dict | None:
     if len(objeto) > 500:
         objeto = objeto[:497] + "..."
 
+    # Extract natural business key fields (GAP-008)
+    # nr_contrato: use numeroContratoEmpenho if available
+    nr_contrato = (item.get("numeroContratoEmpenho") or "").strip() or None
+    # ano: extract from dataAssinatura, fallback to extract from numeroControlePNCP
+    ano = None
+    if data_assinatura and len(data_assinatura) >= 4:
+        try:
+            ano = int(data_assinatura[:4])
+        except (ValueError, TypeError):
+            pass
+    if ano is None and len(numero) > 18:
+        # numeroControlePNCP format: CNPJ(14)ANO(4)SEQUENCIAL(6)
+        # But actual format seen: "12345678000100-1-000001/2025"
+        # Try extracting year from position after '/'
+        if "/" in numero:
+            year_part = numero.split("/")[-1][:4]
+            try:
+                ano = int(year_part)
+            except (ValueError, TypeError):
+                pass
+
+    # Extract data_fim_vigencia from API response (GAP-008)
+    data_vigencia_fim_str = (item.get("dataVigenciaFim") or "")[:10]
+    data_fim_vigencia = data_vigencia_fim_str if len(data_vigencia_fim_str) == 10 else None
+
     return {
         "numero_controle_pncp": numero,
         "ni_fornecedor": ni,
         "nome_fornecedor": (item.get("nomeRazaoSocialFornecedor") or "")[:300] or None,
+        "nr_contrato": nr_contrato,
+        "ano": ano,
         "orgao_cnpj": _digits_only(orgao.get("cnpj")),
         "orgao_nome": (unidade.get("nomeUnidade") or orgao.get("razaoSocial") or "")[:300] or None,
         "uf": (unidade.get("ufSigla") or "")[:2] or None,
@@ -215,6 +242,7 @@ def _normalize_contract(item: dict) -> dict | None:
         "esfera": (orgao.get("esferaId") or "")[:1] or None,
         "valor_global": round(valor, 2) if valor is not None else None,
         "data_assinatura": data_assinatura,
+        "data_fim_vigencia": data_fim_vigencia,
         "objeto_contrato": objeto or None,
         "content_hash": content_hash,
     }
@@ -282,12 +310,18 @@ def _chunk(lst: list, size: int):
 
 
 async def _upsert_batch(rows: list[dict]) -> dict:
-    """Upsert a batch of normalized contract rows via Supabase RPC.
+    """Upsert a batch of normalized contract rows via upsert_supplier_contracts RPC.
+
+    Uses the dedicated RPC (GAP-008) with natural business key
+    (ni_fornecedor, nr_contrato, ano) — independent of content_hash/bids schema.
 
     Pass the list directly (not json.dumps) — supabase-py serialises RPC params
     as JSON automatically. Passing a JSON string would send it as a scalar,
     causing 'cannot extract elements from a scalar' (code 22023).
     We do a json round-trip to coerce dates/Decimals to strings first.
+
+    The RPC returns SETOF pncp_supplier_contracts (actual rows). We count
+    returned rows as inserted/updated and the remainder as unchanged.
     """
     totals = {"inserted": 0, "updated": 0, "unchanged": 0, "total": 0, "batches": 0}
     if not rows:
@@ -299,14 +333,13 @@ async def _upsert_batch(rows: list[dict]) -> dict:
             # json round-trip coerces non-serialisable types; returns list[dict]
             payload = json.loads(json.dumps(chunk, default=str, ensure_ascii=False))
             result = await sb_execute(
-                sb.rpc("upsert_pncp_supplier_contracts", {"p_records": payload}),
+                sb.rpc("upsert_supplier_contracts", {"contracts": payload}),
                 category="rpc",
             )
             if result.data:
-                counts = result.data[0] if isinstance(result.data, list) else result.data
-                totals["inserted"] += counts.get("inserted", 0)
-                totals["updated"] += counts.get("updated", 0)
-                totals["unchanged"] += counts.get("unchanged", 0)
+                returned_count = len(result.data)
+                totals["inserted"] += returned_count
+                totals["unchanged"] += max(0, len(chunk) - returned_count)
             totals["total"] += len(chunk)
             totals["batches"] += 1
         except Exception as exc:
