@@ -279,6 +279,25 @@ export async function middleware(request: NextRequest) {
     pathname === route || pathname.startsWith(`${route}/`)
   );
 
+  // E2E test bypass: when __e2e_test_mode cookie is set on localhost, skip
+  // the auth redirect so Playwright tests can access protected routes without
+  // a real auth session. This cookie is NEVER set in production and the bypass
+  // is ONLY active on localhost (CI and local dev). The test sets the cookie
+  // via context.addCookies() in its beforeEach hook.
+  const isE2eBypass =
+    isLocalhost &&
+    isProtectedRoute &&
+    request.cookies.get("__e2e_test_mode")?.value === "1";
+
+  if (isE2eBypass) {
+    const requestHeaders = new Headers(request.headers);
+    requestHeaders.set("x-user-id", "e2e-test-user");
+    requestHeaders.set("x-user-email", "e2e@test.com");
+    return addSecurityHeaders(
+      NextResponse.next({ request: { headers: requestHeaders } })
+    );
+  }
+
   // Rotas de embed públicas que precisam ser embutíveis em iframes cross-origin
   const EMBED_ROUTES = ["/calculadora/embed", "/observatorio/embed"];
   const isEmbedRoute = EMBED_ROUTES.some((r) => pathname.startsWith(r));
