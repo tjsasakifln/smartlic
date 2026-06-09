@@ -8,6 +8,20 @@
 # Loaded by sectors.py at startup.
 # =============================================================================
 
+# GAP-011: Per-sector viability weight overrides (optional).
+# Supported keys: modalidade, timeline, valor_estimado, geografia
+# Weights MUST sum to 1.0 (validated at startup).
+# Example:
+#   eng_obras:
+#     ...
+#     viability_weights:
+#       modalidade: 0.20
+#       timeline: 0.40
+#       valor_estimado: 0.20
+#       geografia: 0.20
+# When omitted, defaults from env vars VIABILITY_WEIGHT_* are used
+# (modalidade=0.30, timeline=0.25, valor_estimado=0.25, geografia=0.20).
+
 sectors:
   vestuario:
     name: "Vestuário e Uniformes"

@@ -46,6 +46,9 @@ class SectorYaml(BaseModel):
     signature_terms: list[str] = []
     negative_keywords: list[str] = []
     zero_match_acceptance_cap: float | None = None
+    # GAP-011: Per-sector viability weight overrides (optional)
+    # Supported keys: modalidade, timeline, valor_estimado, geografia
+    viability_weights: dict[str, float] | None = None
 
     @field_validator("viability_value_range")
     @classmethod
@@ -135,6 +138,10 @@ class SectorConfig:
     # Narrow sectors (e.g. vestuario) should use ~0.10; broad sectors can use 0.30 (default).
     # None falls back to the global 0.30 default in filter_llm.py.
     zero_match_acceptance_cap: Optional[float] = None
+    # GAP-011: Per-sector viability weight configurable overrides (optional).
+    # Keys: modalidade, timeline, valor_estimado, geografia (must sum to 1.0).
+    # None = use env-var defaults from config/features.py.
+    viability_weights: Optional[dict[str, float]] = None
 
 
 def _validate_sector_keywords(sectors_data: dict) -> list[str]:
@@ -307,6 +314,14 @@ def _load_sectors_from_yaml() -> Dict[str, SectorConfig]:
         if zero_match_acceptance_cap is not None:
             zero_match_acceptance_cap = float(zero_match_acceptance_cap)
 
+        # GAP-011: Parse per-sector viability_weights (optional dict, default None)
+        viability_weights = cfg.get("viability_weights")
+        if viability_weights is not None and not isinstance(viability_weights, dict):
+            _logger.warning(
+                f"Sector '{sector_id}': viability_weights must be a dict, got {type(viability_weights).__name__} — ignoring"
+            )
+            viability_weights = None
+
         sectors[sector_id] = SectorConfig(
             id=sector_id,
             name=cfg["name"],
@@ -321,6 +336,7 @@ def _load_sectors_from_yaml() -> Dict[str, SectorConfig]:
             signature_terms=signature_terms,
             negative_keywords=negative_keywords,
             zero_match_acceptance_cap=zero_match_acceptance_cap,
+            viability_weights=viability_weights,
         )
 
     return sectors
