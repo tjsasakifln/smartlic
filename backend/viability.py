@@ -251,6 +251,7 @@ def calculate_viability(
     value_range: tuple[float, float] | None = None,
     user_profile: dict | None = None,
     custom_terms: list[str] | None = None,
+    weights: dict[str, float] | None = None,
 ) -> ViabilityAssessment:
     """Calculate viability assessment for a single accepted bid.
 
@@ -259,6 +260,8 @@ def calculate_viability(
         ufs_busca: Set of UF codes the user selected for the search.
         value_range: (min, max) value range for the sector. Uses DEFAULT_VALUE_RANGE if None.
         user_profile: STORY-260: User profile for personalized scoring.
+        weights: Optional dict of per-factor weights (modalidade, timeline,
+            valor_estimado, geografia). Falls back to config env-var defaults if None.
 
     Returns:
         ViabilityAssessment with composite score, level, and factor breakdown.
@@ -288,11 +291,17 @@ def calculate_viability(
                 f"-R${TERM_SEARCH_VALUE_RANGE_MAX:,.0f} for term search"
             )
 
-    # Get weights from config
-    w_mod = getattr(config, "VIABILITY_WEIGHT_MODALITY", 0.30)
-    w_tl = getattr(config, "VIABILITY_WEIGHT_TIMELINE", 0.25)
-    w_vf = getattr(config, "VIABILITY_WEIGHT_VALUE_FIT", 0.25)
-    w_geo = getattr(config, "VIABILITY_WEIGHT_GEOGRAPHY", 0.20)
+    # GAP-011: Resolve viability weights — explicit param > env-var defaults
+    if weights is not None:
+        w_mod = weights.get("modalidade", 0.30)
+        w_tl = weights.get("timeline", 0.25)
+        w_vf = weights.get("valor_estimado", 0.25)
+        w_geo = weights.get("geografia", 0.20)
+    else:
+        w_mod = getattr(config, "VIABILITY_WEIGHT_MODALITY", 0.30)
+        w_tl = getattr(config, "VIABILITY_WEIGHT_TIMELINE", 0.25)
+        w_vf = getattr(config, "VIABILITY_WEIGHT_VALUE_FIT", 0.25)
+        w_geo = getattr(config, "VIABILITY_WEIGHT_GEOGRAPHY", 0.20)
 
     # Calculate each factor
     mod_score, mod_label = _score_modalidade(
@@ -369,6 +378,7 @@ def assess_batch(
     value_range: tuple[float, float] | None = None,
     user_profile: dict | None = None,
     custom_terms: list[str] | None = None,
+    viability_weights: dict[str, float] | None = None,
 ) -> None:
     """Calculate viability for a batch of bids, enriching them in-place.
 
@@ -379,9 +389,10 @@ def assess_batch(
         ufs_busca: UFs selected by user.
         value_range: Sector-specific value range.
         user_profile: STORY-260: User profile for personalized scoring (porte, faixa_valor, etc.).
+        viability_weights: GAP-011: Optional per-sector weight overrides.
     """
     for bid in bids:
-        assessment = calculate_viability(bid, ufs_busca, value_range, user_profile=user_profile, custom_terms=custom_terms)
+        assessment = calculate_viability(bid, ufs_busca, value_range, user_profile=user_profile, custom_terms=custom_terms, weights=viability_weights)
         bid["_viability_score"] = assessment.viability_score
         bid["_viability_level"] = assessment.viability_level
         bid["_viability_factors"] = assessment.factors.model_dump()

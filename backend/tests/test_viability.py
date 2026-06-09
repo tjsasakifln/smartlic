@@ -537,3 +537,125 @@ class TestCritFlt003ValueSource:
         assert bids[0]["_value_source"] == "estimated"
         assert bids[1]["_value_source"] == "missing"
         assert bids[2]["_value_source"] == "estimated"
+
+
+# =============================================================================
+# GAP-011: Per-sector viability weight overrides
+# =============================================================================
+
+
+class TestViabilityWeights:
+    """GAP-011: Custom weight overrides via viability_weights param."""
+
+    def test_custom_weights_via_param(self):
+        """When explicit weights dict is passed, scoring uses those weights."""
+        bid = {
+            "modalidadeNome": "Pregão Eletrônico",  # score=100
+            "dataEncerramentoProposta": "2099-12-31",  # score=100
+            "valorTotalEstimado": 0,  # score=50 (neutral)
+            "uf": "SP",  # score=100 (same UF)
+        }
+        # Only modalidade matters (weight=1.0), geography ignored (weight=0.0)
+        custom_weights = {
+            "modalidade": 1.0,
+            "timeline": 0.0,
+            "valor_estimado": 0.0,
+            "geografia": 0.0,
+        }
+        result = calculate_viability(bid, {"SP"}, weights=custom_weights)
+        assert result.viability_score == 100
+
+    def test_custom_weights_geography_only(self):
+        """Only geography matters (weight=1.0), others ignored."""
+        bid = {
+            "modalidadeNome": None,  # score=50
+            "dataEncerramentoProposta": None,  # score=50
+            "valorTotalEstimado": 0,  # score=50
+            "uf": "SP",
+        }
+        custom_weights = {
+            "modalidade": 0.0,
+            "timeline": 0.0,
+            "valor_estimado": 0.0,
+            "geografia": 1.0,
+        }
+        result = calculate_viability(bid, {"SP"}, weights=custom_weights)
+        assert result.viability_score == 100
+
+    def test_no_weights_falls_back_to_env_defaults(self):
+        """When weights=None, uses config env-var defaults (mocked in TestConfigWeights)."""
+        bid = {
+            "modalidadeNome": "Pregão Eletrônico",
+            "dataEncerramentoProposta": "2099-12-31",
+            "valorTotalEstimado": 100000,
+            "uf": "SP",
+        }
+        result = calculate_viability(bid, {"SP"}, (50_000, 2_000_000), weights=None)
+        # With default weights (0.30, 0.25, 0.25, 0.20)
+        # mod=100*0.30, tl=100*0.25, vf=100*0.25, geo=100*0.20 = 100
+        assert result.viability_score == 100
+
+    def test_custom_weights_via_assess_batch(self):
+        """assess_batch passes viability_weights to calculate_viability."""
+        bid = {
+            "modalidadeNome": "Pregão Eletrônico",  # score=100
+            "dataEncerramentoProposta": "2099-12-31",
+            "valorTotalEstimado": 0,
+            "uf": "SP",
+        }
+        custom_weights = {
+            "modalidade": 1.0,
+            "timeline": 0.0,
+            "valor_estimado": 0.0,
+            "geografia": 0.0,
+        }
+        assess_batch([bid], {"SP"}, viability_weights=custom_weights)
+        assert bid["_viability_score"] == 100
+        assert bid["_viability_level"] == "alta"
+
+    def test_viability_weights_empty_dict_falls_back(self):
+        """Empty weights dict falls back to default values for each key."""
+        bid = {
+            "modalidadeNome": "Pregão Eletrônico",
+            "dataEncerramentoProposta": "2099-12-31",
+            "valorTotalEstimado": 100000,
+            "uf": "SP",
+        }
+        # Empty dict — each .get() falls back to the hardcoded default
+        result = calculate_viability(bid, {"SP"}, (50_000, 2_000_000), weights={})
+        assert result.viability_score == 100
+
+
+class TestViabilityWeightsSchema:
+    """GAP-011: ViabilityWeights Pydantic schema validation."""
+
+    def test_default_weights(self):
+        from schemas.viability import ViabilityWeights
+        vw = ViabilityWeights()
+        assert vw.modalidade == 0.30
+        assert vw.timeline == 0.25
+        assert vw.valor_estimado == 0.25
+        assert vw.geografia == 0.20
+
+    def test_custom_weights_valid(self):
+        from schemas.viability import ViabilityWeights
+        vw = ViabilityWeights(
+            modalidade=0.20,
+            timeline=0.40,
+            valor_estimado=0.20,
+            geografia=0.20,
+        )
+        assert vw.modalidade == 0.20
+        assert vw.timeline == 0.40
+
+    def test_invalid_sum_raises_error(self):
+        from pydantic import ValidationError
+        from schemas.viability import ViabilityWeights
+        import pytest
+        with pytest.raises(ValidationError, match="must sum to 1.0"):
+            ViabilityWeights(
+                modalidade=0.50,
+                timeline=0.50,
+                valor_estimado=0.50,
+                geografia=0.50,
+            )

@@ -28,7 +28,14 @@ async def stage_enrich(pipeline, ctx: SearchContext) -> None:
         if ctx.sector and hasattr(ctx.sector, "viability_value_range"):
             vr = ctx.sector.viability_value_range
         ufs_busca = set(ctx.request.ufs) if ctx.request.ufs else set()
-        viability_assess_batch(ctx.licitacoes_filtradas, ufs_busca, vr, user_profile=ctx.user_profile, custom_terms=ctx.custom_terms or None)
+        # GAP-011: Pass per-sector viability weight overrides if defined
+        sector_weights = getattr(ctx.sector, "viability_weights", None) if ctx.sector else None
+        viability_assess_batch(
+            ctx.licitacoes_filtradas, ufs_busca, vr,
+            user_profile=ctx.user_profile,
+            custom_terms=ctx.custom_terms or None,
+            viability_weights=sector_weights,
+        )
         # CRIT-FLT-003 AC4: Log zero-value proportion
         total = len(ctx.licitacoes_filtradas)
         zero_count = sum(

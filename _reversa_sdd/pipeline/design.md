@@ -68,8 +68,8 @@ Resultados Brutos (PNCP + PCP + ComprasGov)
 
 ### Camada 3: fuzzy Jaccard
 - **Algoritmo:** Jaccard similarity entre conjuntos de tokens do objeto
-- **Parâmetros:** `DEDUP_FUZZY_THRESHOLD` (default 0.80, configurável via env var DEDUP_FUZZY_THRESHOLD)
-- **Stopwords:** 30 palavras PT-BR ignoradas (de, para, com, em, que, etc.)
+- **Parâmetros:** `DEDUP_FUZZY_THRESHOLD` (default inferido ~0.85)
+- **Stopwords:** 230 palavras PT-BR ignoradas (definidas em `filter/stopwords.py` — 204 NLTK + 26 termos de licitação)
 - **Complexidade:** O(n²) no pior caso, mitigado por early pruning
 - **Ação:** Se similaridade > threshold → merge
 
@@ -110,15 +110,25 @@ Densidade = (keywords_matched / total_keywords_do_setor) × 100
 ## Viabilidade (4 Fatores)
 
 ```
-Score = modalidade_score × 0.30
-      + timeline_score  × 0.25
-      + valor_score     × 0.25
-      + geografia_score × 0.20
+Score = modalidade_score × modalidade_weight
+      + timeline_score  × timeline_weight
+      + valor_score     × valor_weight
+      + geografia_score × geografia_weight
 
-Modalidade:  Pregão(100) > Concorrência(80) > Dispensa(60) > ...
-Timeline:    data_entrega - hoje → urgência
-Valor:       valor_estimado no range ideal do setor
-Geografia:   UF na região de atuação do usuário
+Pesos default (env vars VIABILITY_WEIGHT_*):
+  modalidade=0.30, timeline=0.25, valor_estimado=0.25, geografia=0.20
+
+Setores podem sobrescrever (opcional, GAP-011):
+  sectors_data.yaml → viability_weights:
+    - Exemplo: engenharia pode usar timeline=0.40 para priorizar urgência
+    - Validação: soma deve ser 1.0 (erro em startup se ≠)
+    - Chaves suportadas: modalidade, timeline, valor_estimado, geografia
+
+Fatores individuais:
+  Modalidade:  Pregão(100) > Concorrência(80) > Dispensa(60) > ...
+  Timeline:    data_entrega - hoje → urgência
+  Valor:       valor_estimado no range ideal do setor
+  Geografia:   UF na região de atuação do usuário
 ```
 
 ## Dependências
@@ -146,5 +156,5 @@ Geografia:   UF na região de atuação do usuário
 | # | Lacuna |
 |---|--------|
 | DES-PIP-001 | ~~Valor exato de `DEDUP_FUZZY_THRESHOLD` — inferido ~0.85 do código, confirmar~~ | **RESOLVIDO (#1587):** Configurável via `DEDUP_FUZZY_THRESHOLD` env var, default 0.80 |
-| DES-PIP-002 | Lista completa das 30 stopwords PT-BR — extraída parcialmente |
-| DES-PIP-003 | Peso dos fatores de viabilidade é fixo ou configurável por setor? |
+| DES-PIP-002 | Lista completa das 230 stopwords PT-BR — resolvida em `filter/stopwords.py` (GAP-010) |
+| DES-PIP-003 | Peso dos fatores de viabilidade é fixo ou configurável por setor? | ✅ Resolvido (GAP-011) — viabilidade aceita `weights` opcionais por setor via `sectors_data.yaml → viability_weights`. Fallback para env vars `VIABILITY_WEIGHT_*` se não definido. |
