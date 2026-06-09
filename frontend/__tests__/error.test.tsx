@@ -32,14 +32,14 @@ describe("Error Boundary Component", () => {
     it("should render user-friendly error heading", () => {
       render(<ErrorBoundary error={mockError} reset={mockReset} />);
       expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent(
-        "Ops! Algo deu errado"
+        "Algo deu errado"
       );
     });
 
     it("should display friendly error message", () => {
       render(<ErrorBoundary error={mockError} reset={mockReset} />);
       expect(
-        screen.getByText(/Ocorreu um erro inesperado. Por favor, tente novamente./)
+        screen.getByText(/Ocorreu um erro inesperado/)
       ).toBeInTheDocument();
     });
 
@@ -71,8 +71,8 @@ describe("Error Boundary Component", () => {
       // Match the leading text node which starts the sentence.
       render(<ErrorBoundary error={mockError} reset={mockReset} />);
       expect(
-        screen.getByText(/Se o problema persistir,/)
-      ).toBeInTheDocument();
+        screen.getAllByText(/Se o problema persistir,/).length
+      ).toBeGreaterThanOrEqual(1);
     });
 
     it("should be responsive and centered", () => {

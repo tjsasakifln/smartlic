@@ -67,6 +67,8 @@ jest.mock("../lib/error-messages", () => ({
   ERROR_CODE_MESSAGES: jest.requireActual("../lib/error-messages").ERROR_CODE_MESSAGES,
   getErrorMessage: jest.requireActual("../lib/error-messages").getErrorMessage,
   DEFAULT_ERROR_MESSAGE: jest.requireActual("../lib/error-messages").DEFAULT_ERROR_MESSAGE,
+  getStructuredError: jest.requireActual("../lib/error-messages").getStructuredError,
+  httpStatusToCategory: jest.requireActual("../lib/error-messages").httpStatusToCategory,
 }));
 
 jest.mock("../lib/searchStatePersistence", () => ({

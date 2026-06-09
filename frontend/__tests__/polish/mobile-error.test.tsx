@@ -437,7 +437,7 @@ describe("GTM-POLISH-002 T2: ErrorDetail scrollable on mobile", () => {
       />
     );
 
-    expect(screen.getByText("Tempo esgotado")).toBeInTheDocument();
+    expect(screen.getByText(/Tempo limite excedido/)).toBeInTheDocument();
   });
 
   it("returns null when no searchId and no errorMessage provided", () => {
