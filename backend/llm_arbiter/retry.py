@@ -89,4 +89,8 @@ def call_openai_with_retry(
 
     # All retries exhausted -- re-raise the last error so the caller can
     # apply its own fallback (PENDING_REVIEW, hard REJECT, ...).
-    raise last_error  # type: ignore[misc]  # last_error is set if we reach here
+    # last_error is guaranteed to be set: the loop only breaks inside the
+    # ``except APIError`` block where it is assigned.
+    if last_error is None:
+        raise APIError("All retry attempts exhausted")  # pragma: no cover
+    raise last_error
