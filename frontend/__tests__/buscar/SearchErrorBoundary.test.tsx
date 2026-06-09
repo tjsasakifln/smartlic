@@ -28,8 +28,8 @@ describe("SearchErrorBoundary", () => {
       </SearchErrorBoundary>
     );
 
-    expect(screen.getByText("Algo deu errado ao exibir os resultados")).toBeInTheDocument();
-    expect(screen.getByText(/Um erro inesperado ocorreu/)).toBeInTheDocument();
+    expect(screen.getByText("Algo deu errado")).toBeInTheDocument();
+    expect(screen.getByText(/Ocorreu um erro inesperado/)).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /Tentar novamente/ })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /Nova análise/ })).toBeInTheDocument();
   });
@@ -56,14 +56,14 @@ describe("SearchErrorBoundary", () => {
       </SearchErrorBoundary>
     );
 
-    expect(screen.getByText("Algo deu errado ao exibir os resultados")).toBeInTheDocument();
+    expect(screen.getByText("Algo deu errado")).toBeInTheDocument();
 
     // Click retry button
     fireEvent.click(screen.getByRole("button", { name: /Tentar novamente/ }));
 
     // Error boundary should reset state and re-render children
     // Since ThrowError still throws, it will show error again
-    expect(screen.getByText("Algo deu errado ao exibir os resultados")).toBeInTheDocument();
+    expect(screen.getByText("Algo deu errado")).toBeInTheDocument();
   });
 
   // CRIT-002 AC9: Calls onReset when "Nova análise" button is clicked
@@ -90,7 +90,7 @@ describe("SearchErrorBoundary", () => {
     );
 
     expect(screen.getByText("No error")).toBeInTheDocument();
-    expect(screen.queryByText("Algo deu errado ao exibir os resultados")).not.toBeInTheDocument();
+    expect(screen.queryByText("Algo deu errado")).not.toBeInTheDocument();
   });
 
   it("should show error icon", () => {
