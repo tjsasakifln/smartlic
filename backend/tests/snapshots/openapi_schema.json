@@ -25535,6 +25535,26 @@
         ]
       }
     },
+    "/v1/health/stripe": {
+      "get": {
+        "description": "DEC-BIL-GAP-02: Stripe connectivity health check.\n\nReturns connection status with grace period logic.\n- ok: Stripe reachable.\n- unreachable: Stripe unreachable, with grace_remaining_hours or notified flag.\nPublic endpoint \u2014 no auth required.",
+        "operationId": "stripe_health_v1_health_stripe_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Stripe Health",
+        "tags": [
+          "health"
+        ]
+      }
+    },
     "/v1/health/tasks": {
       "get": {
         "description": "DEBT-014 SYS-006: Background task health via TaskRegistry.",
