@@ -71,8 +71,8 @@ try:
             # CONTRACTS_CRAWL_WEEKDAYS env var: comma-separated weekday names (default: mon,wed,fri)
             # Set CONTRACTS_CRAWL_WEEKDAYS=mon,tues,wed,thurs,fri,sat,sun for daily crawl
             from ingestion.scheduler import (
-                contracts_full_crawl_job, contracts_full_crawl_func,
-                contracts_incremental_job, contracts_incremental_func,
+                contracts_full_crawl_job,
+                contracts_incremental_job,
             )
             from ingestion.contracts_crawler import CONTRACTS_FULL_CRAWL_TIMEOUT, CONTRACTS_INCREMENTAL_TIMEOUT
             _contracts_enabled = __import__("os").getenv("CONTRACTS_INGESTION_ENABLED", "true").lower() in ("true", "1")
@@ -152,7 +152,7 @@ class WorkerSettings:
         from ingestion.config import DATALAKE_ENABLED as _dl_enabled
         if _dl_enabled:
             from ingestion.scheduler import (
-                ingestion_full_crawl_job, ingestion_incremental_job, ingestion_purge_job,
+                ingestion_full_crawl_func, ingestion_incremental_func, ingestion_purge_func,
                 ingestion_backfill_func,
                 contracts_full_crawl_func, contracts_incremental_func,
                 enrich_entities_func,
@@ -160,7 +160,7 @@ class WorkerSettings:
                 enrich_pncp_ibge_codes_func,
             )
             _ingestion_functions = [
-                ingestion_full_crawl_job, ingestion_incremental_job, ingestion_purge_job,
+                ingestion_full_crawl_func, ingestion_incremental_func, ingestion_purge_func,
                 ingestion_backfill_func,
                 contracts_full_crawl_func, contracts_incremental_func,
                 enrich_entities_func,
@@ -213,6 +213,5 @@ class WorkerSettings:
     redis_settings = _worker_redis_settings
     max_jobs = 10
     job_timeout = 300
-    max_tries = 3
+    max_tries = 1  # GAP-004 (#1581): per-job override via arq.func() for crawl jobs
     health_check_interval = 30
-    retry_delay = 5.0

@@ -104,3 +104,17 @@ INGESTION_BACKFILL_DAYS = int(os.getenv("INGESTION_BACKFILL_DAYS", "365"))
 
 # Chunk size in days — keeps results under 50-page cap for high-volume UFs
 INGESTION_BACKFILL_CHUNK_DAYS = int(os.getenv("INGESTION_BACKFILL_CHUNK_DAYS", "7"))
+
+# ---------------------------------------------------------------------------
+# Retry policy for ARQ ingestion jobs (GAP-004, #1581)
+# ---------------------------------------------------------------------------
+
+# Crawl jobs: max 3 tries with exponential backoff
+# Delays: 60s -> 300s -> 900s (1st retry -> 2nd retry -> DEAD after 3rd failure)
+CRAWL_RETRY_MAX_TRIES = int(os.getenv("CRAWL_RETRY_MAX_TRIES", "3"))
+CRAWL_RETRY_BACKOFF_BASE = int(os.getenv("CRAWL_RETRY_BACKOFF_BASE", "60"))
+CRAWL_RETRY_BACKOFF_MULTIPLIER = int(os.getenv("CRAWL_RETRY_BACKOFF_MULTIPLIER", "5"))
+
+# Purge and enricher jobs: best-effort, no retry
+PURGE_RETRY_MAX_TRIES = int(os.getenv("PURGE_RETRY_MAX_TRIES", "1"))
+ENRICHER_RETRY_MAX_TRIES = int(os.getenv("ENRICHER_RETRY_MAX_TRIES", "1"))

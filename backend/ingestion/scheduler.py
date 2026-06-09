@@ -19,7 +19,12 @@ import time
 
 from arq import func as arq_func
 
-from ingestion.config import DATALAKE_ENABLED
+from ingestion.config import (
+    DATALAKE_ENABLED,
+    CRAWL_RETRY_MAX_TRIES,
+    CRAWL_RETRY_BACKOFF_BASE,
+    CRAWL_RETRY_BACKOFF_MULTIPLIER,
+)
 from ingestion.contracts_crawler import CONTRACTS_FULL_CRAWL_TIMEOUT, CONTRACTS_INCREMENTAL_TIMEOUT
 
 logger = logging.getLogger(__name__)
@@ -99,6 +104,63 @@ async def _notify_failure(
         logger.warning("[Ingestion:%s] Could not send Slack alert: %s", job_name, exc)
 
 
+async def _with_ingestion_retry(
+    ctx: dict,
+    job_name: str,
+    max_tries: int,
+    backoff_base: int,
+    backoff_multiplier: int,
+    error: BaseException,
+    duration_s: float,
+) -> None:
+    """Raise arq.Retry with exponential backoff, or return if max retries exhausted.
+
+    Call this inside the except block of an ingestion job handler.
+    When ``job_try < max_tries``, raises ``arq.Retry(defer=<backoff_delay>)``
+    so ARQ re-queues the job with exponential backoff.
+    When ``job_try >= max_tries``, returns normally — the caller should
+    handle the final failure (notify Slack/Sentry, return status="failed").
+
+    Backoff formula: delay = backoff_base * (backoff_multiplier ** (job_try - 1))
+    Default (base=60, mult=5): 60s -> 300s -> 900s
+
+    Args:
+        ctx: ARQ worker context (contains ``job_try``).
+        job_name: Label for logging and Prometheus metrics.
+        max_tries: Max attempts including first (3 = run once + 2 retries).
+        backoff_base: Base delay in seconds for the first retry.
+        backoff_multiplier: Multiplicative factor for each subsequent retry.
+        error: The original exception that caused the failure.
+        duration_s: How long the failed run took.
+
+    Raises:
+        arq.Retry: If the job should be retried (job_try < max_tries).
+    """
+    job_try = ctx.get("job_try", 1)
+    if job_try >= max_tries:
+        return  # Max retries exhausted — caller handles final failure
+
+    delay = backoff_base * (backoff_multiplier ** (job_try - 1))
+    next_retry_at = time.time() + delay
+
+    logger.warning(
+        "[Ingestion:%s] Attempt %d/%d failed after %.1fs. "
+        "Retrying in %ds (next_retry_at=%.0f): %s: %s",
+        job_name, job_try, max_tries, duration_s,
+        delay, next_retry_at,
+        type(error).__name__, error,
+    )
+
+    try:
+        from ingestion.metrics import ARQ_JOB_RETRIES_TOTAL
+        ARQ_JOB_RETRIES_TOTAL.labels(job_name=job_name).inc()
+    except Exception:
+        pass
+
+    from arq import Retry
+    raise Retry(defer=delay) from error
+
+
 async def ingestion_full_crawl_job(ctx: dict) -> dict:
     """ARQ job: Full PNCP crawl. Daily at 2am BRT (5am UTC).
 
@@ -120,11 +182,20 @@ async def ingestion_full_crawl_job(ctx: dict) -> dict:
         result = await crawl_full()
     except Exception as e:
         duration_s = round(time.monotonic() - start, 1)
+        # GAP-004: Retry with exponential backoff
+        await _with_ingestion_retry(
+            ctx, "FullCrawl",
+            max_tries=CRAWL_RETRY_MAX_TRIES,
+            backoff_base=CRAWL_RETRY_BACKOFF_BASE,
+            backoff_multiplier=CRAWL_RETRY_BACKOFF_MULTIPLIER,
+            error=e, duration_s=duration_s,
+        )
+        # Only reached if max retries exhausted
         logger.error(
-            f"[Ingestion:FullCrawl] Failed after {duration_s}s: {type(e).__name__}: {e}",
+            "[Ingestion:FullCrawl] Failed after %d attempts: %s: %s",
+            ctx.get("job_try", 1), type(e).__name__, e,
             exc_info=True,
         )
-        # DEBT-04 AC4: Notify Slack + Sentry on ingestion failure
         await _notify_failure("FullCrawl", f"{type(e).__name__}: {e}", duration_s)
         return {
             "status": "failed",
@@ -169,11 +240,20 @@ async def ingestion_incremental_job(ctx: dict) -> dict:
         result = await crawl_incremental()
     except Exception as e:
         duration_s = round(time.monotonic() - start, 1)
+        # GAP-004: Retry with exponential backoff
+        await _with_ingestion_retry(
+            ctx, "Incremental",
+            max_tries=CRAWL_RETRY_MAX_TRIES,
+            backoff_base=CRAWL_RETRY_BACKOFF_BASE,
+            backoff_multiplier=CRAWL_RETRY_BACKOFF_MULTIPLIER,
+            error=e, duration_s=duration_s,
+        )
+        # Only reached if max retries exhausted
         logger.error(
-            f"[Ingestion:Incremental] Failed after {duration_s}s: {type(e).__name__}: {e}",
+            "[Ingestion:Incremental] Failed after %d attempts: %s: %s",
+            ctx.get("job_try", 1), type(e).__name__, e,
             exc_info=True,
         )
-        # DEBT-04 AC4: Notify Slack + Sentry on ingestion failure
         await _notify_failure("Incremental", f"{type(e).__name__}: {e}", duration_s)
         return {
             "status": "failed",
@@ -216,7 +296,16 @@ async def contracts_full_crawl_job(ctx: dict) -> dict:
         result = await run_full_crawl()
     except Exception as e:
         duration_s = round(_time.monotonic() - start, 1)
-        logger.error("[ContractsCrawler:Full] Failed after %.1fs: %s", duration_s, e, exc_info=True)
+        # GAP-004: Retry with exponential backoff
+        await _with_ingestion_retry(
+            ctx, "ContractsFull",
+            max_tries=CRAWL_RETRY_MAX_TRIES,
+            backoff_base=CRAWL_RETRY_BACKOFF_BASE,
+            backoff_multiplier=CRAWL_RETRY_BACKOFF_MULTIPLIER,
+            error=e, duration_s=duration_s,
+        )
+        # Only reached if max retries exhausted
+        logger.error("[ContractsCrawler:Full] Failed after %d attempts: %s", ctx.get("job_try", 1), e, exc_info=True)
         await _notify_failure("ContractsFull", f"{type(e).__name__}: {e}", duration_s)
         try:
             from ingestion.metrics import CONTRACTS_RUNS_TOTAL, CONTRACTS_RUN_DURATION
@@ -262,7 +351,16 @@ async def contracts_incremental_job(ctx: dict) -> dict:
         result = await run_incremental_crawl()
     except Exception as e:
         duration_s = round(_time.monotonic() - start, 1)
-        logger.error("[ContractsCrawler:Incr] Failed after %.1fs: %s", duration_s, e, exc_info=True)
+        # GAP-004: Retry with exponential backoff
+        await _with_ingestion_retry(
+            ctx, "ContractsIncr",
+            max_tries=CRAWL_RETRY_MAX_TRIES,
+            backoff_base=CRAWL_RETRY_BACKOFF_BASE,
+            backoff_multiplier=CRAWL_RETRY_BACKOFF_MULTIPLIER,
+            error=e, duration_s=duration_s,
+        )
+        # Only reached if max retries exhausted
+        logger.error("[ContractsCrawler:Incr] Failed after %d attempts: %s", ctx.get("job_try", 1), e, exc_info=True)
         await _notify_failure("ContractsIncr", f"{type(e).__name__}: {e}", duration_s)
         try:
             from ingestion.metrics import CONTRACTS_RUNS_TOTAL, CONTRACTS_RUN_DURATION
@@ -294,11 +392,15 @@ async def contracts_incremental_job(ctx: dict) -> dict:
 # (used when jobs are manually enqueued via enqueue_job()).
 # arq.cron() expects raw coroutines — do NOT pass Function objects to cron().
 # config.py imports both: raw for cron(), _func for WorkerSettings.functions.
+#
+# max_tries is a safety net — the actual retry gating is done via
+# _with_ingestion_retry() / arq.Retry inside each job handler.
+# GAP-004 (#1581): crawl jobs = max_tries=3, purge/enricher = max_tries=1 (no retry).
 contracts_full_crawl_func = arq_func(
-    contracts_full_crawl_job, timeout=CONTRACTS_FULL_CRAWL_TIMEOUT,
+    contracts_full_crawl_job, max_tries=3, timeout=CONTRACTS_FULL_CRAWL_TIMEOUT,
 )
 contracts_incremental_func = arq_func(
-    contracts_incremental_job, timeout=CONTRACTS_INCREMENTAL_TIMEOUT,
+    contracts_incremental_job, max_tries=3, timeout=CONTRACTS_INCREMENTAL_TIMEOUT,
 )
 
 
@@ -327,8 +429,18 @@ async def ingestion_backfill_job(ctx: dict) -> dict:
         result = await crawl_backfill()
     except Exception as e:
         duration_s = round(time.monotonic() - start, 1)
+        # GAP-004: Retry with exponential backoff
+        await _with_ingestion_retry(
+            ctx, "Backfill",
+            max_tries=CRAWL_RETRY_MAX_TRIES,
+            backoff_base=CRAWL_RETRY_BACKOFF_BASE,
+            backoff_multiplier=CRAWL_RETRY_BACKOFF_MULTIPLIER,
+            error=e, duration_s=duration_s,
+        )
+        # Only reached if max retries exhausted
         logger.error(
-            f"[Ingestion:Backfill] Failed after {duration_s}s: {type(e).__name__}: {e}",
+            "[Ingestion:Backfill] Failed after %d attempts: %s: %s",
+            ctx.get("job_try", 1), type(e).__name__, e,
             exc_info=True,
         )
         await _notify_failure("Backfill", f"{type(e).__name__}: {e}", duration_s)
@@ -348,7 +460,7 @@ async def ingestion_backfill_job(ctx: dict) -> dict:
 
 # arq.func() wrapper for manual enqueue_job() invocation
 ingestion_backfill_func = arq_func(
-    ingestion_backfill_job, timeout=36000,  # 10h safety
+    ingestion_backfill_job, max_tries=3, timeout=36000,  # 10h safety
 )
 
 
@@ -386,7 +498,7 @@ async def enrich_entities_job(ctx: dict) -> dict:
 
 
 enrich_entities_func = arq_func(
-    enrich_entities_job, timeout=7200,  # 2h safety
+    enrich_entities_job, max_tries=1, timeout=7200,  # 2h safety
 )
 
 
@@ -420,7 +532,7 @@ async def enrich_municipios_job(ctx: dict) -> dict:
 
 
 enrich_municipios_func = arq_func(
-    enrich_municipios_job, timeout=3600,  # 1h safety
+    enrich_municipios_job, max_tries=1, timeout=3600,  # 1h safety
 )
 
 
@@ -452,7 +564,7 @@ async def enrich_pncp_ibge_codes_job(ctx: dict) -> dict:
 
 
 enrich_pncp_ibge_codes_func = arq_func(
-    enrich_pncp_ibge_codes_job, timeout=1800,  # 30min safety
+    enrich_pncp_ibge_codes_job, max_tries=1, timeout=1800,  # 30min safety
 )
 
 
@@ -513,3 +625,17 @@ async def ingestion_purge_job(ctx: dict) -> dict:
         "grace_days": INGESTION_PURGE_GRACE_DAYS,
         "duration_s": duration_s,
     }
+
+
+# GAP-004 (#1581): arq.func() wrappers with explicit max_tries for WorkerSettings.
+# Crawl jobs may retry via _with_ingestion_retry() (max_tries=3).
+# Purge is best-effort (max_tries=1).
+ingestion_full_crawl_func = arq_func(
+    ingestion_full_crawl_job, max_tries=3, timeout=14400,  # 4h safety
+)
+ingestion_incremental_func = arq_func(
+    ingestion_incremental_job, max_tries=3, timeout=3600,  # 1h safety
+)
+ingestion_purge_func = arq_func(
+    ingestion_purge_job, max_tries=1, timeout=600,  # 10min safety
+)
