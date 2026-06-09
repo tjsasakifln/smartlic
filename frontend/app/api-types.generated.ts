@@ -13275,6 +13275,22 @@ export interface components {
             status: string;
         };
         /**
+         * StripeHealthResponse
+         * @description Response for GET /health/stripe endpoint (DEC-BIL-GAP-02).
+         */
+        StripeHealthResponse: {
+            /** Grace Period Hours */
+            grace_period_hours?: number | null;
+            /** Grace Remaining Hours */
+            grace_remaining_hours?: number | null;
+            /** Notified */
+            notified?: boolean | null;
+            /** Since */
+            since?: string | null;
+            /** Stripe */
+            stripe: string;
+        };
+        /**
          * SubscriptionStatusResponse
          * @description GET /subscription/status — current plan + period info.
          */
@@ -19324,7 +19340,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": unknown;
+                    "application/json": components["schemas"]["StripeHealthResponse"];
                 };
             };
         };
