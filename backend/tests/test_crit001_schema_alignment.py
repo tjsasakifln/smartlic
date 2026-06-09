@@ -16,7 +16,6 @@ from uuid import uuid4
 
 import pytest
 
-
 # ============================================================================
 # MOD-T01 to MOD-T04: Model integrity
 # ============================================================================
@@ -25,7 +24,7 @@ class TestSearchResultsCacheRow:
     """AC16: SearchResultsCacheRow 100% test coverage."""
 
     def test_mod_t01_instantiate_all_fields(self):
-        """MOD-T01: Instantiate with all 18 fields."""
+        """MOD-T01: Instantiate with all 20 fields."""
         from models.cache import SearchResultsCacheRow
 
         now = datetime.now(timezone.utc)
@@ -74,24 +73,26 @@ class TestSearchResultsCacheRow:
         assert row.access_count == 0
         assert row.sources_json == ["pncp"]
 
-    def test_mod_t03_expected_columns_returns_19(self):
-        """MOD-T03: expected_columns() returns exactly 19 names (includes params_hash_global)."""
+    def test_mod_t03_expected_columns_returns_20(self):
+        """MOD-T03: expected_columns() returns exactly 20 names (includes params_hash_global + expires_at)."""
         from models.cache import SearchResultsCacheRow
 
         cols = SearchResultsCacheRow.expected_columns()
         assert isinstance(cols, set)
-        assert len(cols) == 19
+        assert len(cols) == 20  # was 19, +expires_at
         assert "id" in cols
         assert "sources_json" in cols
         assert "fetched_at" in cols
         assert "priority" in cols
         assert "access_count" in cols
         assert "params_hash_global" in cols
+        assert "expires_at" in cols
 
     def test_mod_t04_rejects_wrong_types(self):
         """MOD-T04: Pydantic validation rejects total_results as string."""
-        from models.cache import SearchResultsCacheRow
         from pydantic import ValidationError
+
+        from models.cache import SearchResultsCacheRow
 
         with pytest.raises(ValidationError):
             SearchResultsCacheRow(
@@ -138,8 +139,8 @@ class TestSchemaHealthCheck:
     @pytest.mark.asyncio
     async def test_hc_t02_passes_with_correct_schema(self, caplog):
         """HC-T02: Health check passes with correct schema and logs INFO."""
-        from startup.lifespan import _check_cache_schema
         from models.cache import SearchResultsCacheRow
+        from startup.lifespan import _check_cache_schema
 
         mock_result = MagicMock()
         mock_result.data = [

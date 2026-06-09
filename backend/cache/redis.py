@@ -10,10 +10,11 @@ redis_pool imports are lazy (inside functions) for testability.
 """
 import json
 import logging
+import random
 from datetime import datetime, timezone
 from typing import Optional
 
-from cache.enums import CachePriority, REDIS_TTL_BY_PRIORITY, REDIS_CACHE_TTL_SECONDS
+from cache.enums import REDIS_CACHE_TTL_SECONDS, REDIS_TTL_BY_PRIORITY, CachePriority
 
 logger = logging.getLogger(__name__)
 
@@ -34,10 +35,13 @@ def _save_to_redis(
     Falls back to per-process InMemoryCache when Redis is unavailable.
 
     B-02 AC6: Uses priority-based TTL instead of fixed 4h.
+    B-02 AC6 (jitter): Adds +0-10% random jitter to prevent thundering herd on TTL expiry.
     """
-    from redis_pool import get_sync_redis, get_fallback_cache
+    from redis_pool import get_fallback_cache, get_sync_redis
 
     ttl = REDIS_TTL_BY_PRIORITY.get(priority, REDIS_CACHE_TTL_SECONDS)
+    # Add +0-10% jitter to spread TTL expiry across workers
+    ttl = int(ttl * random.uniform(1.0, 1.1))
     cache_data = json.dumps({
         "results": results,
         "sources_json": sources,
@@ -62,7 +66,7 @@ def _get_from_redis(cache_key: str) -> Optional[dict]:
     STORY-5.1: Tries actual Redis first; falls back to per-process
     InMemoryCache when Redis is unavailable or returns an error.
     """
-    from redis_pool import get_sync_redis, get_fallback_cache
+    from redis_pool import get_fallback_cache, get_sync_redis
 
     L1_HITS, L1_MISSES = _get_l1_metrics()
 

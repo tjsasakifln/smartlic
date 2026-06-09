@@ -13,21 +13,21 @@ Covers all 10 ACs:
   AC10: priority_distribution in health endpoint
 """
 
-import pytest
-from datetime import datetime, timezone, timedelta
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
-from unittest.mock import patch, Mock, AsyncMock, MagicMock
+from unittest.mock import AsyncMock, MagicMock, Mock, patch
+
+import pytest
 
 from search_cache import (
-    CachePriority,
-    classify_priority,
     REDIS_TTL_BY_PRIORITY,
-    get_from_cache,
-    _save_to_redis,
-    _process_cache_hit,
     CacheLevel,
+    CachePriority,
+    _process_cache_hit,
+    _save_to_redis,
+    classify_priority,
+    get_from_cache,
 )
-
 
 # ============================================================================
 # AC1: CachePriority enum with 3 levels
@@ -376,41 +376,45 @@ class TestRedisTTLByPriority:
         assert REDIS_TTL_BY_PRIORITY[CachePriority.COLD] == 3600
 
     def test_hot_entry_gets_2h_ttl(self):
-        """Saving with priority=HOT uses 7200s TTL."""
+        """Saving with priority=HOT uses ~7200s TTL (+0-10% jitter)."""
         mock_cache = MagicMock()
         with patch("redis_pool.get_fallback_cache", return_value=mock_cache):
             _save_to_redis("test_key", [{"id": 1}], ["PNCP"], priority=CachePriority.HOT)
 
         mock_cache.setex.assert_called_once()
         args = mock_cache.setex.call_args[0]
-        assert args[1] == 7200  # TTL
+        base_ttl = 7200
+        assert base_ttl <= args[1] <= base_ttl * 1.1, f"Expected {base_ttl} <= {args[1]} <= {base_ttl * 1.1}"
 
     def test_cold_entry_gets_1h_ttl(self):
-        """Saving with priority=COLD uses 3600s TTL."""
+        """Saving with priority=COLD uses ~3600s TTL (+0-10% jitter)."""
         mock_cache = MagicMock()
         with patch("redis_pool.get_fallback_cache", return_value=mock_cache):
             _save_to_redis("test_key", [{"id": 1}], ["PNCP"], priority=CachePriority.COLD)
 
         args = mock_cache.setex.call_args[0]
-        assert args[1] == 3600
+        base_ttl = 3600
+        assert base_ttl <= args[1] <= base_ttl * 1.1, f"Expected {base_ttl} <= {args[1]} <= {base_ttl * 1.1}"
 
     def test_warm_entry_gets_6h_ttl(self):
-        """Saving with priority=WARM uses 21600s TTL."""
+        """Saving with priority=WARM uses ~21600s TTL (+0-10% jitter)."""
         mock_cache = MagicMock()
         with patch("redis_pool.get_fallback_cache", return_value=mock_cache):
             _save_to_redis("test_key", [{"id": 1}], ["PNCP"], priority=CachePriority.WARM)
 
         args = mock_cache.setex.call_args[0]
-        assert args[1] == 21600
+        base_ttl = 21600
+        assert base_ttl <= args[1] <= base_ttl * 1.1, f"Expected {base_ttl} <= {args[1]} <= {base_ttl * 1.1}"
 
     def test_default_priority_is_cold(self):
-        """Default priority = COLD → 3600s TTL."""
+        """Default priority = COLD → ~3600s TTL (+0-10% jitter)."""
         mock_cache = MagicMock()
         with patch("redis_pool.get_fallback_cache", return_value=mock_cache):
             _save_to_redis("test_key", [{"id": 1}], ["PNCP"])
 
         args = mock_cache.setex.call_args[0]
-        assert args[1] == 3600
+        base_ttl = 3600
+        assert base_ttl <= args[1] <= base_ttl * 1.1, f"Expected {base_ttl} <= {args[1]} <= {base_ttl * 1.1}"
 
 
 # ============================================================================

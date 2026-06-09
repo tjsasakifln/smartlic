@@ -1,6 +1,6 @@
 """Pydantic model for search_results_cache table — Single Source of Truth.
 
-CRIT-001 AC3: This model defines ALL 19 columns of the search_results_cache table.
+CRIT-001 AC3: This model defines ALL 20 columns of the search_results_cache table.
 Any column added to the table MUST be added here first.
 Any query referencing this table MUST validate against expected_columns().
 """
@@ -17,7 +17,7 @@ from pydantic import BaseModel, Field
 class SearchResultsCacheRow(BaseModel):
     """Single Source of Truth for search_results_cache table schema.
 
-    All 18 columns defined with their types, defaults, and nullability.
+    All 20 columns defined with their types, defaults, and nullability.
     Used for:
     - Startup schema health check (AC4)
     - Runtime validation in queries (AC10-AC12)
@@ -49,6 +49,9 @@ class SearchResultsCacheRow(BaseModel):
     priority: str = "cold"
     access_count: int = 0
     last_accessed_at: Optional[datetime] = None
+
+    # Cache stale/expiry tracking (migration 032)
+    expires_at: Optional[datetime] = None
 
     # Global cache fallback (migration 20260223100000 / GTM-ARCH-002)
     params_hash_global: Optional[str] = None
