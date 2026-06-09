@@ -55,6 +55,28 @@ exports[`EnhancedLoadingProgress Component Snapshot should match visual snapshot
     </div>
   </div>
   <div
+    class="mb-4 text-xs text-ink-muted flex items-center gap-1"
+    data-testid="time-estimate-message"
+  >
+    <svg
+      aria-hidden="true"
+      class="w-3.5 h-3.5 flex-shrink-0"
+      fill="none"
+      stroke="currentColor"
+      viewBox="0 0 24 24"
+    >
+      <path
+        d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+        stroke-width="2"
+      />
+    </svg>
+    <span>
+      Estimativa: ~1 min para 5 UFs
+    </span>
+  </div>
+  <div
     class="mb-4 p-4 bg-surface-1 dark:bg-surface-2 rounded-lg min-h-[80px] flex flex-col justify-between"
     data-testid="b2g-carousel"
   >

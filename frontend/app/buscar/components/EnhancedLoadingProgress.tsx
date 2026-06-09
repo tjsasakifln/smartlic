@@ -20,6 +20,7 @@ import type { SearchProgressEvent } from '../../../hooks/useSearchSSE';
 import { ProgressAnimation } from './ProgressAnimation';
 import { ProgressBar } from './ProgressBar';
 import { ProgressSteps } from './ProgressSteps';
+import { CALIBRATION_THRESHOLD, getTotalRecordedSearches } from '../../../lib/search-time-estimator';
 
 export interface EnhancedLoadingProgressProps {
   currentStep: number;
@@ -280,6 +281,15 @@ export function EnhancedLoadingProgress({
     ? sseEvent.progress
     : undefined;
 
+  // UX-311: Determine whether we have calibrated data for the estimate message
+  const isCalibrated = (() => {
+    try {
+      return getTotalRecordedSearches() >= CALIBRATION_THRESHOLD;
+    } catch {
+      return false;
+    }
+  })();
+
   return (
     <div
       className={`relative mt-6 sm:mt-8 p-4 sm:p-6 rounded-card animate-fade-in-up ${
@@ -313,6 +323,20 @@ export function EnhancedLoadingProgress({
 
       {/* AC3: Progress bar — animated, no percentage (DEBT-v3-S2 AC12) */}
       <ProgressBar progress={progressPercentage} isDegraded={isDegraded} isStuck={isStuck} />
+
+      {/* UX-311: Dynamic time estimate message — shows calibrated or fallback estimate */}
+      {estimatedTime > 0 && stateCount > 0 && !isDegraded && (
+        <div className="mb-4 text-xs text-ink-muted flex items-center gap-1" data-testid="time-estimate-message">
+          <svg className="w-3.5 h-3.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+          <span>
+            {isCalibrated
+              ? `Normalmente leva ~${Math.ceil(estimatedTime / 60)} min para ${stateCount} ${stateCount === 1 ? 'UF' : 'UFs'}`
+              : `Estimativa: ~${Math.ceil(estimatedTime / 60)} min para ${stateCount} ${stateCount === 1 ? 'UF' : 'UFs'}`}
+          </span>
+        </div>
+      )}
 
       {/* AC5 + AC10 + AC11: Educational B2G carousel */}
       <div
