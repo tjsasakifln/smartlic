@@ -254,6 +254,13 @@ RATE_LIMIT_HITS = _create_counter(
     labelnames=["endpoint", "caller_type"],
 )
 
+# GAP-006 / #1584: Concurrent search limit exceeded per user (429 returned)
+SEARCH_CONCURRENCY_REJECTED = _create_counter(
+    "smartlic_search_concurrency_rejected_total",
+    "GAP-006: Concurrent search limit exceeded per user (429 returned)",
+    labelnames=["user_tier"],
+)
+
 # OBS-001: Tiered rate limit decisions (bot vs human, allow vs throttle)
 RATE_LIMIT_DECISIONS_TOTAL = _create_counter(
     "smartlic_rate_limit_decisions_total",
