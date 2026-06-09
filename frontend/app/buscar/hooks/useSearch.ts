@@ -13,6 +13,7 @@ import { useSearchSSE } from "../../../hooks/useSearchSSE";
 import { useSearchPolling } from "../../../hooks/useSearchPolling";
 import { getHumanizedError, type HumanizedError } from "../../../lib/error-messages";
 import { cleanupExpiredPartials } from "../../../lib/searchPartialCache";
+import { recordSearchTime } from "../../../lib/search-time-estimator";
 
 import { useSearchRetry } from "./useSearchRetry";
 import { useSearchExport } from "./useSearchExport";
@@ -444,6 +445,33 @@ export function useSearch(filters: UseSearchParams): UseSearchReturn {
       setUfStatusesSnapshot(new Map());
     }
   }, [execution.loading]);
+
+  // ── UX-311: Real-time search calibration ──────────────────────────────
+  // Track search start time to record actual duration on completion.
+  const searchStartTimeRef = useRef<number>(0);
+
+  // Record start time when a search begins
+  useEffect(() => {
+    if (execution.loading) {
+      searchStartTimeRef.current = Date.now();
+    }
+  }, [execution.loading]);
+
+  // Record elapsed time when a search completes successfully
+  const prevLoadingRef = useRef(execution.loading);
+  useEffect(() => {
+    const loading = execution.loading;
+    const wasLoading = prevLoadingRef.current;
+    prevLoadingRef.current = loading;
+
+    // Detect loading → !loading transition with a valid result
+    if (wasLoading && !loading && result && result.licitacoes) {
+      const elapsedSeconds = Math.round((Date.now() - searchStartTimeRef.current) / 1000);
+      if (elapsedSeconds > 0 && filters.ufsSelecionadas.size > 0) {
+        recordSearchTime(filters.ufsSelecionadas.size, elapsedSeconds);
+      }
+    }
+  }, [execution.loading, result, filters.ufsSelecionadas]);
 
   // ── Computed ──
   const humanizedError: HumanizedError | null = error

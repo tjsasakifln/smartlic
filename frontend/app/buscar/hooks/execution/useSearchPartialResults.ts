@@ -2,6 +2,7 @@
 
 import type { BuscaResult } from "../../../types";
 import { recoverPartialSearch } from "../../../../lib/searchPartialCache";
+import { getEstimatedTime } from "../../../../lib/search-time-estimator";
 
 interface ViewPartialResultsParams {
   result: BuscaResult | null;
@@ -72,13 +73,12 @@ export function viewPartialResultsFn(params: ViewPartialResultsParams): void {
 
 /**
  * Estimates search time in seconds based on UF count and date range.
+ * UX-311: Uses calibrated moving average from real search latencies when
+ * sufficient data exists (>=50 recorded searches). Falls back to a fixed
+ * formula when calibration data is insufficient.
+ *
  * Pure function — no side effects.
  */
 export function estimateSearchTimeFn(ufCount: number, dateRangeDays: number): number {
-  const baseTime = 10;
-  const parallelUfs = Math.min(ufCount, 10);
-  const queuedUfs = Math.max(0, ufCount - 10);
-  const fetchTime = parallelUfs * 3 + queuedUfs * 2;
-  const dateMultiplier = dateRangeDays > 14 ? 1.3 : dateRangeDays > 7 ? 1.1 : 1.0;
-  return Math.ceil(baseTime + fetchTime * dateMultiplier + 3 + 5 + 3);
+  return getEstimatedTime(ufCount, dateRangeDays);
 }
