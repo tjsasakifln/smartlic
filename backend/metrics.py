@@ -1307,6 +1307,19 @@ INTEL_REPORT_GENERATED = _create_counter(
     labelnames=["product_type", "status"],  # success | failed | refunded
 )
 
+# GAP-013 / #1591: OpenAI retry + fallback counters
+OPENAI_RETRY_TOTAL = _create_counter(
+    "smartlic_openai_retry_total",
+    "OpenAI API retry attempts by attempt number and outcome",
+    labelnames=["attempt", "outcome"],
+    # attempt: "1", "2", "3"; outcome: "success", "failure"
+)
+
+OPENAI_FALLBACK_PENDING_TOTAL = _create_counter(
+    "smartlic_openai_fallback_pending_total",
+    "OpenAI fallback to PENDING_REVIEW after retry exhaustion",
+)
+
 # ============================================================================
 # MON-FN-005: Mixpanel init + health check failure counters
 # ============================================================================

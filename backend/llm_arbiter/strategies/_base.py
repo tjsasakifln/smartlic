@@ -174,8 +174,9 @@ def run_llm_classification(
         _llm_start = _time_module.time()
         # Lazy import via facade so tests can patch ``llm_arbiter._get_client``.
         import llm_arbiter as _lm
+        from llm_arbiter.retry import call_openai_with_retry
 
-        response = _lm._get_client().chat.completions.create(**api_kwargs)
+        response = call_openai_with_retry(_lm._get_client(), api_kwargs)
         _llm_elapsed = _time_module.time() - _llm_start
 
         raw_content = response.choices[0].message.content.strip()
@@ -236,11 +237,12 @@ def run_llm_classification(
                 f"search={_search_id} mode={mode} prompt_level={prompt_level} "
                 f"context={context[:50]}... valor={valor:,.2f}"
             )
-            from metrics import LLM_FALLBACK_PENDING
+            from metrics import LLM_FALLBACK_PENDING, OPENAI_FALLBACK_PENDING_TOTAL
 
             _sector_label = context[:50] if mode == "setor" else "termos"
             _reason = type(e).__name__
             LLM_FALLBACK_PENDING.labels(sector=_sector_label, reason=_reason).inc()
+            OPENAI_FALLBACK_PENDING_TOTAL.inc()
             _pending_confidence = 40 if prompt_level in {"standard", "conservative"} else 0
             return {
                 "is_primary": False,
