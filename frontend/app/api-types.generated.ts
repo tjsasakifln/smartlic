@@ -3173,6 +3173,7 @@ export interface paths {
          *         - partial_results: Non-terminal — intermediate results during background fetch (A-04)
          *         - refresh_available (100%): Background fetch complete, new data available (A-04)
          *         - error: Search failed
+         *         - heartbeat: Keepalive sent every 15s (GAP-005)
          */
         get: operations["buscar_progress_stream_v1_buscar_progress__search_id__get"];
         put?: never;
