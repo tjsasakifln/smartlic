@@ -12,7 +12,7 @@ from typing import Dict, List, Optional
 
 from clients.base import UnifiedProcurement
 from config import DEDUP_FUZZY_ENABLED, DEDUP_FUZZY_THRESHOLD
-from metrics import DEDUP_FIELDS_MERGED, DEDUP_FUZZY_HITS
+from metrics import DEDUP_FIELDS_MERGED, DEDUP_FUZZY_HITS  # noqa: F401 — re-exported via consolidation/__init__.py for test patching (AC2)
 
 logger = logging.getLogger(__name__)
 
@@ -449,7 +449,7 @@ class DeduplicationEngine:
                         tokens_cache[idx_b] = self._tokenize_objeto(records[idx_b].objeto)
 
                     sim = self._jaccard(tokens_cache[idx_a], tokens_cache[idx_b])
-                    if sim < 0.80:
+                    if sim < self._fuzzy_threshold:
                         continue
 
                     lot_a = self._extract_lot_number(records[idx_a].objeto)
