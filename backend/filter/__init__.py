@@ -26,6 +26,9 @@ from filter.value import *  # noqa: F401,F403
 # Main orchestrator (DEBT-201: extracted from core.py to pipeline.py)
 from filter.pipeline import aplicar_todos_filtros  # noqa: F401
 
+# GAP-010: PT-BR stopwords for dedup tokenization
+from filter.stopwords import PT_BR_STOPWORDS, is_stopword  # noqa: F401
+
 # Private names used by tests/other modules
 from filter.keywords import _strip_org_context, _strip_org_context_with_detail, _get_tracker  # noqa: F401
 from filter.keywords import (  # noqa: F401
