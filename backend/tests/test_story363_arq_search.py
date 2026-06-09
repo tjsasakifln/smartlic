@@ -371,6 +371,40 @@ class TestAC14ConcurrentSearchLimiting:
                 response = client.post("/v1/buscar", json=VALID_SEARCH_BODY)
 
             assert response.status_code == 429
+            # GAP-006 / #1584: Verify Retry-After header
+            assert response.headers.get("Retry-After") == "30"
+        finally:
+            app.dependency_overrides.pop(require_auth, None)
+
+    def test_post_concurrent_limit_increments_metric(self):
+        """GAP-006: SEARCH_CONCURRENCY_REJECTED metric is incremented on 429."""
+        from fastapi.testclient import TestClient
+        from main import app
+        from auth import require_auth
+        from metrics import SEARCH_CONCURRENCY_REJECTED
+
+        mock_user = {"id": "user-363-metric", "email": "metric@test.com"}
+        app.dependency_overrides[require_auth] = lambda: mock_user
+
+        before = SEARCH_CONCURRENCY_REJECTED.labels(user_tier="unknown")._value.get()
+
+        try:
+            with patch("config.get_feature_flag", return_value=True), \
+                 patch("routes.search.check_user_roles", new_callable=AsyncMock, return_value=(False, False)), \
+                 patch("routes.search.create_tracker", new_callable=AsyncMock, return_value=_make_mock_tracker()), \
+                 patch("routes.search.create_state_machine", new_callable=AsyncMock, return_value=_make_mock_state_machine()), \
+                 patch("quota.require_active_plan", new_callable=AsyncMock), \
+                 patch("quota.check_quota", return_value=MagicMock(allowed=True, error_message="", capabilities={"max_requests_per_month": 1000})), \
+                 patch("quota.check_and_increment_quota_atomic", return_value=(True, 1, 999)), \
+                 patch("job_queue.acquire_search_slot", new_callable=AsyncMock, return_value=False), \
+                 patch("routes.search.remove_tracker", new_callable=AsyncMock):
+
+                client = TestClient(app, raise_server_exceptions=False)
+                response = client.post("/v1/buscar", json=VALID_SEARCH_BODY)
+
+            assert response.status_code == 429
+            after = SEARCH_CONCURRENCY_REJECTED.labels(user_tier="unknown")._value.get()
+            assert after == before + 1, "SEARCH_CONCURRENCY_REJECTED should have been incremented"
         finally:
             app.dependency_overrides.pop(require_auth, None)
 

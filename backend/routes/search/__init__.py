@@ -432,6 +432,9 @@ async def buscar_licitacoes(
             _slot_acquired = await acquire_search_slot(user["id"], request.search_id)
             if not _slot_acquired:
                 from config import MAX_CONCURRENT_SEARCHES
+                # GAP-006 / #1584: Increment concurrent search rejection metric
+                from metrics import SEARCH_CONCURRENCY_REJECTED
+                SEARCH_CONCURRENCY_REJECTED.labels(user_tier=user.get("role", "unknown")).inc()
                 await tracker.emit_error(
                     f"Limite de {MAX_CONCURRENT_SEARCHES} análises simultâneas atingido. "
                     f"Aguarde uma análise terminar."
@@ -440,6 +443,7 @@ async def buscar_licitacoes(
                 raise HTTPException(
                     status_code=429,
                     detail=f"Limite de {MAX_CONCURRENT_SEARCHES} análises simultâneas atingido.",
+                    headers={"Retry-After": "30"},
                 )
 
             # STORY-363 AC2: Try ARQ Worker first (true decoupling from HTTP)
