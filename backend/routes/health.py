@@ -15,7 +15,6 @@ from datetime import datetime, timezone
 from fastapi import APIRouter
 from fastapi.responses import JSONResponse
 
-from schemas.health import MvCheckResult, SitemapHealthResponse
 from schemas.parity import (
     BackgroundTasksHealthResponse,
     CacheHealthResponse,
@@ -106,6 +105,21 @@ async def sources_health():
             "available": src_config.enabled and source_health_registry.is_available(code),
         }
     return {"sources": result}
+
+
+@router.get("/health/stripe")
+async def stripe_health():
+    """DEC-BIL-GAP-02: Stripe connectivity health check.
+
+    Returns connection status with grace period logic.
+    - ok: Stripe reachable.
+    - unreachable: Stripe unreachable, with grace_remaining_hours or notified flag.
+    Public endpoint — no auth required.
+    """
+    from services.stripe_health import get_stripe_health
+    result = await get_stripe_health()
+    status_code = 200 if result["stripe"] == "ok" else 503
+    return JSONResponse(content=result, status_code=status_code)
 
 
 @router.get("/health/cache", response_model=CacheHealthResponse)
