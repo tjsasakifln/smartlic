@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { mockAuthAPI } from './helpers/test-utils';
 
 /**
  * E2E Test: Happy Path User Journey
@@ -11,12 +12,28 @@ import { test, expect } from '@playwright/test';
  * @see docs/INTEGRATION.md - Manual End-to-End Testing section
  */
 test.describe('Happy Path User Journey', () => {
-  test.beforeEach(async ({ page }) => {
-    // Navigate to the application
-    await page.goto('/');
+  test.beforeEach(async ({ page, context }) => {
+    // Set E2E bypass cookie so the middleware does NOT redirect to /login.
+    // Without this the Next.js middleware blocks /buscar for unauthenticated
+    // users, preventing E2E tests from reaching the search page in CI.
+    await context.addCookies([
+      {
+        name: '__e2e_test_mode',
+        value: '1',
+        url: 'http://localhost:3000',
+      },
+    ]);
 
-    // Clear default UF selections (SC, PR, RS are selected by default)
-    // This ensures tests start from a clean state
+    // Mock client-side auth so React components believe the user is logged in.
+    // This sets localStorage + intercepts /me and supabase auth endpoints.
+    await mockAuthAPI(page);
+
+    // Navigate directly to the search page (protected route, bypassed by cookie)
+    await page.goto('/buscar');
+    await page.waitForLoadState('networkidle');
+
+    // Clear any default UF selections (SC, PR, RS are selected by default)
+    // This ensures each test starts from a clean state
     const limparButton = page.getByRole('button', { name: /Limpar/i });
     if (await limparButton.isVisible().catch(() => false)) {
       await limparButton.click();
@@ -27,8 +44,9 @@ test.describe('Happy Path User Journey', () => {
     // Verify page title
     await expect(page).toHaveTitle(/SmartLic/i);
 
-    // Verify header
-    const heading = page.getByRole('heading', { name: /SmartLic/i });
+    // Verify header — use first() to avoid strict mode violation when multiple
+    // elements match on the marketing landing page (without auth)
+    const heading = page.getByRole('heading', { name: /SmartLic/i }).first();
     await expect(heading).toBeVisible();
 
     // Verify UF selection section
