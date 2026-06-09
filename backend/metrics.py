@@ -934,6 +934,12 @@ REDIS_AVAILABLE = _create_gauge(
     "Redis availability (1=connected, 0=fallback/InMemoryCache)",
 )
 
+# GAP-012 (#1590): Quota fallback active gauge (0=normal, 1=fallback active)
+QUOTA_FALLBACK_ACTIVE = _create_gauge(
+    "smartlic_quota_fallback_active",
+    "Quota fallback mode (0=normal, 1=Redis fallback active, 2=fail-open active)",
+)
+
 # STORY-332 AC2: How long Redis has been in fallback mode
 REDIS_FALLBACK_DURATION = _create_gauge(
     "smartlic_redis_fallback_duration_seconds",

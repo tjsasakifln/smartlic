@@ -52,6 +52,13 @@ from quota.quota_atomic import (
     increment_monthly_quota,
 )
 
+# quota_fallback: 3-layer fallback for Supabase offline (GAP-012 / #1590)
+from quota.quota_fallback import (
+    QUOTA_FALLBACK_MAX_DAILY,
+    QUOTA_FALLBACK_TTL,
+    try_quota_fallback,
+)
+
 # plan_enforcement: check_quota, require_active_plan, sessions
 from quota.plan_enforcement import (
     QuotaExceededError,
@@ -118,6 +125,10 @@ __all__ = [
     "get_quota_reset_date",
     "get_user_org_plan",
     "increment_monthly_quota",
+    # quota_fallback
+    "QUOTA_FALLBACK_MAX_DAILY",
+    "QUOTA_FALLBACK_TTL",
+    "try_quota_fallback",
     # plan_enforcement
     "QuotaExceededError",
     "_ensure_profile_exists",
