@@ -191,15 +191,30 @@ def check_and_increment_quota_atomic(
         return (True, 0, max_quota)  # Fail open
 
     except CircuitBreakerOpenError:
-        # STORY-291 AC4: Fail open — allow search, reconcile later
+        # GAP-012 (#1590): Try Layer 2 (Redis fallback) before Layer 3 (fail-open)
         logger.warning(
-            f"STORY-291 CB OPEN: Quota check skipped for user {mask_user_id(user_id)} "
-            f"(fail-open). Will reconcile quota later."
+            f"STORY-291 CB OPEN: Quota check Supabase offline for user "
+            f"{mask_user_id(user_id)} — trying fallback layers"
         )
-        return (True, 0, max_quota)
+        from quota.quota_fallback import QUOTA_FALLBACK_MAX_DAILY, _set_quota_fallback_active, try_quota_fallback
+        _set_quota_fallback_active(1)
+        fallback_allowed = try_quota_fallback(user_id)
+        if fallback_allowed:
+            return (True, 0, max_quota)
+        # Fallback limit reached — block the request
+        logger.warning(
+            f"Quota fallback limit reached for user {mask_user_id(user_id)} "
+            f"(blocked after {QUOTA_FALLBACK_MAX_DAILY} fallback searches)"
+        )
+        return (False, max_quota, 0)
 
     except Exception as e:
         logger.error(f"Error in atomic quota check for user {mask_user_id(user_id)}: {e}")
+        # GAP-012 (#1590): Try Redis fallback before falling through to lazy Supabase fallback
+        from quota.quota_fallback import try_quota_fallback
+        fallback_allowed = try_quota_fallback(user_id)
+        if not fallback_allowed:
+            return (False, max_quota, 0)
         # Lazy import via facade so test patches on quota.get_monthly_quota_used work (AC2)
         import quota as _quota
         current = _quota.get_monthly_quota_used(user_id)
