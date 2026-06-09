@@ -3,14 +3,18 @@
 All supabase_client imports are lazy (inside functions) so that
 patch("supabase_client.get_supabase") works in tests regardless of
 which module the function lives in.
+
+GAP-003: Every cached entry stores an ``expires_at`` timestamp set to
+``created_at + CACHE_STALE_HOURS`` (24h). A pg_cron safety net cleans up
+entries where ``expires_at < now()`` daily at 3h UTC.
 """
 import asyncio
 import json
 import logging
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from typing import Optional
 
-from cache.enums import compute_global_hash
+from cache.enums import CACHE_STALE_HOURS, compute_global_hash
 
 logger = logging.getLogger(__name__)
 
@@ -23,7 +27,8 @@ async def _save_to_supabase(
     from supabase_client import get_supabase, sb_execute
     sb = get_supabase()
 
-    now = datetime.now(timezone.utc).isoformat()
+    now_utc = datetime.now(timezone.utc)
+    now = now_utc.isoformat()
     row = {
         "user_id": user_id,
         "params_hash": params_hash,
@@ -38,6 +43,9 @@ async def _save_to_supabase(
         "last_attempt_at": now,
         "fail_streak": 0,
         "degraded_until": None,
+        # GAP-003: expires_at = created_at + CACHE_STALE_HOURS (24h)
+        # Used by pg_cron safety net to clean stale entries.
+        "expires_at": (now_utc + timedelta(hours=CACHE_STALE_HOURS)).isoformat(),
     }
     if coverage is not None:
         row["coverage"] = coverage

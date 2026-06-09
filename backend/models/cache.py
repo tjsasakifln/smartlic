@@ -53,6 +53,11 @@ class SearchResultsCacheRow(BaseModel):
     # Global cache fallback (migration 20260223100000 / GTM-ARCH-002)
     params_hash_global: Optional[str] = None
 
+    # GAP-003: Cache expiry tracking (migration 20260608120000)
+    # Set to created_at + CACHE_STALE_HOURS (24h). pg_cron safety net
+    # cleans up entries where expires_at < now() daily at 3h UTC.
+    expires_at: Optional[datetime] = None
+
     model_config = {"from_attributes": True}
 
     @classmethod

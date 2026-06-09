@@ -10,9 +10,7 @@ Patching strategy:
 - ``metrics.L1_CACHE_HITS_TOTAL`` / ``metrics.L1_CACHE_MISSES_TOTAL`` → spy on counters
 """
 import json
-from unittest.mock import MagicMock, patch, call, ANY
-
-import pytest
+from unittest.mock import MagicMock, patch
 
 from cache.redis import _save_to_redis, _get_from_redis
 from cache.enums import CachePriority, REDIS_TTL_BY_PRIORITY
@@ -191,36 +189,63 @@ class TestSavePriorityTTL:
     """AC2: hot/warm/cold priority maps to differentiated TTLs via Redis setex."""
 
     def test_hot_priority_ttl(self):
-        """HOT priority → 7200s TTL in Redis setex."""
+        """HOT priority → TTL in [7200, 7920] range (base + 0-10% jitter)."""
         mock_redis = MagicMock()
+        base_ttl = REDIS_TTL_BY_PRIORITY[CachePriority.HOT]
         with patch("redis_pool.get_sync_redis", return_value=mock_redis):
             _save_to_redis("key", [{}], [], priority=CachePriority.HOT)
         _, ttl, _ = mock_redis.setex.call_args[0]
-        assert ttl == REDIS_TTL_BY_PRIORITY[CachePriority.HOT] == 7200
+        assert base_ttl <= ttl <= int(base_ttl * 1.1), (
+            f"HOT TTL {ttl} outside expected range [{base_ttl}, {int(base_ttl * 1.1)}]"
+        )
 
     def test_cold_priority_ttl(self):
-        """COLD priority → 3600s TTL in Redis setex."""
+        """COLD priority → TTL in [3600, 3960] range (base + 0-10% jitter)."""
         mock_redis = MagicMock()
+        base_ttl = REDIS_TTL_BY_PRIORITY[CachePriority.COLD]
         with patch("redis_pool.get_sync_redis", return_value=mock_redis):
             _save_to_redis("key", [{}], [], priority=CachePriority.COLD)
         _, ttl, _ = mock_redis.setex.call_args[0]
-        assert ttl == REDIS_TTL_BY_PRIORITY[CachePriority.COLD] == 3600
+        assert base_ttl <= ttl <= int(base_ttl * 1.1), (
+            f"COLD TTL {ttl} outside expected range [{base_ttl}, {int(base_ttl * 1.1)}]"
+        )
 
     def test_warm_priority_ttl(self):
-        """WARM priority → 21600s TTL in Redis setex."""
+        """WARM priority → TTL in [21600, 23760] range (base + 0-10% jitter)."""
         mock_redis = MagicMock()
+        base_ttl = REDIS_TTL_BY_PRIORITY[CachePriority.WARM]
         with patch("redis_pool.get_sync_redis", return_value=mock_redis):
             _save_to_redis("key", [{}], [], priority=CachePriority.WARM)
         _, ttl, _ = mock_redis.setex.call_args[0]
-        assert ttl == REDIS_TTL_BY_PRIORITY[CachePriority.WARM] == 21600
+        assert base_ttl <= ttl <= int(base_ttl * 1.1), (
+            f"WARM TTL {ttl} outside expected range [{base_ttl}, {int(base_ttl * 1.1)}]"
+        )
 
     def test_default_priority_is_cold(self):
-        """No priority → defaults to COLD (3600s TTL)."""
+        """No priority → defaults to COLD (3600s TTL + jitter)."""
         mock_redis = MagicMock()
+        base_ttl = 3600
         with patch("redis_pool.get_sync_redis", return_value=mock_redis):
             _save_to_redis("key", [{}], [])
         _, ttl, _ = mock_redis.setex.call_args[0]
-        assert ttl == 3600
+        assert base_ttl <= ttl <= int(base_ttl * 1.1), (
+            f"Default TTL {ttl} outside expected range [{base_ttl}, {int(base_ttl * 1.1)}]"
+        )
+
+    def test_jitter_variability(self):
+        """GAP-003: Multiple calls produce different TTLs (jitter != 0 for most)."""
+        mock_redis = MagicMock()
+        ttl_values = []
+        with patch("redis_pool.get_sync_redis", return_value=mock_redis):
+            for _ in range(50):
+                _save_to_redis("key", [{}], [], priority=CachePriority.HOT)
+                _, ttl, _ = mock_redis.setex.call_args[0]
+                ttl_values.append(ttl)
+        # At least 2 different TTLs out of 50 calls confirms jitter
+        unique_ttls = set(ttl_values)
+        assert len(unique_ttls) >= 2, (
+            f"Expected jitter to produce at least 2 unique TTLs out of 50, got {len(unique_ttls)}"
+        )
 
 
 # ---------------------------------------------------------------------------
@@ -256,15 +281,18 @@ class TestSaveToRedisFallback:
         mock_cache.setex.assert_called_once()
 
     def test_fallback_preserves_priority_ttl(self):
-        """When falling back to InMemoryCache, priority TTL is still respected."""
+        """When falling back to InMemoryCache, priority TTL + jitter is applied."""
         mock_cache = MagicMock()
+        base_ttl = REDIS_TTL_BY_PRIORITY[CachePriority.HOT]
 
         with patch("redis_pool.get_sync_redis", return_value=None), \
              patch("redis_pool.get_fallback_cache", return_value=mock_cache):
             _save_to_redis("key", [{}], [], priority=CachePriority.HOT)
 
         _, ttl, _ = mock_cache.setex.call_args[0]
-        assert ttl == 7200
+        assert base_ttl <= ttl <= int(base_ttl * 1.1), (
+            f"Fallback HOT TTL {ttl} outside range [{base_ttl}, {int(base_ttl * 1.1)}]"
+        )
 
 
 # ---------------------------------------------------------------------------
