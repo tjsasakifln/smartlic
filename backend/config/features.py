@@ -47,7 +47,7 @@ LLM_BATCH_POLL_INTERVAL_S: int = int(os.getenv("LLM_BATCH_POLL_INTERVAL_S", "60"
 
 # STORY-5.3 (TD-SYS-013): Session dedup fuzzy configuration.
 DEDUP_FUZZY_ENABLED: bool = str_to_bool(os.getenv("DEDUP_FUZZY_ENABLED", "true"))
-DEDUP_FUZZY_THRESHOLD: float = float(os.getenv("DEDUP_FUZZY_THRESHOLD", "0.85"))
+DEDUP_FUZZY_THRESHOLD: float = float(os.getenv("DEDUP_FUZZY_THRESHOLD", "0.80"))
 
 # STORY-5.4 (TD-SYS-015): Portuguese-BR synonym expansion at FTS query-build time.
 FTS_SYNONYM_EXPANSION_ENABLED: bool = str_to_bool(
@@ -493,6 +493,7 @@ def log_feature_flags() -> None:
     from config.pncp import COMPRASGOV_ENABLED as _cg_enabled
 
     logger.info(f"Feature Flag - ENABLE_NEW_PRICING: {ENABLE_NEW_PRICING}")
+    logger.info(f"Dedup fuzzy threshold: {DEDUP_FUZZY_THRESHOLD}")
     logger.info(f"Feature Flag - ZERO_RESULTS_RELAXATION_ENABLED: {ZERO_RESULTS_RELAXATION_ENABLED}")
     if not _cg_enabled:
         logger.warning(

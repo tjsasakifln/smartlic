@@ -82,7 +82,8 @@ class TestFuzzyDedupThresholdConfig:
 
     NOTE: source_id must NOT match PNCP pattern (r"-\\d{4,6}/\\d{4}$") so we
     isolate the Jaccard fuzzy layer from the process_number layer, which runs
-    with its own 0.80 blocking threshold on (cnpj, year) groups.
+    with its own blocking threshold matching self._fuzzy_threshold on
+    (cnpj, year) groups (GAP-009 #1587).
     """
 
     def test_strict_threshold_keeps_near_duplicates(self, adapters):
@@ -102,9 +103,9 @@ class TestFuzzyDedupThresholdConfig:
         assert len(out) == 2, "Strict threshold should preserve both records"
 
     def test_lenient_threshold_removes_near_duplicates(self, adapters):
-        """With default 0.85 + adjacent edital numbers, near-duplicate collapses."""
+        """With default 0.80 + adjacent edital numbers, near-duplicate collapses."""
         engine = DeduplicationEngine(
-            adapters=adapters, fuzzy_enabled=True, fuzzy_threshold=0.85
+            adapters=adapters, fuzzy_enabled=True, fuzzy_threshold=0.80
         )
         r1 = _make_record(
             source_id="83102798000100-1-000100/2026",
@@ -150,11 +151,17 @@ class TestFuzzyDedupDisabledFlag:
 class TestFuzzyDedupMetrics:
     """AC3: smartlic_dedup_fuzzy_hits_total emitted per layer on removal."""
 
-    def test_counter_increments_on_process_number_hit(self, adapters):
-        """PNCP-style adjacent edital numbers trip the process_number layer."""
-        before = _metric_value("process_number")
+    def test_counter_increments_on_fuzzy_hit(self, adapters):
+        """At default threshold 0.80, fuzzy layer catches PNCP-adjacent duplicates.
+
+        GAP-009 (#1587): Both fuzzy and process_number layers now share the
+        same configurable DEDUP_FUZZY_THRESHOLD. At 0.80 the fuzzy layer
+        (which runs first) catches adjacent-edital near-duplicates before
+        process_number gets a chance to run.
+        """
+        before = _metric_value("fuzzy")
         engine = DeduplicationEngine(
-            adapters=adapters, fuzzy_enabled=True, fuzzy_threshold=0.85
+            adapters=adapters, fuzzy_enabled=True, fuzzy_threshold=0.80
         )
         r1 = _make_record(
             source_id="83102798000100-1-000100/2026",
@@ -165,10 +172,10 @@ class TestFuzzyDedupMetrics:
             objeto="Pavimentação da rua Reinhold Schroeder (revisado)",
         )
         engine.run([r1, r2])
-        after = _metric_value("process_number")
+        after = _metric_value("fuzzy")
         assert after > before, (
-            "process_number layer counter must increment on adjacent PNCP edital "
-            "number collapse"
+            "fuzzy layer counter must increment on adjacent PNCP edital "
+            "number collapse at DEDUP_FUZZY_THRESHOLD=0.80"
         )
 
     def test_counter_stays_flat_without_hit(self, adapters):
@@ -185,3 +192,43 @@ class TestFuzzyDedupMetrics:
         engine.run([r1, r2])
         after = _metric_value("fuzzy")
         assert after == before, "No near-dup: counter must stay flat"
+
+
+class TestFuzzyDedupThresholdParametrized:
+    """GAP-009 (#1587): Parametrized threshold test — Jaccard 0.75/0.80/0.85.
+
+    Higher thresholds preserve more near-duplicates (fewer false positives).
+    Lower thresholds collapse more aggressively (fewer false negatives).
+    0.80 is the confirmed sweet spot for PT-BR procurement text after
+    stopword removal and NFD normalization.
+    """
+
+    @pytest.mark.parametrize(
+        "threshold,expected_count",
+        [
+            (0.75, 1),  # Aggressive: collapses near-dup
+            (0.80, 1),  # Default sweet spot: collapses near-dup
+            (0.85, 2),  # Conservative: preserves near-dup
+            (0.99, 2),  # Ultra-strict: preserves both
+        ],
+    )
+    def test_fuzzy_threshold_parametrized(
+        self, adapters, threshold: float, expected_count: int
+    ):
+        """Near-duplicate pair collapses only at thresholds <= 0.80."""
+        engine = DeduplicationEngine(
+            adapters=adapters, fuzzy_enabled=True, fuzzy_threshold=threshold
+        )
+        r1 = _make_record(
+            source_id="PCP-abc-001",
+            objeto="Pavimentação da rua Reinhold Schroeder",
+        )
+        r2 = _make_record(
+            source_id="PCP-abc-002",
+            objeto="Pavimentação da rua Reinhold Schroeder (revisado)",
+        )
+        out = engine.run([r1, r2])
+        assert len(out) == expected_count, (
+            f"At threshold={threshold} expected {expected_count} records, "
+            f"got {len(out)}"
+        )
