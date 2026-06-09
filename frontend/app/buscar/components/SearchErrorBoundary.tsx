@@ -1,6 +1,7 @@
 "use client";
 
 import React, { Component, ErrorInfo } from "react";
+import { getStructuredError } from "@/lib/error-messages";
 
 interface Props {
   children: React.ReactNode;
@@ -62,10 +63,19 @@ export class SearchErrorBoundary extends Component<Props, State> {
             </svg>
           </div>
           <h3 className="text-lg font-semibold text-ink dark:text-slate-200 mb-2">
-            Algo deu errado ao exibir os resultados
+            {this.state.error
+              ? getStructuredError(this.state.error).title
+              : "Algo deu errado ao exibir os resultados"}
           </h3>
-          <p className="text-sm text-ink-secondary dark:text-slate-400 mb-4">
-            Um erro inesperado ocorreu. Você pode tentar recarregar ou iniciar uma nova análise.
+          <p className="text-sm text-ink-secondary dark:text-slate-400 mb-1">
+            {this.state.error
+              ? getStructuredError(this.state.error).description
+              : "Um erro inesperado ocorreu ao processar os resultados da análise."}
+          </p>
+          <p className="text-xs text-ink-muted dark:text-slate-400 mb-4">
+            {this.state.error
+              ? getStructuredError(this.state.error).action
+              : "Tente recarregar ou iniciar uma nova análise."}
           </p>
           <div className="flex justify-center gap-3">
             <button

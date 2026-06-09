@@ -1,7 +1,157 @@
+// ── UX-310: Error Categories (AC1) ──────────────────────────────────────
+export type ErrorCategory = 'network' | 'server' | 'permission' | 'data' | 'timeout' | 'unknown';
+
+export interface StructuredError {
+  /** Short title describing the problem */
+  title: string;
+  /** What happened + why */
+  description: string;
+  /** What the user can do about it */
+  action: string;
+}
+
 /**
- * Maps technical error messages to user-friendly Portuguese equivalents.
- * STORY-170 AC6 — No technical jargon exposed to users.
+ * UX-310 AC2: Mapeamento de códigos HTTP para categorias de erro.
+ * 401/403 → permission, 429/5xx → server, 408/504 → timeout, 400/404/422 → data, fetch/network → network
  */
+export function httpStatusToCategory(status: number | null | undefined): ErrorCategory {
+  if (status == null) return 'unknown';
+  if (status === 0) return 'network';
+  if (status === 401 || status === 403) return 'permission';
+  if (status === 408 || status === 504) return 'timeout';
+  if (status === 429 || (status >= 500 && status < 600)) return 'server';
+  if (status >= 400 && status < 500) return 'data';
+  return 'unknown';
+}
+
+// ── UX-310 AC3: Structured error messages per category ────────────────
+const STRUCTURED_ERRORS: Record<ErrorCategory, StructuredError> = {
+  network: {
+    title: 'Falha de conexão',
+    description: 'Não foi possível conectar ao servidor. Sua conexão de internet pode estar instável ou o servidor pode estar temporariamente fora do ar.',
+    action: 'Verifique sua conexão de internet e tente novamente.',
+  },
+  server: {
+    title: 'Erro no servidor',
+    description: 'O servidor encontrou um problema ao processar sua requisição. Nossa equipe já foi notificada automaticamente.',
+    action: 'Aguarde alguns minutos e tente novamente. Se o problema persistir, entre em contato com o suporte.',
+  },
+  permission: {
+    title: 'Acesso não permitido',
+    description: 'Você não tem permissão para acessar este recurso. Sua sessão pode ter expirado ou sua conta pode não ter acesso a esta funcionalidade.',
+    action: 'Tente fazer login novamente. Se o problema continuar, verifique se sua conta está ativa ou contate o suporte.',
+  },
+  data: {
+    title: 'Problema ao carregar dados',
+    description: 'Não foi possível carregar os dados solicitados. Isso pode acontecer quando há muitos resultados ou os filtros são muito abrangentes.',
+    action: 'Tente refinar sua busca com filtros mais específicos ou reduza o período de análise.',
+  },
+  timeout: {
+    title: 'Tempo limite excedido',
+    description: 'A operação demorou mais que o esperado e excedeu o tempo limite. Isso pode acontecer com buscas muito abrangentes.',
+    action: 'Tente novamente com um escopo menor, reduzindo o número de estados ou o período de datas.',
+  },
+  unknown: {
+    title: 'Algo deu errado',
+    description: 'Ocorreu um erro inesperado. Nossa equipe já foi notificada.',
+    action: 'Tente novamente em alguns instantes. Se o problema persistir, entre em contato com o suporte.',
+  },
+};
+
+/**
+ * UX-310 AC4: Retorna erro categorizado com título, descrição e ação.
+ * Aceita categoria opcional para override manual.
+ * NUNCA retorna mensagem genérica — sempre tem ação sugerida.
+ */
+export function getStructuredError(error: unknown, category?: ErrorCategory): StructuredError {
+  if (category && category !== 'unknown') {
+    return STRUCTURED_ERRORS[category];
+  }
+
+  // Infer category from HTTP status
+  const httpStatus = extractHttpStatus(error);
+  const inferredCategory = httpStatusToCategory(httpStatus);
+  if (inferredCategory !== 'unknown') {
+    return STRUCTURED_ERRORS[inferredCategory];
+  }
+
+  const msg = extractRawMessage(error).toLowerCase();
+
+  // Detect network errors by message content
+  const networkPatterns = ['fetch failed', 'failed to fetch', 'networkerror', 'network error', 'load failed', 'econnrefused', 'err_connection_refused', 'conexão', 'conexao'];
+  if (networkPatterns.some(p => msg.includes(p))) {
+    return STRUCTURED_ERRORS.network;
+  }
+
+  // Detect timeout by message content
+  const timeoutPatterns = ['timeout', 'demorou', 'tempo limite'];
+  if (timeoutPatterns.some(p => msg.includes(p))) {
+    return STRUCTURED_ERRORS.timeout;
+  }
+
+  // Detect permission by message content
+  const permissionPatterns = ['401', '403', 'session expired', 'sessão expirada', 'access denied', 'acesso negado', 'unauthorized', 'não autorizado'];
+  if (permissionPatterns.some(p => msg.includes(p))) {
+    return STRUCTURED_ERRORS.permission;
+  }
+
+  // Detect server by error code patterns
+  const serverPatterns = ['502', '503', '500', '429', 'internal server error', 'service unavailable', 'bad gateway', 'backend indisponível', 'quota excedida'];
+  if (serverPatterns.some(p => msg.includes(p))) {
+    return STRUCTURED_ERRORS.server;
+  }
+
+  // Detect data errors
+  const dataPatterns = ['400', '404', '422', 'not found', 'validation error', 'invalid'];
+  if (dataPatterns.some(p => msg.includes(p))) {
+    return STRUCTURED_ERRORS.data;
+  }
+
+  return STRUCTURED_ERRORS.unknown;
+}
+
+function extractHttpStatus(error: unknown): number | null {
+  if (error === null || error === undefined) return null;
+  if (typeof error !== 'object') return null;
+  if ('response' in error) {
+    const resp = (error as Record<string, unknown>).response;
+    if (resp && typeof resp === 'object' && 'status' in resp) {
+      return Number((resp as Record<string, unknown>).status) || null;
+    }
+  }
+  if ('status' in error) {
+    return Number((error as Record<string, unknown>).status) || null;
+  }
+  return null;
+}
+
+function extractRawMessage(error: unknown): string {
+  if (typeof error === 'string') return error;
+  if (error instanceof Error) return error.message;
+  if (error !== null && typeof error === 'object') {
+    if ('response' in error && error.response !== null && typeof error.response === 'object' && 'data' in (error.response as Record<string, unknown>)) {
+      const data = (error.response as Record<string, unknown>).data;
+      if (data && typeof data === 'object') {
+        if ('detail' in (data as Record<string, unknown>)) {
+          const detail = (data as Record<string, unknown>).detail;
+          if (typeof detail === 'string') return detail;
+          if (detail && typeof detail === 'object' && 'message' in (detail as Record<string, unknown>)) {
+            return String((detail as Record<string, unknown>).message);
+          }
+        }
+        if ('message' in (data as Record<string, unknown>)) {
+          return String((data as Record<string, unknown>).message);
+        }
+      }
+    }
+    if ('message' in error) {
+      return String((error as Record<string, unknown>).message);
+    }
+  }
+  try { return String(error); } catch { return ''; }
+}
+
+// ── Backward-compatible string mapping ────────────────────────────────
 
 const ERROR_MAP: Record<string, string> = {
   // Network errors
@@ -197,10 +347,17 @@ export function getUserFriendlyError(error: unknown): string {
 }
 
 /**
- * TD-006 AC4: Alias for getUserFriendlyError.
- * Accepts Error, fetch Response-like objects, or string.
+ * UX-310: Retorna erro estruturado com título, descrição e ação.
+ * Aceita Error, fetch Response, string, ou categoria explícita.
+ * NUNCA retorna mensagem genérica — sempre tem ação sugerida.
  */
-export const getErrorMessage = getUserFriendlyError;
+export const getErrorMessage = getStructuredError;
+
+/**
+ * Alias for getUserFriendlyError (string return).
+ * Mantido para compatibilidade — prefira getErrorMessage() para erros estruturados.
+ */
+export const getErrorMessageLegacy = getUserFriendlyError;
 
 /** Default fallback message for unknown errors (TD-006 AC8). */
 export const DEFAULT_ERROR_MESSAGE = "Ocorreu um erro inesperado. Tente novamente.";

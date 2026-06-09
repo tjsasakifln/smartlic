@@ -1,7 +1,8 @@
 /**
  * Tests for lib/error-messages.ts - User-Friendly Error Messages
  */
-import { getUserFriendlyError, getErrorMessage, DEFAULT_ERROR_MESSAGE } from '@/lib/error-messages';
+import { getUserFriendlyError, getErrorMessage, getStructuredError, httpStatusToCategory, DEFAULT_ERROR_MESSAGE, getErrorMessageLegacy } from '@/lib/error-messages';
+import type { ErrorCategory, StructuredError } from '@/lib/error-messages';
 
 describe('getUserFriendlyError', () => {
   describe('String errors', () => {
@@ -399,18 +400,129 @@ describe('getUserFriendlyError', () => {
     });
   });
 
-  describe('TD-006: getErrorMessage alias (AC4)', () => {
-    it('should be the same function as getUserFriendlyError', () => {
-      expect(getErrorMessage).toBe(getUserFriendlyError);
+  // ── UX-310: Structured error tests ──────────────────────────────────
+
+  describe('httpStatusToCategory', () => {
+    it('should classify 401/403 as permission', () => {
+      expect(httpStatusToCategory(401)).toBe('permission');
+      expect(httpStatusToCategory(403)).toBe('permission');
+    });
+    it('should classify 408/504 as timeout', () => {
+      expect(httpStatusToCategory(408)).toBe('timeout');
+      expect(httpStatusToCategory(504)).toBe('timeout');
+    });
+    it('should classify 429/5xx as server', () => {
+      expect(httpStatusToCategory(429)).toBe('server');
+      expect(httpStatusToCategory(500)).toBe('server');
+      expect(httpStatusToCategory(503)).toBe('server');
+    });
+    it('should classify 400/404/422 as data', () => {
+      expect(httpStatusToCategory(400)).toBe('data');
+      expect(httpStatusToCategory(404)).toBe('data');
+      expect(httpStatusToCategory(422)).toBe('data');
+    });
+    it('should return unknown for null/undefined', () => {
+      expect(httpStatusToCategory(null)).toBe('unknown');
+      expect(httpStatusToCategory(undefined)).toBe('unknown');
+    });
+  });
+
+  describe('getStructuredError', () => {
+    it('should return StructuredError with title, description and action', () => {
+      const result = getStructuredError('fetch failed');
+      expect(result).toHaveProperty('title');
+      expect(result).toHaveProperty('description');
+      expect(result).toHaveProperty('action');
     });
 
-    it('should work identically for string errors', () => {
-      expect(getErrorMessage('502')).toBe(getUserFriendlyError('502'));
+    it('should detect network errors from fetch failed', () => {
+      const result = getStructuredError('fetch failed');
+      expect(result.title).toBe('Falha de conexão');
+      expect(result.action).toContain('Verifique sua conexão');
     });
 
-    it('should work identically for Error objects', () => {
+    it('should detect network errors from Failed to fetch', () => {
+      const result = getStructuredError('Failed to fetch');
+      expect(result.title).toBe('Falha de conexão');
+    });
+
+    it('should detect timeout errors', () => {
+      const result = getStructuredError('excedeu o tempo limite');
+      expect(result.title).toBe('Tempo limite excedido');
+      expect(result.action).toContain('escopo menor');
+    });
+
+    it('should detect permission errors from 401', () => {
+      const result = getStructuredError('401');
+      expect(result.title).toBe('Acesso não permitido');
+      expect(result.action).toContain('login novamente');
+    });
+
+    it('should detect server errors from 503', () => {
+      const result = getStructuredError('503');
+      expect(result.title).toBe('Erro no servidor');
+      expect(result.action).toContain('Aguarde alguns minutos');
+    });
+
+    it('should detect data errors from 404', () => {
+      const result = getStructuredError('404');
+      expect(result.title).toBe('Problema ao carregar dados');
+      expect(result.action).toContain('refinar sua busca');
+    });
+
+    it('should accept explicit category override', () => {
+      const result = getStructuredError('anything', 'timeout');
+      expect(result.title).toBe('Tempo limite excedido');
+      expect(result.description).toContain('tempo limite');
+    });
+
+    it('should return unknown fallback for completely unknown errors', () => {
+      const result = getStructuredError('xyz unknown gibberish');
+      expect(result.title).toBe('Algo deu errado');
+      expect(result.action).toContain('Tente novamente em alguns instantes');
+    });
+
+    it('should handle Error objects', () => {
       const err = new Error('fetch failed');
-      expect(getErrorMessage(err)).toBe(getUserFriendlyError(err));
+      const result = getStructuredError(err);
+      expect(result.title).toBe('Falha de conexão');
+    });
+
+    it('should handle axios-like error objects with status', () => {
+      const err = { response: { status: 403 } };
+      const result = getStructuredError(err);
+      expect(result.title).toBe('Acesso não permitido');
+    });
+  });
+
+  describe('getErrorMessage (UX-310 structured)', () => {
+    it('should return StructuredError with title, description and action', () => {
+      const result = getErrorMessage('fetch failed');
+      expect(result).toHaveProperty('title');
+      expect(result).toHaveProperty('description');
+      expect(result).toHaveProperty('action');
+      expect(result.title).toBe('Falha de conexão');
+    });
+
+    it('should handle category override', () => {
+      const result = getErrorMessage('unknown error', 'server');
+      expect(result.title).toBe('Erro no servidor');
+    });
+
+    it('should fallback gracefully for null/undefined', () => {
+      const result = getErrorMessage(null);
+      expect(result.title).toBe('Algo deu errado');
+    });
+  });
+
+  describe('getErrorMessageLegacy (backward compat)', () => {
+    it('should return string for Error objects', () => {
+      const err = new Error('fetch failed');
+      expect(getErrorMessageLegacy(err)).toBe('Erro de conexão. Verifique sua internet.');
+    });
+
+    it('should work identically to getUserFriendlyError', () => {
+      expect(getErrorMessageLegacy('502')).toBe(getUserFriendlyError('502'));
     });
   });
 

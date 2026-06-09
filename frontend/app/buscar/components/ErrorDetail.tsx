@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import type { SearchError } from "../hooks/useSearch";
 import { toast } from "sonner";
+import { getStructuredError, httpStatusToCategory } from "@/lib/error-messages";
 
 interface ErrorDetailProps {
   /** CRIT-009 AC7: Structured error object from useSearch */
@@ -14,16 +15,29 @@ interface ErrorDetailProps {
   timestamp?: string;
 }
 
-// CRIT-002 AC4: Error classification labels
+// UX-310 AC3: Error classification labels — substituídas por mensagens acionáveis
 const ERROR_CODE_LABELS: Record<string, string> = {
-  TIMEOUT: "Tempo esgotado",
-  RATE_LIMITED: "Muitas consultas",
-  INTERNAL_ERROR: "Erro interno",
-  SOURCE_UNAVAILABLE: "Fonte indisponível",
-  AUTH_REQUIRED: "Sessão expirada",
-  VALIDATION_ERROR: "Dados inválidos",
-  QUOTA_EXCEEDED: "Limite atingido",
+  TIMEOUT: "Tempo limite excedido — tente com menos estados",
+  RATE_LIMITED: "Muitas consultas — aguarde 1 minuto",
+  INTERNAL_ERROR: "Erro no servidor — nossa equipe foi notificada",
+  SOURCE_UNAVAILABLE: "Fonte temporariamente indisponível — tente novamente",
+  AUTH_REQUIRED: "Sessão expirada — faça login novamente",
+  VALIDATION_ERROR: "Filtros inválidos — revise e tente novamente",
+  QUOTA_EXCEEDED: "Limite de análises atingido — faça upgrade",
 };
+
+function getErrorAction(errorCode: string | null | undefined): string {
+  switch (errorCode) {
+    case 'TIMEOUT': return 'Reduza o número de estados ou período de datas e tente novamente.';
+    case 'RATE_LIMITED': return 'Aguarde 1 minuto antes de realizar uma nova análise.';
+    case 'INTERNAL_ERROR': return 'Tente novamente em alguns minutos. Se o problema persistir, contate o suporte.';
+    case 'SOURCE_UNAVAILABLE': return 'Tente novamente em instantes. Se o problema persistir, tente com outros filtros.';
+    case 'AUTH_REQUIRED': return 'Faça login novamente para continuar.';
+    case 'VALIDATION_ERROR': return 'Revise os filtros selecionados e tente novamente.';
+    case 'QUOTA_EXCEEDED': return 'Faça upgrade do seu plano para continuar analisando.';
+    default: return 'Tente novamente. Se o problema persistir, contate o suporte.';
+  }
+}
 
 /**
  * CRIT-009 AC8-AC10: Collapsible technical detail section for error cards.
@@ -42,6 +56,11 @@ export function ErrorDetail({ error, searchId, errorMessage, timestamp }: ErrorD
   const correlationId = error?.correlationId;
   const requestId = error?.requestId;
   const httpStatus = error?.httpStatus;
+
+  // UX-310: Structured error info
+  const structured = error?.rawMessage
+    ? getStructuredError(error.rawMessage)
+    : getStructuredError(errorMessage || '');
 
   if (!effectiveSearchId && !effectiveMessage) return null;
 
@@ -108,6 +127,13 @@ export function ErrorDetail({ error, searchId, errorMessage, timestamp }: ErrorD
         </svg>
         Detalhes técnicos
       </button>
+
+      {!isOpen && (
+        /* UX-310: Action text always visible (even collapsed) */
+        <p className="mt-1 text-xs text-ink-muted">
+          {errorCode ? getErrorAction(errorCode) : structured.action}
+        </p>
+      )}
 
       {isOpen && (
         /* GTM-POLISH-002 AC3: Scrollable error detail on mobile (no truncation) */

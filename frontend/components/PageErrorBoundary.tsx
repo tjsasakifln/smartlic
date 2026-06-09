@@ -1,6 +1,7 @@
 "use client";
 
 import React, { Component, ErrorInfo } from "react";
+import { getStructuredError } from "@/lib/error-messages";
 
 interface PageErrorBoundaryProps {
   children: React.ReactNode;
@@ -83,8 +84,15 @@ export class PageErrorBoundary extends Component<PageErrorBoundaryProps, PageErr
             <h2 className="text-xl font-semibold text-[var(--ink)] mb-2">
               Erro ao carregar o {this.props.pageName}
             </h2>
-            <p className="text-sm text-[var(--ink-secondary)] mb-6">
-              Ocorreu um erro inesperado. Seus dados estão seguros — tente novamente.
+            <p className="text-sm text-[var(--ink-secondary)] mb-1">
+              {this.state.error
+                ? getStructuredError(this.state.error).description
+                : "Ocorreu um erro inesperado. Nossa equipe já foi notificada."}
+            </p>
+            <p className="text-xs text-[var(--ink-muted)] mb-6">
+              {this.state.error
+                ? getStructuredError(this.state.error).action
+                : "Tente novamente. Se o problema persistir, entre em contato com o suporte."}
             </p>
 
             <button
