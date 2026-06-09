@@ -7,9 +7,13 @@ Redis keys use namespace ``l1:search_cache:{cache_key}`` (AC1).
 InMemoryCache fallback keys keep legacy ``search_cache:{cache_key}`` format.
 
 redis_pool imports are lazy (inside functions) for testability.
+
+GAP-003: All TTLs include random jitter (+0-10%) to prevent cache stampede
+(thundering herd) when multiple workers expire simultaneously.
 """
 import json
 import logging
+import random
 from datetime import datetime, timezone
 from typing import Optional
 
@@ -34,10 +38,16 @@ def _save_to_redis(
     Falls back to per-process InMemoryCache when Redis is unavailable.
 
     B-02 AC6: Uses priority-based TTL instead of fixed 4h.
+
+    GAP-003: TTL includes random jitter (+0-10%) to prevent cache stampede
+    when multiple workers expire the same key simultaneously.
     """
     from redis_pool import get_sync_redis, get_fallback_cache
 
     ttl = REDIS_TTL_BY_PRIORITY.get(priority, REDIS_CACHE_TTL_SECONDS)
+    # GAP-003: Anti-cache-stampede jitter — randomize TTL ±0-10%
+    # Prevents thundering herd when multiple workers expire simultaneously.
+    ttl = ttl + random.randint(0, int(ttl * 0.1))
     cache_data = json.dumps({
         "results": results,
         "sources_json": sources,
