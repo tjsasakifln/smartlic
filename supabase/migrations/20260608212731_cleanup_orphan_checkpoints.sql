@@ -18,6 +18,7 @@ CREATE OR REPLACE FUNCTION public.cleanup_orphan_checkpoints()
 RETURNS INTEGER
 LANGUAGE plpgsql
 SECURITY DEFINER
+SET search_path = ''
 AS $$
 DECLARE
     v_deleted INTEGER;
