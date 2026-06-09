@@ -328,7 +328,13 @@ class TestCheckout:
 
         _mock_supabase_product(mock_get_supabase, [MOCK_PRODUCT])
 
-        with patch("stripe.checkout.Session.create") as mock_session_create:
+        with (
+            patch("stripe.Product.create") as mock_product_create,
+            patch("stripe.Price.create") as mock_price_create,
+            patch("stripe.checkout.Session.create") as mock_session_create,
+        ):
+            mock_product_create.return_value = MagicMock(id="prod_Mocked")
+            mock_price_create.return_value = MagicMock(id="price_Mocked")
             mock_session_create.side_effect = stripe_lib.error.StripeError("API error")
 
             resp = client.post(
