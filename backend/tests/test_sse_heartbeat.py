@@ -1,9 +1,12 @@
 """CRIT-012: Tests for SSE heartbeat improvements.
+GAP-005: Named heartbeat event + Redis fallback WARNING.
 
 AC9: Heartbeat during wait-for-tracker phase
 AC10: 15s heartbeat interval in main event loop
 AC3: DEBUG telemetry logging for heartbeats
 AC8: SSE connection error metric
+GAP-005-AC1: Named heartbeat event format is correct
+GAP-005-AC2: WARNING log on Redis pub/sub failure
 """
 
 import asyncio
@@ -113,8 +116,8 @@ class TestWaitForTrackerHeartbeat:
                 response = await client.get("/v1/buscar-progress/nonexistent")
 
         assert response.status_code == 200
-        # Parse the SSE data event
-        data_lines = [line for line in response.text.split("\n") if line.startswith("data: ")]
+        # Parse the SSE data event, filtering out heartbeat data: {} lines
+        data_lines = [line for line in response.text.split("\n") if line.startswith("data: ") and line != "data: {}"]
         assert len(data_lines) >= 1, f"Expected at least one data event. Content: {response.text}"
         event = json.loads(data_lines[0].replace("data: ", ""))
         assert event["stage"] == "error"
@@ -134,7 +137,7 @@ class TestWaitForTrackerHeartbeat:
                 response = await client.get("/v1/buscar-progress/db-reconnect")
 
         assert response.status_code == 200
-        data_lines = [line for line in response.text.split("\n") if line.startswith("data: ")]
+        data_lines = [line for line in response.text.split("\n") if line.startswith("data: ") and line != "data: {}"]
         assert len(data_lines) >= 1
         event = json.loads(data_lines[0].replace("data: ", ""))
         assert event["stage"] == "completed"
@@ -343,3 +346,166 @@ class TestSSEMetric:
         # Should not raise when called with correct labels
         SSE_CONNECTION_ERRORS.labels(error_type="cancelled", phase="streaming").inc()
         SSE_CONNECTION_ERRORS.labels(error_type="tracker_not_found", phase="wait").inc()
+
+
+# ============================================================================
+# GAP-005-AC1: Named heartbeat event format
+# ============================================================================
+
+
+@pytest.mark.asyncio
+class TestNamedHeartbeatEvent:
+    """GAP-005-AC1: Named heartbeat event (event: heartbeat) sent correctly."""
+
+    async def test_heartbeat_named_event_format_constant(self):
+        """GAP-005-AC1: _SSE_HEARTBEAT_NAMED_EVENT has correct format."""
+        from routes.search_sse import _SSE_HEARTBEAT_NAMED_EVENT
+        expected = "event: heartbeat\ndata: {}\n\n"
+        assert _SSE_HEARTBEAT_NAMED_EVENT == expected, (
+            f"Expected {expected!r}, got {_SSE_HEARTBEAT_NAMED_EVENT!r}"
+        )
+
+    async def test_named_event_present_in_in_memory_mode(self, mock_auth, mock_sse_limits):
+        """GAP-005-AC1: Named heartbeat event appears in in-memory mode output."""
+        from main import app
+        from progress import ProgressEvent
+
+        mock_tracker = MagicMock()
+        mock_tracker._use_redis = False
+        mock_tracker.queue = asyncio.Queue()
+
+        get_count = 0
+
+        async def mock_queue_get():
+            nonlocal get_count
+            get_count += 1
+            if get_count == 1:
+                await asyncio.sleep(999)
+            return ProgressEvent(stage="complete", progress=100, message="Done")
+
+        mock_tracker.queue.get = mock_queue_get
+
+        with patch("routes.search_sse.get_tracker", new_callable=AsyncMock, return_value=mock_tracker), \
+             patch("routes.search_sse.get_sse_redis_pool", new_callable=AsyncMock, return_value=None), \
+             patch("routes.search_sse._SSE_HEARTBEAT_INTERVAL", 0.01):
+            transport = ASGITransport(app=app)
+            async with AsyncClient(transport=transport, base_url="http://test") as client:
+                response = await client.get("/v1/buscar-progress/test-named-hb")
+
+        assert response.status_code == 200
+        # Check that named heartbeat event is present
+        assert "event: heartbeat" in response.text
+        assert "data: {}" in response.text
+
+    async def test_named_event_present_in_redis_stream_mode(self, mock_auth, mock_sse_limits):
+        """GAP-005-AC1: Named heartbeat event appears in Redis stream mode output."""
+        from main import app
+
+        mock_tracker = MagicMock()
+        mock_tracker._use_redis = True
+        mock_tracker.queue = asyncio.Queue()
+
+        mock_redis = AsyncMock()
+        xread_count = 0
+
+        async def mock_xread(streams, count=None):
+            nonlocal xread_count
+            xread_count += 1
+            if xread_count == 1:
+                return None  # No data -> triggers heartbeat
+            stream_key = list(streams.keys())[0]
+            return [
+                [stream_key, [("1-0", {
+                    "stage": "complete",
+                    "progress": "100",
+                    "message": "Done",
+                    "detail_json": "{}",
+                })]]
+            ]
+
+        mock_redis.xread = mock_xread
+
+        with patch("routes.search_sse.get_tracker", new_callable=AsyncMock, return_value=mock_tracker), \
+             patch("routes.search_sse.get_sse_redis_pool", new_callable=AsyncMock, return_value=mock_redis), \
+             patch("routes.search_sse._SSE_POLLS_PER_HEARTBEAT", 1), \
+             patch("routes.search_sse._SSE_POLL_INTERVAL", 0.01):
+            transport = ASGITransport(app=app)
+            async with AsyncClient(transport=transport, base_url="http://test") as client:
+                response = await client.get("/v1/buscar-progress/test-named-redis")
+
+        assert response.status_code == 200
+        assert "event: heartbeat" in response.text
+        assert "data: {}" in response.text
+
+
+# ============================================================================
+# GAP-005-AC2: Redis pub/sub failure WARNING log
+# ============================================================================
+
+
+@pytest.mark.asyncio
+class TestRedisFallbackWarningLog:
+    """GAP-005-AC2: Redis failure triggers specific WARNING log message."""
+
+    async def test_redis_unavailable_warning(self, mock_auth, mock_sse_limits, caplog):
+        """GAP-005-AC2: When Redis pool unavailable, logs 'SSE fallback activated'."""
+        from main import app
+        from progress import ProgressEvent
+
+        mock_tracker = MagicMock()
+        mock_tracker._use_redis = True
+        mock_tracker.queue = asyncio.Queue()
+        await mock_tracker.queue.put(
+            ProgressEvent(stage="complete", progress=100, message="Done")
+        )
+
+        # Mock get_sse_redis_pool to return None (Redis unavailable)
+        with patch("routes.search_sse.get_tracker", new_callable=AsyncMock, return_value=mock_tracker), \
+             patch("routes.search_sse.get_sse_redis_pool", new_callable=AsyncMock, return_value=None), \
+             caplog.at_level(logging.WARNING, logger="routes.search_sse"):
+            transport = ASGITransport(app=app)
+            async with AsyncClient(transport=transport, base_url="http://test") as client:
+                response = await client.get("/v1/buscar-progress/test-redis-down")
+
+        assert response.status_code == 200
+        # Check that the specific WARNING log message was emitted
+        fallback_logs = [
+            r for r in caplog.records
+            if "SSE fallback activated" in r.message
+        ]
+        assert len(fallback_logs) >= 1, (
+            f"Expected 'SSE fallback activated' log. All logs: "
+            f"{[r.message for r in caplog.records]}"
+        )
+
+    async def test_redis_timeout_warning(self, mock_auth, mock_sse_limits, caplog):
+        """GAP-005-AC2: Redis TimeoutError logs 'SSE fallback activated' WARNING."""
+        from main import app
+
+        mock_tracker = MagicMock()
+        mock_tracker._use_redis = True
+        mock_tracker.queue = asyncio.Queue()
+
+        mock_redis = AsyncMock()
+        mock_redis.xread = AsyncMock(side_effect=TimeoutError("Timeout reading from redis"))
+
+        with patch("routes.search_sse.get_tracker", new_callable=AsyncMock, return_value=mock_tracker), \
+             patch("routes.search_sse.get_sse_redis_pool", new_callable=AsyncMock, return_value=mock_redis), \
+             patch("routes.search_sse.get_search_status", new_callable=AsyncMock, return_value={
+                 "status": "completed", "progress": 100,
+             }), \
+             patch("routes.search_sse._SSE_HEARTBEAT_INTERVAL", 0.01), \
+             caplog.at_level(logging.WARNING, logger="routes.search_sse"):
+            transport = ASGITransport(app=app)
+            async with AsyncClient(transport=transport, base_url="http://test") as client:
+                response = await client.get("/v1/buscar-progress/test-redis-timeout")
+
+        assert response.status_code == 200
+        fallback_logs = [
+            r for r in caplog.records
+            if "SSE fallback activated" in r.message and "redis_pubsub_unavailable" in r.message
+        ]
+        assert len(fallback_logs) >= 1, (
+            f"Expected 'SSE fallback activated: redis_pubsub_unavailable' log. "
+            f"All logs: {[r.message for r in caplog.records]}"
+        )
