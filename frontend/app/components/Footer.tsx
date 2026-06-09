@@ -50,7 +50,7 @@ export default function Footer() {
                 <FooterLink href="/stack">Tech Stack</FooterLink>
               </li>
               <li>
-                <FooterLink href="#como-funciona">Como funciona</FooterLink>
+                <FooterLink href="/#o-que-faz">Como funciona</FooterLink>
               </li>
             </ul>
           </div>
