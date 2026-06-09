@@ -64,6 +64,7 @@ export function ResultsLoadingSection({
           degradedMessage={sseEvent?.stage === 'degraded' ? sseEvent.message : undefined}
           ufTotalFound={ufTotalFound}
           onViewPartial={onViewPartial}
+          onRetry={() => { onCancel?.(); onSearch(); }}
         />
       </div>
       <LoadingResultsSkeleton count={1} />

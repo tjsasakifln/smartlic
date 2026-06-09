@@ -50,6 +50,8 @@ export interface EnhancedLoadingProgressProps {
   ufTotalFound?: number;
   /** DEBT-v3-S2 AC10: Callback to view partial results */
   onViewPartial?: () => void;
+  /** UX-309: Callback fired when user clicks "Tentar novamente" after 30s timeout */
+  onRetry?: () => void;
 }
 
 // Internal stages for progress logic (not displayed to user)
@@ -97,6 +99,9 @@ const B2G_TIPS = [
 
 const CAROUSEL_INTERVAL_MS = 6000;
 
+// UX-309: Hard timeout for indefinite loading states (30s)
+const LOADING_TIMEOUT_SECONDS = 30;
+
 /** CRIT-006 AC20-21: Graduated honest overtime messages with SSE progress awareness */
 function getOvertimeMessage(overBySeconds: number, stateCount: number, estimatedTime: number, elapsedTime: number, sseProgress?: number): string {
   // CRIT-006 AC20: Messages tied to REAL progress, not just time
@@ -140,6 +145,7 @@ export function EnhancedLoadingProgress({
   isReconnecting = false,
   ufTotalFound = 0,
   onViewPartial,
+  onRetry,
 }: EnhancedLoadingProgressProps) {
   const [currentStage, setCurrentStage] = useState(1);
   const [elapsedTime, setElapsedTime] = useState(0);
@@ -147,6 +153,9 @@ export function EnhancedLoadingProgress({
   // DEBT-v3-S2 AC9: "Stuck" state — Zero-churn P2 §5.2: reduced from 45s to 15s
   const STUCK_THRESHOLD_SECONDS = 15;
   const isStuck = elapsedTime >= STUCK_THRESHOLD_SECONDS;
+
+  // UX-309: Hard timeout at 30s, regardless of SSE progress
+  const isTimedOut = elapsedTime >= LOADING_TIMEOUT_SECONDS;
 
   // UX-411: Carousel state
   const [currentTipIndex, setCurrentTipIndex] = useState(0);
@@ -372,6 +381,76 @@ export function EnhancedLoadingProgress({
       {isOvertime && !isDegraded && (
         <div className="mb-3 p-3 bg-warning-subtle border border-warning/20 rounded-lg text-sm text-warning-dark" data-testid="overtime-message">
           {getOvertimeMessage(overtimeSeconds, stateCount, estimatedTime, elapsedTime, currentSseProgress)}
+        </div>
+      )}
+
+      {/* UX-309: Hard timeout overlay after 30s with retry button */}
+      {isTimedOut && !showTimeoutOverlay && (
+        <div
+          className="mb-3 p-4 rounded-lg bg-amber-50 dark:bg-amber-900/20 border border-amber-300 dark:border-amber-700/50"
+          data-testid="loading-timeout"
+          role="alert"
+        >
+          <div className="flex items-start gap-3">
+            <svg
+              className="w-5 h-5 text-amber-600 dark:text-amber-400 flex-shrink-0 mt-0.5"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              aria-hidden="true"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
+              />
+            </svg>
+            <div className="flex-1">
+              <p className="text-sm font-medium text-amber-800 dark:text-amber-200">
+                Isto está demorando mais que o esperado
+              </p>
+              <p className="text-xs text-amber-700 dark:text-amber-300 mt-1">
+                A análise pode estar enfrentando instabilidade temporária nas fontes de dados.
+              </p>
+              <div className="flex flex-col sm:flex-row gap-2 mt-3">
+                {onRetry && (
+                  <button
+                    type="button"
+                    onClick={onRetry}
+                    className="px-4 py-2 bg-amber-600 text-white rounded-lg text-sm font-medium hover:bg-amber-700 transition-colors flex items-center gap-1.5"
+                    data-testid="loading-timeout-retry"
+                  >
+                    <svg
+                      className="w-4 h-4"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                      aria-hidden="true"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+                      />
+                    </svg>
+                    Tentar novamente
+                  </button>
+                )}
+                {onCancel && (
+                  <button
+                    type="button"
+                    onClick={onCancel}
+                    className="px-4 py-2 text-sm font-medium text-amber-700 dark:text-amber-300 hover:underline"
+                    data-testid="loading-timeout-cancel"
+                  >
+                    Cancelar
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
         </div>
       )}
 
