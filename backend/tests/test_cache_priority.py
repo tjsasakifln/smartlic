@@ -376,41 +376,41 @@ class TestRedisTTLByPriority:
         assert REDIS_TTL_BY_PRIORITY[CachePriority.COLD] == 3600
 
     def test_hot_entry_gets_2h_ttl(self):
-        """Saving with priority=HOT uses 7200s TTL."""
+        """Saving with priority=HOT uses 7200s TTL base (+0-10% jitter)."""
         mock_cache = MagicMock()
         with patch("redis_pool.get_fallback_cache", return_value=mock_cache):
             _save_to_redis("test_key", [{"id": 1}], ["PNCP"], priority=CachePriority.HOT)
 
         mock_cache.setex.assert_called_once()
         args = mock_cache.setex.call_args[0]
-        assert args[1] == 7200  # TTL
+        assert 7200 <= args[1] <= 7920, f"TTL {args[1]} outside expected range [7200, 7920]"
 
     def test_cold_entry_gets_1h_ttl(self):
-        """Saving with priority=COLD uses 3600s TTL."""
+        """Saving with priority=COLD uses 3600s TTL base (+0-10% jitter)."""
         mock_cache = MagicMock()
         with patch("redis_pool.get_fallback_cache", return_value=mock_cache):
             _save_to_redis("test_key", [{"id": 1}], ["PNCP"], priority=CachePriority.COLD)
 
         args = mock_cache.setex.call_args[0]
-        assert args[1] == 3600
+        assert 3600 <= args[1] <= 3960, f"TTL {args[1]} outside expected range [3600, 3960]"
 
     def test_warm_entry_gets_6h_ttl(self):
-        """Saving with priority=WARM uses 21600s TTL."""
+        """Saving with priority=WARM uses 21600s TTL base (+0-10% jitter)."""
         mock_cache = MagicMock()
         with patch("redis_pool.get_fallback_cache", return_value=mock_cache):
             _save_to_redis("test_key", [{"id": 1}], ["PNCP"], priority=CachePriority.WARM)
 
         args = mock_cache.setex.call_args[0]
-        assert args[1] == 21600
+        assert 21600 <= args[1] <= 23760, f"TTL {args[1]} outside expected range [21600, 23760]"
 
     def test_default_priority_is_cold(self):
-        """Default priority = COLD → 3600s TTL."""
+        """Default priority = COLD → 3600s TTL base (+0-10% jitter)."""
         mock_cache = MagicMock()
         with patch("redis_pool.get_fallback_cache", return_value=mock_cache):
             _save_to_redis("test_key", [{"id": 1}], ["PNCP"])
 
         args = mock_cache.setex.call_args[0]
-        assert args[1] == 3600
+        assert 3600 <= args[1] <= 3960, f"TTL {args[1]} outside expected range [3600, 3960]"
 
 
 # ============================================================================
