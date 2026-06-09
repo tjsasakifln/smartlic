@@ -15,6 +15,7 @@ from datetime import datetime, timezone
 from fastapi import APIRouter
 from fastapi.responses import JSONResponse
 
+from schemas.health import StripeHealthResponse
 from schemas.parity import (
     BackgroundTasksHealthResponse,
     CacheHealthResponse,
@@ -107,7 +108,7 @@ async def sources_health():
     return {"sources": result}
 
 
-@router.get("/health/stripe")
+@router.get("/health/stripe", response_model=StripeHealthResponse)
 async def stripe_health():
     """DEC-BIL-GAP-02: Stripe connectivity health check.
 

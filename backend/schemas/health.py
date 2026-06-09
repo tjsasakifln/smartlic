@@ -107,6 +107,15 @@ class MvCheckResult(BaseModel):
     error: Optional[str] = None
 
 
+class StripeHealthResponse(BaseModel):
+    """Response for GET /health/stripe endpoint (DEC-BIL-GAP-02)."""
+    stripe: str  # "ok" | "unreachable"
+    since: Optional[str] = None
+    grace_period_hours: Optional[int] = None
+    grace_remaining_hours: Optional[float] = None
+    notified: Optional[bool] = None
+
+
 class SitemapHealthResponse(BaseModel):
     """Response for GET /health/sitemap endpoint (SEO-SITEMAP-TELEMETRY-001)."""
     status: str  # "ok" | "degraded"
