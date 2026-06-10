@@ -96,6 +96,7 @@ from routes.api_search import router as api_search_router
 from routes.admin_metrics import router as admin_metrics_router
 from routes.email_tracking import router as email_tracking_router
 from routes.admin_digest_metrics import router as admin_digest_metrics_router
+from routes.admin_command import router as admin_command_router
 
 _v1_routers = [
     admin_router, subscriptions_router, upgrade_to_lifetime_router,
@@ -192,6 +193,9 @@ def register_routes(app: FastAPI) -> None:
 
     # DIGEST-005 (#1421): Admin digest metrics dashboard widget
     app.include_router(admin_digest_metrics_router)
+
+    # GAP-002 (#1579): Command plan provisioning — self-prefixed at /v1/admin/subscriptions/*
+    app.include_router(admin_command_router)
 
     # Stripe webhook at root — DEBT-324: single registration only.
     # Removed from _v1_routers above to prevent duplicate at /v1/webhooks/stripe.

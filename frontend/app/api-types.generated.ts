@@ -1372,6 +1372,33 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/admin/subscriptions/command": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Provision Command Subscription
+         * @description Create a Stripe Checkout session for the SmartLic Command (enterprise) tier.
+         *
+         *     Uses the price ID from the ``COMMAND_PRICE_ID`` environment variable.
+         *     The session is created in ``mode='subscription'`` with metadata that
+         *     the existing ``checkout.session.completed`` webhook handler recognises
+         *     (see TIER-COMMAND-002 in webhooks/handlers/checkout.py).
+         *
+         *     Returns the Stripe Checkout URL and session ID.
+         */
+        post: operations["provision_command_subscription_v1_admin_subscriptions_command_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/admin/support-sla": {
         parameters: {
             query?: never;
@@ -7947,6 +7974,37 @@ export interface components {
             notes?: string | null;
             /** Setor Id */
             setor_id?: string | null;
+        };
+        /**
+         * CommandProvisionRequest
+         * @description Request body for provisioning a Command subscription checkout.
+         */
+        CommandProvisionRequest: {
+            /**
+             * Email
+             * @description Customer email for the Stripe Checkout session.
+             */
+            email: string;
+            /**
+             * Org Id
+             * @description Optional organisation identifier for metadata tracking.
+             */
+            org_id?: string | null;
+        };
+        /**
+         * CommandProvisionResponse
+         * @description Response returned after creating the Command checkout session.
+         */
+        CommandProvisionResponse: {
+            /** Checkout Url */
+            checkout_url: string;
+            /**
+             * Plan Id
+             * @default smartlic_command
+             */
+            plan_id: string;
+            /** Session Id */
+            session_id: string;
         };
         /** ComparadorBid */
         ComparadorBid: {
@@ -16029,6 +16087,39 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["SloAlertsResponse"];
+                };
+            };
+        };
+    };
+    provision_command_subscription_v1_admin_subscriptions_command_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CommandProvisionRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CommandProvisionResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };
