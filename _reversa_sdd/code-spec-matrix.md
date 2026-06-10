@@ -52,26 +52,119 @@
 | `backend/sectors.py`, `backend/sectors_data.yaml` | 01 (filter), 11 (SEO) |
 | `backend/config.py`, `backend/feature_flags.py` | cross-cutting |
 
-### Frontend (top-level)
+### Frontend
 
 | File | Spec |
 |------|------|
+| **Auth** | |
 | `frontend/middleware.ts` | 03 |
-| `frontend/app/login/page.tsx`, `frontend/app/signup/page.tsx`, `frontend/app/auth/callback/page.tsx`, `frontend/app/recuperar-senha/page.tsx`, `frontend/app/redefinir-senha/page.tsx` | 03 |
-| `frontend/app/onboarding/` | 08 |
-| `frontend/app/buscar/` | 01 |
-| `frontend/app/dashboard/` | 08 |
+| `frontend/app/login/`, `frontend/app/signup/`, `frontend/app/auth/callback/`, `frontend/app/recuperar-senha/`, `frontend/app/redefinir-senha/` | 03 |
+| `frontend/components/auth/` | 03 |
+| `frontend/hooks/useAuth.ts` | 03 |
+| **Search Pipeline** | |
+| `frontend/app/buscar/`, `frontend/app/buscar/components/`, `frontend/app/buscar/hooks/`, `frontend/app/buscar/types/`, `frontend/app/buscar/utils/`, `frontend/app/buscar/constants/` | 01 |
 | `frontend/app/historico/` | 01 (sessions list) |
-| `frontend/app/pipeline/` | 04 |
-| `frontend/app/mensagens/` | 07 |
+| `frontend/app/analise/` | 01 |
+| `frontend/hooks/useSearchSSE.ts`, `frontend/hooks/useSearchPolling.ts` | 01 (SSE streaming) |
+| `frontend/hooks/useSavedSearches.ts`, `frontend/hooks/useSessions.ts` | 01 |
+| **Billing & Quota** | |
 | `frontend/app/conta/`, `frontend/app/planos/`, `frontend/app/pricing/`, `frontend/app/features/` | 02 |
+| `frontend/app/conta/plano/`, `frontend/app/conta/dados/`, `frontend/app/conta/perfil/`, `frontend/app/conta/equipe/`, `frontend/app/conta/seguranca/`, `frontend/app/conta/preferencias/`, `frontend/app/conta/cancelar-trial/` | 02 |
+| `frontend/app/founding/`, `frontend/app/founding/components/` | 02 |
+| `frontend/app/fundadores/`, `frontend/app/fundadores/hall/` | 02 |
+| `frontend/app/indicar/`, `frontend/app/obrigado/` | 02 |
+| `frontend/components/billing/` | 02 |
+| `frontend/components/pricing/` | 02 |
+| `frontend/components/subscriptions/` | 02 |
+| `frontend/hooks/usePlan.ts`, `frontend/hooks/usePlans.ts`, `frontend/hooks/useQuota.ts`, `frontend/hooks/useTrialPhase.ts`, `frontend/hooks/useRecommendedPlan.ts`, `frontend/hooks/useFoundersAvailability.ts` | 02 |
+| `frontend/lib/stripe-client.ts`, `frontend/lib/plan-pricing.ts`, `frontend/lib/plans.ts` | 02 |
+| **Pipeline Kanban** | |
+| `frontend/app/pipeline/` | 04 (code-split lazy via next/dynamic) |
+| `frontend/hooks/usePipeline.ts` | 04 |
+| **Onboarding & Analytics** | |
+| `frontend/app/onboarding/`, `frontend/app/onboarding/components/` | 08 |
+| `frontend/app/dashboard/`, `frontend/app/dashboard/components/` | 08 |
+| `frontend/components/tour/` | 08 (Shepherd onboarding tour) |
+| `frontend/components/walkthrough/` | 08 |
+| `frontend/components/survey/` | 08 |
+| `frontend/hooks/useAnalytics.ts`, `frontend/hooks/useConversionTracking.ts`, `frontend/hooks/useClarity.ts` | 08 |
+| `frontend/hooks/useProfileContext.ts`, `frontend/hooks/useProfileCompleteness.ts` | 08 |
+| **Messages & Feedback** | |
+| `frontend/app/mensagens/` | 07 |
+| `frontend/hooks/useConversations.ts`, `frontend/hooks/useUnreadCount.ts` | 07 |
+| **Admin** | |
 | `frontend/app/admin/` | 09 |
-| `frontend/app/{observatorio,cnpj,fornecedores,orgaos,municipios,licitacoes,contratos,blog,alertas-publicos,indice-municipal,calculadora,comparador,compliance}/` | 11 |
-| `frontend/app/sitemap.xml`, `frontend/app/sitemap-N.xml/` | 11 |
-| `frontend/components/{tour,billing,ui}/` | cross-cutting |
-| `frontend/hooks/{usePipeline,usePlan,useAuth,useTrialPhase,useAnalytics}.ts` | 02, 03, 04, 08 |
+| `frontend/app/admin/billing/`, `frontend/app/admin/cache/`, `frontend/app/admin/calibration/`, `frontend/app/admin/emails/`, `frontend/app/admin/feature-flags/`, `frontend/app/admin/founding/`, `frontend/app/admin/metrics/`, `frontend/app/admin/partners/`, `frontend/app/admin/seo/`, `frontend/app/admin/slo/`, `frontend/app/admin/components/` | 09 |
+| `frontend/hooks/useAdminSWR.ts` | 09 |
+| **Observatory & SEO** | |
+| `frontend/app/observatorio/`, `frontend/app/observatorio/[slug]/` | 11 |
+| `frontend/app/blog/`, `frontend/app/blog/[slug]/`, `frontend/app/blog/author/`, `frontend/app/blog/contratos/`, `frontend/app/blog/licitacoes/`, `frontend/app/blog/licitacoes-do-dia/`, `frontend/app/blog/panorama/`, `frontend/app/blog/weekly/`, `frontend/app/blog/programmatic/`, `frontend/app/blog/components/`, `frontend/app/blog/content/` | 11 |
+| `frontend/app/cnpj/`, `frontend/app/fornecedores/`, `frontend/app/orgaos/`, `frontend/app/municipios/`, `frontend/app/licitacoes/`, `frontend/app/contratos/` | 11 |
+| `frontend/app/alertas-publicos/`, `frontend/app/indice-municipal/`, `frontend/app/calculadora/`, `frontend/app/comparador/`, `frontend/app/compliance/` | 11 |
+| `frontend/app/dados/`, `frontend/app/itens/`, `frontend/app/orgaos-publicos/`, `frontend/app/estatisticas/` | 11 |
+| `frontend/app/sitemap.xml/` | 11 |
+| `frontend/app/guia/`, `frontend/app/perguntas/`, `frontend/app/glossario/`, `frontend/app/sobre/` | 11 (SEO content pages) |
+| `frontend/app/para-empresas/`, `frontend/app/para-consultorias/`, `frontend/app/para-advogados/`, `frontend/app/para-construtoras/`, `frontend/app/para-empresas-de-ti/`, `frontend/app/para-fornecedores/`, `frontend/app/para-quem-quer-subcontratar/` | 11 (SEO landing pages) |
+| `frontend/app/como-avaliar-licitacao/`, `frontend/app/como-filtrar-editais/`, `frontend/app/como-priorizar-oportunidades/`, `frontend/app/como-evitar-prejuizo-licitacao/` | 11 (SEO guides) |
+| `frontend/app/casos/`, `frontend/app/demo/`, `frontend/app/masterclass/`, `frontend/app/ferramentas/` | 11 (SEO content) |
+| `frontend/app/consultoria-b2g/`, `frontend/app/consultorias/`, `frontend/app/segmentar/`, `frontend/app/intencao/` | 11 |
+| `frontend/app/relatorio-2026-t1/` | 11 |
+| `frontend/components/blog/`, `frontend/components/blog/hubs/` | 11 |
+| `frontend/components/pseo/` | 11 (programmatic SEO) |
+| `frontend/components/seo/` | 11 |
+| `frontend/app/components/seo/` | 11 |
+| `frontend/app/components/programmatic/` | 11 |
+| `frontend/hooks/useAlertPreferences.ts`, `frontend/hooks/useAlerts.ts`, `frontend/hooks/usePublicMetrics.ts` | 11 |
+| **Intel Reports** | |
+| `frontend/app/intel-reports/` | 07b |
+| `frontend/components/reports/` | 07b, 10 |
+| **Cross-cutting / Shared UI** | |
+| `frontend/components/ui/` | cross-cutting (design-system — 16) |
+| `frontend/components/layout/` | cross-cutting |
+| `frontend/components/cta/` | cross-cutting |
+| `frontend/components/banners/` | cross-cutting |
+| `frontend/components/forms/` | cross-cutting |
+| `frontend/components/share/` | cross-cutting |
+| `frontend/components/skeletons/` | cross-cutting |
+| `frontend/components/account/`, `frontend/components/org/` | 02, 03 |
+| `frontend/components/legal/` | 03 |
+| `frontend/app/components/ui/` | cross-cutting (design-system) |
+| `frontend/app/components/navigation/` | cross-cutting |
+| `frontend/app/components/landing/`, `frontend/app/components/landing-use-case/` | cross-cutting |
+| `frontend/app/components/conversion/` | 02, 08 |
+| `frontend/app/components/checkout/` | 02 |
+| `frontend/app/components/whatsapp/` | cross-cutting |
+| `frontend/hooks/useFeatureFlags.ts`, `frontend/hooks/useExperiments.ts` | cross-cutting |
+| `frontend/hooks/useIsMobile.ts`, `frontend/hooks/useKeyboardShortcuts.ts`, `frontend/hooks/useBroadcastChannel.ts`, `frontend/hooks/useNavigationGuard.ts`, `frontend/hooks/useServiceWorker.ts`, `frontend/hooks/useLoadingTimeout.ts`, `frontend/hooks/useFetchWithBackoff.ts` | cross-cutting |
+| `frontend/hooks/useOrganization.ts` | 03 |
+| `frontend/app/hooks/useInView.ts` | cross-cutting |
+| **API Proxy Routes** | |
+| `frontend/app/api/buscar/`, `frontend/app/api/buscar-progress/`, `frontend/app/api/buscar-results/`, `frontend/app/api/search-status/`, `frontend/app/api/search-cancel/`, `frontend/app/api/search-zero-match/` | 01 |
+| `frontend/app/api/billing/`, `frontend/app/api/checkout/`, `frontend/app/api/subscriptions/`, `frontend/app/api/subscription-status/`, `frontend/app/api/billing-portal/`, `frontend/app/api/plans/`, `frontend/app/api/products/`, `frontend/app/api/founding/` | 02 |
+| `frontend/app/api/auth/`, `frontend/app/api/mfa/`, `frontend/app/api/change-password/` | 03 |
+| `frontend/app/api/pipeline/` | 04 |
+| `frontend/app/api/messages/`, `frontend/app/api/feedback/` | 07 |
+| `frontend/app/api/onboarding/`, `frontend/app/api/analytics/`, `frontend/app/api/survey/` | 08 |
+| `frontend/app/api/admin/` | 09 |
+| `frontend/app/api/export/`, `frontend/app/api/relatorio/`, `frontend/app/api/download/`, `frontend/app/api/regenerate-excel/` | 10 |
+| `frontend/app/api/blog/`, `frontend/app/api/sectors/`, `frontend/app/api/setores/`, `frontend/app/api/dados/`, `frontend/app/api/stats/`, `frontend/app/api/pseo/`, `frontend/app/api/revalidate/` | 11 |
+| `frontend/app/api/conta/`, `frontend/app/api/me/`, `frontend/app/api/user/`, `frontend/app/api/organizations/` | 02, 03 |
+| `frontend/app/api/trial/`, `frontend/app/api/trial-status/`, `frontend/app/api/referral/`, `frontend/app/api/lead-capture/` | 02 |
+| `frontend/app/api/health/`, `frontend/app/api/status/` | 13 |
+| `frontend/app/api/feature-flags/`, `frontend/app/api/experiments/` | cross-cutting |
+| `frontend/app/api/sessions/`, `frontend/app/api/segment/` | 01 |
+| `frontend/app/api/bid-analysis/`, `frontend/app/api/first-analysis/` | 01 |
+| `frontend/app/api/intel-reports/` | 07b |
+| `frontend/app/api/alert-preferences/`, `frontend/app/api/alerts/`, `frontend/app/api/new-bids-count/` | 11 |
+| `frontend/app/api/profile-context/`, `frontend/app/api/profile-completeness/` | 08 |
+| `frontend/app/api/founders-hall/` | 02 |
+| `frontend/app/api/empresa/` | 11 |
+| `frontend/app/api/og/` | 11 (Open Graph) |
+| `frontend/app/api/csp-report/`, `frontend/app/api/docs/` | cross-cutting |
+| **Types & Config** | |
 | `frontend/app/types.ts`, `frontend/app/api-types.generated.ts` | underlying todas |
 | `frontend/tailwind.config.ts`, `frontend/app/globals.css` | design-system (16) |
+| `frontend/lib/` | cross-cutting (utilities, API helpers, SEO, analytics, constants) |
 
 ### Database
 
@@ -90,6 +183,25 @@
 | `026_search_results_cache.sql`, `027b_search_cache_add_sources_and_fetched_at.sql` | 01 (cache LEGACY) |
 | `20260326000000_datalake_raw_bids.sql`, `20260413000002_trigram_index_objeto_compra.sql`, `20260424133500_extend_pncp_retention_400d.sql`, `20260424161923_seo013_index_orgao_cnpj_raw_bids.sql` | 05 |
 | `20260424180000_trial_email_delivery_tracking.sql` | 12 |
+
+### Shared Infrastructure (Cross-cutting)
+
+| Module / File | Consumer Units | Notes |
+|--------------|----------------|-------|
+| `backend/utils/` | todas as units | Logging, date helpers, sanitization, text normalization — key files: `date_parser.py`, `formatters.py`, `value_sanitizer.py`, `cnpj_validator.py`, `email_normalizer.py`, `phone_normalizer.py`, `ordenacao.py`, `postgrest_paginate.py`, `cnae_mapping.py`, `disposable_emails.py`, `error_reporting.py`, `seo_response.py`, `revalidate_client.py`, `viability_split.py`, `app_config.py` |
+| `backend/config.py` | todas as units | Configuração central via env vars |
+| `backend/feature_flags.py` | todas as units | Runtime feature flags |
+| `backend/metrics.py` | todas as units | Prometheus metrics |
+| `backend/telemetry.py` | todas as units | OpenTelemetry tracing |
+| `backend/audit.py` | todas as units | Audit logging |
+| `backend/log_sanitizer.py` | todas as units | PII masking |
+| `backend/rate_limiter.py` | routes/ (auth, search, api) | Redis token bucket |
+| `backend/progress.py` | routes/search/ | SSE progress tracking |
+| `backend/supabase_client.py` | todas as units | DB client with circuit breaker |
+| `backend/templates/emails/` | routes/ (email_service) | 15 email templates (trial, billing, dunning, welcome, digest, etc.) |
+| `backend/dependencies/` | routes/ | FastAPI dependency injection |
+| `backend/sectors.py`, `backend/sectors_data.yaml` | filter/, routes/search/, routes/observatorio/ | 20 setores com keywords e exclusões |
+| `backend/cache/` | routes/search/ | L1 InMemoryCache + L2 Redis + Supabase |
 
 ## Test → Spec
 
