@@ -528,7 +528,7 @@ class TestQueryDatalake:
         mock_openai_client.embeddings.create = AsyncMock(return_value=mock_response)
 
         with patch("openai.AsyncOpenAI", return_value=mock_openai_client):
-            result = await query_datalake(
+            await query_datalake(
                 ufs=["SP"],
                 data_inicial="2026-03-01",
                 data_final="2026-03-31",
@@ -732,3 +732,164 @@ class TestRowToNormalized:
         result = _row_to_normalized(SAMPLE_TRIGRAM_ROW)
         assert result["objetoCompra"] == SAMPLE_DB_ROW["objeto_compra"]
         assert "sim_score" not in result
+
+
+# ---------------------------------------------------------------------------
+# TRUNC-001: Intra-UF pagination tests
+# ---------------------------------------------------------------------------
+
+
+class TestQueryUfWithPagination:
+    """Tests for _query_uf_with_pagination() — binary date-range splitting."""
+
+    @pytest.mark.asyncio
+    async def test_no_truncation_returns_rows_as_is(self):
+        """When rows < 1000, must return them directly (no splitting)."""
+        from datalake_query import _query_uf_with_pagination
+
+        sb = MagicMock()
+        mock_data = MagicMock()
+        mock_data.data = [SAMPLE_DB_ROW]
+        sb_rpc_result = MagicMock()
+        sb_rpc_result.execute.return_value = mock_data
+        sb.rpc.return_value = sb_rpc_result
+
+        sb_execute = AsyncMock(return_value=mock_data)
+
+        result = await _query_uf_with_pagination(
+            sb=sb, sb_execute=sb_execute,
+            rpc_params={}, uf="SP",
+            date_start="2026-03-01", date_end="2026-03-10",
+            depth=0,
+        )
+
+        assert len(result) == 1
+        assert result[0]["pncp_id"] == SAMPLE_DB_ROW["pncp_id"]
+
+    @pytest.mark.asyncio
+    async def test_truncation_splits_date_range_and_merges(self):
+        """When rows == 1000, must split date range and recursively query."""
+        from datalake_query import _query_uf_with_pagination, _POSTGREST_ROW_CAP
+
+        sb = MagicMock()
+        sb_execute = MagicMock()
+
+        # Simulate the first call returning 1000 rows (truncation signal),
+        # then sub-queries returning smaller sets.
+        call_count = 0
+
+        async def mock_execute(*args, **kwargs):
+            nonlocal call_count
+            call_count += 1
+            result = MagicMock()
+            if call_count == 1:
+                # First call (full range) — hits the cap
+                result.data = [{"pncp_id": f"row-{i}"} for i in range(_POSTGREST_ROW_CAP)]
+            elif call_count <= 3:
+                # Subsequent calls — under cap (split ranges)
+                result.data = [{"pncp_id": f"row-{call_count}-{i}"} for i in range(100)]
+            else:
+                result.data = []
+            return result
+
+        sb_execute.side_effect = mock_execute
+        sb.rpc.return_value.execute.side_effect = lambda: MagicMock(data=[])
+
+        result = await _query_uf_with_pagination(
+            sb=sb, sb_execute=sb_execute,
+            rpc_params={}, uf="SP",
+            date_start="2026-03-01", date_end="2026-03-10",
+            depth=0,
+        )
+
+        # Must have called at least 3 times (original + 2 splits)
+        assert sb_execute.call_count >= 3
+        # Must have merged results from sub-queries
+        assert len(result) == 200
+
+    @pytest.mark.asyncio
+    async def test_single_day_truncation_returns_partial(self):
+        """When truncation persists at minimum granularity, return partial."""
+        from datalake_query import _query_uf_with_pagination, _POSTGREST_ROW_CAP
+
+        sb = MagicMock()
+        sb_execute = MagicMock()
+
+        async def mock_execute(*args, **kwargs):
+            result = MagicMock()
+            result.data = [{"pncp_id": f"row-{i}"} for i in range(_POSTGREST_ROW_CAP)]
+            return result
+
+        sb_execute.side_effect = mock_execute
+
+        result = await _query_uf_with_pagination(
+            sb=sb, sb_execute=sb_execute,
+            rpc_params={}, uf="SP",
+            date_start="2026-03-01", date_end="2026-03-01",  # single day
+            depth=0,
+        )
+
+        # Should return partial results (1000 rows) instead of crashing
+        assert len(result) == _POSTGREST_ROW_CAP
+
+    @pytest.mark.asyncio
+    async def test_max_depth_exceeded_returns_empty(self):
+        """When depth exceeds max, must return [] to prevent runaway."""
+        from datalake_query import _query_uf_with_pagination, _MAX_PAGINATION_DEPTH
+
+        sb = MagicMock()
+        sb_execute = MagicMock()
+
+        result = await _query_uf_with_pagination(
+            sb=sb, sb_execute=sb_execute,
+            rpc_params={}, uf="SP",
+            date_start="2026-03-01", date_end="2026-03-31",
+            depth=_MAX_PAGINATION_DEPTH + 1,
+        )
+
+        assert result == []
+        # Must NOT have called the RPC at all
+        sb_execute.assert_not_called()
+
+    @pytest.mark.asyncio
+    async def test_rpc_failure_returns_empty_list(self):
+        """RPC failure must return [] (fail-open)."""
+        from datalake_query import _query_uf_with_pagination
+
+        sb = MagicMock()
+        sb_execute = MagicMock(side_effect=RuntimeError("RPC gone"))
+
+        result = await _query_uf_with_pagination(
+            sb=sb, sb_execute=sb_execute,
+            rpc_params={}, uf="SP",
+            date_start="2026-03-01", date_end="2026-03-31",
+            depth=0,
+        )
+
+        assert result == []
+
+
+class TestRecordSentryTruncation:
+    """Tests for _record_sentry_truncation() — best-effort alerts."""
+
+    def test_does_not_raise_on_metric_failure(self):
+        """Must not raise if metrics module is unavailable."""
+        from datalake_query import _record_sentry_truncation
+
+        # Should not raise when neither metrics nor sentry_sdk are available
+        _record_sentry_truncation("SP")
+
+    def test_sentry_called_with_error_level(self):
+        """When sentry_sdk is available, must call capture_message with level='error'."""
+        from datalake_query import _record_sentry_truncation
+
+        mock_sentry = MagicMock()
+        with patch.dict("sys.modules", {"sentry_sdk": mock_sentry}):
+            # Re-import after mock injection — the lazy import inside the function
+            # may already be cached, so we force a clear of any stale reference.
+            # The function does: import sentry_sdk  (picks up the mocked module)
+            _record_sentry_truncation("RJ")
+
+        mock_sentry.capture_message.assert_called_once()
+        args, kwargs = mock_sentry.capture_message.call_args
+        assert kwargs.get("level") == "error"
