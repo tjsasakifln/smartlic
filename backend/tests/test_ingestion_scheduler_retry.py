@@ -111,9 +111,10 @@ class TestWithIngestionRetry:
         """When ctx has no job_try, defaults to 1 (retry on first failure)."""
         from ingestion.scheduler import _with_ingestion_retry
 
-        ctx = {}  # no job_try key
+        ctx = {}
 
-        from arq import Retry; with pytest.raises(Retry):
+        from arq import Retry
+        with pytest.raises(Retry):
             await _with_ingestion_retry(
                 ctx=ctx,
                 job_name="TestJob",
@@ -131,6 +132,7 @@ class TestWithIngestionRetry:
 
         ctx = {"job_try": 1}
 
+        from arq import Retry
         with caplog.at_level(logging.WARNING), pytest.raises(Retry):
             await _with_ingestion_retry(
                 ctx=ctx,
@@ -160,9 +162,10 @@ class TestWithIngestionRetry:
 
         ctx = {"job_try": 1}
 
+        from arq import Retry
         with (
             patch("ingestion.metrics.ARQ_JOB_RETRIES_TOTAL", mock_metric),
-            from arq import Retry; pytest.raises(Retry),
+            pytest.raises(Retry),
         ):
             await _with_ingestion_retry(
                 ctx=ctx,
@@ -410,9 +413,10 @@ class TestRetryEdgeCases:
 
         ctx = {"job_try": 1}
 
+        from arq import Retry
         with (
             patch("ingestion.metrics.ARQ_JOB_RETRIES_TOTAL", broken_metric),
-            from arq import Retry; pytest.raises(Retry),
+            pytest.raises(Retry),
         ):
             await _with_ingestion_retry(
                 ctx=ctx,
@@ -432,6 +436,7 @@ class TestRetryEdgeCases:
         ctx = {"job_try": 1}
 
         # 1st retry: base * mult^0 = 60s
+        from arq import Retry
         with patch("time.time", return_value=1000), pytest.raises(Retry) as exc:
             await _with_ingestion_retry(
                 ctx=ctx, job_name="Test", max_tries=3,
