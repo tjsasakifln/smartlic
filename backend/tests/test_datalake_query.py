@@ -528,7 +528,7 @@ class TestQueryDatalake:
         mock_openai_client.embeddings.create = AsyncMock(return_value=mock_response)
 
         with patch("openai.AsyncOpenAI", return_value=mock_openai_client):
-            result = await query_datalake(
+            await query_datalake(
                 ufs=["SP"],
                 data_inicial="2026-03-01",
                 data_final="2026-03-31",
