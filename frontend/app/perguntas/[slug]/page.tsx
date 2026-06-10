@@ -55,7 +55,7 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const { slug } = await params;
   const question = getQuestionBySlug(slug);
-  if (!question) return { robots: { index: false, follow: true } };
+  if (!question) return { robots: { index: false, follow: true }, alternates: { canonical: buildCanonical(`/perguntas/${slug}`) } };
 
   // CONV-006b: operational promise title/description
   const firstSector = question.relatedSectors?.[0];

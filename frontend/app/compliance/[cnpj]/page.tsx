@@ -59,6 +59,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     return {
       title: `Due Diligence CNPJ ${cnpj} — SmartLic`,
       robots: { index: false, follow: false },
+      alternates: { canonical: buildCanonical(`/compliance/${cnpj}`) },
     };
   }
 
@@ -74,6 +75,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     return {
       title: `Due Diligence B2G: CNPJ ${cnpj}`,
       robots: { index: false, follow: false },
+      alternates: { canonical: buildCanonical(`/compliance/${cnpj}`) },
     };
   }
 
