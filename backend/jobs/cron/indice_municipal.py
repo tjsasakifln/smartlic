@@ -1,4 +1,8 @@
-"""STORY-435 AC7: Cron job trimestral — recálculo do Índice Municipal de Transparência."""
+"""STORY-435 AC7: Cron job trimestral — recálculo do Índice Municipal de Transparência.
+
+CRON-001 (#1630): Offload do cálculo para thread pool via asyncio.to_thread()
+para evitar bloqueio do event loop principal (15s+ em modo debug).
+"""
 
 import asyncio
 import logging
@@ -10,6 +14,9 @@ logger = logging.getLogger(__name__)
 # Intervalo aproximado de 90 dias (1 trimestre)
 INDICE_MUNICIPAL_INTERVAL = 90 * 24 * 60 * 60  # segundos
 
+# CRON-001: Time budget para o recálculo (30s é suficiente para ~5500 municípios)
+_INDICE_MUNICIPAL_BUDGET_S = float(os.getenv("INDICE_MUNICIPAL_BUDGET_S", "30.0"))
+
 
 def _current_quarter_label() -> str:
     """Retorna o rótulo do trimestre corrente: ex '2026-Q2'."""
@@ -18,8 +25,13 @@ def _current_quarter_label() -> str:
     return f"{now.year}-Q{q}"
 
 
-async def run_indice_municipal_recalc() -> dict:
-    """Executa o recálculo trimestral do Índice Municipal.
+# ---------------------------------------------------------------------------
+# CRON-001 (#1630): Offload — execução em thread separada
+# ---------------------------------------------------------------------------
+
+
+async def _run_indice_municipal_recalc_async() -> dict:
+    """Corpo assíncrono do recálculo (roda em event loop próprio na thread).
 
     Recalcula todos os municípios do trimestre anterior e envia email summary.
     Nunca lança exceção — erros são capturados e retornados no dict.
@@ -59,11 +71,33 @@ async def run_indice_municipal_recalc() -> dict:
         return {"status": "error", "error": str(exc)}
 
 
+async def run_indice_municipal_recalc() -> dict:
+    """Executa o recálculo trimestral do Índice Municipal em thread separada.
+
+    CRON-001 (#1630): Envolve o cálculo em asyncio.to_thread() para não
+    bloquear o event loop principal. A thread interna cria seu próprio
+    event loop via asyncio.run().
+    """
+    try:
+        return await asyncio.wait_for(
+            asyncio.to_thread(asyncio.run, _run_indice_municipal_recalc_async()),
+            timeout=_INDICE_MUNICIPAL_BUDGET_S,
+        )
+    except asyncio.TimeoutError:
+        logger.error(
+            "STORY-435: recálculo indice_municipal excedeu budget de %.0fs — abortado (CRON-001)",
+            _INDICE_MUNICIPAL_BUDGET_S,
+        )
+        return {"status": "timeout", "budget_s": _INDICE_MUNICIPAL_BUDGET_S}
+
+
 async def _indice_municipal_loop() -> None:
     """Loop de background: aguarda 120s no startup, depois recalcula a cada 90 dias.
 
     O delay inicial evita que o recálculo bloqueie o event loop durante o startup,
     o que causava timeout no healthcheck do Railway (GET /health/live > 120s).
+
+    CRON-001 (#1630): O recálculo agora roda em thread separada (asyncio.to_thread).
     """
     # Delay inicial para não competir com healthcheck de startup
     await asyncio.sleep(120)

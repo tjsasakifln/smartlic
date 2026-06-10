@@ -43,7 +43,18 @@ _embedding_cache: dict[str, tuple[float, list[float]]] = {}
 # 5 concurrent DB-bound calls × ≤27 UFs × 15s statement_timeout = well within
 # the 25-connection pool limit. Requests that cannot acquire within 2s fail
 # fast (return []) instead of queuing into a pool-exhaustion wedge.
-_SEO_SEMAPHORE = asyncio.Semaphore(5)
+# POOL-001 (#1628): Semaphore limits concurrent datalake queries to prevent
+# Supabase pool exhaustion during Googlebot crawl storms (10k+ ISR pages).
+# 3 concurrent queries at 100ms each = 30 req/s sustained throughput.
+_SEO_SEMAPHORE = asyncio.Semaphore(3)
+
+# PostgREST caps results at 1000 rows per call.
+_POSTGREST_ROW_CAP = 1000
+
+# TRUNC-001 (#1629): Max binary date split depth per UF query.
+# 2^4 = 16 sub-queries max per UF (e.g. SP with high volume).
+# Module-level for testability (monkeypatch).
+_MAX_SPLIT_DEPTH = 4
 
 
 def _cache_key(
@@ -207,29 +218,70 @@ async def query_datalake(
         )
 
         # PostgREST caps results at 1000 rows per call.
-        # Paginate per-UF to avoid truncação em queries multi-UF.
-        _POSTGREST_ROW_CAP = 1000
-        rows: list[dict] = []
-        for uf in ufs:
-            uf_params = {**rpc_params, "p_ufs": [uf]}
+        # TRUNC-001 (#1629): Binary date split quando uma UF atinge o cap de 1000 rows,
+        # evitando truncamento silencioso em UFs de alto volume (SP, MG, RJ, PR, BA).
+        # Constants defined at module level for testability.
+
+        async def _query_uf_paginated(
+            uf: str,
+            date_start: str,
+            date_end: str,
+            depth: int = 0,
+        ) -> list[dict]:
+            """Query uma UF com binary date split se atingir o cap de 1000 rows."""
+            uf_params = {**rpc_params, "p_ufs": [uf], "p_date_start": date_start, "p_date_end": date_end}
             try:
                 result = await sb_execute(sb.rpc("search_datalake", uf_params), category="rpc")
                 uf_rows = result.data or []
-                # Detecta possível truncamento silencioso do PostgREST (limite 1000 linhas/chamada)
-                if len(uf_rows) == _POSTGREST_ROW_CAP:
-                    logger.warning(
-                        f"[DatalakeQuery] UF {uf} returned exactly {_POSTGREST_ROW_CAP} rows "
-                        f"— possível truncamento silencioso do PostgREST. "
-                        f"Considere reduzir o intervalo de datas ou aumentar a granularidade da query."
-                    )
-                    try:
-                        from metrics import DATALAKE_TRUNCATION_SUSPECTED
-                        DATALAKE_TRUNCATION_SUSPECTED.labels(uf=uf).inc()
-                    except Exception:
-                        pass  # Métricas são opcionais — nunca bloqueiam o fluxo principal
-                rows.extend(uf_rows)
             except Exception as e:
                 logger.warning(f"[DatalakeQuery] RPC failed for UF={uf}: {type(e).__name__}: {e}")
+                return []
+
+            if len(uf_rows) < _POSTGREST_ROW_CAP or depth >= _MAX_SPLIT_DEPTH:
+                if len(uf_rows) == _POSTGREST_ROW_CAP and depth >= _MAX_SPLIT_DEPTH:
+                    # Ainda truncado após max split depth — alertar via Sentry
+                    _alert_truncation(uf, len(uf_rows), depth)
+                return uf_rows
+
+            # TRUNC-001: Binary date split — divide o intervalo em 2 metades
+            _alert_truncation(uf, len(uf_rows), depth)
+            mid_date = _midpoint_date(date_start, date_end)
+            if mid_date == date_start or mid_date == date_end:
+                # Intervalo de 1 dia — não dá mais para dividir
+                logger.warning(
+                    f"[DatalakeQuery] UF {uf}: binary split reached 1-day granularity "
+                    f"({date_start} to {date_end}) — still at {len(uf_rows)} rows"
+                )
+                return uf_rows
+
+            left_rows = await _query_uf_paginated(uf, date_start, mid_date, depth + 1)
+            right_rows = await _query_uf_paginated(uf, mid_date, date_end, depth + 1)
+            return left_rows + right_rows
+
+        def _alert_truncation(uf: str, row_count: int, depth: int) -> None:
+            """Loga warning + métrica + Sentry quando truncamento é detectado."""
+            logger.warning(
+                f"[DatalakeQuery] UF {uf} returned exactly {_POSTGREST_ROW_CAP} rows "
+                f"(depth={depth}) — binary date split ativado (TRUNC-001)."
+            )
+            try:
+                from metrics import DATALAKE_TRUNCATION_SUSPECTED
+                DATALAKE_TRUNCATION_SUSPECTED.labels(uf=uf).inc()
+            except Exception:
+                pass
+            try:
+                import sentry_sdk
+                sentry_sdk.capture_message(
+                    f"DatalakeQuery truncation detected: UF={uf} rows={row_count} depth={depth}",
+                    level="warning",
+                )
+            except Exception:
+                pass
+
+        rows: list[dict] = []
+        for uf in ufs:
+            uf_rows = await _query_uf_paginated(uf, data_inicial, data_final)
+            rows.extend(uf_rows)
 
         if not rows:
             # DEBT-128: TRIGRAM_FALLBACK_ENABLED removed — always-on (stable since Mar 2026)
@@ -262,6 +314,31 @@ async def query_datalake(
         return normalized
     finally:
         _SEO_SEMAPHORE.release()
+
+
+def _midpoint_date(date_start: str, date_end: str) -> str:
+    """Retorna a data no ponto médio entre date_start e date_end (ISO 8601).
+
+    Usado pelo binary date split (TRUNC-001) para paginar UFs com >1000 rows.
+    Ex: ("2026-01-01", "2026-01-10") → "2026-01-06"
+    """
+    from datetime import date, timedelta
+
+    try:
+        d1 = date.fromisoformat(date_start)
+        d2 = date.fromisoformat(date_end)
+        if d1 >= d2:
+            return date_start
+        delta = (d2 - d1).days
+        if delta <= 1:
+            return date_start
+        mid = d1 + timedelta(days=delta // 2)
+        return mid.isoformat()
+    except (ValueError, TypeError):
+        logger.warning(
+            f"[DatalakeQuery] _midpoint_date: invalid dates {date_start!r} / {date_end!r}"
+        )
+        return date_start
 
 
 def _query_trigram_fallback(

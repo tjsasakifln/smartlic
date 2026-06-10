@@ -192,8 +192,18 @@ class TestPostgREST1000RowTruncationWarning:
     @pytest.mark.timeout(30)
     @pytest.mark.asyncio
     @patch("supabase_client.get_supabase")
-    async def test_exactly_1000_rows_logs_warning(self, mock_get_supabase, caplog):
-        """When a UF returns exactly 1000 rows, a WARNING must be logged."""
+    async def test_exactly_1000_rows_logs_warning(self, mock_get_supabase, caplog, monkeypatch):
+        """When a UF returns exactly 1000 rows, a WARNING must be logged.
+
+        TRUNC-001 (#1629): Binary date split is disabled (MAX_SPLIT_DEPTH=0) for this
+        unit test so the mock always returns the same 1000 rows without recursion.
+        The split behavior is tested separately in test_datalake_query.py.
+        """
+        import datalake_query as dq
+
+        # Disable binary split for unit test — mock always returns 1000 rows
+        monkeypatch.setattr(dq, "_MAX_SPLIT_DEPTH", 0)
+
         from datalake_query import query_datalake
 
         mock_sb = MagicMock()
@@ -258,8 +268,16 @@ class TestPostgREST1000RowTruncationWarning:
     @pytest.mark.timeout(30)
     @pytest.mark.asyncio
     @patch("supabase_client.get_supabase")
-    async def test_exactly_1000_rows_increments_metric(self, mock_get_supabase):
-        """When a UF returns 1000 rows, DATALAKE_TRUNCATION_SUSPECTED.labels(uf=...).inc() fires."""
+    async def test_exactly_1000_rows_increments_metric(self, mock_get_supabase, monkeypatch):
+        """When a UF returns 1000 rows, DATALAKE_TRUNCATION_SUSPECTED fires.
+
+        TRUNC-001 (#1629): Binary date split disabled for unit test (MAX_SPLIT_DEPTH=0).
+        """
+        import datalake_query as dq
+
+        # Disable binary split for unit test — mock always returns 1000 rows
+        monkeypatch.setattr(dq, "_MAX_SPLIT_DEPTH", 0)
+
         from datalake_query import query_datalake
 
         mock_sb = MagicMock()
