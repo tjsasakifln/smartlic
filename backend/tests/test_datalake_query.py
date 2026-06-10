@@ -732,3 +732,246 @@ class TestRowToNormalized:
         result = _row_to_normalized(SAMPLE_TRIGRAM_ROW)
         assert result["objetoCompra"] == SAMPLE_DB_ROW["objeto_compra"]
         assert "sim_score" not in result
+
+
+# ============================================================================
+# TRUNC-001 (#1629): Binary Date Split — _midpoint_date & _add_one_day
+# ============================================================================
+
+
+class TestMidpointDate:
+    """Tests para _midpoint_date — cálculo do ponto médio entre duas datas ISO."""
+
+    def test_returns_midpoint_for_even_range(self):
+        """Ex: ("2026-01-01", "2026-01-10") → "2026-01-06" (arredonda para baixo)."""
+        from datalake_query import _midpoint_date
+        result = _midpoint_date("2026-01-01", "2026-01-10")
+        # delta=9 days, mid = Jan1 + 4 = Jan5
+        assert result == "2026-01-05"
+
+    def test_returns_midpoint_for_odd_range(self):
+        """Ex: ("2026-01-01", "2026-01-04") — delta=3, mid = Jan1 + 1 = Jan2."""
+        from datalake_query import _midpoint_date
+        result = _midpoint_date("2026-01-01", "2026-01-04")
+        assert result == "2026-01-02"
+
+    def test_1_day_range_returns_start(self):
+        """Ex: ("2026-01-01", "2026-01-02") — delta=1, retorna start."""
+        from datalake_query import _midpoint_date
+        result = _midpoint_date("2026-01-01", "2026-01-02")
+        assert result == "2026-01-01"
+
+    def test_same_day_returns_start(self):
+        """Ex: ("2026-01-05", "2026-01-05") — d1 >= d2, retorna start."""
+        from datalake_query import _midpoint_date
+        result = _midpoint_date("2026-01-05", "2026-01-05")
+        assert result == "2026-01-05"
+
+    def test_inverted_dates_returns_start(self):
+        """Ex: end < start → d1 >= d2, retorna start."""
+        from datalake_query import _midpoint_date
+        result = _midpoint_date("2026-01-10", "2026-01-01")
+        assert result == "2026-01-10"
+
+    def test_invalid_date_returns_start(self):
+        """Ex: garbage input → ValueError, retorna start."""
+        from datalake_query import _midpoint_date
+        result = _midpoint_date("not-a-date", "2026-01-10")
+        assert result == "not-a-date"
+
+    def test_month_crossing_range(self):
+        """Ex: cross-month range: ("2026-01-28", "2026-02-03")."""
+        from datalake_query import _midpoint_date
+        result = _midpoint_date("2026-01-28", "2026-02-03")
+        # delta=6, mid = Jan28 + 3 = Jan31
+        assert result == "2026-01-31"
+
+
+class TestAddOneDay:
+    """Tests para _add_one_day — adiciona 1 dia a uma data ISO."""
+
+    def test_normal_date(self):
+        from datalake_query import _add_one_day
+        assert _add_one_day("2026-01-06") == "2026-01-07"
+
+    def test_month_boundary(self):
+        from datalake_query import _add_one_day
+        assert _add_one_day("2026-01-31") == "2026-02-01"
+
+    def test_year_boundary(self):
+        from datalake_query import _add_one_day
+        assert _add_one_day("2025-12-31") == "2026-01-01"
+
+    def test_invalid_date_returns_input(self):
+        from datalake_query import _add_one_day
+        assert _add_one_day("garbage") == "garbage"
+
+
+# ============================================================================
+# TRUNC-001: Binary split integration tests
+# ============================================================================
+
+
+class TestBinaryDateSplitIntegration:
+    """Testa o comportamento do binary date split em query_datalake.
+
+    TRUNC-001 (#1629): Quando uma UF retorna exatamente 1000 rows, o sistema
+    divide o intervalo de datas recursivamente para evitar truncamento.
+    """
+
+    @pytest.mark.timeout(30)
+    @pytest.mark.asyncio
+    @patch("supabase_client.get_supabase")
+    async def test_uf_under_1000_no_split(self, mock_get_supabase, monkeypatch):
+        """UF retorna <1000 rows → sem split, resultado retornado diretamente."""
+        import datalake_query as dq
+
+        monkeypatch.setattr(dq, "_MAX_SPLIT_DEPTH", 4)
+        dq._query_cache.clear()
+
+        mock_sb = MagicMock()
+        mock_get_supabase.return_value = mock_sb
+
+        rows_500 = [_make_row(i) for i in range(500)]
+        mock_sb.rpc.return_value.execute.return_value.data = rows_500
+
+        result = await dq.query_datalake(
+            ufs=["SP"],
+            data_inicial="2026-01-01",
+            data_final="2026-01-10",
+            keywords=["teste"],
+        )
+
+        # 500 rows → no split → 1 RPC call
+        assert mock_sb.rpc.call_count == 1
+        assert len(result) == 500
+
+    @pytest.mark.timeout(30)
+    @pytest.mark.asyncio
+    @patch("supabase_client.get_supabase")
+    async def test_uf_exactly_1000_triggers_split(self, mock_get_supabase, monkeypatch):
+        """UF retorna exatamente 1000 rows → binary split ativado.
+        Mock retorna 1000 no primeiro call, 500 nos seguintes (split bem-sucedido).
+        """
+        import datalake_query as dq
+
+        monkeypatch.setattr(dq, "_MAX_SPLIT_DEPTH", 4)
+        dq._query_cache.clear()
+
+        mock_sb = MagicMock()
+        mock_get_supabase.return_value = mock_sb
+
+        rows_1000 = [_make_row(i) for i in range(1000)]
+        rows_500 = [_make_row(i) for i in range(500)]
+
+        # First call returns 1000 (triggers split), subsequent calls return 500
+        call_results = [rows_1000, rows_500, rows_500]
+        call_idx = [0]
+
+        def rpc_side_effect(*args, **kwargs):
+            idx = call_idx[0]
+            call_idx[0] += 1
+            data = call_results[min(idx, len(call_results) - 1)]
+            mock_call = MagicMock()
+            mock_call.execute.return_value.data = data
+            return mock_call
+
+        mock_sb.rpc.side_effect = rpc_side_effect
+
+        result = await dq.query_datalake(
+            ufs=["SP"],
+            data_inicial="2026-01-01",
+            data_final="2026-01-10",
+            keywords=["teste"],
+        )
+
+        # 3 RPC calls: original (1000 rows, split) + left (500) + right (500)
+        assert mock_sb.rpc.call_count == 3
+        assert len(result) == 1000
+
+    @pytest.mark.timeout(30)
+    @pytest.mark.asyncio
+    @patch("supabase_client.get_supabase")
+    async def test_max_depth_stops_split(self, mock_get_supabase, monkeypatch):
+        """No max depth, split para mesmo se ainda houver 1000 rows por call."""
+        import datalake_query as dq
+
+        # depth=0: split, depth=1: split, depth=2: stop (max=2 → 2^2=4 sub-queries)
+        monkeypatch.setattr(dq, "_MAX_SPLIT_DEPTH", 2)
+        dq._query_cache.clear()
+
+        mock_sb = MagicMock()
+        mock_get_supabase.return_value = mock_sb
+
+        rows_1000 = [_make_row(i) for i in range(1000)]
+
+        def rpc_side_effect(*args, **kwargs):
+            mock_call = MagicMock()
+            mock_call.execute.return_value.data = rows_1000
+            return mock_call
+
+        mock_sb.rpc.side_effect = rpc_side_effect
+
+        result = await dq.query_datalake(
+            ufs=["SP"],
+            data_inicial="2026-01-01",
+            data_final="2026-01-10",
+            keywords=["teste"],
+        )
+
+        # depth 0: 1 call → split (depth=1)
+        # depth 1: 2 calls → both split (depth=2)
+        # depth 2: 4 calls → all at max depth → no further split
+        # Total: 1 + 2 + 4 = 7 calls
+        assert mock_sb.rpc.call_count == 7
+        # 4 leaf calls × 1000 = 4000 rows (still truncated, but depth limit respected)
+        assert len(result) == 4000
+
+    @pytest.mark.timeout(30)
+    @pytest.mark.asyncio
+    @patch("supabase_client.get_supabase")
+    async def test_1_day_granularity_returns_as_is(self, mock_get_supabase, monkeypatch):
+        """Intervalo de 1 dia com 1000 rows → não divide mais, retorna como está."""
+        import datalake_query as dq
+
+        monkeypatch.setattr(dq, "_MAX_SPLIT_DEPTH", 4)
+        dq._query_cache.clear()
+
+        mock_sb = MagicMock()
+        mock_get_supabase.return_value = mock_sb
+
+        rows_1000 = [_make_row(i) for i in range(1000)]
+        mock_sb.rpc.return_value.execute.return_value.data = rows_1000
+
+        # 1-day range: midpoint would == start, so guard fires
+        result = await dq.query_datalake(
+            ufs=["SP"],
+            data_inicial="2026-01-01",
+            data_final="2026-01-02",
+            keywords=["teste"],
+        )
+
+        # 1 call, no split (1-day guard prevents recursion)
+        assert mock_sb.rpc.call_count == 1
+        assert len(result) == 1000
+
+
+# ============================================================================
+# Helper
+# ============================================================================
+
+
+def _make_row(idx: int) -> dict:
+    """Cria uma row sintética para testes de binary split."""
+    return {
+        "id": idx,
+        "uf": "SP",
+        "orgao": f"Orgao {idx}",
+        "objeto_compra": f"Objeto {idx}",
+        "data_publicacao": f"2026-01-{(idx % 28) + 1:02d}",
+        "modalidade": "pregao_eletronico",
+        "valor_total_estimado": 1000.0 + idx,
+        "status": "aberta",
+        "link": f"https://example.com/{idx}",
+        "pncp_id": f"pncp-{idx}",
+    }

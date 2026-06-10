@@ -3696,6 +3696,59 @@
         "title": "CnaeMappingUpdate",
         "type": "object"
       },
+      "CommandProvisionRequest": {
+        "description": "Request body for provisioning a Command subscription checkout.",
+        "properties": {
+          "email": {
+            "description": "Customer email for the Stripe Checkout session.",
+            "maxLength": 320,
+            "minLength": 5,
+            "title": "Email",
+            "type": "string"
+          },
+          "org_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Optional organisation identifier for metadata tracking.",
+            "title": "Org Id"
+          }
+        },
+        "required": [
+          "email"
+        ],
+        "title": "CommandProvisionRequest",
+        "type": "object"
+      },
+      "CommandProvisionResponse": {
+        "description": "Response returned after creating the Command checkout session.",
+        "properties": {
+          "checkout_url": {
+            "title": "Checkout Url",
+            "type": "string"
+          },
+          "plan_id": {
+            "default": "smartlic_command",
+            "title": "Plan Id",
+            "type": "string"
+          },
+          "session_id": {
+            "title": "Session Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "checkout_url",
+          "session_id"
+        ],
+        "title": "CommandProvisionResponse",
+        "type": "object"
+      },
       "ComparadorBid": {
         "properties": {
           "data_abertura": {
@@ -20524,6 +20577,54 @@
         "summary": "Get Slo Alerts",
         "tags": [
           "admin-slo"
+        ]
+      }
+    },
+    "/v1/admin/subscriptions/command": {
+      "post": {
+        "description": "Create a Stripe Checkout session for the SmartLic Command (enterprise) tier.\n\nUses the price ID from the ``COMMAND_PRICE_ID`` environment variable.\nThe session is created in ``mode='subscription'`` with metadata that\nthe existing ``checkout.session.completed`` webhook handler recognises\n(see TIER-COMMAND-002 in webhooks/handlers/checkout.py).\n\nReturns the Stripe Checkout URL and session ID.",
+        "operationId": "provision_command_subscription_v1_admin_subscriptions_command_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CommandProvisionRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CommandProvisionResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Provision Command Subscription",
+        "tags": [
+          "admin",
+          "command"
         ]
       }
     },

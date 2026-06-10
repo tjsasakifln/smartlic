@@ -255,7 +255,14 @@ async def query_datalake(
                 return uf_rows
 
             left_rows = await _query_uf_paginated(uf, date_start, mid_date, depth + 1)
-            right_rows = await _query_uf_paginated(uf, mid_date, date_end, depth + 1)
+            # TRUNC-001: right half starts at mid_date + 1 day to avoid overlap.
+            # RPC uses >= start AND < (end + 1 day), so mid_date rows are already
+            # covered by the left half's inclusive end.
+            next_day = _add_one_day(mid_date)
+            if next_day >= date_end:
+                # 1-day gap after split — right half would be empty or single-day
+                return left_rows
+            right_rows = await _query_uf_paginated(uf, next_day, date_end, depth + 1)
             return left_rows + right_rows
 
         def _alert_truncation(uf: str, row_count: int, depth: int) -> None:
@@ -316,11 +323,30 @@ async def query_datalake(
         _SEO_SEMAPHORE.release()
 
 
+def _add_one_day(date_str: str) -> str:
+    """Retorna date_str + 1 dia em ISO 8601.
+
+    Usado pelo binary date split (TRUNC-001) para evitar overlap entre
+    metade esquerda e direita após divisão do intervalo de datas.
+    Ex: "2026-01-06" → "2026-01-07"
+    """
+    from datetime import date, timedelta
+
+    try:
+        d = date.fromisoformat(date_str)
+        return (d + timedelta(days=1)).isoformat()
+    except (ValueError, TypeError):
+        logger.warning(
+            f"[DatalakeQuery] _add_one_day: invalid date {date_str!r}"
+        )
+        return date_str
+
+
 def _midpoint_date(date_start: str, date_end: str) -> str:
     """Retorna a data no ponto médio entre date_start e date_end (ISO 8601).
 
     Usado pelo binary date split (TRUNC-001) para paginar UFs com >1000 rows.
-    Ex: ("2026-01-01", "2026-01-10") → "2026-01-06"
+    Ex: ("2026-01-01", "2026-01-10") → "2026-01-05"
     """
     from datetime import date, timedelta
 
