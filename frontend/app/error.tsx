@@ -3,7 +3,7 @@
 import * as Sentry from "@sentry/nextjs";
 import { useEffect } from "react";
 import { useAnalytics } from "../hooks/useAnalytics";
-import { getUserFriendlyError } from "../lib/error-messages";
+import { getStructuredError, getUserFriendlyError } from "../lib/error-messages";
 
 export default function Error({
   error,
@@ -15,10 +15,8 @@ export default function Error({
   const { trackEvent } = useAnalytics();
 
   useEffect(() => {
-    // STORY-211 AC10: Report errors to Sentry
     Sentry.captureException(error);
     console.error("Application error:", error);
-    // STORY-219 AC23: Track error in analytics
     trackEvent('error_encountered', {
       error_type: error.name || 'Error',
       error_message: error.message,
@@ -26,6 +24,8 @@ export default function Error({
       page: typeof window !== 'undefined' ? window.location.pathname : 'unknown',
     });
   }, [error]);
+
+  const structured = getStructuredError(error);
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-[var(--surface-0)] px-4">
@@ -48,11 +48,15 @@ export default function Error({
         </div>
 
         <h1 className="text-2xl font-bold text-[var(--ink)] mb-2">
-          Ops! Algo deu errado
+          {structured.title}
         </h1>
 
-        <p className="text-[var(--ink-secondary)] mb-6">
-          Ocorreu um erro inesperado. Por favor, tente novamente.
+        <p className="text-[var(--ink-secondary)] mb-1">
+          {structured.description}
+        </p>
+
+        <p className="text-sm text-[var(--ink-muted)] mb-6">
+          {structured.action}
         </p>
 
         <div className="mb-6 p-4 bg-[var(--surface-2)] rounded-md text-left">

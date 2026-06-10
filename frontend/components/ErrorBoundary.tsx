@@ -1,6 +1,7 @@
 "use client";
 
 import React, { Component, ErrorInfo } from "react";
+import { getStructuredError } from "@/lib/error-messages";
 
 interface Props {
   children: React.ReactNode;
@@ -94,11 +95,19 @@ export class ErrorBoundary extends Component<Props, State> {
             </div>
 
             <h2 className="text-xl font-semibold text-[var(--ink)] mb-2">
-              Algo deu errado
+              {this.state.error
+                ? getStructuredError(this.state.error).title
+                : "Algo deu errado"}
             </h2>
-            <p className="text-sm text-[var(--ink-secondary)] mb-6">
-              Ocorreu um erro inesperado ao carregar esta pagina. Tente
-              novamente ou entre em contato com o suporte.
+            <p className="text-sm text-[var(--ink-secondary)] mb-1">
+              {this.state.error
+                ? getStructuredError(this.state.error).description
+                : "Ocorreu um erro inesperado ao carregar esta pagina."}
+            </p>
+            <p className="text-xs text-[var(--ink-muted)] mb-6">
+              {this.state.error
+                ? getStructuredError(this.state.error).action
+                : "Tente novamente ou entre em contato com o suporte."}
             </p>
 
             <div className="flex flex-col sm:flex-row justify-center gap-3">

@@ -200,14 +200,17 @@ describe("PageErrorBoundary (DEBT-112)", () => {
     expect(screen.getByText("Test component crash")).toBeInTheDocument();
   });
 
-  it("shows reassuring message about data safety", () => {
+  it("shows actionable error description and action suggestions", () => {
     render(
       <PageErrorBoundary pageName="pipeline">
         <ThrowingChild shouldThrow={true} />
       </PageErrorBoundary>
     );
     expect(
-      screen.getByText(/Seus dados estão seguros/)
+      screen.getByText(/Ocorreu um erro inesperado/)
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(/Tente novamente em alguns instantes/)
     ).toBeInTheDocument();
   });
 

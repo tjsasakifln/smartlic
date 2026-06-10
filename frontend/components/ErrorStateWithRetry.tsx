@@ -5,6 +5,10 @@ import { useCallback, useState } from "react";
 export interface ErrorStateWithRetryProps {
   /** Main error message shown to the user */
   message: string;
+  /** UX-310: Error title (opcional — se fornecido, renderiza como heading antes da mensagem) */
+  errorTitle?: string;
+  /** UX-310: Action suggestion (opcional — renderizado como dica abaixo da mensagem) */
+  errorAction?: string;
   /** Timestamp when the error occurred (ISO string or Date) */
   timestamp?: string | Date;
   /** Callback fired when user clicks "Tentar novamente" */
@@ -19,6 +23,8 @@ export interface ErrorStateWithRetryProps {
 
 export function ErrorStateWithRetry({
   message,
+  errorTitle,
+  errorAction,
   timestamp,
   onRetry,
   retrying = false,
@@ -67,7 +73,13 @@ export function ErrorStateWithRetry({
             d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z"
           />
         </svg>
+        {errorTitle && (
+          <p className="text-sm font-semibold text-[var(--ink)] text-center">{errorTitle}</p>
+        )}
         <p className="text-sm text-[var(--ink-secondary)] text-center">{message}</p>
+        {errorAction && (
+          <p className="text-xs text-[var(--ink-muted)] text-center max-w-xs">{errorAction}</p>
+        )}
         <button
           onClick={handleRetry}
           disabled={loading}
@@ -122,7 +134,16 @@ export function ErrorStateWithRetry({
         </svg>
       </div>
 
-      <p className="text-base font-display font-semibold text-[var(--ink)] mb-2">{message}</p>
+      <p className="text-base font-display font-semibold text-[var(--ink)] mb-2">
+        {errorTitle || message}
+      </p>
+
+      {errorTitle && (
+        <p className="text-sm text-[var(--ink-secondary)] mb-1">{message}</p>
+      )}
+      {errorAction && (
+        <p className="text-xs text-[var(--ink-muted)] mb-3 max-w-sm mx-auto">{errorAction}</p>
+      )}
 
       {formattedTime && (
         <p className="text-xs text-[var(--ink-muted)] mb-4">Erro registrado em {formattedTime}</p>
