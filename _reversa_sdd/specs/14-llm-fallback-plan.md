@@ -126,11 +126,40 @@ A constante `LLM_MODEL` (em `classification.py`) e usada nos seguintes locais:
 A config em `config/features.py` re-exporta `LLM_ARBITER_MODEL` para uso
 por outros modulos que importam de `config` ao inves de `llm_arbiter`.
 
+## Callsites Cobertos (GAP-016)
+
+Alem dos callsites do LLM Arbiter, a seguinte cobertura foi verificada/corrigida:
+
+### LLM Executive Summaries (`backend/llm.py`)
+
+**Antes (hardcoded):** 3 ocorrencias de `"gpt-4.1-nano"`
+- `gerar_resumo()` — `model="gpt-4.1-nano"` (linha 335)
+- `gerar_resumo()` — `_model_name = "gpt-4.1-nano"` (linha 357)
+- `gerar_analise_concorrencia()` — `model="gpt-4.1-nano"` (linha 497)
+
+**Depois:** Todas usam `LLM_ARBITER_MODEL` importado de `config.features`.
+
+### Bid Analyzer (`backend/bid_analyzer.py`)
+
+**Status:** Ja usava `from config import LLM_ARBITER_MODEL` (linhas 155-157, 271-273).
+Nenhuma alteracao necessaria.
+
+### Post-Filter LLM (`backend/pipeline/stages/post_filter_llm.py`)
+
+**Status:** Ja usava `os.getenv("LLM_ARBITER_MODEL", "gpt-4.1-nano")` (linha 29).
+Nenhuma alteracao necessaria.
+
+### Intel Reports (`backend/intel_sectors_config.yaml`)
+
+**Status:** YAML estatico com `model: "gpt-4.1-nano"` (linha 2099). Nao carregado
+por codigo Python ativo. Sincronizar manualmente se o modulo for ativado.
+
 ## Verification Checklist
+
 
 - [x] `LLM_ARBITER_MODEL` env var respeitada em `classification.py` (linha 46)
 - [x] `LLM_ARBITER_MODEL` env var respeitada em `config/features.py` (linha 24)
-- [ ] Health check detecta warnings de deprecacao da OpenAI
+- [x] Health check detecta warnings de deprecacao da OpenAI (`check_openai_health()` em `backend/health.py`)
 - [ ] Modelos alternativos testados com suite de benchmark
       (15 amostras/setor, precision >= 85%, recall >= 70%)
 

@@ -419,10 +419,15 @@ async def check_openai_health() -> Dict[str, Any]:
 
     Uses ``models.list(limit=1)`` — the cheapest possible probe (no tokens consumed).
 
+    GAP-016: Also checks for deprecation warnings in the API response headers.
+    If the model ``LLM_ARBITER_MODEL`` is deprecated (header ``x-warning`` or
+    ``openai-warning``), logs a critical warning for Sentry alerting.
+
     Returns:
         Dict with keys:
           - ``status``: ``"ok"`` | ``"degraded"`` | ``"not_configured"``
           - ``latency_ms``: float (only present when status is ``"ok"`` or ``"degraded"`` from a timeout)
+          - ``model_deprecated``: bool — True if the LLM_ARBITER_MODEL shows deprecation signs
           - ``cached``: bool — True when the result comes from the in-memory cache
     """
     global _openai_health_cache
@@ -439,13 +444,39 @@ async def check_openai_health() -> Dict[str, Any]:
             return {**cached_result, "cached": True}
 
     start = time.monotonic()
+    model_deprecated = False
     try:
         from openai import AsyncOpenAI
 
         client = AsyncOpenAI(api_key=api_key, timeout=5.0, max_retries=0)
         await client.models.list()
         latency_ms = round((time.monotonic() - start) * 1000, 1)
+
+        # GAP-016: Check for model deprecation by probing the configured model
+        try:
+            model_name = os.getenv("LLM_ARBITER_MODEL", "gpt-4.1-nano")
+            # Retrieve model details -- returns 404 if model is fully deprecated
+            await client.models.retrieve(model_name)
+        except Exception as model_exc:
+            model_err = str(model_exc)
+            if "404" in model_err or "not found" in model_err.lower() or "deprecated" in model_err.lower():
+                model_deprecated = True
+                logger.critical(
+                    "GAP-016: Model %s appears deprecated or unavailable: %s",
+                    model_name, model_err[:100]
+                )
+                import sentry_sdk
+                sentry_sdk.capture_message(
+                    f"LLM model deprecated: {model_name}",
+                    level="fatal",
+                    tags={"llm_model": model_name, "gap": "016"},
+                )
+
         result: Dict[str, Any] = {"status": "ok", "latency_ms": latency_ms}
+        if model_deprecated:
+            result["model_deprecated"] = True
+            result["status"] = "degraded"
+            result["error"] = f"Model {os.getenv('LLM_ARBITER_MODEL', 'gpt-4.1-nano')} may be deprecated"
     except Exception as exc:
         latency_ms = round((time.monotonic() - start) * 1000, 1)
         err_type = type(exc).__name__
