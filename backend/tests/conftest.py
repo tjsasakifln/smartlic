@@ -357,20 +357,19 @@ _REAL_ARQ_CONNECTIONS = _sys.modules.get("arq.connections")
 
 @pytest.fixture(autouse=True)
 def _isolate_arq_module():
-    """Restore real arq module before each test runs.
-
-    The import guard at module level saves the real modules; this fixture
-    restores them before each test function executes so that lazy imports
-    (inside test bodies or via ``from arq import ...`` at module top level
-    of freshly collected files) always get the real module.
-    """
+    """Restore real arq module + purge cached ingestion.scheduler before each test."""
     if _REAL_ARQ is not None:
         _sys.modules["arq"] = _REAL_ARQ
     if _REAL_ARQ_CONNECTIONS is not None:
         _sys.modules["arq.connections"] = _REAL_ARQ_CONNECTIONS
+    # Purge ingestion.scheduler so its module-level arq_func() calls
+    # re-execute with the real arq module on next import.
+    _sys.modules.pop("ingestion.scheduler", None)
+    _sys.modules.pop("ingestion.config", None)
     yield
-    # After-test cleanup: restore again so the NEXT test file also sees real arq
     if _REAL_ARQ is not None:
         _sys.modules["arq"] = _REAL_ARQ
     if _REAL_ARQ_CONNECTIONS is not None:
         _sys.modules["arq.connections"] = _REAL_ARQ_CONNECTIONS
+    _sys.modules.pop("ingestion.scheduler", None)
+    _sys.modules.pop("ingestion.config", None)

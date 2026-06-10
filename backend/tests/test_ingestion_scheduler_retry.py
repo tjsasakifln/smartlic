@@ -14,7 +14,6 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-pytestmark = pytest.mark.skip(reason="DEBT-ARQ-ISOLATE: sys.modules['arq'] pollution from test_job_queue.py")
 
 
 # ============================================================================
@@ -32,7 +31,8 @@ class TestWithIngestionRetry:
 
         ctx = {"job_try": 1}
 
-        from arq import Retry; with pytest.raises(Retry) as exc_info:
+        from arq import Retry
+        with pytest.raises(Retry) as exc_info:
             await _with_ingestion_retry(
                 ctx=ctx,
                 job_name="TestJob",
@@ -53,7 +53,8 @@ class TestWithIngestionRetry:
 
         ctx = {"job_try": 2}
 
-        from arq import Retry; with pytest.raises(Retry) as exc_info:
+        from arq import Retry
+        with pytest.raises(Retry) as exc_info:
             await _with_ingestion_retry(
                 ctx=ctx,
                 job_name="TestJob",
