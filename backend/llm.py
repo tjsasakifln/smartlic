@@ -1,8 +1,9 @@
 """
 LLM integration module for generating executive summaries of procurement bids.
 
-This module uses OpenAI's GPT-4.1-nano model with structured output to create
-actionable summaries of filtered procurement opportunities. It includes:
+This module uses the LLM model defined by ``LLM_ARBITER_MODEL`` env var
+(default ``gpt-4.1-nano``) with structured output to create actionable
+summaries of filtered procurement opportunities. It includes:
 - Token-optimized input preparation (max 50 bids)
 - Structured output using Pydantic schemas
 - Error handling for API failures
@@ -25,6 +26,8 @@ import logging
 import os
 
 from openai import OpenAI
+
+from config import LLM_ARBITER_MODEL
 
 logger = logging.getLogger(__name__)
 
@@ -332,7 +335,7 @@ Data atual: {datetime.now().strftime("%d/%m/%Y")}
 
     # Call OpenAI API with structured output
     response = client.beta.chat.completions.parse(
-        model="gpt-4.1-nano",
+        model=LLM_ARBITER_MODEL,
         messages=[
             {"role": "system", "content": system_prompt},
             {"role": "user", "content": user_prompt},
@@ -354,8 +357,8 @@ Data atual: {datetime.now().strftime("%d/%m/%Y")}
             _input_tokens = response.usage.prompt_tokens or 0
             _output_tokens = response.usage.completion_tokens or 0
             from metrics import LLM_COST_USD, LLM_TOKENS_DETAILED
-            _model_name = "gpt-4.1-nano"
-            # gpt-4.1-nano pricing: $0.10/1M input, $0.40/1M output
+            _model_name = LLM_ARBITER_MODEL
+            # GAP-016: Model pricing (update when model changes): $0.10/1M input, $0.40/1M output
             _cost_usd = _input_tokens * 0.10 / 1_000_000 + _output_tokens * 0.40 / 1_000_000
             LLM_COST_USD.labels(model=_model_name, operation="summary").inc(_cost_usd)
             LLM_TOKENS_DETAILED.labels(model=_model_name, operation="summary", direction="input").inc(_input_tokens)
@@ -494,7 +497,7 @@ def _generate_cnpj_narrative_llm(data: dict[str, Any]) -> dict[str, str]:
     )
 
     response = client.chat.completions.create(
-        model="gpt-4.1-nano",
+        model=LLM_ARBITER_MODEL,
         messages=[
             {"role": "system", "content": system_prompt},
             {"role": "user", "content": user_prompt},

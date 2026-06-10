@@ -14,8 +14,9 @@ This file ensures neither regression is reintroduced.
 """
 
 import logging
+
 import pytest
-from unittest.mock import patch, MagicMock, AsyncMock
+from unittest.mock import patch, MagicMock
 
 
 # ============================================================================
@@ -192,27 +193,43 @@ class TestPostgREST1000RowTruncationWarning:
     @pytest.mark.timeout(30)
     @pytest.mark.asyncio
     @patch("supabase_client.get_supabase")
-    async def test_exactly_1000_rows_logs_warning(self, mock_get_supabase, caplog, monkeypatch):
+    async def test_exactly_1000_rows_logs_warning(self, mock_get_supabase, caplog):
         """When a UF returns exactly 1000 rows, a WARNING must be logged.
 
-        TRUNC-001 (#1629): Binary date split is disabled (MAX_SPLIT_DEPTH=0) for this
-        unit test so the mock always returns the same 1000 rows without recursion.
-        The split behavior is tested separately in test_datalake_query.py.
+        TRUNC-001 (#1629): The new intra-UF pagination splits date ranges
+        when len == 1000.  The mock must return <1000 rows for sub-ranges
+        so the recursion terminates — otherwise every sub-query returns
+        the same 1000 rows and the recursion hits max depth (90000 rows).
         """
-        import datalake_query as dq
-
-        # Disable binary split for unit test — mock always returns 1000 rows
-        monkeypatch.setattr(dq, "_MAX_SPLIT_DEPTH", 0)
-
         from datalake_query import query_datalake
 
         mock_sb = MagicMock()
         mock_get_supabase.return_value = mock_sb
 
         rows_1000 = self._make_rows(1000)
-        mock_rpc_result = MagicMock()
-        mock_rpc_result.data = rows_1000
-        mock_sb.rpc.return_value.execute.return_value = mock_rpc_result
+        rows_500 = self._make_rows(500)
+
+        def _rpc_side_effect(_fn_name, params):
+            """Return mock chain whose .execute() yields date-range-aware data."""
+            date_start = params.get("p_date_start", "")
+            date_end = params.get("p_date_end", "")
+            # Full range (~90 days) → 1000 rows (triggers split)
+            if date_start == "2026-01-01" and date_end == "2026-03-31":
+                data = rows_1000
+            else:
+                # Sub-range after split → 500 rows (<1000, terminates recursion)
+                data = rows_500
+
+            rpc_result = MagicMock()
+            rpc_result.data = data
+
+            # sb_execute runs query.execute() via asyncio.to_thread,
+            # so .execute() must return rpc_result directly (not a Future).
+            builder = MagicMock()
+            builder.execute.return_value = rpc_result
+            return builder
+
+        mock_sb.rpc.side_effect = _rpc_side_effect
 
         with caplog.at_level(logging.WARNING, logger="datalake_query"):
             result = await query_datalake(
@@ -231,8 +248,9 @@ class TestPostgREST1000RowTruncationWarning:
             f"Expected a warning about 1000-row truncation; got warnings: {warning_texts}"
         )
 
-        # Must still return the rows (not silently discard)
-        assert len(result) == 1000
+        # Pagination REPLACES truncated result with sum of sub-queries:
+        # 500 (left half) + 500 (right half) = 1000
+        assert len(result) == 1000, f"Expected 1000 rows (500+500), got {len(result)}"
 
     @pytest.mark.timeout(30)
     @pytest.mark.asyncio
@@ -268,25 +286,35 @@ class TestPostgREST1000RowTruncationWarning:
     @pytest.mark.timeout(30)
     @pytest.mark.asyncio
     @patch("supabase_client.get_supabase")
-    async def test_exactly_1000_rows_increments_metric(self, mock_get_supabase, monkeypatch):
-        """When a UF returns 1000 rows, DATALAKE_TRUNCATION_SUSPECTED fires.
+    async def test_exactly_1000_rows_increments_metric(self, mock_get_supabase):
+        """When a UF returns 1000 rows, DATALAKE_TRUNCATION_SUSPECTED.labels(uf=...).inc() fires.
 
-        TRUNC-001 (#1629): Binary date split disabled for unit test (MAX_SPLIT_DEPTH=0).
+        TRUNC-001 (#1629): With intra-UF pagination, the metric fires once per truncation
+        detection. The mock returns <1000 rows for sub-ranges so recursion terminates
+        after the first split (1 metric call for the initial detection).
         """
-        import datalake_query as dq
-
-        # Disable binary split for unit test — mock always returns 1000 rows
-        monkeypatch.setattr(dq, "_MAX_SPLIT_DEPTH", 0)
-
         from datalake_query import query_datalake
 
         mock_sb = MagicMock()
         mock_get_supabase.return_value = mock_sb
 
         rows_1000 = self._make_rows(1000)
-        mock_rpc_result = MagicMock()
-        mock_rpc_result.data = rows_1000
-        mock_sb.rpc.return_value.execute.return_value = mock_rpc_result
+        rows_500 = self._make_rows(500)
+
+        def _rpc_side_effect(_fn_name, params):
+            date_start = params.get("p_date_start", "")
+            date_end = params.get("p_date_end", "")
+            if date_start == "2026-01-01" and date_end == "2026-03-31":
+                data = rows_1000
+            else:
+                data = rows_500
+            rpc_result = MagicMock()
+            rpc_result.data = data
+            builder = MagicMock()
+            builder.execute.return_value = rpc_result
+            return builder
+
+        mock_sb.rpc.side_effect = _rpc_side_effect
 
         with patch("metrics.DATALAKE_TRUNCATION_SUSPECTED") as mock_metric:
             mock_label = MagicMock()
@@ -298,6 +326,7 @@ class TestPostgREST1000RowTruncationWarning:
                 data_final="2026-03-31",
             )
 
+        # Called once for the initial truncation (sub-ranges return <1000 → no further calls)
         mock_metric.labels.assert_called_once_with(uf="MG")
         mock_label.inc.assert_called_once()
 
@@ -448,7 +477,6 @@ class TestExecuteStageDatalakeMetric:
     @pytest.mark.timeout(30)
     def test_execute_py_calls_labels_before_inc(self):
         """Source code of execute.py must contain .labels(source= — not bare .inc()."""
-        import ast
         import inspect
         from pipeline.stages import execute as execute_module
 

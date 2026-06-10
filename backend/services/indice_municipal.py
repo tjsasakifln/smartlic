@@ -421,7 +421,13 @@ async def recalcular_municipios_existentes(periodo: str) -> dict:
 
     logger.info("indice_municipal recalcular: %d municípios para período %s", len(municipios), periodo)
 
-    for entry in municipios:
+    _total = len(municipios)
+    for idx, entry in enumerate(municipios, 1):
+        if idx % 10 == 0:
+            logger.info(
+                "indice_municipal recalcular: progresso %d/%d municipios (ok=%d errors=%d skipped=%d)",
+                idx, _total, calculated, errors, idx - calculated - errors,
+            )
         try:
             result = await calcular_indice_municipio(
                 entry["municipio_nome"], entry["uf"], periodo

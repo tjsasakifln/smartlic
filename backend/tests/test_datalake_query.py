@@ -734,244 +734,162 @@ class TestRowToNormalized:
         assert "sim_score" not in result
 
 
-# ============================================================================
-# TRUNC-001 (#1629): Binary Date Split — _midpoint_date & _add_one_day
-# ============================================================================
+# ---------------------------------------------------------------------------
+# TRUNC-001: Intra-UF pagination tests
+# ---------------------------------------------------------------------------
 
 
-class TestMidpointDate:
-    """Tests para _midpoint_date — cálculo do ponto médio entre duas datas ISO."""
+class TestQueryUfWithPagination:
+    """Tests for _query_uf_with_pagination() — binary date-range splitting."""
 
-    def test_returns_midpoint_for_even_range(self):
-        """Ex: ("2026-01-01", "2026-01-10") → "2026-01-06" (arredonda para baixo)."""
-        from datalake_query import _midpoint_date
-        result = _midpoint_date("2026-01-01", "2026-01-10")
-        # delta=9 days, mid = Jan1 + 4 = Jan5
-        assert result == "2026-01-05"
-
-    def test_returns_midpoint_for_odd_range(self):
-        """Ex: ("2026-01-01", "2026-01-04") — delta=3, mid = Jan1 + 1 = Jan2."""
-        from datalake_query import _midpoint_date
-        result = _midpoint_date("2026-01-01", "2026-01-04")
-        assert result == "2026-01-02"
-
-    def test_1_day_range_returns_start(self):
-        """Ex: ("2026-01-01", "2026-01-02") — delta=1, retorna start."""
-        from datalake_query import _midpoint_date
-        result = _midpoint_date("2026-01-01", "2026-01-02")
-        assert result == "2026-01-01"
-
-    def test_same_day_returns_start(self):
-        """Ex: ("2026-01-05", "2026-01-05") — d1 >= d2, retorna start."""
-        from datalake_query import _midpoint_date
-        result = _midpoint_date("2026-01-05", "2026-01-05")
-        assert result == "2026-01-05"
-
-    def test_inverted_dates_returns_start(self):
-        """Ex: end < start → d1 >= d2, retorna start."""
-        from datalake_query import _midpoint_date
-        result = _midpoint_date("2026-01-10", "2026-01-01")
-        assert result == "2026-01-10"
-
-    def test_invalid_date_returns_start(self):
-        """Ex: garbage input → ValueError, retorna start."""
-        from datalake_query import _midpoint_date
-        result = _midpoint_date("not-a-date", "2026-01-10")
-        assert result == "not-a-date"
-
-    def test_month_crossing_range(self):
-        """Ex: cross-month range: ("2026-01-28", "2026-02-03")."""
-        from datalake_query import _midpoint_date
-        result = _midpoint_date("2026-01-28", "2026-02-03")
-        # delta=6, mid = Jan28 + 3 = Jan31
-        assert result == "2026-01-31"
-
-
-class TestAddOneDay:
-    """Tests para _add_one_day — adiciona 1 dia a uma data ISO."""
-
-    def test_normal_date(self):
-        from datalake_query import _add_one_day
-        assert _add_one_day("2026-01-06") == "2026-01-07"
-
-    def test_month_boundary(self):
-        from datalake_query import _add_one_day
-        assert _add_one_day("2026-01-31") == "2026-02-01"
-
-    def test_year_boundary(self):
-        from datalake_query import _add_one_day
-        assert _add_one_day("2025-12-31") == "2026-01-01"
-
-    def test_invalid_date_returns_input(self):
-        from datalake_query import _add_one_day
-        assert _add_one_day("garbage") == "garbage"
-
-
-# ============================================================================
-# TRUNC-001: Binary split integration tests
-# ============================================================================
-
-
-class TestBinaryDateSplitIntegration:
-    """Testa o comportamento do binary date split em query_datalake.
-
-    TRUNC-001 (#1629): Quando uma UF retorna exatamente 1000 rows, o sistema
-    divide o intervalo de datas recursivamente para evitar truncamento.
-    """
-
-    @pytest.mark.timeout(30)
     @pytest.mark.asyncio
-    @patch("supabase_client.get_supabase")
-    async def test_uf_under_1000_no_split(self, mock_get_supabase, monkeypatch):
-        """UF retorna <1000 rows → sem split, resultado retornado diretamente."""
-        import datalake_query as dq
+    async def test_no_truncation_returns_rows_as_is(self):
+        """When rows < 1000, must return them directly (no splitting)."""
+        from datalake_query import _query_uf_with_pagination
 
-        monkeypatch.setattr(dq, "_MAX_SPLIT_DEPTH", 4)
-        dq._query_cache.clear()
+        sb = MagicMock()
+        mock_data = MagicMock()
+        mock_data.data = [SAMPLE_DB_ROW]
+        sb_rpc_result = MagicMock()
+        sb_rpc_result.execute.return_value = mock_data
+        sb.rpc.return_value = sb_rpc_result
 
-        mock_sb = MagicMock()
-        mock_get_supabase.return_value = mock_sb
+        sb_execute = AsyncMock(return_value=mock_data)
 
-        rows_500 = [_make_row(i) for i in range(500)]
-        mock_sb.rpc.return_value.execute.return_value.data = rows_500
-
-        result = await dq.query_datalake(
-            ufs=["SP"],
-            data_inicial="2026-01-01",
-            data_final="2026-01-10",
-            keywords=["teste"],
+        result = await _query_uf_with_pagination(
+            sb=sb, sb_execute=sb_execute,
+            rpc_params={}, uf="SP",
+            date_start="2026-03-01", date_end="2026-03-10",
+            depth=0,
         )
 
-        # 500 rows → no split → 1 RPC call
-        assert mock_sb.rpc.call_count == 1
-        assert len(result) == 500
+        assert len(result) == 1
+        assert result[0]["pncp_id"] == SAMPLE_DB_ROW["pncp_id"]
 
-    @pytest.mark.timeout(30)
     @pytest.mark.asyncio
-    @patch("supabase_client.get_supabase")
-    async def test_uf_exactly_1000_triggers_split(self, mock_get_supabase, monkeypatch):
-        """UF retorna exatamente 1000 rows → binary split ativado.
-        Mock retorna 1000 no primeiro call, 500 nos seguintes (split bem-sucedido).
-        """
-        import datalake_query as dq
+    async def test_truncation_splits_date_range_and_merges(self):
+        """When rows == 1000, must split date range and recursively query."""
+        from datalake_query import _query_uf_with_pagination, _POSTGREST_ROW_CAP
 
-        monkeypatch.setattr(dq, "_MAX_SPLIT_DEPTH", 4)
-        dq._query_cache.clear()
+        sb = MagicMock()
+        sb_execute = MagicMock()
 
-        mock_sb = MagicMock()
-        mock_get_supabase.return_value = mock_sb
+        # Simulate the first call returning 1000 rows (truncation signal),
+        # then sub-queries returning smaller sets.
+        call_count = 0
 
-        rows_1000 = [_make_row(i) for i in range(1000)]
-        rows_500 = [_make_row(i) for i in range(500)]
+        async def mock_execute(*args, **kwargs):
+            nonlocal call_count
+            call_count += 1
+            result = MagicMock()
+            if call_count == 1:
+                # First call (full range) — hits the cap
+                result.data = [{"pncp_id": f"row-{i}"} for i in range(_POSTGREST_ROW_CAP)]
+            elif call_count <= 3:
+                # Subsequent calls — under cap (split ranges)
+                result.data = [{"pncp_id": f"row-{call_count}-{i}"} for i in range(100)]
+            else:
+                result.data = []
+            return result
 
-        # First call returns 1000 (triggers split), subsequent calls return 500
-        call_results = [rows_1000, rows_500, rows_500]
-        call_idx = [0]
+        sb_execute.side_effect = mock_execute
+        sb.rpc.return_value.execute.side_effect = lambda: MagicMock(data=[])
 
-        def rpc_side_effect(*args, **kwargs):
-            idx = call_idx[0]
-            call_idx[0] += 1
-            data = call_results[min(idx, len(call_results) - 1)]
-            mock_call = MagicMock()
-            mock_call.execute.return_value.data = data
-            return mock_call
-
-        mock_sb.rpc.side_effect = rpc_side_effect
-
-        result = await dq.query_datalake(
-            ufs=["SP"],
-            data_inicial="2026-01-01",
-            data_final="2026-01-10",
-            keywords=["teste"],
+        result = await _query_uf_with_pagination(
+            sb=sb, sb_execute=sb_execute,
+            rpc_params={}, uf="SP",
+            date_start="2026-03-01", date_end="2026-03-10",
+            depth=0,
         )
 
-        # 3 RPC calls: original (1000 rows, split) + left (500) + right (500)
-        assert mock_sb.rpc.call_count == 3
-        assert len(result) == 1000
+        # Must have called at least 3 times (original + 2 splits)
+        assert sb_execute.call_count >= 3
+        # Must have merged results from sub-queries
+        assert len(result) == 200
 
-    @pytest.mark.timeout(30)
     @pytest.mark.asyncio
-    @patch("supabase_client.get_supabase")
-    async def test_max_depth_stops_split(self, mock_get_supabase, monkeypatch):
-        """No max depth, split para mesmo se ainda houver 1000 rows por call."""
-        import datalake_query as dq
+    async def test_single_day_truncation_returns_partial(self):
+        """When truncation persists at minimum granularity, return partial."""
+        from datalake_query import _query_uf_with_pagination, _POSTGREST_ROW_CAP
 
-        # depth=0: split, depth=1: split, depth=2: stop (max=2 → 2^2=4 sub-queries)
-        monkeypatch.setattr(dq, "_MAX_SPLIT_DEPTH", 2)
-        dq._query_cache.clear()
+        sb = MagicMock()
+        sb_execute = MagicMock()
 
-        mock_sb = MagicMock()
-        mock_get_supabase.return_value = mock_sb
+        async def mock_execute(*args, **kwargs):
+            result = MagicMock()
+            result.data = [{"pncp_id": f"row-{i}"} for i in range(_POSTGREST_ROW_CAP)]
+            return result
 
-        rows_1000 = [_make_row(i) for i in range(1000)]
+        sb_execute.side_effect = mock_execute
 
-        def rpc_side_effect(*args, **kwargs):
-            mock_call = MagicMock()
-            mock_call.execute.return_value.data = rows_1000
-            return mock_call
-
-        mock_sb.rpc.side_effect = rpc_side_effect
-
-        result = await dq.query_datalake(
-            ufs=["SP"],
-            data_inicial="2026-01-01",
-            data_final="2026-01-10",
-            keywords=["teste"],
+        result = await _query_uf_with_pagination(
+            sb=sb, sb_execute=sb_execute,
+            rpc_params={}, uf="SP",
+            date_start="2026-03-01", date_end="2026-03-01",  # single day
+            depth=0,
         )
 
-        # depth 0: 1 call → split (depth=1)
-        # depth 1: 2 calls → both split (depth=2)
-        # depth 2: 4 calls → all at max depth → no further split
-        # Total: 1 + 2 + 4 = 7 calls
-        assert mock_sb.rpc.call_count == 7
-        # 4 leaf calls × 1000 = 4000 rows (still truncated, but depth limit respected)
-        assert len(result) == 4000
+        # Should return partial results (1000 rows) instead of crashing
+        assert len(result) == _POSTGREST_ROW_CAP
 
-    @pytest.mark.timeout(30)
     @pytest.mark.asyncio
-    @patch("supabase_client.get_supabase")
-    async def test_1_day_granularity_returns_as_is(self, mock_get_supabase, monkeypatch):
-        """Intervalo de 1 dia com 1000 rows → não divide mais, retorna como está."""
-        import datalake_query as dq
+    async def test_max_depth_exceeded_returns_empty(self):
+        """When depth exceeds max, must return [] to prevent runaway."""
+        from datalake_query import _query_uf_with_pagination, _MAX_PAGINATION_DEPTH
 
-        monkeypatch.setattr(dq, "_MAX_SPLIT_DEPTH", 4)
-        dq._query_cache.clear()
+        sb = MagicMock()
+        sb_execute = MagicMock()
 
-        mock_sb = MagicMock()
-        mock_get_supabase.return_value = mock_sb
-
-        rows_1000 = [_make_row(i) for i in range(1000)]
-        mock_sb.rpc.return_value.execute.return_value.data = rows_1000
-
-        # 1-day range: midpoint would == start, so guard fires
-        result = await dq.query_datalake(
-            ufs=["SP"],
-            data_inicial="2026-01-01",
-            data_final="2026-01-02",
-            keywords=["teste"],
+        result = await _query_uf_with_pagination(
+            sb=sb, sb_execute=sb_execute,
+            rpc_params={}, uf="SP",
+            date_start="2026-03-01", date_end="2026-03-31",
+            depth=_MAX_PAGINATION_DEPTH + 1,
         )
 
-        # 1 call, no split (1-day guard prevents recursion)
-        assert mock_sb.rpc.call_count == 1
-        assert len(result) == 1000
+        assert result == []
+        # Must NOT have called the RPC at all
+        sb_execute.assert_not_called()
+
+    @pytest.mark.asyncio
+    async def test_rpc_failure_returns_empty_list(self):
+        """RPC failure must return [] (fail-open)."""
+        from datalake_query import _query_uf_with_pagination
+
+        sb = MagicMock()
+        sb_execute = MagicMock(side_effect=RuntimeError("RPC gone"))
+
+        result = await _query_uf_with_pagination(
+            sb=sb, sb_execute=sb_execute,
+            rpc_params={}, uf="SP",
+            date_start="2026-03-01", date_end="2026-03-31",
+            depth=0,
+        )
+
+        assert result == []
 
 
-# ============================================================================
-# Helper
-# ============================================================================
+class TestRecordSentryTruncation:
+    """Tests for _record_sentry_truncation() — best-effort alerts."""
 
+    def test_does_not_raise_on_metric_failure(self):
+        """Must not raise if metrics module is unavailable."""
+        from datalake_query import _record_sentry_truncation
 
-def _make_row(idx: int) -> dict:
-    """Cria uma row sintética para testes de binary split."""
-    return {
-        "id": idx,
-        "uf": "SP",
-        "orgao": f"Orgao {idx}",
-        "objeto_compra": f"Objeto {idx}",
-        "data_publicacao": f"2026-01-{(idx % 28) + 1:02d}",
-        "modalidade": "pregao_eletronico",
-        "valor_total_estimado": 1000.0 + idx,
-        "status": "aberta",
-        "link": f"https://example.com/{idx}",
-        "pncp_id": f"pncp-{idx}",
-    }
+        # Should not raise when neither metrics nor sentry_sdk are available
+        _record_sentry_truncation("SP")
+
+    def test_sentry_called_with_error_level(self):
+        """When sentry_sdk is available, must call capture_message with level='error'."""
+        from datalake_query import _record_sentry_truncation
+
+        mock_sentry = MagicMock()
+        with patch.dict("sys.modules", {"sentry_sdk": mock_sentry}):
+            # Re-import after mock injection — the lazy import inside the function
+            # may already be cached, so we force a clear of any stale reference.
+            # The function does: import sentry_sdk  (picks up the mocked module)
+            _record_sentry_truncation("RJ")
+
+        mock_sentry.capture_message.assert_called_once()
+        args, kwargs = mock_sentry.capture_message.call_args
+        assert kwargs.get("level") == "error"

@@ -61,12 +61,19 @@
 | `frontend/app/login/`, `frontend/app/signup/`, `frontend/app/auth/callback/`, `frontend/app/recuperar-senha/`, `frontend/app/redefinir-senha/` | 03 |
 | `frontend/components/auth/` | 03 |
 | `frontend/hooks/useAuth.ts` | 03 |
+| **Root Pages & Layout** | |
+| `frontend/app/layout.tsx`, `frontend/app/page.tsx` | cross-cutting (root layout with providers, main landing) |
+| `frontend/app/error.tsx`, `frontend/app/global-error.tsx`, `frontend/app/not-found.tsx` | cross-cutting (error boundaries, 404) |
+| `frontend/app/robots.ts` | 11 (dynamic robots.txt handler) |
+| `frontend/app/(protected)/` | 03 (authenticated route group layout) |
 | **Search Pipeline** | |
 | `frontend/app/buscar/`, `frontend/app/buscar/components/`, `frontend/app/buscar/hooks/`, `frontend/app/buscar/types/`, `frontend/app/buscar/utils/`, `frontend/app/buscar/constants/` | 01 |
 | `frontend/app/historico/` | 01 (sessions list) |
 | `frontend/app/analise/` | 01 |
 | `frontend/hooks/useSearchSSE.ts`, `frontend/hooks/useSearchPolling.ts` | 01 (SSE streaming) |
 | `frontend/hooks/useSavedSearches.ts`, `frontend/hooks/useSessions.ts` | 01 |
+| `frontend/app/buscar/hooks/execution/` | 01 (useSearchAPI, useSearchErrorHandling, useSearchExecutionImpl, useSearchPartialResults) |
+| `frontend/app/buscar/hooks/filters/` | 01 (useSearchFilterPersistence, useSearchFiltersImpl, useSearchFormState, useSearchSectorData, useSearchValidation, useSavedFilterPresets) |
 | **Billing & Quota** | |
 | `frontend/app/conta/`, `frontend/app/planos/`, `frontend/app/pricing/`, `frontend/app/features/` | 02 |
 | `frontend/app/conta/plano/`, `frontend/app/conta/dados/`, `frontend/app/conta/perfil/`, `frontend/app/conta/equipe/`, `frontend/app/conta/seguranca/`, `frontend/app/conta/preferencias/`, `frontend/app/conta/cancelar-trial/` | 02 |
@@ -98,12 +105,14 @@
 | `frontend/hooks/useAdminSWR.ts` | 09 |
 | **Observatory & SEO** | |
 | `frontend/app/observatorio/`, `frontend/app/observatorio/[slug]/` | 11 |
+| `frontend/app/observatorio/embed/` | 11 (embeddable observatory widgets) |
+| `frontend/app/blog/rss.xml/` | 11 (RSS feed) |
 | `frontend/app/blog/`, `frontend/app/blog/[slug]/`, `frontend/app/blog/author/`, `frontend/app/blog/contratos/`, `frontend/app/blog/licitacoes/`, `frontend/app/blog/licitacoes-do-dia/`, `frontend/app/blog/panorama/`, `frontend/app/blog/weekly/`, `frontend/app/blog/programmatic/`, `frontend/app/blog/components/`, `frontend/app/blog/content/` | 11 |
 | `frontend/app/cnpj/`, `frontend/app/fornecedores/`, `frontend/app/orgaos/`, `frontend/app/municipios/`, `frontend/app/licitacoes/`, `frontend/app/contratos/` | 11 |
 | `frontend/app/alertas-publicos/`, `frontend/app/indice-municipal/`, `frontend/app/calculadora/`, `frontend/app/comparador/`, `frontend/app/compliance/` | 11 |
 | `frontend/app/dados/`, `frontend/app/itens/`, `frontend/app/orgaos-publicos/`, `frontend/app/estatisticas/` | 11 |
 | `frontend/app/sitemap.xml/` | 11 |
-| `frontend/app/guia/`, `frontend/app/perguntas/`, `frontend/app/glossario/`, `frontend/app/sobre/` | 11 (SEO content pages) |
+| `frontend/app/guia/`, `frontend/app/perguntas/`, `frontend/app/glossario/`, `frontend/app/sobre/`, `frontend/app/ajuda/`, `frontend/app/privacidade/` | 11 (SEO content pages) |
 | `frontend/app/para-empresas/`, `frontend/app/para-consultorias/`, `frontend/app/para-advogados/`, `frontend/app/para-construtoras/`, `frontend/app/para-empresas-de-ti/`, `frontend/app/para-fornecedores/`, `frontend/app/para-quem-quer-subcontratar/` | 11 (SEO landing pages) |
 | `frontend/app/como-avaliar-licitacao/`, `frontend/app/como-filtrar-editais/`, `frontend/app/como-priorizar-oportunidades/`, `frontend/app/como-evitar-prejuizo-licitacao/` | 11 (SEO guides) |
 | `frontend/app/casos/`, `frontend/app/demo/`, `frontend/app/masterclass/`, `frontend/app/ferramentas/` | 11 (SEO content) |
@@ -117,6 +126,8 @@
 | `frontend/hooks/useAlertPreferences.ts`, `frontend/hooks/useAlerts.ts`, `frontend/hooks/usePublicMetrics.ts` | 11 |
 | **Intel Reports** | |
 | `frontend/app/intel-reports/` | 07b |
+| `frontend/app/intel-reports/[sessionId]/` | 07b (report view page) |
+| `frontend/app/intel-reports/cancelado/` | 07b (cancelled report status) |
 | `frontend/components/reports/` | 07b, 10 |
 | **Cross-cutting / Shared UI** | |
 | `frontend/components/ui/` | cross-cutting (design-system — 16) |
@@ -130,7 +141,8 @@
 | `frontend/components/legal/` | 03 |
 | `frontend/app/components/ui/` | cross-cutting (design-system) |
 | `frontend/app/components/navigation/` | cross-cutting |
-| `frontend/app/components/landing/`, `frontend/app/components/landing-use-case/` | cross-cutting |
+| `frontend/app/components/landing/` (37 components) | cross-cutting (hero, CTA, social proof, sectors grid, stats) |
+| `frontend/app/components/landing-use-case/` (8 components) | cross-cutting (use-case landing blocks) |
 | `frontend/app/components/conversion/` | 02, 08 |
 | `frontend/app/components/checkout/` | 02 |
 | `frontend/app/components/whatsapp/` | cross-cutting |

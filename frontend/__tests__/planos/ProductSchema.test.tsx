@@ -9,6 +9,7 @@ import { ProductSchema } from "@/app/planos/components/ProductSchema";
 import {
   PRO_PRICING,
   CONSULTORIA_PRICING,
+  COMMAND_PRICING,
   AGGREGATE_OFFER_BOUNDS,
   getPriceValidUntil,
 } from "@/lib/plan-pricing";
@@ -40,11 +41,11 @@ function extractSchemas(container: HTMLElement): ProductNode[] {
 }
 
 describe("ProductSchema (STORY-SEO-004)", () => {
-  it("emits exactly 2 Product schemas (Pro + Consultoria)", () => {
+  it("emits exactly 3 Product schemas (Pro + Consultoria + Command)", () => {
     const { container } = render(<ProductSchema />);
     const schemas = extractSchemas(container);
-    expect(schemas).toHaveLength(2);
-    expect(schemas.map((s) => s.name)).toEqual(["SmartLic Pro", "SmartLic Consultoria"]);
+    expect(schemas).toHaveLength(3);
+    expect(schemas.map((s) => s.name)).toEqual(["SmartLic Pro", "SmartLic Consultoria", "SmartLic Command"]);
   });
 
   it("each Product schema is well-formed JSON-LD with required fields", () => {
@@ -63,7 +64,8 @@ describe("ProductSchema (STORY-SEO-004)", () => {
 
   it("Pro offers match PRO_PRICING source of truth", () => {
     const { container } = render(<ProductSchema />);
-    const [proSchema] = extractSchemas(container);
+    const schemas = extractSchemas(container);
+    const [proSchema] = schemas;
 
     const priceByPeriod = Object.fromEntries(
       proSchema.offers.map((o) => [o.category, Number(o.price)])
@@ -76,7 +78,8 @@ describe("ProductSchema (STORY-SEO-004)", () => {
 
   it("Consultoria offers match CONSULTORIA_PRICING source of truth", () => {
     const { container } = render(<ProductSchema />);
-    const [, consultoriaSchema] = extractSchemas(container);
+    const schemas = extractSchemas(container);
+    const consultoriaSchema = schemas[1];
 
     const priceByPeriod = Object.fromEntries(
       consultoriaSchema.offers.map((o) => [o.category, Number(o.price)])
@@ -85,6 +88,20 @@ describe("ProductSchema (STORY-SEO-004)", () => {
     expect(priceByPeriod.monthly).toBe(CONSULTORIA_PRICING.monthly.monthly);
     expect(priceByPeriod.semiannual).toBe(CONSULTORIA_PRICING.semiannual.monthly);
     expect(priceByPeriod.annual).toBe(CONSULTORIA_PRICING.annual.monthly);
+  });
+
+  it("Command offers match COMMAND_PRICING source of truth", () => {
+    const { container } = render(<ProductSchema />);
+    const schemas = extractSchemas(container);
+    const commandSchema = schemas[2];
+
+    const priceByPeriod = Object.fromEntries(
+      commandSchema.offers.map((o) => [o.category, Number(o.price)])
+    );
+
+    expect(priceByPeriod.monthly).toBe(COMMAND_PRICING.monthly.monthly);
+    expect(priceByPeriod.semiannual).toBe(COMMAND_PRICING.semiannual.monthly);
+    expect(priceByPeriod.annual).toBe(COMMAND_PRICING.annual.monthly);
   });
 
   it("all offers declare BRL currency, InStock availability, and priceValidUntil ≥ today", () => {
