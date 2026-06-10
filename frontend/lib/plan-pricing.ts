@@ -36,17 +36,17 @@ export const CONSULTORIA_PRICING: PricingTable = {
 };
 
 export const COMMAND_PRICING: PricingTable = {
-  monthly: { monthly: 970, total: 970, period: "mês" },
-  semiannual: { monthly: 873, total: 5238, period: "semestre", discount: 10 },
-  annual: { monthly: 808, total: 9700, period: "ano", discount: 17 },
+  monthly: { monthly: 4970, total: 4970, period: "mês" },
+  semiannual: { monthly: 4473, total: 26838, period: "semestre", discount: 10 },
+  annual: { monthly: 4125, total: 49500, period: "ano", discount: 17 },
 };
 
-/** Stable min/max across both tiers, for AggregateOffer schema. */
+/** Stable min/max across all tiers, for AggregateOffer schema. */
 export const AGGREGATE_OFFER_BOUNDS = {
-  lowPrice: Math.min(PRO_PRICING.annual.monthly, CONSULTORIA_PRICING.annual.monthly),
-  highPrice: Math.max(PRO_PRICING.monthly.monthly, CONSULTORIA_PRICING.monthly.monthly),
-  // 2 tiers × 3 periods each
-  offerCount: 6,
+  lowPrice: Math.min(PRO_PRICING.annual.monthly, CONSULTORIA_PRICING.annual.monthly, COMMAND_PRICING.annual.monthly),
+  highPrice: Math.max(PRO_PRICING.monthly.monthly, CONSULTORIA_PRICING.monthly.monthly, COMMAND_PRICING.monthly.monthly),
+  // 3 tiers × 3 periods each
+  offerCount: 9,
   priceCurrency: "BRL" as const,
 };
 
