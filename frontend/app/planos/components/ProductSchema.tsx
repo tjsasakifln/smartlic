@@ -8,6 +8,7 @@
  * priceValidUntil, availability. Aligned with schema.org/Product spec.
  */
 import {
+  COMMAND_PRICING,
   CONSULTORIA_PRICING,
   PRO_PRICING,
   PricingTable,
@@ -37,6 +38,13 @@ const PRODUCTS: ProductSpec[] = [
       "Plano Consultoria SmartLic: até 5 usuários, 5.000 análises/mês, dashboard consolidado e suporte dedicado para consultorias e assessorias de licitação.",
     pricing: CONSULTORIA_PRICING,
     urlQueryKey: "consultoria",
+  },
+  {
+    name: "SmartLic Command",
+    description:
+      "Tier enterprise do SmartLic: API exclusiva, multi-usuário, relatórios executivos com IA, análise preditiva de mercado e suporte dedicado 24/7.",
+    pricing: COMMAND_PRICING,
+    urlQueryKey: "command",
   },
 ];
 
