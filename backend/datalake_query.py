@@ -211,8 +211,9 @@ async def _query_uf_with_pagination(
     right_start = mid + timedelta(days=1)
     right_end = d_end
 
-    logger.info(
-        f"[DatalakeQuery] UF={uf} truncation detected ({len(uf_rows)} rows). "
+    logger.warning(
+        f"[DatalakeQuery] UF={uf} truncation detected ({len(uf_rows)} rows — "
+        f"exactly the PostgREST cap). "
         f"Splitting range [{date_start}, {date_end}] → "
         f"[{left_start}, {left_end}] + [{right_start}, {right_end}] "
         f"(depth={depth + 1})"
