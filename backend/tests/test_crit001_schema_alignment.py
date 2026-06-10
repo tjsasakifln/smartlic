@@ -74,8 +74,8 @@ class TestSearchResultsCacheRow:
         assert row.access_count == 0
         assert row.sources_json == ["pncp"]
 
-    def test_mod_t03_expected_columns_returns_19(self):
-        """MOD-T03: expected_columns() returns exactly 20 names."""
+    def test_mod_t03_expected_columns_returns_20(self):
+        """MOD-T03: expected_columns() returns exactly 20 names (includes params_hash_global + expires_at)."""
         from models.cache import SearchResultsCacheRow
 
         cols = SearchResultsCacheRow.expected_columns()
