@@ -67,9 +67,15 @@ async function fetchWeeklyData(slug: string): Promise<WeeklyData | null> {
       `${BACKEND_URL}/v1/blog/weekly/${year}/${week}`,
       { next: { revalidate: 3600 }, signal: AbortSignal.timeout(10000) }
     );
+    if (res.status >= 500) {
+      // Transient backend error — throw so ISR preserves last-good cache.
+      throw new Error(`weekly_data_backend_5xx:${res.status}`);
+    }
+    // 4xx (incl. 404) → genuine "no data" — render fallback.
     if (!res.ok) return null;
     return await res.json();
-  } catch {
+  } catch (err) {
+    if (err instanceof Error && err.message.startsWith('weekly_data_backend_5xx')) throw err;
     return null;
   }
 }
@@ -90,6 +96,7 @@ export async function generateMetadata({
     return {
       title: 'Digest Semanal',
       robots: { index: false },
+      alternates: { canonical: buildCanonical(`/blog/weekly/${slug}`) },
     };
   }
 

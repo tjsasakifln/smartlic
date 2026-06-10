@@ -19,6 +19,7 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import * as Sentry from '@sentry/nextjs';
 import { ssgLimitedFetch } from '@/lib/concurrency';
+import { buildCanonical } from '@/lib/seo';
 import ObservatorioRelatorioClient from './ObservatorioRelatorioClient';
 import { FoundersRibbon } from '@/components/banners/FoundersRibbon';
 import EmptyStateSEO from '@/components/seo/EmptyStateSEO';
@@ -85,6 +86,7 @@ export async function generateMetadata({
     return {
       title: 'Relatório não encontrado',
       robots: { index: false, follow: false },
+      alternates: { canonical: buildCanonical(`/observatorio/${slug}`) },
     };
   }
 

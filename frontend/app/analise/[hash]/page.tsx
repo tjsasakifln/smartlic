@@ -41,9 +41,15 @@ async function fetchAnalysis(hash: string): Promise<SharedAnalysis | null> {
       next: { revalidate: 3600 },
       signal: AbortSignal.timeout(10000),
     });
+    if (res.status >= 500) {
+      // Transient backend error — throw so ISR preserves last-good cache.
+      throw new Error(`analise_backend_5xx:${res.status}`);
+    }
+    // 4xx (incl. 404) → genuine "no data" — render fallback.
     if (!res.ok) return null;
     return await res.json();
-  } catch {
+  } catch (err) {
+    if (err instanceof Error && err.message.startsWith('analise_backend_5xx')) throw err;
     return null;
   }
 }

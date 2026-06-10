@@ -109,6 +109,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     return {
       title: `Município ${slug} — SmartLic`,
       robots: { index: false, follow: false },
+      alternates: { canonical: buildCanonical(`/municipios/${slug}`) },
     };
   }
 

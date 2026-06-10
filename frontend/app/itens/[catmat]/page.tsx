@@ -95,6 +95,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     return {
       title: `CATMAT ${catmat} — SmartLic`,
       robots: { index: false, follow: false },
+      alternates: { canonical: buildCanonical(`/itens/${catmat}`) },
     };
   }
 

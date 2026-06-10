@@ -210,9 +210,15 @@ export async function fetchSectorUfBlogStats(
     const res = await ssgLimitedFetch(`${backendUrl}/v1/blog/stats/setor/${sectorId}/uf/${uf.toUpperCase()}`, {
       signal: AbortSignal.timeout(25000),
     });
+    if (res.status >= 500) {
+      // Transient backend error — throw so ISR preserves last-good cache.
+      throw new Error(`blog_stats_backend_5xx:${res.status}`);
+    }
+    // 4xx (incl. 404) → genuine "no data" — render fallback.
     if (!res.ok) return null;
     return await res.json();
-  } catch {
+  } catch (err) {
+    if (err instanceof Error && err.message.startsWith('blog_stats_backend_5xx')) throw err;
     return null;
   }
 }
@@ -229,9 +235,15 @@ export async function fetchPanoramaStats(sectorSlug: string): Promise<PanoramaSt
     const res = await ssgLimitedFetch(`${backendUrl}/v1/blog/stats/panorama/${sectorId}`, {
       signal: AbortSignal.timeout(25000),
     });
+    if (res.status >= 500) {
+      // Transient backend error — throw so ISR preserves last-good cache.
+      throw new Error(`panorama_stats_backend_5xx:${res.status}`);
+    }
+    // 4xx (incl. 404) → genuine "no data" — render fallback.
     if (!res.ok) return null;
     return await res.json();
-  } catch {
+  } catch (err) {
+    if (err instanceof Error && err.message.startsWith('panorama_stats_backend_5xx')) throw err;
     return null;
   }
 }

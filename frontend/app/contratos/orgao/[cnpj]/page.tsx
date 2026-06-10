@@ -57,9 +57,15 @@ async function fetchOrgaoContratosStats(cnpj: string): Promise<OrgaoContratosSta
       next: { revalidate: 14400 }, // ISR-aligned com revalidate da page (4h) — mantém SSG/ISR estático e evita static→dynamic shift
       signal: AbortSignal.timeout(10000),
     });
+    if (resp.status >= 500) {
+      // Transient backend error — throw so ISR preserves last-good cache.
+      throw new Error(`contratos_orgao_stats_backend_5xx:${resp.status}`);
+    }
+    // 4xx (incl. 404) → genuine "no data" — render EmptyStateSEO.
     if (!resp.ok) return null;
     return await resp.json();
-  } catch {
+  } catch (err) {
+    if (err instanceof Error && err.message.startsWith('contratos_orgao_stats_backend_5xx')) throw err;
     return null;
   }
 }
@@ -79,7 +85,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const stats = await fetchOrgaoContratosStats(cnpj);
 
   if (!stats) {
-    return { title: 'Orgao nao encontrado', robots: { index: false } };
+    return { title: 'Orgao nao encontrado', robots: { index: false }, alternates: { canonical: buildCanonical(`/contratos/orgao/${cnpj}`) } };
   }
 
   const totalFormatado = formatBRL(stats.total_value);

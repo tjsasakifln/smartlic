@@ -71,9 +71,15 @@ async function fetchContratosStats(setor: string, uf: string): Promise<Contratos
       next: { revalidate: 14400 },
       signal: AbortSignal.timeout(10000),
     });
+    if (res.status >= 500) {
+      // Transient backend error — throw so ISR preserves last-good cache.
+      throw new Error(`contratos_stats_backend_5xx:${res.status}`);
+    }
+    // 4xx (incl. 404) → genuine "no data" — render EmptyStateSEO.
     if (!res.ok) return null;
     return await res.json();
-  } catch {
+  } catch (err) {
+    if (err instanceof Error && err.message.startsWith('contratos_stats_backend_5xx')) throw err;
     return null;
   }
 }

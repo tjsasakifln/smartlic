@@ -8,6 +8,7 @@ import AlertEntityCta from '@/components/seo/AlertEntityCta';
 import { FoundersRibbon } from '@/components/banners/FoundersRibbon';
 import { fetchWithBudget } from '@/lib/safe-fetch';
 import { getBackendUrl } from '@/lib/backend-url';
+import { buildCanonical } from '@/lib/seo';
 import { AdvisoryDisclaimer } from '@/components/legal/AdvisoryDisclaimer';
 import WhatsAppCTA from '@/app/components/whatsapp/WhatsAppCTA';
 import PreviewCTA from '@/app/components/programmatic/PreviewCTA';
@@ -97,6 +98,7 @@ export async function generateMetadata({
       title: 'Órgão não encontrado',
       description: 'O órgão informado não foi encontrado na base de dados.',
       robots: { index: false, follow: false },
+      alternates: { canonical: buildCanonical(`/orgaos/${slug}`) },
     };
   }
 
@@ -106,6 +108,7 @@ export async function generateMetadata({
     return {
       title: `${stats.nome} — Licitações Públicas`,
       robots: { index: false, follow: true },
+      alternates: { canonical: buildCanonical(`/orgaos/${slug}`) },
     };
   }
 
