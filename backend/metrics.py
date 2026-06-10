@@ -1122,6 +1122,14 @@ OBSERVATORIO_BUDGET_EXCEEDED = _create_counter(
     labelnames=["period_age"],  # "historical" | "prev_month" | "current"
 )
 
+# CRON-001 (#1630): Duration of indice_municipal quarterly recalculation (~15s observed,
+# offloaded to thread pool via asyncio.to_thread)
+INDICE_MUNICIPAL_DURATION = _create_histogram(
+    "smartlic_indice_municipal_duration_seconds",
+    "Duration of indice_municipal quarterly recalculation (CRON-001)",
+    buckets=[1, 2, 5, 10, 15, 20, 30, 45, 60, 90],
+)
+
 
 # ============================================================================
 # STORY-4.5 (TD-SYS-002): PNCP breaking-change canary
