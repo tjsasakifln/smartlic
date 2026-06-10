@@ -45,7 +45,104 @@ _NEGATIVE_CACHE_TTL_SECONDS = 5 * 60
 # the thread holding the pool slot until ``statement_timeout`` (the 2026-04-27
 # Stage 2 root cause). See memory ``feedback_pool_leak_caller_timeout_vs_sql_timeout``.
 _CONTRATOS_QUERY_BUDGET_S = 5.0
+
+# ============================================================================
+# POOL-001: Semaphore gate for blog stats SQL queries.
+# Limits concurrent DB-bound requests to 3 per worker. When the semaphore
+# cannot be acquired within _SEMAPHORE_ACQUIRE_TIMEOUT_S, the endpoint
+# returns 503 (Retry-After:5) — fast-failing the Googlebot request instead
+# of queueing it into a Supabase pool-exhaustion wedge.
+# ============================================================================
+_BLOG_SEMAPHORE = asyncio.Semaphore(3)
+_SEMAPHORE_ACQUIRE_TIMEOUT_S = 2.0
+_SEMAPHORE_RETRY_AFTER_S = 5
+
+# POOL-001: Redis-backed negative cache key prefix for blog stats timeouts.
+# Persists the failure state across workers so all uvicorn workers
+# respect a recent timeout instead of hammering Supabase simultaneously.
+_REDIS_NEGATIVE_CACHE_PREFIX = "blog_stats:negcache:"
+_REDIS_NEGATIVE_CACHE_TTL_S = 5 * 60  # 5 minutes — matches _NEGATIVE_CACHE_TTL_SECONDS
+
 _blog_cache: dict[str, tuple[dict, float, float]] = {}  # (data, stored_at, ttl_seconds)
+
+
+async def _check_negative_cache(cache_key: str) -> bool:
+    """Check Redis negative cache for a recent timeout on this cache_key.
+
+    Returns True if a negative cache entry exists — caller should serve
+    stale/empty data instead of retrying the query.
+
+    Fail-open: returns False if Redis is unavailable so we don't add latency
+    to the happy path (the in-memory _blog_cache already protects it).
+    """
+    try:
+        from redis_pool import get_redis_pool, get_fallback_cache
+
+        redis = await get_redis_pool()
+        full_key = f"{_REDIS_NEGATIVE_CACHE_PREFIX}{cache_key}"
+        if redis is not None:
+            return bool(await redis.exists(full_key))
+        else:
+            fallback = get_fallback_cache()
+            return fallback.exists(full_key)
+    except Exception:
+        logger.debug("POOL-001: negative cache check failed (non-fatal)")
+        return False
+
+
+async def _set_negative_cache(cache_key: str) -> None:
+    """Store a negative cache entry for this cache_key.
+
+    Subsequent requests across all workers will skip the query for
+    _REDIS_NEGATIVE_CACHE_TTL_S (5 minutes), letting Googlebot's retry-storm
+    cool down without re-saturating the Supabase pool.
+    """
+    try:
+        from redis_pool import get_redis_pool, get_fallback_cache
+
+        redis = await get_redis_pool()
+        full_key = f"{_REDIS_NEGATIVE_CACHE_PREFIX}{cache_key}"
+        if redis is not None:
+            await redis.setex(full_key, _REDIS_NEGATIVE_CACHE_TTL_S, "1")
+        else:
+            fallback = get_fallback_cache()
+            fallback.setex(full_key, _REDIS_NEGATIVE_CACHE_TTL_S, "1")
+    except Exception as e:
+        logger.debug("POOL-001: negative cache set failed (non-fatal): %s", e)
+
+
+async def _acquire_blog_semaphore(cache_key: str) -> None:
+    """Acquire the blog stats semaphore with a timeout.
+
+    If the semaphore cannot be acquired within _SEMAPHORE_ACQUIRE_TIMEOUT_S,
+    store a negative cache entry and raise HTTPException(503) with Retry-After
+    header so the caller fast-fails instead of waiting in a queue that
+    exhausts the Supabase pool.
+    """
+    if _BLOG_SEMAPHORE.locked():
+        logger.warning(
+            "POOL-001: blog semaphore contended (all %d slots busy, cache_key=%s) "
+            "-- will wait up to %.1fs before fast-failing",
+            _BLOG_SEMAPHORE._value,  # type: ignore[attr-defined]
+            cache_key,
+            _SEMAPHORE_ACQUIRE_TIMEOUT_S,
+        )
+    try:
+        await asyncio.wait_for(
+            _BLOG_SEMAPHORE.acquire(),
+            timeout=_SEMAPHORE_ACQUIRE_TIMEOUT_S,
+        )
+    except asyncio.TimeoutError:
+        await _set_negative_cache(cache_key)
+        logger.error(
+            "POOL-001: blog semaphore exhausted (cache_key=%s) -- returning 503",
+            cache_key,
+        )
+        raise HTTPException(
+            status_code=503,
+            detail="Servico temporariamente sobrecarregado. Tente novamente em alguns segundos.",
+            headers={"Retry-After": str(_SEMAPHORE_RETRY_AFTER_S)},
+        )  # (data, stored_at, ttl_seconds)
 
 # All 27 Brazilian UFs
 ALL_UFS = [
@@ -341,6 +438,7 @@ async def _query_pncp_for_sector(
     sector: SectorConfig,
     ufs: list[str],
     days: int = 30,
+    cache_key: str = "",
 ) -> list[dict]:
     """Query datalake for sector-relevant results across given UFs.
 
@@ -348,15 +446,30 @@ async def _query_pncp_for_sector(
     wedging under Googlebot fan-out. Budget raised from 5s to 15s for issue #1191
     because query_datalake makes 10 sequential RPC calls (one per UF), each
     taking 0.5-2s, totaling well over 5s.
+
+    POOL-001: Acquires _BLOG_SEMAPHORE (max 3 concurrent) before querying and
+    checks Redis negative cache to skip re-querying after a recent timeout.
     """
     from datalake_query import query_datalake
     from pipeline.budget import _run_with_budget
 
-    now = datetime.now(timezone.utc)
-    data_final = now.strftime("%Y-%m-%d")
-    data_inicial = (now - timedelta(days=days)).strftime("%Y-%m-%d")
+    # POOL-001: Check negative cache before attempting the query
+    if cache_key and await _check_negative_cache(cache_key):
+        logger.info(
+            "POOL-001: negative cache hit for blog_stats sector=%s ufs=%s -- skipping query",
+            sector.id, ufs[:3],
+        )
+        return []
 
+    # POOL-001: Acquire semaphore before querying
+    if cache_key:
+        await _acquire_blog_semaphore(cache_key)
     try:
+
+        now = datetime.now(timezone.utc)
+        data_final = now.strftime("%Y-%m-%d")
+        data_inicial = (now - timedelta(days=days)).strftime("%Y-%m-%d")
+
         return await _run_with_budget(
             query_datalake(
                 ufs=ufs,
@@ -374,10 +487,17 @@ async def _query_pncp_for_sector(
             "RES-BE-015b: datalake timeout blog_stats sector=%s ufs=%s",
             sector.id, ufs[:3],
         )
+        if cache_key:
+            await _set_negative_cache(cache_key)
         return []
     except Exception as e:
         logger.warning("Datalake query failed for blog stats sector=%s: %s", sector.id, e)
+        if cache_key:
+            await _set_negative_cache(cache_key)
         return []
+    finally:
+        if cache_key:
+            _BLOG_SEMAPHORE.release()
 
 
 def _extract_text(item: dict) -> str:
@@ -691,6 +811,9 @@ async def get_cidade_stats(cidade: str):
     data_final = now.strftime("%Y-%m-%d")
     data_inicial = (now - timedelta(days=30)).strftime("%Y-%m-%d")
 
+    # POOL-001: Acquire blog semaphore before direct datalake query.
+    # Let HTTPException(503) propagate to FastAPI if semaphore is exhausted.
+    await _acquire_blog_semaphore(cache_key)
     all_results: list[dict] = []
     try:
         all_results = await query_datalake(
@@ -700,8 +823,16 @@ async def get_cidade_stats(cidade: str):
             keywords=None,
             limit=2000,
         )
+    except asyncio.TimeoutError:
+        await _set_negative_cache(cache_key)
+        logger.warning(
+            "POOL-001: datalake timeout for cidade=%s uf=%s",
+            cidade, uf,
+        )
     except Exception as e:
         logger.debug("Datalake query failed for cidade=%s uf=%s: %s", cidade, uf, e)
+    finally:
+        _BLOG_SEMAPHORE.release()
 
     # Filter by city name in orgaoEntidade.municipioNome — accent-insensitive
     # (CRIT-SEO-011: "são paulo" must match slug "sao-paulo" → cidade_ascii "sao paulo")
@@ -922,53 +1053,71 @@ async def _query_contratos_data(
     *,
     uf: Optional[str] = None,
     municipio_pattern: Optional[str] = None,
+    cache_key: str = "",
 ) -> list[dict]:
     """Async Supabase query against pncp_supplier_contracts with sb_execute.
 
     Uses sb_execute for HTTP/2 retry (SEN-BE-004) and circuit breaker
     (STORY-291/416) instead of the old synchronous paginate_full.
+
+    POOL-001: Acquires _BLOG_SEMAPHORE (max 3 concurrent) before querying and
+    checks Redis negative cache to skip re-querying after a recent timeout.
     """
     from supabase_client import get_supabase, sb_execute
 
-    sb = get_supabase()
-
-    query = (
-        sb.table("pncp_supplier_contracts")
-        .select(
-            "ni_fornecedor,nome_fornecedor,orgao_cnpj,orgao_nome,"
-            "valor_global,data_assinatura,objeto_contrato,uf,municipio"
+    # POOL-001: Check negative cache before attempting the query
+    if cache_key and await _check_negative_cache(cache_key):
+        logger.info(
+            "POOL-001: negative cache hit on contrato query uf=%s municipio=%s -- skipping",
+            uf, municipio_pattern,
         )
-        .eq("is_active", True)
-    )
-    if uf:
-        query = query.eq("uf", uf)
-    if municipio_pattern:
-        # pncp_supplier_contracts.municipio is free-text — case-insensitive
-        # substring match via ilike (handles variations like "São Paulo" vs "SAO PAULO").
-        query = query.ilike("municipio", f"%{municipio_pattern}%")
+        return []
 
-    # DATA-CAP-001: paginate via .range() because PostgREST silently caps
-    # any single response at max_rows=1000. The previous .limit(5000) was
-    # silently truncating to 1000 rows, which broke /blog/stats/* pillar
-    # pages for high-volume sectors / large UFs (top_orgaos, top_fornecedores
-    # and monthly_trend were computed off a 1000-row sample — wrong totals).
-    # SEN-BE-004: async pagination with sb_execute (HTTP/2 retry).
-    builder = query.order("data_assinatura", desc=True)
-    rows: list[dict] = []
-    batch_size = 1000
-    max_total = 10_000
-    offset = 0
-    while len(rows) < max_total:
-        end = offset + batch_size - 1
-        resp = await sb_execute(builder.range(offset, end))
-        batch = resp.data or []
-        if not batch:
-            break
-        rows.extend(batch)
-        if len(batch) < batch_size:
-            break
-        offset += batch_size
-    return rows[:max_total]
+    # POOL-001: Acquire semaphore before querying
+    if cache_key:
+        await _acquire_blog_semaphore(cache_key)
+    try:
+
+        sb = get_supabase()
+
+        query = (
+            sb.table("pncp_supplier_contracts")
+            .select(
+                "ni_fornecedor,nome_fornecedor,orgao_cnpj,orgao_nome,"
+                "valor_global,data_assinatura,objeto_contrato,uf,municipio"
+            )
+            .eq("is_active", True)
+        )
+        if uf:
+            query = query.eq("uf", uf)
+        if municipio_pattern:
+            query = query.ilike("municipio", f"%{municipio_pattern}%")
+
+        # DATA-CAP-001: paginate via .range() because PostgREST silently caps
+        # any single response at max_rows=1000.
+        builder = query.order("data_assinatura", desc=True)
+        rows: list[dict] = []
+        batch_size = 1000
+        max_total = 10_000
+        offset = 0
+        while len(rows) < max_total:
+            end = offset + batch_size - 1
+            resp = await sb_execute(builder.range(offset, end))
+            batch = resp.data or []
+            if not batch:
+                break
+            rows.extend(batch)
+            if len(batch) < batch_size:
+                break
+            offset += batch_size
+        return rows[:max_total]
+    except Exception:
+        if cache_key:
+            await _set_negative_cache(cache_key)
+        raise
+    finally:
+        if cache_key:
+            _BLOG_SEMAPHORE.release()
 
 
 def _empty_contratos_stats() -> dict:
