@@ -3,12 +3,29 @@ DEBT-115 AC5: SSE Progress Stream endpoint.
 
 Extracted from routes/search.py to reduce module complexity.
 Contains the GET /buscar-progress/{search_id} SSE endpoint.
+
+GAP-005 (#1583): Dual heartbeat protection — concurrent background task
+(server-side) + client-side heartbeat monitoring with polling fallback.
+
+When Redis pub/sub (Streams) is unavailable, the worker polls the
+search_sessions table every 5s as a transparent fallback. The SSE client
+never sees a difference — same event format, same heartbeat cadence.
+
+Architecture:
+  - Background asyncio.Task sends :heartbeat comment line every 15s
+    via an asyncio.Queue bridge, independent of the main event loop.
+  - Existing inline heartbeat logic in each transport mode (Redis Streams,
+    in-memory queue, Supabase polling) continues as a second line of
+    defence.
+  - When the generator finishes (terminal event or error), the background
+    task is cancelled in the finally block.
 """
 
 import asyncio
 import json as _json
 import os
 import uuid as _uuid
+from typing import Optional
 
 
 from fastapi import APIRouter, HTTPException, Depends, Request
@@ -49,6 +66,41 @@ _SSE_POLLS_PER_HEARTBEAT = 15  # heartbeat every ~15s (15 polls * 1s)
 
 # GAP-005: Named heartbeat event for client-side monitoring
 _SSE_HEARTBEAT_NAMED_EVENT = "event: heartbeat\ndata: {}\n\n"
+
+
+# GAP-005 AC1: Background heartbeat worker — independent of the main event loop.
+# Uses an asyncio.Queue as a bridge so the SSE generator can yield whatever
+# the worker enqueues. Cancelled from the generator's ``finally`` block.
+async def _heartbeat_worker(
+    queue: "asyncio.Queue[str]",
+    interval: float,
+    named_event: str,
+) -> None:
+    """Push ``:heartbeat`` comment + named heartbeat event every *interval* s.
+
+    This task runs concurrently with the SSE event generator. Each tick it puts
+    two entries into *queue*: the bare ``:heartbeat`` comment (to keep the
+    Railway proxy alive) and the named ``event: heartbeat`` event (for
+    client-side heartbeat monitoring).
+
+    Cancelled by the caller when the SSE generator finishes.
+    """
+    _stop_signal = asyncio.Event()
+    try:
+        while True:
+            # Use Event.wait with timeout instead of asyncio.sleep for
+            # compatibility with test mocks (tests mock asyncio.sleep globally)
+            try:
+                await asyncio.wait_for(_stop_signal.wait(), timeout=interval)
+                break  # stop signal received
+            except asyncio.TimeoutError:
+                pass  # timeout reached — send heartbeat
+            await queue.put(": heartbeat\n\n" + named_event)
+    except asyncio.CancelledError:
+        pass
+
+
+
 
 
 @router.get("/buscar-progress/{search_id}", response_model=None)
@@ -134,7 +186,16 @@ async def buscar_progress_stream(
         heartbeat_count = 0
         # STORY-297: Track event IDs for SSE id: field
         _sse_event_counter = last_event_id
+
+        # GAP-005: Background heartbeat queue + concurrent task
+        _heartbeat_queue: "asyncio.Queue[str]" = asyncio.Queue()
+        _heartbeat_task: Optional["asyncio.Task[None]"] = None
+
         try:
+            # GAP-005: Start background heartbeat before any blocking operations
+            _heartbeat_task = asyncio.create_task(
+                _heartbeat_worker(_heartbeat_queue, _SSE_HEARTBEAT_INTERVAL, _SSE_HEARTBEAT_NAMED_EVENT)
+            )
             # STORY-297 AC3+AC4: Replay events after Last-Event-ID on reconnection
             if last_event_id > 0:
                 # AC4: If search already completed, replay + send terminal immediately
@@ -180,6 +241,14 @@ async def buscar_progress_stream(
                     SSE_DISCONNECTS_TOTAL.inc()
                     logger.debug(f"HARDEN-012: Client disconnected during wait phase for {search_id}")
                     return
+
+                # GAP-005: Drain + yield background heartbeats before each wait poll
+                while not _heartbeat_queue.empty():
+                    try:
+                        yield _heartbeat_queue.get_nowait()
+                    except asyncio.QueueEmpty:
+                        break
+
                 tracker = await get_tracker(search_id)
                 if tracker:
                     break
@@ -255,6 +324,13 @@ async def buscar_progress_stream(
                         SSE_DISCONNECTS_TOTAL.inc()
                         logger.debug(f"HARDEN-012: Client disconnected during Redis streaming for {search_id}")
                         return
+
+                    # GAP-005: Drain + yield background heartbeats before each poll
+                    while not _heartbeat_queue.empty():
+                        try:
+                            yield _heartbeat_queue.get_nowait()
+                        except asyncio.QueueEmpty:
+                            break
 
                     try:
                         # Non-blocking XREAD — returns immediately with data or empty
@@ -379,6 +455,13 @@ async def buscar_progress_stream(
                         logger.debug(f"HARDEN-012: Client disconnected during Supabase fallback for {search_id}")
                         return
 
+                    # GAP-005: Drain + yield background heartbeats before each poll
+                    while not _heartbeat_queue.empty():
+                        try:
+                            yield _heartbeat_queue.get_nowait()
+                        except asyncio.QueueEmpty:
+                            break
+
                     try:
                         _sb_status = await get_search_status(search_id)
                         if _sb_status:
@@ -470,6 +553,14 @@ async def buscar_progress_stream(
                 f"{type(gen_exc).__name__}: {gen_exc}"
             )
         finally:
+            # GAP-005: Cancel background heartbeat task (fire-and-forget)
+            if _heartbeat_task is not None and not _heartbeat_task.done():
+                _heartbeat_task.cancel()
+                try:
+                    await _heartbeat_task
+                except asyncio.CancelledError:
+                    pass
+
             # CRIT-026 AC8: Log SSE generator lifecycle completion
             logger.debug(
                 f"CRIT-026: SSE generator finished for {search_id} "
