@@ -334,3 +334,18 @@ def mock_llm_builder():
     return MockLLMBuilder()
 
 
+@pytest.fixture(autouse=True)
+def _isolate_arq_module():
+    """Restore arq module after each test to prevent MagicMock leak."""
+    import sys
+    real_arq = sys.modules.get("arq")
+    real_conn = sys.modules.get("arq.connections")
+    yield
+    if real_arq is not None:
+        sys.modules["arq"] = real_arq
+    elif "arq" in sys.modules:
+        del sys.modules["arq"]
+    if real_conn is not None:
+        sys.modules["arq.connections"] = real_conn
+    elif "arq.connections" in sys.modules:
+        del sys.modules["arq.connections"]
