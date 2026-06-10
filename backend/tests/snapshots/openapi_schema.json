@@ -15432,6 +15432,64 @@
         "title": "StatusResponse",
         "type": "object"
       },
+      "StripeHealthResponse": {
+        "description": "Response for GET /health/stripe endpoint (DEC-BIL-GAP-02).",
+        "properties": {
+          "grace_period_hours": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Grace Period Hours"
+          },
+          "grace_remaining_hours": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Grace Remaining Hours"
+          },
+          "notified": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Notified"
+          },
+          "since": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Since"
+          },
+          "stripe": {
+            "title": "Stripe",
+            "type": "string"
+          }
+        },
+        "required": [
+          "stripe"
+        ],
+        "title": "StripeHealthResponse",
+        "type": "object"
+      },
       "SubscriptionStatusResponse": {
         "additionalProperties": true,
         "description": "GET /subscription/status \u2014 current plan + period info.",
@@ -24159,7 +24217,7 @@
     },
     "/v1/buscar-progress/{search_id}": {
       "get": {
-        "description": "SSE endpoint for real-time search progress updates.\n\nThe client opens this connection simultaneously with POST /buscar,\nusing the same search_id to correlate progress events.\n\nGTM-GO-002 AC6: Max 3 simultaneous SSE connections per user.\n\nEvents:\n    - connecting (5%): Initial setup\n    - fetching (10-55%): Per-UF progress with uf_index/uf_total\n    - filtering (60-70%): Filter application\n    - llm (75-90%): LLM summary generation\n    - excel (92-98%): Excel report generation\n    - complete (100%): Search finished\n    - partial_results: Non-terminal \u2014 intermediate results during background fetch (A-04)\n    - refresh_available (100%): Background fetch complete, new data available (A-04)\n    - error: Search failed",
+        "description": "SSE endpoint for real-time search progress updates.\n\nThe client opens this connection simultaneously with POST /buscar,\nusing the same search_id to correlate progress events.\n\nGTM-GO-002 AC6: Max 3 simultaneous SSE connections per user.\n\nEvents:\n    - connecting (5%): Initial setup\n    - fetching (10-55%): Per-UF progress with uf_index/uf_total\n    - filtering (60-70%): Filter application\n    - llm (75-90%): LLM summary generation\n    - excel (92-98%): Excel report generation\n    - complete (100%): Search finished\n    - partial_results: Non-terminal \u2014 intermediate results during background fetch (A-04)\n    - refresh_available (100%): Background fetch complete, new data available (A-04)\n    - error: Search failed\n    - heartbeat: Keepalive sent every 15s (GAP-005)",
         "operationId": "buscar_progress_stream_v1_buscar_progress__search_id__get",
         "parameters": [
           {
@@ -25543,7 +25601,9 @@
           "200": {
             "content": {
               "application/json": {
-                "schema": {}
+                "schema": {
+                  "$ref": "#/components/schemas/StripeHealthResponse"
+                }
               }
             },
             "description": "Successful Response"
