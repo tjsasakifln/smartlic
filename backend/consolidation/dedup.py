@@ -12,6 +12,7 @@ from typing import Dict, List, Optional
 
 from clients.base import UnifiedProcurement
 from config import DEDUP_FUZZY_ENABLED, DEDUP_FUZZY_THRESHOLD
+from filter.stopwords import PT_BR_STOPWORDS
 from metrics import DEDUP_FIELDS_MERGED, DEDUP_FUZZY_HITS  # noqa: F401 — re-exported via consolidation/__init__.py for test patching (AC2)
 
 logger = logging.getLogger(__name__)
@@ -32,12 +33,9 @@ class DeduplicationEngine:
     # HARDEN-006: Fields eligible for merge-enrichment from lower-priority duplicate
     _MERGE_FIELDS = ("valor_estimado", "modalidade", "orgao", "objeto")
 
-    # Portuguese stopwords irrelevant for tender object comparison
-    _FUZZY_STOPWORDS = frozenset({
-        "de", "do", "da", "dos", "das", "em", "no", "na", "nos", "nas",
-        "para", "por", "com", "e", "a", "o", "um", "uma", "ao", "pelo",
-        "pela", "que", "se", "ou", "os", "as", "este", "esta", "essa",
-    })
+    # GAP-010: Stopwords moved to filter/stopwords.py (230 words).
+    # Imported as PT_BR_STOPWORDS — comprehensive NLTK PT-BR + procurement terms.
+    _FUZZY_STOPWORDS = PT_BR_STOPWORDS
 
     _LOT_PATTERN = re.compile(
         r'\b(?:lote|item|grupo|lotes?)\s*(?:n[.ºo°]?\s*)?(\d+)\b',

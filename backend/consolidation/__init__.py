@@ -16,7 +16,7 @@ from consolidation.priority_resolver import (
 )
 
 from consolidation.dedup import DeduplicationEngine
-from consolidation.dedup import DEDUP_FIELDS_MERGED  # re-export for test patching (AC2)
+from metrics import DEDUP_FIELDS_MERGED  # re-export for test patching (AC2)
 
 from consolidation.source_merger import ConsolidationService
 from consolidation.source_pipeline import SourceFetcher

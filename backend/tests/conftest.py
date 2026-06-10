@@ -334,3 +334,42 @@ def mock_llm_builder():
     return MockLLMBuilder()
 
 
+# ---------------------------------------------------------------------------
+# ARQ module isolation — prevent cross-test MagicMock pollution.
+#
+# Some test files (e.g. test_job_queue.py) replace sys.modules["arq"] or
+# sys.modules["arq.connections"] with MagicMock. When that happens before
+# this module is imported, ``from arq import Retry`` resolves to a MagicMock
+# class and ``pytest.raises(Retry)`` fails with "Expected a BaseException".
+#
+# We ship the real arq module under an alias on first import and restore it
+# at CALL time (before each test function runs) so the module-level import
+# inside test files always sees the real module.
+# ---------------------------------------------------------------------------
+
+import sys as _sys
+
+# Save the real arq module at conftest load time (pytest imports conftest
+# before collecting test files, so this runs early).
+_REAL_ARQ = _sys.modules.get("arq")
+_REAL_ARQ_CONNECTIONS = _sys.modules.get("arq.connections")
+
+
+@pytest.fixture(autouse=True)
+def _isolate_arq_module():
+    """Restore real arq module + purge cached ingestion.scheduler before each test."""
+    if _REAL_ARQ is not None:
+        _sys.modules["arq"] = _REAL_ARQ
+    if _REAL_ARQ_CONNECTIONS is not None:
+        _sys.modules["arq.connections"] = _REAL_ARQ_CONNECTIONS
+    # Purge ingestion.scheduler so its module-level arq_func() calls
+    # re-execute with the real arq module on next import.
+    _sys.modules.pop("ingestion.scheduler", None)
+    _sys.modules.pop("ingestion.config", None)
+    yield
+    if _REAL_ARQ is not None:
+        _sys.modules["arq"] = _REAL_ARQ
+    if _REAL_ARQ_CONNECTIONS is not None:
+        _sys.modules["arq.connections"] = _REAL_ARQ_CONNECTIONS
+    _sys.modules.pop("ingestion.scheduler", None)
+    _sys.modules.pop("ingestion.config", None)

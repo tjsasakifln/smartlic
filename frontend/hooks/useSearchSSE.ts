@@ -6,16 +6,18 @@
  * Replaces useSearchProgress (GTM-FIX-033) + useUfProgress (STORY-365).
  * Single EventSource connection per search_id with unified resilience strategy.
  *
- * ## Resilience Strategy (STORY-367)
+ * ## Resilience Strategy (STORY-367 + GAP-005)
  *
- * | Layer         | Strategy                               | Origin      |
- * |---------------|----------------------------------------|-------------|
- * | Reconnect     | Exponential backoff [1s, 2s, 4s]       | STORY-365   |
- * | Max retries   | 3 attempts                             | STAB-006    |
- * | Terminal guard| isTerminalRef prevents post-complete   | STORY-365   |
- * | Polling       | GET /v1/search/{id}/status every 5s    | STORY-365   |
- * | Last-Event-ID | Forwarded on reconnect for replay      | STORY-297   |
- * | High-water    | Progress never decreases (monotonic)   | CRIT-052    |
+ * | Layer                 | Strategy                               | Origin      |
+ * |-----------------------|----------------------------------------|-------------|
+ * | Reconnect             | Exponential backoff [1s, 2s, 4s]       | STORY-365   |
+ * | Max retries           | 3 attempts                             | STAB-006    |
+ * | Terminal guard        | isTerminalRef prevents post-complete   | STORY-365   |
+ * | Polling               | GET /api/v1/buscar/{id}/state every 5s | STORY-365   |
+ * | Last-Event-ID         | Forwarded on reconnect for replay      | STORY-297   |
+ * | High-water            | Progress never decreases (monotonic)   | CRIT-052    |
+ * | Heartbeat monitoring  | 33s timeout (2 heartbeats + margin)    | GAP-005     |
+ * | Periodic reconnect    | Every 15s when in fallback mode        | GAP-005     |
  *
  * ## Constants
  *
@@ -24,6 +26,8 @@
  * | SSE_RECONNECT_BACKOFF_MS  | [1000,2000,4000] | Conservative (STORY-365)  |
  * | SSE_MAX_RETRIES           | 3             | Enough for transient errors  |
  * | SSE_POLLING_INTERVAL_MS   | 5000          | Light load on backend        |
+ * | SSE_HEARTBEAT_TIMEOUT_MS  | 33000         | 2 heartbeats + 3s margin     |
+ * | SSE_RECONNECT_INTERVAL_MS | 15000         | Periodic reconnect in backoff|
  */
 
 import { useEffect, useRef, useCallback, useState } from 'react';
@@ -34,6 +38,10 @@ export const SSE_MAX_RETRIES = 3;
 export const SSE_POLLING_INTERVAL_MS = 5000;
 // CRIT-072 AC7: SSE inactivity timeout — if no event for 120s, trigger error
 export const SSE_INACTIVITY_TIMEOUT_MS = 120_000;
+// GAP-005: Heartbeat timeout — if no heartbeat event for 33s, assume SSE dead
+export const SSE_HEARTBEAT_TIMEOUT_MS = 33000;
+// GAP-005: Periodic reconnection interval when in fallback mode
+export const SSE_RECONNECT_INTERVAL_MS = 15000;
 
 // Terminal SSE stages that signal search is done — no reconnect after these
 const TERMINAL_STAGES = new Set([
@@ -229,6 +237,8 @@ interface UseSearchSSEReturn {
   zeroMatchProgress: ZeroMatchProgress | null;
   /** CRIT-072 AC7: True when no SSE event received for 120s */
   sseInactivityTimeout: boolean;
+  /** GAP-005: True when heartbeat fallback polling is active */
+  heartbeatFallbackActive: boolean;
 }
 
 export function useSearchSSE({
@@ -285,6 +295,11 @@ export function useSearchSSE({
   // CRIT-072 AC7: SSE inactivity timeout
   const inactivityTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [sseInactivityTimeout, setSseInactivityTimeout] = useState(false);
+  // GAP-005: Heartbeat monitoring
+  const heartbeatTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const isPollingFallbackRef = useRef(false);
+  const periodicReconnectRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const [heartbeatFallbackActive, setHeartbeatFallbackActive] = useState(false);
 
   // Serialize selectedUfs for stable dependency comparison
   const selectedUfsKey = selectedUfs.join(',');
@@ -310,16 +325,19 @@ export function useSearchSSE({
     }
   }, []);
 
-  const resetInactivityTimer = useCallback(() => {
-    cleanupInactivity();
-    // CRIT-072 AC7: Don't start inactivity timer if search is terminal
-    if (isTerminalRef.current) return;
-    inactivityTimerRef.current = setTimeout(() => {
-      console.warn('[CRIT-072] SSE inactivity timeout — no event received for 120s');
-      setSseInactivityTimeout(true);
-      onErrorRef.current?.();
-    }, SSE_INACTIVITY_TIMEOUT_MS);
-  }, [cleanupInactivity]);
+  const cleanupHeartbeatTimer = useCallback(() => {
+    if (heartbeatTimerRef.current) {
+      clearTimeout(heartbeatTimerRef.current);
+      heartbeatTimerRef.current = null;
+    }
+  }, []);
+
+  const cleanupPeriodicReconnect = useCallback(() => {
+    if (periodicReconnectRef.current) {
+      clearInterval(periodicReconnectRef.current);
+      periodicReconnectRef.current = null;
+    }
+  }, []);
 
   const cleanup = useCallback(() => {
     if (eventSourceRef.current) {
@@ -332,24 +350,15 @@ export function useSearchSSE({
     }
     cleanupPolling();
     cleanupInactivity();
+    cleanupHeartbeatTimer();
+    cleanupPeriodicReconnect();
+    isPollingFallbackRef.current = false;
+    setHeartbeatFallbackActive(false);
     setIsConnected(false);
-  }, [cleanupPolling, cleanupInactivity]);
+  }, [cleanupPolling, cleanupInactivity, cleanupHeartbeatTimer, cleanupPeriodicReconnect]);
 
-  // Initialize UF statuses when search starts
-  useEffect(() => {
-    if (!enabled || !searchId) {
-      setUfStatuses(new Map());
-      setBatchProgress(null);
-      return;
-    }
-    const initialStatuses = new Map<string, UfStatus>();
-    selectedUfsRef.current.forEach(uf => {
-      initialStatuses.set(uf, { status: 'pending' });
-    });
-    setUfStatuses(initialStatuses);
-    setBatchProgress(null);
-  }, [searchId, enabled, selectedUfsKey]);
-
+  // handleMessage needs to be declared before resetHeartbeatTimer and connectSSE
+  // because both depend on it. Must be after cleanup() since it depends on cleanup.
   const handleMessage = useCallback((data: string) => {
     try {
       const event: SearchProgressEvent = JSON.parse(data);
@@ -561,7 +570,145 @@ export function useSearchSSE({
     }
   }, [cleanup]);
 
-  // STORY-367 AC1: Polling fallback when all SSE reconnect attempts exhausted
+  const resetInactivityTimer = useCallback(() => {
+    cleanupInactivity();
+    // CRIT-072 AC7: Don't start inactivity timer if search is terminal
+    if (isTerminalRef.current) return;
+    inactivityTimerRef.current = setTimeout(() => {
+      console.warn('[CRIT-072] SSE inactivity timeout — no event received for 120s');
+      setSseInactivityTimeout(true);
+      onErrorRef.current?.();
+    }, SSE_INACTIVITY_TIMEOUT_MS);
+  }, [cleanupInactivity]);
+
+  // GAP-005: Reset heartbeat timer on each heartbeat event
+  const resetHeartbeatTimer = useCallback(() => {
+    if (heartbeatTimerRef.current) {
+      clearTimeout(heartbeatTimerRef.current);
+      heartbeatTimerRef.current = null;
+    }
+    if (isTerminalRef.current) return;
+    heartbeatTimerRef.current = setTimeout(() => {
+      // Heartbeat not received for 33s — assume SSE is dead
+      console.warn('[GAP-005] SSE fallback ativado: heartbeat perdido por 33s');
+      if (isTerminalRef.current) return;
+
+      const sid = searchIdRef.current;
+      if (!sid) return;
+
+      // Start polling fallback
+      isPollingFallbackRef.current = true;
+      setHeartbeatFallbackActive(true);
+
+      // GAP-005: Poll using the specific state endpoint
+      if (!pollingTimerRef.current) {
+        pollingTimerRef.current = setInterval(async () => {
+          try {
+            const headers: Record<string, string> = {};
+            if (authToken) {
+              headers['Authorization'] = `Bearer ${authToken}`;
+            }
+            const res = await fetch(`/api/v1/buscar/${encodeURIComponent(sid)}/state`, {
+              headers,
+            });
+            if (!res.ok) return;
+
+            const data = await res.json();
+            const status = data?.status;
+
+            if (status && TERMINAL_STAGES.has(status === 'completed' ? 'complete' : status)) {
+              cleanupPolling();
+              isPollingFallbackRef.current = false;
+              setHeartbeatFallbackActive(false);
+              isTerminalRef.current = true;
+            }
+          } catch {
+            // Polling error — continue polling
+          }
+        }, SSE_POLLING_INTERVAL_MS);
+      }
+
+      // GAP-005: Start periodic reconnection attempts every 15s
+      if (!periodicReconnectRef.current) {
+        periodicReconnectRef.current = setInterval(() => {
+          if (isTerminalRef.current) {
+            cleanupPeriodicReconnect();
+            return;
+          }
+          // Only reconnect if the current EventSource is null or closed
+          const currentEs = eventSourceRef.current;
+          if (currentEs && currentEs.readyState !== 2 /* CLOSED */) {
+            cleanupPeriodicReconnect();
+            return;
+          }
+          const retrySid = searchIdRef.current;
+          if (!retrySid) return;
+
+          console.info('[GAP-005] Periodic SSE reconnection attempt');
+          let retryUrl = `/api/buscar-progress?search_id=${encodeURIComponent(retrySid)}`;
+          if (authToken) {
+            retryUrl += `&token=${encodeURIComponent(authToken)}`;
+          }
+          if (lastEventIdRef.current) {
+            retryUrl += `&last_event_id=${encodeURIComponent(lastEventIdRef.current)}`;
+          }
+
+          try {
+            // GAP-005: Try to create a new EventSource
+            const newEs = new EventSource(retryUrl);
+            newEs.onopen = () => {
+              // Reconnected successfully — stop polling, resume SSE
+              console.info('[GAP-005] SSE reconectado com sucesso, retornando ao SSE');
+              cleanupPolling();
+              cleanupPeriodicReconnect();
+              isPollingFallbackRef.current = false;
+              setHeartbeatFallbackActive(false);
+              setIsConnected(true);
+              setSseAvailable(true);
+
+              // Set up heartbeat monitoring on the new connection
+              newEs.addEventListener('heartbeat', () => {
+                resetHeartbeatTimer();
+              });
+
+              newEs.onmessage = (e) => {
+                if (e.lastEventId) {
+                  lastEventIdRef.current = e.lastEventId;
+                }
+                handleMessage(e.data);
+              };
+
+              eventSourceRef.current = newEs;
+            };
+            newEs.onerror = () => {
+              // Failed to reconnect — will retry on next interval
+              console.warn('[GAP-005] Periodic SSE reconnect failed');
+              newEs.close();
+            };
+          } catch {
+            // Reconnection error — retry on next interval
+          }
+        }, SSE_RECONNECT_INTERVAL_MS);
+      }
+    }, SSE_HEARTBEAT_TIMEOUT_MS);
+  }, [authToken, cleanupPolling, handleMessage, resetInactivityTimer]);
+
+  // Initialize UF statuses when search starts
+  useEffect(() => {
+    if (!enabled || !searchId) {
+      setUfStatuses(new Map());
+      setBatchProgress(null);
+      return;
+    }
+    const initialStatuses = new Map<string, UfStatus>();
+    selectedUfsRef.current.forEach(uf => {
+      initialStatuses.set(uf, { status: 'pending' });
+    });
+    setUfStatuses(initialStatuses);
+    setBatchProgress(null);
+  }, [searchId, enabled, selectedUfsKey]);
+
+  // GAP-005: Polling fallback when all SSE reconnect attempts exhausted (legacy path)
   const startPollingFallback = useCallback((sid: string, token?: string) => {
     if (pollingTimerRef.current || isTerminalRef.current) return;
 
@@ -571,7 +718,8 @@ export function useSearchSSE({
         if (token) {
           headers['Authorization'] = `Bearer ${token}`;
         }
-        const res = await fetch(`/api/search-status?search_id=${encodeURIComponent(sid)}`, {
+        // GAP-005: Use the new state endpoint
+        const res = await fetch(`/api/v1/buscar/${encodeURIComponent(sid)}/state`, {
           headers,
         });
         if (!res.ok) return;
@@ -599,6 +747,8 @@ export function useSearchSSE({
       setIsReconnecting(false);
       // CRIT-072 AC7: Start inactivity timer on connect
       resetInactivityTimer();
+      // GAP-005: Start heartbeat monitoring on connect
+      resetHeartbeatTimer();
     };
 
     eventSource.onmessage = (e) => {
@@ -653,8 +803,23 @@ export function useSearchSSE({
       }
     });
 
+    // GAP-005: Listen for heartbeat named event
+    eventSource.addEventListener('heartbeat', () => {
+      // Heartbeat received — reset the heartbeat timer
+      resetHeartbeatTimer();
+
+      // If we were in polling fallback mode, the heartbeat returned — resume SSE
+      if (isPollingFallbackRef.current) {
+        console.info('[GAP-005] Heartbeat retornou — polling fallback desativado');
+        cleanupPolling();
+        cleanupPeriodicReconnect();
+        isPollingFallbackRef.current = false;
+        setHeartbeatFallbackActive(false);
+      }
+    });
+
     return eventSource;
-  }, [handleMessage]);
+  }, [handleMessage, resetInactivityTimer, resetHeartbeatTimer, cleanupPolling, cleanupPeriodicReconnect]);
 
   useEffect(() => {
     if (!enabled || !searchId) {
@@ -676,6 +841,9 @@ export function useSearchSSE({
     setSseAvailable(true);
     // CRIT-072 AC7: Reset inactivity timeout for new search
     setSseInactivityTimeout(false);
+    // GAP-005: Reset heartbeat fallback state
+    setHeartbeatFallbackActive(false);
+    isPollingFallbackRef.current = false;
     retryAttemptRef.current = 0;
     lastEventIdRef.current = '';
     // STORY-367 AC3: Reset terminal guard for new search
@@ -821,5 +989,6 @@ export function useSearchSSE({
     ufStatuses, ufTotalFound, ufAllComplete, batchProgress,
     sourceStatuses, filterSummary, pendingReviewUpdate, zeroMatchProgress,
     sseInactivityTimeout,
+    heartbeatFallbackActive,
   };
 }

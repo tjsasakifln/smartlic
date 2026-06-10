@@ -47,6 +47,9 @@ _SSE_TRACKER_WAIT_TIMEOUT_S = float(os.environ.get("SSE_TRACKER_WAIT_TIMEOUT_S",
 _SSE_POLL_INTERVAL = 1.0   # seconds between non-blocking polls
 _SSE_POLLS_PER_HEARTBEAT = 15  # heartbeat every ~15s (15 polls * 1s)
 
+# GAP-005: Named heartbeat event for client-side monitoring
+_SSE_HEARTBEAT_NAMED_EVENT = "event: heartbeat\ndata: {}\n\n"
+
 
 @router.get("/buscar-progress/{search_id}", response_model=None)
 async def buscar_progress_stream(
@@ -72,6 +75,7 @@ async def buscar_progress_stream(
         - partial_results: Non-terminal — intermediate results during background fetch (A-04)
         - refresh_available (100%): Background fetch complete, new data available (A-04)
         - error: Search failed
+        - heartbeat: Keepalive sent every 15s (GAP-005)
     """
     # STORY-299 AC2: Track total SSE connection attempts for SLI
     try:
@@ -96,7 +100,7 @@ async def buscar_progress_stream(
         raise HTTPException(
             status_code=429,
             detail={
-                "detail": f"Limite de reconexões SSE excedido. Tente novamente em {retry_after} segundos.",
+                "detail": f"Limite de reconex\xf5es SSE excedido. Tente novamente em {retry_after} segundos.",
                 "retry_after_seconds": retry_after,
                 "correlation_id": str(_uuid.uuid4()),
             },
@@ -108,7 +112,7 @@ async def buscar_progress_stream(
         raise HTTPException(
             status_code=429,
             detail={
-                "detail": "Limite de conexões SSE excedido. Feche outras abas antes de abrir uma nova.",
+                "detail": "Limite de conex\xf5es SSE excedido. Feche outras abas antes de abrir uma nova.",
                 "retry_after_seconds": 5,
                 "correlation_id": str(_uuid.uuid4()),
             },
@@ -183,6 +187,8 @@ async def buscar_progress_stream(
                 if i > 0 and i % _SSE_WAIT_HEARTBEAT_EVERY == 0:
                     heartbeat_count += 1
                     yield ": waiting\n\n"
+                    # GAP-005: Named heartbeat event for client-side monitoring
+                    yield _SSE_HEARTBEAT_NAMED_EVENT
                     # CRIT-012 AC3: Telemetry logging
                     logger.debug(
                         f"CRIT-012: Wait heartbeat #{heartbeat_count} for {search_id} "
@@ -229,6 +235,7 @@ async def buscar_progress_stream(
                 if not _redis:
                     _use_streams = False
                     logger.warning(
+                        f"SSE fallback activated: redis_pubsub_unavailable — "
                         f"Redis unavailable for SSE {search_id}, falling back to queue"
                     )
 
@@ -263,6 +270,8 @@ async def buscar_progress_stream(
                             if _polls_since_heartbeat >= _SSE_POLLS_PER_HEARTBEAT:
                                 heartbeat_count += 1
                                 yield ": heartbeat\n\n"
+                                # GAP-005: Named heartbeat event for client-side monitoring
+                                yield _SSE_HEARTBEAT_NAMED_EVENT
                                 logger.debug(
                                     f"CRIT-012: Heartbeat #{heartbeat_count} "
                                     f"for {search_id} (streams-polled)"
@@ -316,6 +325,11 @@ async def buscar_progress_stream(
                             f"CRIT-048 AC3: Redis timeout for SSE {search_id}: "
                             f"{type(redis_timeout_err).__name__}: {redis_timeout_err}"
                         )
+                        logger.warning(
+                            f"SSE fallback activated: redis_pubsub_unavailable — "
+                            f"Redis {type(redis_timeout_err).__name__} for SSE {search_id}, "
+                            f"falling to Supabase polling"
+                        )
                         # Emit non-terminal informational event before switching transport
                         _sse_event_counter += 1
                         yield (
@@ -338,6 +352,11 @@ async def buscar_progress_stream(
                                 f"CRIT-026: Circuit breaker open for {search_id} "
                                 f"after {_consecutive_errors} consecutive Redis errors, "
                                 f"falling back to Supabase polling"
+                            )
+                            logger.warning(
+                                f"SSE fallback activated: redis_pubsub_unavailable — "
+                                f"Circuit breaker after {_consecutive_errors} consecutive errors "
+                                f"for {search_id}"
                             )
                             # CRIT-048 AC4: Fall through to Supabase polling
                             _use_streams = False
@@ -388,6 +407,8 @@ async def buscar_progress_stream(
                         )
                     heartbeat_count += 1
                     yield ": heartbeat\n\n"
+                    # GAP-005: Named heartbeat event during supabase fallback
+                    yield _SSE_HEARTBEAT_NAMED_EVENT
                     await asyncio.sleep(5.0)
                 # Max polls exhausted — emit terminal error
                 _sse_event_counter += 1
@@ -426,6 +447,8 @@ async def buscar_progress_stream(
                     except asyncio.TimeoutError:
                         heartbeat_count += 1
                         yield ": heartbeat\n\n"
+                        # GAP-005: Named heartbeat event for client-side monitoring
+                        yield _SSE_HEARTBEAT_NAMED_EVENT
                         logger.debug(
                             f"CRIT-012: Heartbeat #{heartbeat_count} "
                             f"for {search_id} (in-memory)"

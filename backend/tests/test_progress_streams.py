@@ -566,6 +566,8 @@ class TestCrossWorkerE2E:
             if line.startswith("data: ")
         ]
         events = [json.loads(line.replace("data: ", "")) for line in data_lines]
-        assert len(events) == 2
+        assert len(events) == 3
         assert events[0]["stage"] == "connecting"
-        assert events[1]["stage"] == "complete"
+        # Index 1 is the heartbeat (empty JSON data: {})
+        assert events[1] == {}
+        assert events[2]["stage"] == "complete"

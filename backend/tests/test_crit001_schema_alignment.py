@@ -75,12 +75,12 @@ class TestSearchResultsCacheRow:
         assert row.sources_json == ["pncp"]
 
     def test_mod_t03_expected_columns_returns_19(self):
-        """MOD-T03: expected_columns() returns exactly 19 names (includes params_hash_global)."""
+        """MOD-T03: expected_columns() returns exactly 20 names."""
         from models.cache import SearchResultsCacheRow
 
         cols = SearchResultsCacheRow.expected_columns()
         assert isinstance(cols, set)
-        assert len(cols) == 19
+        assert len(cols) == 20
         assert "id" in cols
         assert "sources_json" in cols
         assert "fetched_at" in cols

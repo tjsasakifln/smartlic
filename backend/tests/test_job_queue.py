@@ -176,7 +176,7 @@ class TestWorkerSettings:
 
     def test_max_tries(self):
         from job_queue import WorkerSettings
-        assert WorkerSettings.max_tries == 3
+        assert WorkerSettings.max_tries == 1  # GAP-004 (#1581): lowered from 3 to 1 -- per-job override via arq.func()
 
     def test_job_timeout(self):
         # GTM-ARCH-001: Increased from 60 to 300 to support search_job (multi-UF up to 300s)
@@ -187,9 +187,9 @@ class TestWorkerSettings:
         from job_queue import WorkerSettings
         assert WorkerSettings.max_jobs == 10
 
-    def test_retry_delay(self):
+    def test_retry_delay_not_present(self): # GAP-004 (#1581): retry_delay was removed (not in ARQ 0.28)
         from job_queue import WorkerSettings
-        assert WorkerSettings.retry_delay == 5.0  # CRIT-038: increased for Redis recovery
+        assert not hasattr(WorkerSettings, "retry_delay")  # GAP-004: removed as dead code
 
 
 # ============================================================================

@@ -172,3 +172,13 @@ CONTRACTS_RUN_DURATION = _histogram(
     labelnames=["run_type"],
     buckets=[30, 60, 300, 600, 1800, 3600, 7200, 14400],
 )
+
+# ---------------------------------------------------------------------------
+# ARQ job retries (GAP-004, #1581)
+# ---------------------------------------------------------------------------
+
+ARQ_JOB_RETRIES_TOTAL = _counter(
+    "arq_job_retries_total",
+    "Total ARQ job retries by job name",
+    labelnames=["job_name"],
+)
