@@ -334,18 +334,43 @@ def mock_llm_builder():
     return MockLLMBuilder()
 
 
+# ---------------------------------------------------------------------------
+# ARQ module isolation — prevent cross-test MagicMock pollution.
+#
+# Some test files (e.g. test_job_queue.py) replace sys.modules["arq"] or
+# sys.modules["arq.connections"] with MagicMock. When that happens before
+# this module is imported, ``from arq import Retry`` resolves to a MagicMock
+# class and ``pytest.raises(Retry)`` fails with "Expected a BaseException".
+#
+# We ship the real arq module under an alias on first import and restore it
+# at CALL time (before each test function runs) so the module-level import
+# inside test files always sees the real module.
+# ---------------------------------------------------------------------------
+
+import sys as _sys
+
+# Save the real arq module at conftest load time (pytest imports conftest
+# before collecting test files, so this runs early).
+_REAL_ARQ = _sys.modules.get("arq")
+_REAL_ARQ_CONNECTIONS = _sys.modules.get("arq.connections")
+
+
 @pytest.fixture(autouse=True)
 def _isolate_arq_module():
-    """Restore arq module after each test to prevent MagicMock leak."""
-    import sys
-    real_arq = sys.modules.get("arq")
-    real_conn = sys.modules.get("arq.connections")
+    """Restore real arq module before each test runs.
+
+    The import guard at module level saves the real modules; this fixture
+    restores them before each test function executes so that lazy imports
+    (inside test bodies or via ``from arq import ...`` at module top level
+    of freshly collected files) always get the real module.
+    """
+    if _REAL_ARQ is not None:
+        _sys.modules["arq"] = _REAL_ARQ
+    if _REAL_ARQ_CONNECTIONS is not None:
+        _sys.modules["arq.connections"] = _REAL_ARQ_CONNECTIONS
     yield
-    if real_arq is not None:
-        sys.modules["arq"] = real_arq
-    elif "arq" in sys.modules:
-        del sys.modules["arq"]
-    if real_conn is not None:
-        sys.modules["arq.connections"] = real_conn
-    elif "arq.connections" in sys.modules:
-        del sys.modules["arq.connections"]
+    # After-test cleanup: restore again so the NEXT test file also sees real arq
+    if _REAL_ARQ is not None:
+        _sys.modules["arq"] = _REAL_ARQ
+    if _REAL_ARQ_CONNECTIONS is not None:
+        _sys.modules["arq.connections"] = _REAL_ARQ_CONNECTIONS

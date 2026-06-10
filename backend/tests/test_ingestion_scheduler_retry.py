@@ -14,8 +14,6 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from arq import Retry
-
 
 # ============================================================================
 # Tests for _with_ingestion_retry helper
@@ -32,7 +30,7 @@ class TestWithIngestionRetry:
 
         ctx = {"job_try": 1}
 
-        with pytest.raises(Retry) as exc_info:
+        from arq import Retry; with pytest.raises(Retry) as exc_info:
             await _with_ingestion_retry(
                 ctx=ctx,
                 job_name="TestJob",
@@ -53,7 +51,7 @@ class TestWithIngestionRetry:
 
         ctx = {"job_try": 2}
 
-        with pytest.raises(Retry) as exc_info:
+        from arq import Retry; with pytest.raises(Retry) as exc_info:
             await _with_ingestion_retry(
                 ctx=ctx,
                 job_name="TestJob",
@@ -113,7 +111,7 @@ class TestWithIngestionRetry:
 
         ctx = {}  # no job_try key
 
-        with pytest.raises(Retry):
+        from arq import Retry; with pytest.raises(Retry):
             await _with_ingestion_retry(
                 ctx=ctx,
                 job_name="TestJob",
@@ -162,7 +160,7 @@ class TestWithIngestionRetry:
 
         with (
             patch("ingestion.metrics.ARQ_JOB_RETRIES_TOTAL", mock_metric),
-            pytest.raises(Retry),
+            from arq import Retry; pytest.raises(Retry),
         ):
             await _with_ingestion_retry(
                 ctx=ctx,
@@ -412,7 +410,7 @@ class TestRetryEdgeCases:
 
         with (
             patch("ingestion.metrics.ARQ_JOB_RETRIES_TOTAL", broken_metric),
-            pytest.raises(Retry),
+            from arq import Retry; pytest.raises(Retry),
         ):
             await _with_ingestion_retry(
                 ctx=ctx,
