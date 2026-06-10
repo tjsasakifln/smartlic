@@ -16,6 +16,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
+from datetime import datetime, timedelta
 import re
 import time
 from typing import Any
@@ -44,6 +45,16 @@ _embedding_cache: dict[str, tuple[float, list[float]]] = {}
 # the 25-connection pool limit. Requests that cannot acquire within 2s fail
 # fast (return []) instead of queuing into a pool-exhaustion wedge.
 _SEO_SEMAPHORE = asyncio.Semaphore(5)
+
+# ---------------------------------------------------------------------------
+# TRUNC-001: PostgREST silent data truncation guard
+# ---------------------------------------------------------------------------
+
+# PostgREST caps RPC results at 1000 rows per call (hard limit, no negotiation).
+_POSTGREST_ROW_CAP = 1000
+# Maximum recursion depth for binary date-range splitting. 2^10 = 1024
+# sub-queries max, sufficient to resolve any realistic truncation.
+_MAX_PAGINATION_DEPTH = 10
 
 
 def _cache_key(
@@ -85,6 +96,141 @@ def _cache_put(key: str, results: list[dict]) -> None:
         oldest_key = min(_query_cache, key=lambda k: _query_cache[k][0])
         del _query_cache[oldest_key]
     _query_cache[key] = (time.monotonic() + _CACHE_TTL, results)
+
+# ---------------------------------------------------------------------------
+# TRUNC-001: Intra-UF pagination with binary date-range splitting
+# ---------------------------------------------------------------------------
+
+
+def _record_sentry_truncation(uf: str) -> None:
+    """Dispatch a Sentry error-level alert + Prometheus metric when truncation
+    is detected.  Both are best-effort and never block the caller."""
+    try:
+        from metrics import DATALAKE_TRUNCATION_SUSPECTED
+        DATALAKE_TRUNCATION_SUSPECTED.labels(uf=uf).inc()
+    except Exception:
+        pass  # Metrics are optional
+    try:
+        import sentry_sdk
+        sentry_sdk.capture_message(
+            f"[DatalakeQuery] PostgREST truncation detected for UF={uf} — "
+            f"returned exactly {_POSTGREST_ROW_CAP} rows. Data loss occurred.",
+            level="error",
+        )
+    except ImportError:
+        pass  # sentry_sdk not available (tests, local dev)
+
+
+async def _query_uf_with_pagination(
+    sb: Any,
+    sb_execute: Any,
+    rpc_params: dict[str, Any],
+    uf: str,
+    date_start: str,
+    date_end: str,
+    depth: int,
+) -> list[dict]:
+    """Query a single UF with automatic binary date-range pagination.
+
+    PostgREST caps RPC results at 1000 rows.  When the UF (e.g. SP) has more
+    data than the cap, this function splits the date range in half and
+    recursively queries each half, merging the results chronologically.
+
+    Args:
+        sb: Supabase client.
+        sb_execute: Wrapped Supabase .execute() with circuit-breaker.
+        rpc_params: Base RPC parameters (shared across all sub-queries).
+        uf: Two-letter UF code.
+        date_start: Inclusive start date "YYYY-MM-DD".
+        date_end: Inclusive end date "YYYY-MM-DD".
+        depth: Current recursion depth (starts at 0, guards against runaway).
+
+    Returns:
+        List of raw rows from the RPC (not yet normalized).
+        Returns [] on error (fail-open).
+    """
+    if depth > _MAX_PAGINATION_DEPTH:
+        logger.error(
+            f"[DatalakeQuery] Max pagination depth ({_MAX_PAGINATION_DEPTH}) "
+            f"exceeded for UF={uf} range [{date_start}, {date_end}] — "
+            f"giving up and returning partial results."
+        )
+        return []
+
+    # Build per-UF params — override date range + UF filter
+    uf_params = {
+        **rpc_params,
+        "p_ufs": [uf],
+        "p_date_start": date_start,
+        "p_date_end": date_end,
+    }
+
+    try:
+        result = await sb_execute(
+            sb.rpc("search_datalake", uf_params), category="rpc"
+        )
+        uf_rows = result.data or []
+    except Exception as e:
+        logger.warning(
+            f"[DatalakeQuery] RPC failed for UF={uf} "
+            f"[{date_start}, {date_end}]: {type(e).__name__}: {e}"
+        )
+        return []
+
+    if len(uf_rows) < _POSTGREST_ROW_CAP:
+        # No truncation — return as-is
+        return uf_rows
+
+    # ---- Truncation detected: split date range and recurse ----
+    _record_sentry_truncation(uf)
+
+    try:
+        d_start = datetime.strptime(date_start, "%Y-%m-%d").date()
+        d_end = datetime.strptime(date_end, "%Y-%m-%d").date()
+    except ValueError as e:
+        logger.warning(
+            f"[DatalakeQuery] Cannot split date range for UF={uf}: "
+            f"invalid date format ({date_start}, {date_end}): {e}"
+        )
+        return uf_rows  # Return partial results rather than lose everything
+
+    total_days = (d_end - d_start).days
+    if total_days < 1:
+        # Single date — cannot split further; return partial
+        logger.warning(
+            f"[DatalakeQuery] UF={uf} still exceeds cap at minimum granularity "
+            f"[{date_start}] — returning {len(uf_rows)} rows (possibly truncated)."
+        )
+        return uf_rows
+
+    # Compute midpoint
+    mid = d_start + timedelta(days=total_days // 2)
+
+    left_start = d_start
+    left_end = mid
+    right_start = mid + timedelta(days=1)
+    right_end = d_end
+
+    logger.info(
+        f"[DatalakeQuery] UF={uf} truncation detected ({len(uf_rows)} rows). "
+        f"Splitting range [{date_start}, {date_end}] → "
+        f"[{left_start}, {left_end}] + [{right_start}, {right_end}] "
+        f"(depth={depth + 1})"
+    )
+
+    left_rows = await _query_uf_with_pagination(
+        sb, sb_execute, rpc_params, uf,
+        left_start.isoformat(), left_end.isoformat(),
+        depth + 1,
+    )
+    right_rows = await _query_uf_with_pagination(
+        sb, sb_execute, rpc_params, uf,
+        right_start.isoformat(), right_end.isoformat(),
+        depth + 1,
+    )
+
+    return left_rows + right_rows
+
 
 # ---------------------------------------------------------------------------
 # Public API
@@ -206,27 +352,21 @@ async def query_datalake(
             f"embedding={'yes' if query_embedding else 'no'}, limit={limit}"
         )
 
-        # PostgREST caps results at 1000 rows per call.
-        # Paginate per-UF to avoid truncação em queries multi-UF.
-        _POSTGREST_ROW_CAP = 1000
+        # TRUNC-001: Paginate per-UF with binary date-range splitting.
+        # PostgREST caps RPC results at 1000 rows per call; when a UF hits
+        # this cap we split the date range in half and recurse.
         rows: list[dict] = []
         for uf in ufs:
-            uf_params = {**rpc_params, "p_ufs": [uf]}
             try:
-                result = await sb_execute(sb.rpc("search_datalake", uf_params), category="rpc")
-                uf_rows = result.data or []
-                # Detecta possível truncamento silencioso do PostgREST (limite 1000 linhas/chamada)
-                if len(uf_rows) == _POSTGREST_ROW_CAP:
-                    logger.warning(
-                        f"[DatalakeQuery] UF {uf} returned exactly {_POSTGREST_ROW_CAP} rows "
-                        f"— possível truncamento silencioso do PostgREST. "
-                        f"Considere reduzir o intervalo de datas ou aumentar a granularidade da query."
-                    )
-                    try:
-                        from metrics import DATALAKE_TRUNCATION_SUSPECTED
-                        DATALAKE_TRUNCATION_SUSPECTED.labels(uf=uf).inc()
-                    except Exception:
-                        pass  # Métricas são opcionais — nunca bloqueiam o fluxo principal
+                uf_rows = await _query_uf_with_pagination(
+                    sb=sb,
+                    sb_execute=sb_execute,
+                    rpc_params=rpc_params,
+                    uf=uf,
+                    date_start=data_inicial,
+                    date_end=data_final,
+                    depth=0,
+                )
                 rows.extend(uf_rows)
             except Exception as e:
                 logger.warning(f"[DatalakeQuery] RPC failed for UF={uf}: {type(e).__name__}: {e}")
