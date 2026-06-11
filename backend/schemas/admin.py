@@ -238,7 +238,9 @@ class UserSegmentsResponse(BaseModel):
     queried_at: str
 
 
-# --- FOUNDER-003 (#1416): Revenue Metrics ------------------------------------
+# ---------------------------------------------------------------------------
+# FOUNDER-001/003/005: Founder Metrics Dashboard
+# ---------------------------------------------------------------------------
 
 
 class MrrHistoryEntry(BaseModel):
@@ -249,7 +251,7 @@ class MrrHistoryEntry(BaseModel):
 
 
 class RevenueMetricsResponse(BaseModel):
-    """Response for GET /v1/admin/metrics/revenue (FOUNDER-003).
+    """Response for GET /v1/admin/metrics/revenue (FOUNDER-003/005).
 
     Returns financial and engagement metrics for the founder dashboard.
     All rate/percentage fields are normalized to 0.0–1.0 range.
@@ -281,6 +283,7 @@ class RevenueMetricsResponse(BaseModel):
     period_start: str = ""
     period_end: str = ""
     mrr_history: list[MrrHistoryEntry] = []
+    lookup_duration_ms: float = 0.0
 
 
 # ---------------------------------------------------------------------------

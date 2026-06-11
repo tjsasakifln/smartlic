@@ -352,6 +352,18 @@ export function ValorFilter({
             aria-valuetext={formatCurrency(valorMax)}
             tabIndex={disabled ? -1 : 0}
           />
+
+          {/* Tooltip during drag — follows the active thumb */}
+          {dragging && (
+            <div
+              className="absolute bottom-full mb-2 -translate-x-1/2 px-2 py-1 bg-ink text-white text-xs font-medium rounded shadow-lg whitespace-nowrap z-10 pointer-events-none select-none"
+              style={{ left: `${dragging === "min" ? minPosition : maxPosition}%` }}
+              role="tooltip"
+              aria-live="polite"
+            >
+              R$ {formatBRL(dragging === "min" ? (valorMin ?? 0) : (valorMax ?? SLIDER_MAX))}
+            </div>
+          )}
         </div>
 
         {/* Slider labels */}

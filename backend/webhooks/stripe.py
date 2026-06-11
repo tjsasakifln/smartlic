@@ -42,6 +42,7 @@ from webhooks.handlers.checkout import (  # noqa: F401
     handle_async_payment_succeeded as _handle_async_payment_succeeded,
     handle_async_payment_failed as _handle_async_payment_failed,
     handle_intel_report_payment_failed as _handle_intel_report_payment_failed,
+    handle_digital_product_checkout_completed as _handle_digital_product_checkout_completed,
     _send_async_payment_failed_email,
     _create_partner_referral_async,
     _create_post_purchase_sequence,

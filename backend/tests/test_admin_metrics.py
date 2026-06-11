@@ -1,6 +1,13 @@
-"""Tests for FOUNDER-003 (#1416) + FOUNDER-004 (#1417) admin/metrics/revenue endpoint.
+"""Tests for FOUNDER-003/005: admin metrics dashboard + Mixpanel tracking.
 
-Covers: schema validation, auth rejection, empty data defaults, mrr_history.
+Validates:
+- 403 for non-admin users (require_admin gate)
+- Correct response shape for admin users
+- Mixpanel event fired with correct aggregated properties (no PII)
+- Mixpanel failure does NOT break the response (fire-and-forget)
+- No PII in the response snapshot
+- Audit log event fires on access
+Schema defaults (MrrHistoryEntry, RevenueMetricsResponse).
 """
 
 from __future__ import annotations
@@ -13,6 +20,32 @@ from httpx import ASGITransport, AsyncClient
 
 from routes.admin_metrics import router as admin_metrics_router
 from schemas.admin import MrrHistoryEntry, RevenueMetricsResponse
+
+# ---------------------------------------------------------------------------
+# Constants
+# ---------------------------------------------------------------------------
+
+FAKE_ADMIN = {
+    "id": "admin-123-uuid",
+    "sub": "admin-123-uuid",
+    "email": "admin@smartlic.tech",
+    "role": "authenticated",
+}
+
+FAKE_NON_ADMIN = {
+    "id": "user-456-uuid",
+    "sub": "user-456-uuid",
+    "email": "user@example.com",
+    "role": "authenticated",
+}
+
+
+
+# ---------------------------------------------------------------------------
+# Fixtures
+# ---------------------------------------------------------------------------
+
+
 
 
 # ---------------------------------------------------------------------------
@@ -106,7 +139,7 @@ class TestAuthRejection:
 
 
 # ---------------------------------------------------------------------------
-# Data fetching tests (mocked)
+# FOUNDER-005: Permission gate, Mixpanel tracking, audit log tests
 # ---------------------------------------------------------------------------
 
 
