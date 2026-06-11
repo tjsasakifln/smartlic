@@ -115,7 +115,10 @@ _start_worker() {
 # ── Uvicorn launcher (foreground) ───────────────────────────────────────
 _start_uvicorn() {
   local workers="${WEB_CONCURRENCY:-2}"
-  local limit_max_requests="${GUNICORN_MAX_REQUESTS:-10000}"
+  # CRIT-083 AC6 MEM-6: Reduced from 10000→5000 to limit memory accumulation.
+  # Worker RSS grows ~50KB/request (cache churn + object churn). At 5000 requests
+  # that's ~250MB growth — well within the 512MB threshold with margin.
+  local limit_max_requests="${GUNICORN_MAX_REQUESTS:-5000}"
   local graceful_timeout="${UVICORN_TIMEOUT_GRACEFUL_SHUTDOWN:-120}"
   local keep_alive="${GUNICORN_KEEP_ALIVE:-75}"
   local log_level="${UVICORN_LOG_LEVEL:-info}"
@@ -181,7 +184,7 @@ case "$PROCESS_TYPE" in
         --log-level "${UVICORN_LOG_LEVEL:-info}" \
         --timeout-keep-alive "${GUNICORN_KEEP_ALIVE:-75}" \
         --workers "${WEB_CONCURRENCY:-2}" \
-        --limit-max-requests "${GUNICORN_MAX_REQUESTS:-10000}" \
+        --limit-max-requests "${GUNICORN_MAX_REQUESTS:-5000}" \
         --timeout-graceful-shutdown "${UVICORN_TIMEOUT_GRACEFUL_SHUTDOWN:-120}"
     fi
     ;;

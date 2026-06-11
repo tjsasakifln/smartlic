@@ -52,7 +52,10 @@ POOL_SOCKET_TIMEOUT = 30
 POOL_SOCKET_CONNECT_TIMEOUT = 10
 
 # InMemoryCache configuration (AC4)
-INMEMORY_MAX_ENTRIES = 10_000
+# CRIT-083 AC6 MEM-3: Reduced from 10K→5K to limit memory when Redis is unavailable.
+# Each entry stores a serialized search result (can be 10-50KB each).
+# 5K entries × 50KB max = ~250MB worst case instead of ~500MB.
+INMEMORY_MAX_ENTRIES = 5_000
 
 # Singleton state
 _redis_pool = None

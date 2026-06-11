@@ -28,15 +28,15 @@ logger = logging.getLogger(__name__)
 # round-trips and mitigates timeout impact on retries).
 # ---------------------------------------------------------------------------
 
-_CACHE_TTL = 3600  # 1 hour
-_CACHE_MAX_ENTRIES = 50
+_CACHE_TTL = 600  # 10 minutes (was 3600 — CRIT-083 AC6 MEM-1: reduce memory pressure)
+_CACHE_MAX_ENTRIES = 20  # was 50 — CRIT-083 AC6 MEM-1: each entry can be several MB
 
 # dict[str, tuple[float, list[dict]]]  — key -> (expiry_timestamp, results)
 _query_cache: dict[str, tuple[float, list[dict]]] = {}
 
 # STORY-438: In-memory cache for query embeddings (avoids repeated OpenAI calls)
-_EMBEDDING_CACHE_TTL = 3600  # 1 hour
-_EMBEDDING_CACHE_MAX_ENTRIES = 100
+_EMBEDDING_CACHE_TTL = 1800  # 30 minutes (was 3600 — CRIT-083 AC6 MEM-2: reduce memory pressure)
+_EMBEDDING_CACHE_MAX_ENTRIES = 50  # was 100 — CRIT-083 AC6 MEM-2: embeddings are smaller but accumulate
 _embedding_cache: dict[str, tuple[float, list[float]]] = {}
 
 # Concurrency limiter: prevents bot/crawler fan-out from saturating the
