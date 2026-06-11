@@ -24,6 +24,106 @@ logger = get_sanitized_logger(__name__)
 
 
 # ============================================================================
+# CONV-011b-1: Post-purchase sequence for digital product one-time payments
+# ============================================================================
+
+async def handle_digital_product_checkout_completed(sb, session_data: dict) -> None:
+    """Handle checkout.session.completed for digital product one-time payments.
+
+    CONV-011b-1: Creates a post_purchase_sequences record and schedules
+    followup (48h) and reengagement (7d) ARQ jobs.
+
+    Idempotency: checks if a sequence already exists for this purchase_id
+    before inserting. Webhook dispatcher-level dedup (stripe_webhook_events)
+    also prevents duplicate handler invocations.
+    """
+    metadata = session_data.get("metadata") or {}
+    product_sku = metadata.get("product_sku")
+    user_id = metadata.get("user_id")
+    session_id = session_data.get("id")
+
+    if not product_sku or not user_id:
+        logger.warning(
+            f"Digital product checkout missing required metadata: "
+            f"product_sku={product_sku}, user_id={user_id}, session_id={session_id}"
+        )
+        return
+
+    logger.info(
+        f"Digital product checkout completed: user_id={user_id[:8]}, "
+        f"product_sku={product_sku}, session_id={session_id}"
+    )
+
+    # Idempotency: check if sequence already exists for this purchase_id
+    def _sync_check_existing():
+        return (
+            sb.table("post_purchase_sequences")
+            .select("id, stage")
+            .eq("purchase_id", session_id)
+            .limit(1)
+            .execute()
+        )
+
+    existing_result = await _run_with_budget(
+        asyncio.to_thread(_sync_check_existing),
+        budget=_WEBHOOK_QUERY_BUDGET_S,
+        phase="route",
+        source="webhook.digital_product.check_existing",
+    )
+
+    if existing_result.data:
+        logger.info(
+            f"Post-purchase sequence already exists for purchase_id={session_id} "
+            f"(stage={existing_result.data[0].get('stage')}) — skipping"
+        )
+        return
+
+    # Create post_purchase_sequences record (stage='delivery', next_sequence_at=NOW)
+    now_iso = datetime.now(timezone.utc).isoformat()
+    sequence_row = {
+        "purchase_id": session_id,
+        "product_sku": product_sku,
+        "user_id": user_id,
+        "stage": "delivery",
+        "next_sequence_at": now_iso,
+    }
+
+    insert_result = await _run_with_budget(
+        asyncio.to_thread(lambda: sb.table("post_purchase_sequences").insert(sequence_row).execute()),
+        budget=_WEBHOOK_QUERY_BUDGET_S,
+        phase="route",
+        source="webhook.digital_product.insert_sequence",
+    )
+
+    if insert_result.data:
+        sequence_id = insert_result.data[0].get("id")
+        logger.info(f"Post-purchase sequence created: sequence_id={sequence_id}, purchase_id={session_id}")
+
+        # Schedule ARQ jobs for followup (48h) and reengagement (7d)
+        # Best-effort: jobs are implemented in subsequent CONV-011b parts
+        try:
+            from job_queue import get_arq_pool
+            pool = await get_arq_pool()
+            if pool:
+                await pool.enqueue_job(
+                    "post_purchase_followup", sequence_id,
+                    _defer_by=timedelta(hours=48),
+                )
+                logger.info(f"post_purchase_followup job enqueued for sequence_id={sequence_id}")
+
+                await pool.enqueue_job(
+                    "post_purchase_reengagement", sequence_id,
+                    _defer_by=timedelta(days=7),
+                )
+                logger.info(f"post_purchase_reengagement job enqueued for sequence_id={sequence_id}")
+        except Exception as arq_err:
+            logger.warning(
+                f"Could not schedule post-purchase ARQ jobs (non-fatal, "
+                f"will retry on webhook replay): {arq_err}"
+            )
+
+
+# ============================================================================
 # Intel Report one-time payment handlers (#630)
 # ============================================================================
 
@@ -185,47 +285,9 @@ async def handle_checkout_session_completed(sb, event: stripe.Event) -> None:
             logger.error(f"founding mode=payment handler failed (non-fatal): {e}")
         return
 
-    # CONV-011b-1: Digital product one-time payment (mode=payment + product_sku in metadata)
+    # CONV-011b-1: Digital product one-time payment → post purchase sequence
     if session_data.get("mode") == "payment" and metadata.get("product_sku"):
-        product_sku = metadata["product_sku"]
-        digital_user_id = metadata.get("user_id")
-        if not digital_user_id:
-            logger.warning(
-                f"Digital product checkout missing user_id in metadata: product_sku={product_sku}"
-            )
-            return
-
-        logger.info(
-            f"Digital product checkout completed: user_id={digital_user_id[:8]}, "
-            f"product_sku={product_sku}, session_id={session_data.get('id')}"
-        )
-
-        now_iso = datetime.now(timezone.utc).isoformat()
-        purchase_row = {
-            "user_id": digital_user_id,
-            "product_type": "digital_product",
-            "entity_key": product_sku,
-            "status": "completed",
-            "stripe_checkout_session_id": session_data.get("id"),
-            "stripe_payment_intent_id": session_data.get("payment_intent"),
-            "created_at": now_iso,
-        }
-
-        insert_result = await _run_with_budget(
-            asyncio.to_thread(lambda: sb.table("intel_report_purchases").insert(purchase_row).execute()),
-            budget=_WEBHOOK_QUERY_BUDGET_S,
-            phase="route",
-            source="webhook.digital_product.insert_purchase",
-        )
-
-        digital_purchase_id = None
-        if insert_result.data:
-            digital_purchase_id = insert_result.data[0].get("id")
-            logger.info(f"Digital product purchase created: purchase_id={digital_purchase_id}")
-
-        if digital_purchase_id:
-            await _create_post_purchase_sequence(sb, digital_purchase_id, product_sku, digital_user_id)
-
+        await handle_digital_product_checkout_completed(sb, session_data)
         return
 
     user_id = resolve_user_id(sb, session_data)
