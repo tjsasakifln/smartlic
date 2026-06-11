@@ -1,24 +1,27 @@
-"""FOUNDER-003 (#1416) + FOUNDER-004 (#1417): Endpoint GET /admin/metrics/revenue.
+"""Admin metrics routes for the founder dashboard (FOUNDER-003/005).
 
-Returns JSON with MRR, churn, trial-to-paid, activation, retention, ARPA,
-plus an MRR time series (mrr_history) for the frontend Recharts line chart.
+Provides admin-only endpoints that aggregate financial and engagement metrics
+from server-side SQL functions. Includes Mixpanel tracking and audit logging
+for all accesses.
 
-All rate/percentage fields are normalized to 0.0–1.0 range where applicable.
-
-Uses the six SQL functions created by FOUNDER-001 (migration
-20260606010000_add_founder_metrics_functions.sql) via Supabase RPC, plus
-inline queries for activation_d7 / retention_d1 / retention_d30.
+Originally FOUNDER-003 (#1416) + FOUNDER-004 (#1417):
+GET /admin/metrics/revenue with MRR, churn, trial-to-paid, activation,
+retention, ARPA, plus an MRR time series (mrr_history).
 """
 
 from __future__ import annotations
 
 import asyncio
 import logging
+import time
 from datetime import datetime, timezone, timedelta
+from typing import Any
+
 
 from fastapi import APIRouter, Depends, HTTPException
 
 from admin import require_admin
+from analytics_events import track_event
 from audit import AuditLogger
 from pipeline.budget import _run_with_budget
 from schemas.admin import RevenueMetricsResponse, MrrHistoryEntry
@@ -376,7 +379,7 @@ async def get_revenue_metrics(
         arpa_val,
     ) = results
 
-    # FOUNDER-005: audit log the view
+    # --- FOUNDER-005: Audit log the view ---
     admin_id = admin.get("sub") or admin.get("id") or "unknown"
     try:
         audit = AuditLogger()
@@ -392,6 +395,23 @@ async def get_revenue_metrics(
         )
     except Exception as e:
         logger.warning("Failed to log metrics view audit event: %s", e)
+
+    # --- FOUNDER-005: Mixpanel tracking (fire-and-forget, never raises) ---
+    latest_mrr_entry = mrr_history[-1] if mrr_history else None
+    try:
+        track_event("founder_metrics_viewed", {
+            "user_id": admin_id,
+            "mrr": mrr_val,
+            "churn_rate_30d": churn,
+            "trial_to_paid_30d": trial_30d,
+            "trial_to_paid_90d": trial_90d,
+            "d7_retention": ret_d7,
+            "arpa": arpa_val,
+            "total_subscribers": subs,
+            "activation_d7": activation,
+        })
+    except Exception:
+        logger.warning("FOUNDER-005: track_event failed (fire-and-forget)", exc_info=True)
 
     return RevenueMetricsResponse(
         mrr=mrr_val,
