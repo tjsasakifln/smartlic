@@ -16,7 +16,7 @@ import { motion } from 'framer-motion';
 
 export type InsightIcon = 'chart' | 'money' | 'building' | 'target';
 
-export type EntityType = 'fornecedor' | 'orgao' | 'setor' | 'municipio';
+export type EntityType = 'fornecedor' | 'orgao' | 'setor' | 'municipio' | 'cnpj' | 'contrato';
 
 export interface InsightCard {
   label: string;
@@ -77,6 +77,7 @@ export default function AhaMomentPanel({
             key={`insight-${entityType}-${index}`}
             variants={cardVariants}
             className="rounded-card border border-border bg-surface-1 p-4 text-center shadow-sm"
+            data-testid={`insight-card-${index}`}
           >
             {insight.icon && (
               <span
