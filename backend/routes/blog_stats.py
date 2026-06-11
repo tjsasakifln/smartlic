@@ -37,14 +37,15 @@ _CACHE_TTL_SECONDS = 6 * 60 * 60
 # again after a short window.
 _NEGATIVE_CACHE_TTL_SECONDS = 5 * 60
 # Hard budget for a single contratos query. RES-BE-015: tightened from 10s
-# to 5s and routed through ``pipeline.budget._run_with_budget`` so the
-# Prometheus counter ``smartlic_pipeline_budget_exceeded_total`` discriminates
-# saturation per endpoint. Budget MUST be < Supabase service_role
-# ``statement_timeout`` (15s, FLOOR) so the SQL still fires server-side and
-# closes the connection — caller-side cancel via ``wait_for`` alone leaves
-# the thread holding the pool slot until ``statement_timeout`` (the 2026-04-27
-# Stage 2 root cause). See memory ``feedback_pool_leak_caller_timeout_vs_sql_timeout``.
-_CONTRATOS_QUERY_BUDGET_S = 5.0
+# to 5s, then bumped to 8s (ISSUE-1650) because city-level queries
+# paginate through multiple 1000-row batches and the 5s budget was
+# repeatedly exceeded (5002-5256ms observed). Budget MUST be < Supabase
+# service_role ``statement_timeout`` (15s, FLOOR) so the SQL still fires
+# server-side and closes the connection — caller-side cancel via
+# ``wait_for`` alone leaves the thread holding the pool slot until
+# ``statement_timeout`` (the 2026-04-27 Stage 2 root cause). See memory
+# ``feedback_pool_leak_caller_timeout_vs_sql_timeout``.
+_CONTRATOS_QUERY_BUDGET_S = 8.0
 
 # ============================================================================
 # POOL-001: Semaphore gate for blog stats SQL queries.

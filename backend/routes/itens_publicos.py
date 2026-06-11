@@ -450,6 +450,14 @@ async def _fetch_price_data(nome_item: str) -> tuple[list[float], list[dict]]:
             .eq("is_active", True)
             .order("data_assinatura", desc=True)
         )
+        # ISSUE-1650: apply all keyword filters server-side (not just the
+        # first) to prevent fetching thousands of rows when a specific item
+        # name contains multiple qualifying words (e.g. "Cimento CP-II 50kg"
+        # has "cimento" AND "cp-ii") — previously the second keyword was
+        # filtered purely in Python below, requiring full pagination of ~5000
+        # rows even when the second keyword matched zero rows (404 case).
+        if len(palavras) >= 2:
+            builder = builder.ilike("objeto_contrato", f"%{palavras[1]}%")
         # SEN-BE-004: async pagination with sb_execute (HTTP/2 retry).
         rows: list[dict] = []
         batch_size = 1000
@@ -484,13 +492,10 @@ async def _fetch_price_data(nome_item: str) -> tuple[list[float], list[dict]]:
         logger.error("[Itens] price_data query falhou para '%s': %s", nome_item, e)
         return [], []
 
-    # Filtra por segunda palavra se disponivel (reduz falsos positivos)
-    if len(palavras) >= 2:
-        rows = [
-            r for r in rows
-            if palavras[1] in (r.get("objeto_contrato") or "").lower()
-        ]
-
+    # ISSUE-1650: Second keyword filter moved server-side (chained ilike in
+    # the SQL builder above). Python-side post-filter removed to prevent
+    # fetching thousands of rows matching only the first keyword before
+    # applying the second filter in application memory.
     valores: list[float] = []
     contratos_ref: list[dict] = []
     for row in rows:
