@@ -16,6 +16,11 @@ logger = logging.getLogger(__name__)
 # COST-OPT 2026-06-03: Colocated ARQ worker subprocess reference.
 _colocated_worker_process: asyncio.subprocess.Process | None = None
 
+# #1651: Track background tasks created during startup so they can be
+# cancelled during shutdown, preventing StreamWriter.__del__ RuntimeError
+# when GC runs after event loop destruction.
+_stream_log_tasks: list[asyncio.Task[None]] = []
+
 
 async def _start_colocated_worker() -> bool:
     """COST-OPT 2026-06-03: Start ARQ worker as subprocess in same container.
@@ -55,8 +60,14 @@ async def _start_colocated_worker() -> bool:
                 if text:
                     logger.log(log_level, "COST-OPT[worker]: %s", text)
 
-        asyncio.create_task(_stream_worker_logs(_colocated_worker_process.stdout, logging.INFO))
-        asyncio.create_task(_stream_worker_logs(_colocated_worker_process.stderr, logging.WARNING))
+        # #1651: Track log streaming tasks so they can be cancelled during shutdown
+        global _stream_log_tasks
+        _stream_log_tasks.append(
+            asyncio.create_task(_stream_worker_logs(_colocated_worker_process.stdout, logging.INFO))
+        )
+        _stream_log_tasks.append(
+            asyncio.create_task(_stream_worker_logs(_colocated_worker_process.stderr, logging.WARNING))
+        )
 
         return True
     except Exception as e:
@@ -509,8 +520,32 @@ async def lifespan(app_instance: FastAPI):
     logger.info("DEBT-124: TaskRegistry stopped %d tasks: %s",
                 len(stop_results), {k: v for k, v in stop_results.items() if v != "cancelled"})
 
+    # #1651: Cancel log streaming tasks before closing pipes/connections.
+    # These fire-and-forget tasks hold asyncio transports (subprocess pipes)
+    # that must be released before the event loop is destroyed to prevent
+    # StreamWriter.__del__ RuntimeError on wrong thread during GC.
+    if _stream_log_tasks:
+        for t in _stream_log_tasks:
+            t.cancel()
+        try:
+            await asyncio.wait_for(
+                asyncio.gather(*_stream_log_tasks, return_exceptions=True),
+                timeout=5.0,
+            )
+        except asyncio.TimeoutError:
+            logger.warning("#1651: Timeout waiting for log streaming tasks to stop")
+        _stream_log_tasks.clear()
+
     # COST-OPT: Stop colocated ARQ worker before closing the pool
     await _stop_colocated_worker()
+
+    # #1651: Close Supabase client's internal httpx session to prevent
+    # dangling connections when the event loop is destroyed.
+    try:
+        from supabase_client import close_supabase
+        close_supabase()
+    except Exception as e:
+        logger.warning("#1651: Error closing Supabase client: %s", e)
 
     from job_queue import close_arq_pool
     await close_arq_pool()

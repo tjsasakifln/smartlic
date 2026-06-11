@@ -107,6 +107,29 @@ def get_supabase():
     return _supabase_client
 
 
+def close_supabase() -> None:
+    """#1651: Close the Supabase admin client's internal httpx session.
+
+    Must be called during lifespan shutdown to release the underlying
+    connection pool BEFORE the event loop is destroyed. Prevents
+    StreamWriter.__del__ RuntimeError on wrong thread during GC.
+
+    This is a synchronous call because the Supabase client uses sync
+    httpx under the hood (postgrest.session is an httpx.Client). Safe
+    to call from the shutdown phase of the lifespan context manager.
+    """
+    global _supabase_client
+    if _supabase_client is not None:
+        try:
+            postgrest = _supabase_client.postgrest
+            if hasattr(postgrest, "session") and postgrest.session is not None:
+                postgrest.session.close()
+                logger.debug("Supabase client httpx session closed")
+        except Exception as e:
+            logger.warning("Error closing Supabase client session: %s", e)
+        _supabase_client = None
+
+
 def _configure_httpx_pool(client):
     """CRIT-046 AC3/AC4: Enlarge httpx connection pool and set explicit timeouts.
 
