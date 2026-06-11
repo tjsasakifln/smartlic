@@ -213,6 +213,10 @@ COMPETITIVE_INTEL_ENABLED: bool = str_to_bool(os.getenv("COMPETITIVE_INTEL_ENABL
 # Default ON (true) — the vertical is active by default.
 # Set env var to "false" to disable.
 B2G_OPS_ENABLED: bool = str_to_bool(os.getenv("B2G_OPS_ENABLED", "true"))
+# DEGUST-001 (#1611): Intelligence Tasting no trial — mostra dados agregados
+# reais do mercado com blur nos nomes de concorrentes. Default ON (true).
+# Set env var to "false" to disable globally.
+INTELLIGENCE_TASTING_ENABLED: bool = str_to_bool(os.getenv("INTELLIGENCE_TASTING_ENABLED", "true"))
 
 
 # ============================================
@@ -285,6 +289,8 @@ _FEATURE_FLAG_REGISTRY: dict[str, tuple[str, str]] = {
     "COMPETITIVE_INTEL_ENABLED": ("COMPETITIVE_INTEL_ENABLED", "true"),
     # B2GOPS-000 (EPIC-B2GOPS #1262): B2G Operations workspace_basic gate
     "B2G_OPS_ENABLED": ("B2G_OPS_ENABLED", "true"),
+    # DEGUST-001 (#1611): Intelligence Tasting — trial upsell
+    "INTELLIGENCE_TASTING_ENABLED": ("INTELLIGENCE_TASTING_ENABLED", "true"),
     # --- Infra ---
     "METRICS_ENABLED": ("METRICS_ENABLED", "true"),
     "RATE_LIMITING_ENABLED": ("RATE_LIMITING_ENABLED", "true"),
