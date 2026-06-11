@@ -4153,6 +4153,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/intel/tasting": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Intelligence Tasting — aggregated supplier data for trial upsell (DEGUST-001) */
+        get: operations["intel_tasting_v1_intel_tasting_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/itens/{catmat}/profile": {
         parameters: {
             query?: never;
@@ -10242,6 +10259,34 @@ export interface components {
             /** Status */
             status: string;
         };
+        /** IntelTastingResponse */
+        IntelTastingResponse: {
+            /** Avg Contract Value */
+            avg_contract_value: number;
+            /**
+             * Feature Enabled
+             * @default true
+             */
+            feature_enabled: boolean;
+            /** Generated At */
+            generated_at: string;
+            /** Period Months */
+            period_months: number;
+            /** Sector Id */
+            sector_id: string;
+            /** Sector Name */
+            sector_name: string;
+            /** Top Winners */
+            top_winners: components["schemas"]["TastingWinner"][];
+            /** Total Contracts */
+            total_contracts: number;
+            /** Total Contracts Value */
+            total_contracts_value: number;
+            /** Total Winners */
+            total_winners: number;
+            /** Uf */
+            uf?: string | null;
+        };
         /** InviteMemberRequest */
         InviteMemberRequest: {
             /** Email */
@@ -13470,6 +13515,20 @@ export interface components {
             timestamp?: string | null;
         } & {
             [key: string]: unknown;
+        };
+        /**
+         * TastingWinner
+         * @description Top winner entry. cnpj/razao_social are REAL data — blur is client-side.
+         */
+        TastingWinner: {
+            /** Cnpj */
+            cnpj: string;
+            /** Contracts Count */
+            contracts_count: number;
+            /** Razao Social */
+            razao_social: string;
+            /** Total Won */
+            total_won: number;
         };
         /** TimeSeriesDataPoint */
         TimeSeriesDataPoint: {
@@ -19653,6 +19712,42 @@ export interface operations {
                 };
                 content: {
                     "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    intel_tasting_v1_intel_tasting_get: {
+        parameters: {
+            query?: {
+                /** @description Sector ID to filter (e.g., 'alimentos'). If omitted, returns global. */
+                setor_id?: string | null;
+                /** @description UF filter (2-letter). If omitted, returns national aggregation. */
+                uf?: string | null;
+                /** @description Lookback period in months (1–24, default 12) */
+                meses?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["IntelTastingResponse"];
                 };
             };
             /** @description Validation Error */
