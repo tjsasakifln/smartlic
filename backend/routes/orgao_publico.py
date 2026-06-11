@@ -107,7 +107,7 @@ _REDIS_CACHE_PREFIX = "orgao_stats:v1:"
 _NEGATIVE_CACHE_TTL_SECONDS = 5 * 60
 # Per-query budget. MUST be < Supabase service_role ``statement_timeout=15s``
 # (FLOOR validated; memory feedback_pool_leak_caller_timeout_vs_sql_timeout).
-_ORGAO_QUERY_BUDGET_S = 5.0
+_ORGAO_QUERY_BUDGET_S = 8.0
 
 
 async def _redis_get(cnpj: str) -> Optional[dict]:
