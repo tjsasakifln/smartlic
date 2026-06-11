@@ -12285,7 +12285,7 @@ export interface components {
         };
         /**
          * RevenueMetricsResponse
-         * @description Response for GET /v1/admin/metrics/revenue (FOUNDER-003).
+         * @description Response for GET /v1/admin/metrics/revenue (FOUNDER-003/005).
          *
          *     Returns financial and engagement metrics for the founder dashboard.
          *     All rate/percentage fields are normalized to 0.0–1.0 range.
@@ -12320,6 +12320,11 @@ export interface components {
              * @default 0
              */
             churn_rate_30d: number;
+            /**
+             * Lookup Duration Ms
+             * @default 0
+             */
+            lookup_duration_ms: number;
             /**
              * Mrr
              * @default 0
