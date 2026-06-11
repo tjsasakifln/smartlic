@@ -30,6 +30,7 @@ from webhooks.handlers.checkout import (
     handle_async_payment_failed,
     handle_async_payment_succeeded,
     handle_checkout_session_completed,
+    handle_digital_product_checkout_completed,
 )
 from webhooks.handlers.invoice import (
     handle_invoice_payment_failed,
@@ -64,6 +65,7 @@ __all__ = [
     "handle_checkout_session_completed",
     "handle_async_payment_succeeded",
     "handle_async_payment_failed",
+    "handle_digital_product_checkout_completed",
     "handle_subscription_updated",
     "handle_subscription_deleted",
     "handle_invoice_payment_succeeded",

@@ -409,11 +409,13 @@ class TestCrossWorkerE2E:
             if line.startswith("data: ")
         ]
         events = [json.loads(line.replace("data: ", "")) for line in data_lines]
+        # Filter out heartbeat keepalive events (empty JSON objects)
+        content_events = [e for e in events if e]
 
-        assert len(events) == 3
-        assert events[0]["stage"] == "connecting"
-        assert events[1]["stage"] == "fetching"
-        assert events[2]["stage"] == "complete"
+        assert len(content_events) == 3
+        assert content_events[0]["stage"] == "connecting"
+        assert content_events[1]["stage"] == "fetching"
+        assert content_events[2]["stage"] == "complete"
 
     @pytest.mark.asyncio
     async def test_stream_key_cleanup_on_remove(self):

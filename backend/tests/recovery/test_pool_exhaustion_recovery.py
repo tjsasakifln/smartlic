@@ -7,7 +7,7 @@ clears, fresh requests recover normally.
 
 Origin: POOL-LEAK-001 (2026-04-29) — N waiters queueing on the Supabase
 pool produced a wedge that survived statement_timeout. The fix (Apr 30)
-was a per-process ``asyncio.Semaphore(5)`` in ``backend/datalake_query.py``
+was a per-process ``asyncio.Semaphore(3)`` in ``backend/datalake_query.py``
 with a 2 s acquire timeout (fail-open with ``[]``).
 """
 
@@ -38,7 +38,7 @@ async def test_semaphore_sheds_when_saturated(monkeypatch):
     dq._query_cache.clear()
 
     # Park the only slot.
-    parker = await tiny.acquire()  # type: ignore[func-returns-value]
+    _hold1 = await tiny.acquire()  # type: ignore[func-returns-value]
     try:
         # Force the supabase import to fail fast so the test does not need
         # network/DB. The semaphore-shed path returns BEFORE this import,
@@ -120,7 +120,7 @@ async def test_acquire_timeout_does_not_double_release(monkeypatch):
     monkeypatch.setattr(dq, "_SEO_SEMAPHORE", tiny)
     dq._query_cache.clear()
 
-    held = await tiny.acquire()  # type: ignore[func-returns-value]
+    _hold2 = await tiny.acquire()  # type: ignore[func-returns-value]
     try:
         # First call should shed (slot is held by us).
         out = await dq.query_datalake(
