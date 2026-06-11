@@ -9,8 +9,8 @@ DATA-CNAE-001 (2026-05-11): primary source of truth is now the DB table
 dict below is kept as a fallback for resilience (DB down, RLS misconfig,
 boot before migrations applied) and as documentation of the initial seed.
 
-Coverage snapshot (2026-05-07): 59 CNAEs mapped across 9 sectors.
-IBGE CNAE 2.3 has ~1300 active subclasses. Coverage = 59/1300 = ~4.5%.
+Coverage snapshot (2026-06-11): 70 CNAEs mapped across 12 sectors.
+IBGE CNAE 2.3 has ~1300 active subclasses. Coverage = 70/1300 = ~5.4%.
 """
 
 from __future__ import annotations
@@ -95,6 +95,32 @@ CNAE_TO_SETOR: dict[str, str] = {
     "8411": "engenharia",    # Administração pública em geral
     "8412": "engenharia",    # Regulação das atividades de saúde, educação, serviços culturais
     "8413": "engenharia",    # Regulação das atividades econômicas
+    # =====================================================================
+    # ISSUE-1652: CNAE mapping gaps — cobertura de setores incompleta
+    # Adicionados 2026-06-11 para cobrir CNAEs frequentes em produção.
+    # =====================================================================
+    # Combustíveis / Frota
+    "4731": "frota_veicular",  # Comércio varejista de combustíveis
+    # Papelaria / Material de Escritório
+    "4789": "papelaria",       # Comércio varejista de outros produtos não especificados
+    # Serviços Prediais (jurídico como serviço profissional)
+    "6911": "servicos_prediais",  # Atividades jurídicas
+    # TI / Informática (bancos contratam intensivamente TI)
+    "6422": "informatica",     # Bancos múltiplos
+    # Facilities / Resíduos
+    "3811": "servicos_prediais",  # Coleta de resíduos não-perigosos
+    # Facilities / Eventos
+    "8230": "servicos_prediais",  # Organização de eventos
+    # Vestuário / Têxtil (cama, mesa e banho como produtos têxteis)
+    "4753": "vestuario",       # Comércio varejista de artigos de cama, mesa e banho
+    # Vigilância / Segurança Eletrônica
+    "8020": "vigilancia",      # Atividades de monitoramento de sistemas de segurança
+    # Engenharia / Construção Civil
+    "4744": "engenharia",      # Comércio varejista de materiais de construção
+    # Mobiliário
+    "4742": "mobiliario",      # Comércio varejista de móveis
+    # Saúde (atividades de apoio à gestão de saúde)
+    "8650": "saude",           # Atividades de apoio à gestão de saúde
 }
 
 # Reverse mapping: sector descriptions for user feedback
