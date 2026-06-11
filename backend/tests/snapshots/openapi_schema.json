@@ -13246,7 +13246,7 @@
         "type": "object"
       },
       "RevenueMetricsResponse": {
-        "description": "Response for GET /v1/admin/metrics/revenue (FOUNDER-003).\n\nReturns financial and engagement metrics for the founder dashboard.\nAll rate/percentage fields are normalized to 0.0\u20131.0 range.\n\n``mrr`` is the most recent month's MRR in BRL.\n``total_subscribers`` is the active paid subscriber count from the\nmost recent MRR computation.\n\n``activation_d7`` is the proportion of users who created a search\nsession within their first 7 days after signup (normalized 0\u20131).\n\n``retention_d1`` / ``retention_d7`` / ``retention_d30`` are\nthe proportion of users who logged in on day 1 / day 7 / day 30\nafter signup (normalized 0\u20131).\n\n``mrr_history`` is a list of monthly MRR entries (time series)\nordered chronologically, used by the frontend Recharts line chart.",
+        "description": "Response for GET /v1/admin/metrics/revenue (FOUNDER-003/005).\n\nReturns financial and engagement metrics for the founder dashboard.\nAll rate/percentage fields are normalized to 0.0\u20131.0 range.\n\n``mrr`` is the most recent month's MRR in BRL.\n``total_subscribers`` is the active paid subscriber count from the\nmost recent MRR computation.\n\n``activation_d7`` is the proportion of users who created a search\nsession within their first 7 days after signup (normalized 0\u20131).\n\n``retention_d1`` / ``retention_d7`` / ``retention_d30`` are\nthe proportion of users who logged in on day 1 / day 7 / day 30\nafter signup (normalized 0\u20131).\n\n``mrr_history`` is a list of monthly MRR entries (time series)\nordered chronologically, used by the frontend Recharts line chart.",
         "properties": {
           "activation_d7": {
             "default": 0.0,
@@ -13261,6 +13261,11 @@
           "churn_rate_30d": {
             "default": 0.0,
             "title": "Churn Rate 30D",
+            "type": "number"
+          },
+          "lookup_duration_ms": {
+            "default": 0.0,
+            "title": "Lookup Duration Ms",
             "type": "number"
           },
           "mrr": {
