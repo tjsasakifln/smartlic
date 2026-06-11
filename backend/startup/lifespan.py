@@ -234,6 +234,43 @@ async def _periodic_saturation_metrics() -> None:
                         "consider reducing WEB_CONCURRENCY or investigating memory leak",
                         _pid, _rss_mb,
                     )
+                # CRIT-083 AC6 MEM-4: Proactive GC when memory exceeds 400MB
+                # Python's GC may not keep up with rapid object churn from the
+                # search pipeline (thousands of dicts per request). Triggering
+                # gc.collect() preemptively avoids the 512MB threshold.
+                # CRIT-083 AC6 MEM-5: Log cache sizes every 5min for memory leak diagnosis
+                if int(time.monotonic() / 30) % 10 == 0:
+                    try:
+                        _query_cache_size = 0
+                        _inmemory_cache_size = 0
+                        try:
+                            from datalake_query import _query_cache as _qc
+                            _query_cache_size = len(_qc)
+                        except Exception:
+                            pass
+                        try:
+                            from redis_pool import get_fallback_cache
+                            _imb = get_fallback_cache()
+                            _inmemory_cache_size = len(_imb)
+                        except Exception:
+                            pass
+                        logger.info(
+                            "CRIT-083 AC6 MEM-5: Cache sizes — datalake=%d InMemory=%d "
+                            "(RSS=%.1fMB, pid=%d)",
+                            _query_cache_size, _inmemory_cache_size,
+                            _rss_mb, _pid,
+                        )
+                    except Exception:
+                        pass
+                if _rss_mb > 400:
+                    import gc
+                    _collected = gc.collect()
+                    if _collected > 0:
+                        logger.info(
+                            "CRIT-083 AC6 MEM-4: gc.collect() freed %d objects "
+                            "(RSS=%.1fMB, pid=%d)",
+                            _collected, _rss_mb, _pid,
+                        )
             except Exception:
                 pass  # Graceful degradation — never block saturation loop
         except asyncio.CancelledError:

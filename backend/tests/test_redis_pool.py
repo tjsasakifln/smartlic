@@ -175,10 +175,10 @@ class TestInMemoryCacheBasicOps:
 class TestInMemoryCacheLRUEviction:
     """LRU eviction behavior at max_entries boundary."""
 
-    def test_lru_default_max_10k(self):
+    def test_lru_default_max_5k(self):
         """Default InMemoryCache max_entries is 10_000 (AC14)."""
         cache = InMemoryCache()
-        assert cache._max_entries == 10_000
+        assert cache._max_entries == 5_000
         assert cache._max_entries == INMEMORY_MAX_ENTRIES
 
     def test_lru_eviction_at_max(self, small_cache):
@@ -552,4 +552,4 @@ class TestPoolConfiguration:
         assert redis_pool.POOL_MAX_CONNECTIONS == 50
         assert redis_pool.POOL_SOCKET_TIMEOUT == 30
         assert redis_pool.POOL_SOCKET_CONNECT_TIMEOUT == 10
-        assert redis_pool.INMEMORY_MAX_ENTRIES == 10_000
+        assert redis_pool.INMEMORY_MAX_ENTRIES == 5_000
