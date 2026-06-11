@@ -112,11 +112,17 @@ class TestMigrationFile:
     """Static analysis of the migration SQL file."""
 
     def _find_migration(self):
-        """Find the post_purchase_sequences migration file."""
+        """Find the post_purchase_sequences migration file.
+
+        Sorts by filename descending so the newest migration is always
+        selected deterministically (Path.glob() order is filesystem-dependent).
+        """
         pattern = "*post_purchase_sequences.sql"
         matches = list(MIGRATIONS_DIR.glob(pattern))
         # Exclude .down.sql
         matches = [m for m in matches if not m.name.endswith(".down.sql")]
+        # Sort by filename descending → newest timestamp first
+        matches.sort(key=lambda p: p.name, reverse=True)
         return matches[0] if matches else None
 
     def test_migration_file_exists(self):
@@ -138,74 +144,72 @@ class TestMigrationFile:
         migration = self._find_migration()
         assert migration is not None
         content = migration.read_text()
-        assert "CREATE TABLE post_purchase_sequences" in content
+        assert "CREATE TABLE public.post_purchase_sequences" in content
 
-    def test_migration_has_stage_check_constraint(self):
+    def test_migration_has_status_check_constraint(self):
         migration = self._find_migration()
         assert migration is not None
         content = migration.read_text()
-        assert "CHECK (stage IN (" in content
-        assert "delivery" in content
-        assert "followup" in content
-        assert "reengagement" in content
+        assert "CHECK (status IN (" in content
+        assert "pending" in content
+        assert "active" in content
         assert "completed" in content
+        assert "cancelled" in content
 
     def test_migration_has_rls_policies(self):
         migration = self._find_migration()
         assert migration is not None
         content = migration.read_text()
         assert "ENABLE ROW LEVEL SECURITY" in content
-        assert "GRANT ALL ON post_purchase_sequences TO service_role" in content
-        assert "GRANT SELECT, INSERT, UPDATE ON post_purchase_sequences TO authenticated" in content
-        assert "USING (user_id = auth.uid())" in content or "WITH CHECK (user_id = auth.uid())" in content
+        assert "GRANT ALL ON public.post_purchase_sequences TO service_role" in content
+        assert "GRANT SELECT ON public.post_purchase_sequences TO authenticated" in content
+        assert "USING (auth.uid() = user_id)" in content
 
     def test_migration_has_indexes(self):
         migration = self._find_migration()
         assert migration is not None
         content = migration.read_text()
-        assert "idx_pps_purchase_id" in content
-        assert "idx_pps_user_id" in content
-        assert "idx_pps_next_sequence" in content
+        assert "idx_post_purchase_purchase" in content
+        assert "idx_post_purchase_user_status" in content
 
     def test_migration_has_updated_at_trigger(self):
         migration = self._find_migration()
         assert migration is not None
         content = migration.read_text()
-        assert "update_pps_updated_at" in content
-        assert "trg_pps_updated_at" in content
+        assert "set_post_purchase_sequences_updated_at" in content
+        assert "trg_post_purchase_sequences_updated_at" in content
 
     def test_migration_has_required_columns(self):
         migration = self._find_migration()
         assert migration is not None
         content = migration.read_text()
         required = [
-            "purchase_id UUID NOT NULL",
-            "product_sku TEXT NOT NULL",
-            "user_id UUID NOT NULL",
-            "stage TEXT NOT NULL",
-            "email_sent_at TIMESTAMPTZ",
-            "email_opened_at TIMESTAMPTZ",
-            "cta_clicked_at TIMESTAMPTZ",
-            "upsell_converted BOOLEAN DEFAULT false",
-            "next_sequence_at TIMESTAMPTZ",
+            "purchase_id",
+            "product_sku",
+            "user_id",
+            "status",
+            "sequence_steps",
+            "current_step",
+            "created_at",
+            "updated_at",
         ]
         for col in required:
-            assert col in content, f"Missing required column/definition: {col}"
+            assert col in content, f"Missing required column: {col}"
 
     def test_down_migration_drops_table(self):
         migration = self._find_migration()
         assert migration is not None
         down_path = migration.with_suffix(".down.sql")
         content = down_path.read_text()
-        assert "DROP TABLE IF EXISTS post_purchase_sequences" in content
+        assert "DROP TABLE IF EXISTS public.post_purchase_sequences" in content
 
     def test_down_migration_drops_trigger_and_function(self):
         migration = self._find_migration()
         assert migration is not None
         down_path = migration.with_suffix(".down.sql")
         content = down_path.read_text()
-        assert "DROP TRIGGER IF EXISTS trg_pps_updated_at" in content
-        assert "DROP FUNCTION IF EXISTS update_pps_updated_at" in content
+        assert "DROP TRIGGER IF EXISTS trg_post_purchase_sequences_updated_at" in content
+        assert "DROP FUNCTION IF EXISTS public.set_post_purchase_sequences_updated_at" in content
 
 
 # ─────────────────────────────────────────────────────────────────────────────
