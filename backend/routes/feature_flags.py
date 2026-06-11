@@ -232,6 +232,7 @@ _FLAG_DESCRIPTIONS: dict[str, str] = {
     "COMMAND_WORKSPACE_ADVANCED": "Command tier: advanced workspace capability (TIER-COMMAND-003)",
     "COMMAND_DATA_EXPORT": "Command tier: data export capability (TIER-COMMAND-003)",
     "COMMAND_CUSTOM_ALERTS": "Command tier: custom alerts capability (TIER-COMMAND-003)",
+    "INTELLIGENCE_TASTING_ENABLED": "Intelligence Tasting no trial — degustação de dados reais com blur (DEGUST-001 #1611)",
 }
 
 
@@ -313,6 +314,8 @@ _FLAG_LIFECYCLE: dict[str, dict] = {
     "COMMAND_WORKSPACE_ADVANCED": {"owner": "billing", "category": "command", "lifecycle": "experimental", "created": "2026-06"},
     "COMMAND_DATA_EXPORT": {"owner": "billing", "category": "command", "lifecycle": "experimental", "created": "2026-06"},
     "COMMAND_CUSTOM_ALERTS": {"owner": "billing", "category": "command", "lifecycle": "experimental", "created": "2026-06"},
+    # DEGUST-001 (#1611): Intelligence Tasting
+    "INTELLIGENCE_TASTING_ENABLED": {"owner": "product", "category": "growth", "lifecycle": "experimental", "created": "2026-06"},
 }
 
 
