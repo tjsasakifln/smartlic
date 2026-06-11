@@ -8605,6 +8605,78 @@
         "title": "IntelReportStatusResponse",
         "type": "object"
       },
+      "IntelTastingResponse": {
+        "properties": {
+          "avg_contract_value": {
+            "title": "Avg Contract Value",
+            "type": "number"
+          },
+          "feature_enabled": {
+            "default": true,
+            "title": "Feature Enabled",
+            "type": "boolean"
+          },
+          "generated_at": {
+            "title": "Generated At",
+            "type": "string"
+          },
+          "period_months": {
+            "title": "Period Months",
+            "type": "integer"
+          },
+          "sector_id": {
+            "title": "Sector Id",
+            "type": "string"
+          },
+          "sector_name": {
+            "title": "Sector Name",
+            "type": "string"
+          },
+          "top_winners": {
+            "items": {
+              "$ref": "#/components/schemas/TastingWinner"
+            },
+            "title": "Top Winners",
+            "type": "array"
+          },
+          "total_contracts": {
+            "title": "Total Contracts",
+            "type": "integer"
+          },
+          "total_contracts_value": {
+            "title": "Total Contracts Value",
+            "type": "number"
+          },
+          "total_winners": {
+            "title": "Total Winners",
+            "type": "integer"
+          },
+          "uf": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Uf"
+          }
+        },
+        "required": [
+          "sector_id",
+          "sector_name",
+          "period_months",
+          "total_contracts_value",
+          "total_winners",
+          "total_contracts",
+          "avg_contract_value",
+          "top_winners",
+          "generated_at"
+        ],
+        "title": "IntelTastingResponse",
+        "type": "object"
+      },
       "InviteMemberRequest": {
         "properties": {
           "email": {
@@ -15895,6 +15967,35 @@
           }
         },
         "title": "SystemHealthResponse",
+        "type": "object"
+      },
+      "TastingWinner": {
+        "description": "Top winner entry. cnpj/razao_social are REAL data \u2014 blur is client-side.",
+        "properties": {
+          "cnpj": {
+            "title": "Cnpj",
+            "type": "string"
+          },
+          "contracts_count": {
+            "title": "Contracts Count",
+            "type": "integer"
+          },
+          "razao_social": {
+            "title": "Razao Social",
+            "type": "string"
+          },
+          "total_won": {
+            "title": "Total Won",
+            "type": "number"
+          }
+        },
+        "required": [
+          "cnpj",
+          "razao_social",
+          "total_won",
+          "contracts_count"
+        ],
+        "title": "TastingWinner",
         "type": "object"
       },
       "TimeSeriesDataPoint": {
@@ -26080,6 +26181,89 @@
         "summary": "Download Intel Report",
         "tags": [
           "intel_reports"
+        ]
+      }
+    },
+    "/v1/intel/tasting": {
+      "get": {
+        "operationId": "intel_tasting_v1_intel_tasting_get",
+        "parameters": [
+          {
+            "description": "Sector ID to filter (e.g., 'alimentos'). If omitted, returns global.",
+            "in": "query",
+            "name": "setor_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Sector ID to filter (e.g., 'alimentos'). If omitted, returns global.",
+              "title": "Setor Id"
+            }
+          },
+          {
+            "description": "UF filter (2-letter). If omitted, returns national aggregation.",
+            "in": "query",
+            "name": "uf",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "UF filter (2-letter). If omitted, returns national aggregation.",
+              "title": "Uf"
+            }
+          },
+          {
+            "description": "Lookback period in months (1\u201324, default 12)",
+            "in": "query",
+            "name": "meses",
+            "required": false,
+            "schema": {
+              "default": 12,
+              "description": "Lookback period in months (1\u201324, default 12)",
+              "maximum": 24,
+              "minimum": 1,
+              "title": "Meses",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IntelTastingResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Intelligence Tasting \u2014 aggregated supplier data for trial upsell (DEGUST-001)",
+        "tags": [
+          "intel_tasting"
         ]
       }
     },
