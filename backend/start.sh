@@ -21,18 +21,21 @@ set -e
 # Railway filters stdout from entrypoint; redirect to stderr for visibility.
 echo "[start.sh] DIAGNOSTIC: PID=$$ PROCESS_TYPE=${PROCESS_TYPE:-web} WORKER_COLOCATED=${WORKER_COLOCATED:-false} RUNNER=${RUNNER:-uvicorn} WORKERS=${WEB_CONCURRENCY:-2}" >&2
 
-# ── RES-BE-017: Start embedded redis-server (RDB snapshots every 15min) ──
+# ── RES-BE-017: Start embedded redis-server (RDB disabled — ephemeral cache) ──
 # Upstash DNS outage recovery — local redis avoids external dependency.
 # REDIS_URL is overridden to redis://localhost:6379/0 for all modes.
-# RDB survives container restart (not deploy). For full persistence, use Railway volume.
+# RDB snapshots disabled (fix #1648): Railway /app directory blocks BGSAVE temp files.
+# --save "" means zero persistence — acceptable because embedded redis is
+# ephemeral cache (state rebuilds from Supabase on container restart).
 _start_redis() {
-  # RES-BE-017: Embedded redis with RDB snapshot persistence.
-  # --save 900 1: snapshot every 15min if >=1 key changed (survives deploy/restart).
-  # Previously --save "" (zero persistence) — all state lost on container restart.
-  echo "[start.sh] Starting embedded redis-server (RDB snapshots every 15min)..." >&2
+  # RES-BE-017: Embedded redis — ephemeral cache only, no persistence needed.
+  # --save "": RDB disabled (Railway /app blocks BGSAVE, fix #1648).
+  # --stop-writes-on-bgsave-error no: defensive — never rejects writes if BGSAVE fails.
+  echo "[start.sh] Starting embedded redis-server (RDB disabled — ephemeral cache)..." >&2
   redis-server \
     --port 6379 \
-    --save 900 1 \
+    --save "" \
+    --stop-writes-on-bgsave-error no \
     --appendonly no \
     --maxmemory 128mb \
     --maxmemory-policy allkeys-lru \
