@@ -16,7 +16,7 @@ import { motion } from 'framer-motion';
 
 export type InsightIcon = 'chart' | 'money' | 'building' | 'target';
 
-export type EntityType = 'fornecedor' | 'orgao' | 'setor' | 'municipio';
+export type EntityType = 'fornecedor' | 'orgao' | 'setor' | 'municipio' | 'cnpj' | 'contrato';
 
 export interface InsightCard {
   label: string;
