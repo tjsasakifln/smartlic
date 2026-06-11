@@ -6,7 +6,6 @@ Data is REAL (from pncp_supplier_contracts), blur decision is client-side based 
 Feature flag: INTELLIGENCE_TASTING_ENABLED (config/features.py)
 """
 
-import asyncio
 import logging
 import time
 from datetime import datetime, timezone, timedelta
@@ -14,6 +13,7 @@ from typing import Optional
 
 from fastapi import APIRouter, HTTPException, Query, Request
 
+from pydantic import BaseModel
 from config.features import get_feature_flag
 from sectors import SECTORS
 
@@ -42,7 +42,6 @@ _MAX_MONTHS = 24
 # ---------------------------------------------------------------------------
 # Response models
 # ---------------------------------------------------------------------------
-from pydantic import BaseModel
 
 
 class TastingWinner(BaseModel):
