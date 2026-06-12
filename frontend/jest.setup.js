@@ -187,6 +187,27 @@ if (typeof window !== 'undefined' && typeof Element.prototype.scrollIntoView ===
   Element.prototype.scrollIntoView = jest.fn();
 }
 
+// Mock ResizeObserver (not available in jsdom)
+// Required for Recharts ResponsiveContainer (SeasonalityTimeline, etc.)
+class MockResizeObserver {
+  observe() {}
+  unobserve() {}
+  disconnect() {}
+}
+
+if (typeof window !== "undefined") {
+  Object.defineProperty(window, "ResizeObserver", {
+    writable: true,
+    configurable: true,
+    value: MockResizeObserver,
+  });
+  Object.defineProperty(global, "ResizeObserver", {
+    writable: true,
+    configurable: true,
+    value: MockResizeObserver,
+  });
+}
+
 // Global test timeout (default: 5000ms)
 jest.setTimeout(10000)
 
