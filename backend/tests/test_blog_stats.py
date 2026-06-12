@@ -695,6 +695,10 @@ class _ContractsQueryBuilder:
         self.filters[f"ilike:{key}"] = pattern
         return self
 
+    def or_(self, filter_str):
+        self.filters[f"or:{filter_str}"] = True
+        return self
+
     def order(self, *_a, **_kw):
         return self
 
@@ -714,9 +718,25 @@ class _ContractsQueryBuilder:
             rows = [r for r in rows if (r.get("uf") or "") == uf]
         municipio_ilike = self.filters.get("ilike:municipio")
         if municipio_ilike is not None:
-            # strip the surrounding %…% wildcards, case-insensitive substring
             needle = municipio_ilike.strip("%").lower()
             rows = [r for r in rows if needle in (r.get("municipio") or "").lower()]
+        for key in self.filters:
+            if key.startswith("or:"):
+                or_str = key[3:]
+                parts = or_str.split(",")
+                exact_match, ilike_pattern = None, None
+                for part in parts:
+                    if part.startswith("municipio.eq."):
+                        exact_match = part[len("municipio.eq."):].lower()
+                    elif part.startswith("municipio.ilike."):
+                        ilike_pattern = part[len("municipio.ilike."):].strip("%").lower()
+                if exact_match or ilike_pattern:
+                    filtered = []
+                    for r in rows:
+                        mun = (r.get("municipio") or "").lower()
+                        if (exact_match and mun == exact_match) or (ilike_pattern and ilike_pattern in mun):
+                            filtered.append(r)
+                    rows = filtered
         rng = getattr(self, "_range", None)
         if rng is not None:
             start, end = rng
@@ -843,9 +863,11 @@ class TestContratosCidadeStats:
             res = client.get("/v1/blog/stats/contratos/cidade/sao-paulo")
             assert res.status_code == 200
 
-            # UF resolved + municipio ilike applied
+            # UF resolved + municipio filter applied (or_ with exact+ilike for _CITY_DISPLAY cities)
             assert builder_ref["last"].filters.get("eq:uf") == "SP"
-            assert builder_ref["last"].filters.get("ilike:municipio", "").startswith("%")
+            has_or = any(k.startswith("or:") for k in builder_ref["last"].filters)
+            has_ilike = builder_ref["last"].filters.get("ilike:municipio", "").startswith("%")
+            assert has_or or has_ilike, f"Expected or_ or ilike filter, got filters={builder_ref['last'].filters}"
 
             data = res.json()
             assert data["cidade"] == "São Paulo"  # accented official name from _CITY_DISPLAY
@@ -888,11 +910,12 @@ class TestContratosCidadeSetorStats:
             res = client.get("/v1/blog/stats/contratos/cidade/sao-paulo/setor/vestuario")
             assert res.status_code == 200
 
-            # All 3 filters present: is_active + uf + municipio ilike
+            # All 3 filters present: is_active + uf + municipio (ilike or or_)
             filt = builder_ref["last"].filters
             assert filt.get("eq:is_active") is True
             assert filt.get("eq:uf") == "SP"
-            assert "ilike:municipio" in filt
+            has_municipio = "ilike:municipio" in filt or any(k.startswith("or:") for k in filt)
+            assert has_municipio, f"Expected municipio filter, got {filt}"
 
             data = res.json()
             assert data["cidade"] == "São Paulo"

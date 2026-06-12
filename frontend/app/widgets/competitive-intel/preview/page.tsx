@@ -90,10 +90,11 @@ export default function WidgetPreviewPage() {
           <div className="md:col-span-1 space-y-6">
             {/* Setor */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              <label htmlFor="setor-select" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                 Setor
               </label>
               <select
+                id="setor-select"
                 value={selectedSetor}
                 onChange={(e) => setSelectedSetor(e.target.value)}
                 className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white"
@@ -108,10 +109,11 @@ export default function WidgetPreviewPage() {
 
             {/* UF */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              <label htmlFor="uf-select" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                 UF <span className="text-gray-400">(opcional)</span>
               </label>
               <select
+                id="uf-select"
                 value={uf}
                 onChange={(e) => setUf(e.target.value)}
                 className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white"

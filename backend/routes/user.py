@@ -153,20 +153,25 @@ async def get_profile(user: dict = Depends(require_auth), db=Depends(get_db)):
         logger.warning(f"Failed to fetch user email: {e}")
         email = user.get("email", "unknown@example.com")
 
-    # ISSUE-070: Fetch real Stripe renewal date from profiles
+    # ISSUE-070: Fetch Stripe renewal date + NETINT-001/006: network analytics opt-in
     subscription_end_date_val = None
+    allow_network_analytics_val: bool | None = None
     try:
         profile_row = await sb_execute(
             db.table("profiles")
-                .select("subscription_end_date")
+                .select("subscription_end_date, allow_network_analytics")
                 .eq("id", user["id"])
                 .single()
         )
-        if isinstance(profile_row.data, dict) and profile_row.data.get("subscription_end_date"):
-            val = profile_row.data["subscription_end_date"]
-            subscription_end_date_val = val if isinstance(val, str) else val.isoformat()
+        if isinstance(profile_row.data, dict):
+            if profile_row.data.get("subscription_end_date"):
+                val = profile_row.data["subscription_end_date"]
+                subscription_end_date_val = val if isinstance(val, str) else val.isoformat()
+            raw_optin = profile_row.data.get("allow_network_analytics")
+            if raw_optin is not None:
+                allow_network_analytics_val = bool(raw_optin)
     except Exception as e:
-        logger.warning(f"Failed to fetch subscription_end_date: {e}")
+        logger.warning(f"Failed to fetch profile fields: {e}")
 
     # STORY-309: Determine subscription_status with dunning awareness
     dunning_phase = getattr(quota_info, "dunning_phase", "healthy")
@@ -197,6 +202,7 @@ async def get_profile(user: dict = Depends(require_auth), db=Depends(get_db)):
         dunning_phase=dunning_phase,
         days_since_failure=days_since_failure,
         subscription_end_date=subscription_end_date_val,
+        allow_network_analytics=allow_network_analytics_val,
     )
 
 
@@ -589,6 +595,65 @@ async def update_alert_preferences(
     except Exception as e:
         logger.error(f"Failed to update alert preferences for {mask_user_id(user_id)}: {e}")
         raise HTTPException(status_code=500, detail="Erro ao salvar preferencias de alerta")
+
+
+# ============================================================================
+# NETINT-006: Network analytics opt-in/opt-out toggle
+# ============================================================================
+
+class NetworkAnalyticsRequest(BaseModel):
+    allow_network_analytics: bool
+
+
+class NetworkAnalyticsResponse(BaseModel):
+    allow_network_analytics: bool
+    success: bool = True
+
+
+@router.put("/profile/network-analytics", response_model=NetworkAnalyticsResponse)
+async def update_network_analytics(
+    body: NetworkAnalyticsRequest,
+    user: dict = Depends(require_auth),
+    user_db=Depends(get_user_db),  # SYS-023: User-scoped client (respects RLS)
+):
+    """NETINT-006: Update user's network analytics opt-in preference.
+
+    Sets ``profiles.allow_network_analytics`` to true or false.
+    Null (undecided) is treated as opt-out — this PATCH is how users
+    explicitly opt in.
+
+    SYS-023: Uses user-scoped Supabase client. RLS on profiles ensures
+    users can only update their own profile row.
+    """
+    user_id = user["id"]
+
+    try:
+        await sb_execute(
+            user_db.table("profiles").update({
+                "allow_network_analytics": body.allow_network_analytics,
+            }).eq("id", user_id),
+            category="write",
+        )
+
+        log_user_action(
+            logger,
+            "network_analytics_updated",
+            user_id,
+            details={"allow_network_analytics": body.allow_network_analytics},
+        )
+        return NetworkAnalyticsResponse(
+            allow_network_analytics=body.allow_network_analytics,
+            success=True,
+        )
+    except Exception as e:
+        logger.error(
+            "Failed to update network analytics for %s: %s",
+            mask_user_id(user_id), e,
+        )
+        raise HTTPException(
+            status_code=500,
+            detail="Erro ao salvar preferencia de uso anonimo.",
+        )
 
 
 # ============================================================================

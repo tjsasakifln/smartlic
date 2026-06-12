@@ -72,7 +72,7 @@ describe("ClientInviteModal", () => {
     const submitButton = screen.getByText("Convidar");
     fireEvent.click(submitButton);
 
-    expect(screen.getByText("Informe o email do cliente.")).toBeInTheDocument();
+    expect(await screen.findByText("Informe o email do cliente.", undefined, { timeout: 3000 })).toBeInTheDocument();
     expect(mockOnInvite).not.toHaveBeenCalled();
   });
 

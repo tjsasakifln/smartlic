@@ -7,7 +7,6 @@ Contains require_active_plan, _require_active_plan_dep, get_active_plan_dependen
 import asyncio
 import logging
 from datetime import datetime, timezone
-from typing import Optional
 
 from analytics_events import track_funnel_event
 from log_sanitizer import mask_user_id
@@ -266,6 +265,44 @@ def get_subcontract_intel_dependency():
         return await requires_subcontract_intel(user)
 
     return _dep
+
+
+async def check_subcontract_intel_access(user: dict) -> bool:
+    """Boolean gate for the Subcontracting Intelligence vertical.
+
+    SUBINTEL-030 — returns ``True`` when the user can access subcontract intel
+    features, ``False`` otherwise. Unlike ``requires_subcontract_intel`` this
+    does NOT raise HTTPException — it is a pure boolean check suitable for
+    health endpoints and conditional rendering logic.
+
+    Checks in order:
+      1. Global feature flag ``SUBCONTRACT_INTEL_ENABLED``.
+      2. Plan capability ``allow_subcontract_intel`` (master/admin bypass).
+    """
+    from authorization import has_master_access
+    from config.features import get_feature_flag
+    from quota.plan_enforcement import check_quota
+
+    user_id = user["id"]
+
+    # Stage 1: global kill-switch
+    if not get_feature_flag("SUBCONTRACT_INTEL_ENABLED"):
+        return False
+
+    # Master/admin always bypass the capability gate.
+    try:
+        if await has_master_access(user_id):
+            return True
+    except Exception:
+        pass
+
+    try:
+        quota_info = await asyncio.to_thread(check_quota, user_id)
+    except Exception:
+        return False
+
+    caps = getattr(quota_info, "capabilities", None) or {}
+    return bool(caps.get("allow_subcontract_intel", False))
 
 
 # ============================================================================

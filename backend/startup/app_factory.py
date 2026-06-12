@@ -3,6 +3,8 @@
 Single entry point: call create_app() to get a fully-configured FastAPI instance.
 """
 
+import asyncio
+import concurrent.futures
 import logging
 import os
 
@@ -29,6 +31,28 @@ def create_app() -> FastAPI:
     # Sentry
     _env = os.getenv("ENVIRONMENT", os.getenv("ENV", "development")).lower()
     init_sentry(env=_env, version=APP_VERSION)
+
+    # #1694: Configure asyncio event loop to prevent slow callback warnings.
+    # ---
+    # Python 3.12+ defaults to ThreadPoolExecutor(max_workers=min(32, cpu_count*5)),
+    # which can be as low as 5 on Railway containers (2 vCPUs). Every sb_execute
+    # call uses asyncio.to_thread() to offload synchronous postgrest-py .execute(),
+    # so a small thread pool causes queueing delays and legible slow-callback warnings.
+    #
+    # Raise max_workers=20 so 2× Gunicorn workers × 10 SB slots = 20 parallel
+    # thread-offloaded Supabase calls before queuing.
+    _loop = asyncio.get_event_loop()
+    _loop.set_default_executor(
+        concurrent.futures.ThreadPoolExecutor(max_workers=20)
+    )
+    # Also raise the slow-callback warning threshold from 100ms to 500ms so
+    # brief (100-180ms) event-loop delays don't pollute production logs.
+    # PYTHONASYNCIODEBUG must still be OFF in prod; this is a belt-and-suspenders
+    # guard for the case where DEBUG gets accidentally enabled.
+    _loop.slow_callback_duration = 0.5  # warn only >500ms (default 0.1s)
+    logger.info(
+        "asyncio configured: default_executor=max_workers=20, slow_callback_duration=0.5s"
+    )
 
     # OTel tracing — before app creation
     from telemetry import init_tracing as _init_tracing
