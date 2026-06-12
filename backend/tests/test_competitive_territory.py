@@ -1,6 +1,7 @@
 """Tests for COMPINT-010: Competitive Territory endpoints.
 
 Covers:
+  Issue: #1662 COMPINT-010 — Competitive Territory Page
   - GET /v1/intel-concorrente/landscape
   - GET /v1/intel-concorrente/territory/{cnpj}
   - Input validation
