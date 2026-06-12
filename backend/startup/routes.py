@@ -94,10 +94,14 @@ from routes.seasonal_calendar import router as seasonal_calendar_router
 from routes.network_events import router as network_events_router
 from routes.segment import router as segment_router
 from routes.api_search import router as api_search_router
+from routes.admin_metrics import router as admin_metrics_router
 from routes.email_tracking import router as email_tracking_router
 from routes.admin_digest_metrics import router as admin_digest_metrics_router
 from routes.admin_command import router as admin_command_router
 from routes.intel_tasting import router as intel_tasting_router
+from routes.intel_vitrine import router as intel_vitrine_router
+from routes.pseo_intel_feed import router as pseo_intel_feed_router
+from routes.widget_compint import router as widget_compint_router
 from routes.marketplace import router as marketplace_router
 
 _v1_routers = [
@@ -154,6 +158,7 @@ _v1_routers = [
     segment_router,
     api_search_router,
     intel_tasting_router,
+    widget_compint_router,
     marketplace_router,
 ]
 
