@@ -13,6 +13,7 @@ import PreviewCTA from '@/app/components/programmatic/PreviewCTA';
 import { OpportunitySignalsPanel } from '@/app/components/OpportunitySignalsPanel';
 import AhaMomentPanel from '@/app/components/AhaMomentPanel';
 import { SubcontratacaoFornecedorBlock } from '@/app/components/SubcontratacaoFornecedorBlock';
+import { PartnershipScoreBlock } from '@/app/fornecedores/[cnpj]/components/PartnershipScoreBlock';
 import type { InsightCard } from '@/app/components/AhaMomentPanel';
 import { resolveJourney } from '@/lib/seo/relatedResolver';
 import { JourneyLinks } from '@/app/components/navigation/JourneyLinks';
@@ -625,6 +626,12 @@ export default async function FornecedorCnpjPage({ params }: Props) {
           />
 
           {/* FAQ */}
+
+          {/* SUBINTEL-011 (#1674): Partnership Score — Score de Oportunidade de Parceria */}
+          <PartnershipScoreBlock
+            cnpj={cnpj}
+            razaoSocial={profile.razao_social}
+          />
           <section className="mb-8">
             <h2 className="text-xl font-semibold text-gray-900 mb-4">Perguntas Frequentes</h2>
             <div className="space-y-4">
