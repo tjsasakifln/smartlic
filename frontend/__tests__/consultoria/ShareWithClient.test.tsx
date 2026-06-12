@@ -92,7 +92,7 @@ describe("ShareWithClient", () => {
     });
   });
 
-  it("shows error when resource id is empty", () => {
+  it("shows error when resource id is empty", async () => {
     render(
       <ShareWithClient
         clientId="client-1"
