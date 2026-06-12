@@ -3355,6 +3355,91 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/consultoria/clients": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List consultant's clients (CONSULT-001) */
+        get: operations["list_clients_v1_consultoria_clients_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/consultoria/clients/{client_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Revoke client access (CONSULT-001) */
+        delete: operations["revoke_client_v1_consultoria_clients__client_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/consultoria/invite-client": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Generate invite link for a client (CONSULT-001) */
+        post: operations["invite_client_v1_consultoria_invite_client_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/consultoria/share/{client_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Share a resource with a client (CONSULT-001) */
+        post: operations["share_resource_v1_consultoria_share__client_id__post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/consultoria/shared/{client_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List shared resources for a client (CONSULT-001) */
+        get: operations["get_shared_resources_v1_consultoria_shared__client_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/conta/api-usage": {
         parameters: {
             query?: never;
@@ -5025,6 +5110,57 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/predint/forecast": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Demand Forecast — monthly contract volume over time */
+        get: operations["get_demand_forecast_v1_predint_forecast_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/predint/renewals": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Renewal Alerts — contracts approaching estimated expiry */
+        get: operations["get_renewal_alerts_v1_predint_renewals_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/predint/seasonality/{sector_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Seasonal Pattern — average monthly contract distribution */
+        get: operations["get_seasonal_pattern_v1_predint_seasonality__sector_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/products": {
         parameters: {
             query?: never;
@@ -5312,6 +5448,74 @@ export interface paths {
          *     Persistence failure -> 500. Email failure -> 200 with email_queued=False.
          */
         post: operations["request_relatorio_v1_relatorio_2026_t1_request_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/report-mensal/cancel/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Cancel monthly report subscription (REPORT-MONTHLY-001) */
+        post: operations["cancel_subscription_v1_report_mensal_cancel__id__post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/report-mensal/preview/{setor}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Preview monthly report data for a sector (REPORT-MONTHLY-001) */
+        get: operations["preview_monthly_report_v1_report_mensal_preview__setor__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/report-mensal/subscribe": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Subscribe to monthly report (REPORT-MONTHLY-001) */
+        post: operations["subscribe_monthly_report_v1_report_mensal_subscribe_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/report-mensal/subscriptions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List monthly report subscriptions (REPORT-MONTHLY-001) */
+        get: operations["list_subscriptions_v1_report_mensal_subscriptions_get"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -6185,6 +6389,36 @@ export interface paths {
         post?: never;
         delete?: never;
         options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/widget/competitive-intel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Dados de Inteligência Competitiva para Widget Embedável
+         * @description Retorna dados agregados de contratos públicos por setor para widget embedável.
+         *
+         *     Temas:
+         *     - market-share: Market share dos fornecedores no setor
+         *     - top-winners: Top vencedores com indicadores de crescimento
+         *     - monthly-trend: Tendência mensal de contratos
+         *     - orgao-ranking: Ranking de órgãos compradores
+         */
+        get: operations["widget_competitive_intel_v1_widget_competitive_intel_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        /**
+         * Widget Competitive Intel Options
+         * @description Handle CORS preflight requests.
+         */
+        options: operations["widget_competitive_intel_options_v1_widget_competitive_intel_options"];
         head?: never;
         patch?: never;
         trace?: never;
@@ -8094,6 +8328,74 @@ export interface components {
             /** Total Sancoes Cnep */
             total_sancoes_cnep: number;
         };
+        /**
+         * ConsultantClientListResponse
+         * @description Wrapper for list of consultant clients.
+         */
+        ConsultantClientListResponse: {
+            /** Active Count */
+            active_count: number;
+            /** Clients */
+            clients: components["schemas"]["ConsultantClientResponse"][];
+            /** Total */
+            total: number;
+        };
+        /**
+         * ConsultantClientResponse
+         * @description Response model for a consultant-client relationship.
+         */
+        ConsultantClientResponse: {
+            /** Client Email */
+            client_email?: string | null;
+            /** Client Id */
+            client_id?: string | null;
+            /** Consultant Id */
+            consultant_id: string;
+            /** Created At */
+            created_at: string;
+            /** Id */
+            id: string;
+            /** Status */
+            status: string;
+        };
+        /**
+         * ConsultantInviteResponse
+         * @description Response with invite link details.
+         */
+        ConsultantInviteResponse: {
+            /** Expires At */
+            expires_at: string;
+            /** Invite Url */
+            invite_url: string;
+        };
+        /**
+         * ConsultantShareCreate
+         * @description Request to share a resource with a client.
+         */
+        ConsultantShareCreate: {
+            /** Resource Id */
+            resource_id: string;
+            /** Resource Type */
+            resource_type: string;
+        };
+        /**
+         * ConsultantShareResponse
+         * @description Response model for a shared resource.
+         */
+        ConsultantShareResponse: {
+            /** Client Id */
+            client_id: string;
+            /** Consultant Id */
+            consultant_id: string;
+            /** Id */
+            id: string;
+            /** Resource Id */
+            resource_id: string;
+            /** Resource Type */
+            resource_type: string;
+            /** Shared At */
+            shared_at: string;
+        };
         /** ContratoPublico */
         ContratoPublico: {
             /** Data Inicio */
@@ -8842,6 +9144,56 @@ export interface components {
             message: string;
             /** Success */
             success: boolean;
+        };
+        /**
+         * DemandForecastItem
+         * @description A single month in the demand forecast time series.
+         */
+        DemandForecastItem: {
+            /**
+             * Bid Count
+             * @description Number of bids/contracts in this month
+             */
+            bid_count: number;
+            /**
+             * Month
+             * @description Month in YYYY-MM format
+             */
+            month: string;
+            /**
+             * Total Value
+             * @description Total value of contracts in this month
+             */
+            total_value: number;
+        };
+        /**
+         * DemandForecastResponse
+         * @description Response from the demand forecast endpoint.
+         */
+        DemandForecastResponse: {
+            /**
+             * Feature Enabled
+             * @default true
+             */
+            feature_enabled: boolean;
+            /** Forecast */
+            forecast: components["schemas"]["DemandForecastItem"][];
+            /** Months */
+            months: number;
+            /** Sector */
+            sector?: string | null;
+            /**
+             * Total Contracts
+             * @default 0
+             */
+            total_contracts: number;
+            /**
+             * Total Value
+             * @default 0
+             */
+            total_value: number;
+            /** Uf */
+            uf?: string | null;
         };
         /**
          * DiagnosticoRequest
@@ -10287,6 +10639,14 @@ export interface components {
             /** Uf */
             uf?: string | null;
         };
+        /**
+         * InviteClientRequest
+         * @description Request payload for inviting a client by email.
+         */
+        InviteClientRequest: {
+            /** Client Email */
+            client_email: string;
+        };
         /** InviteMemberRequest */
         InviteMemberRequest: {
             /** Email */
@@ -10779,6 +11139,79 @@ export interface components {
             name: string;
             /** Pct */
             pct: number;
+        };
+        /**
+         * MonthlyReportPreviewResponse
+         * @description Preview data for a sector's monthly report (sample data).
+         */
+        MonthlyReportPreviewResponse: {
+            /** Avg Value */
+            avg_value: number;
+            /** Executive Summary */
+            executive_summary: string;
+            /** Period */
+            period: string;
+            /**
+             * Sample Pdf Available
+             * @default false
+             */
+            sample_pdf_available: boolean;
+            /** Sector Id */
+            sector_id: string;
+            /** Sector Name */
+            sector_name: string;
+            /** Top Opportunities */
+            top_opportunities: {
+                [key: string]: unknown;
+            }[];
+            /** Top Winners */
+            top_winners: {
+                [key: string]: unknown;
+            }[];
+            /** Total Licitacoes */
+            total_licitacoes: number;
+            /** Total Value */
+            total_value: number;
+        };
+        /**
+         * MonthlyReportSubscribeRequest
+         * @description Request body for POST /v1/report-mensal/subscribe.
+         */
+        MonthlyReportSubscribeRequest: {
+            /** Sector Id */
+            sector_id: string;
+            /** Stripe Price Id */
+            stripe_price_id?: string | null;
+        };
+        /**
+         * MonthlyReportSubscriptionResponse
+         * @description Response model for a monthly report subscription.
+         */
+        MonthlyReportSubscriptionResponse: {
+            /** Created At */
+            created_at: string;
+            /** Id */
+            id: string;
+            /** Sector Id */
+            sector_id: string;
+            /** Status */
+            status: string;
+            /** Stripe Sub Id */
+            stripe_sub_id?: string | null;
+            /** User Id */
+            user_id: string;
+        };
+        /**
+         * MonthlyReportSubscriptionsListResponse
+         * @description Wrapper for list of subscriptions.
+         */
+        MonthlyReportSubscriptionsListResponse: {
+            /** Active Count */
+            active_count: number;
+            /** Subscriptions */
+            subscriptions: components["schemas"]["MonthlyReportSubscriptionResponse"][];
+            /** Total */
+            total: number;
         };
         /**
          * MrrHistoryEntry
@@ -12111,6 +12544,60 @@ export interface components {
             email_queued: boolean;
         };
         /**
+         * RenewalAlertItem
+         * @description A single contract approaching renewal.
+         */
+        RenewalAlertItem: {
+            /**
+             * Contract Id
+             * @description Contract ID from pncp_supplier_contracts
+             */
+            contract_id: number;
+            /**
+             * Estimated Expiry
+             * Format: date
+             * @description Estimated expiry date (data_assinatura + 1 year heuristic)
+             */
+            estimated_expiry: string;
+            /**
+             * Orgao
+             * @description Name of the contracting public agency
+             */
+            orgao: string;
+            /**
+             * Value
+             * @description Estimated contract value
+             */
+            value: number;
+        };
+        /**
+         * RenewalAlertResponse
+         * @description Response from the renewal alerts endpoint.
+         */
+        RenewalAlertResponse: {
+            /** Alerts */
+            alerts: components["schemas"]["RenewalAlertItem"][];
+            /** Days */
+            days: number;
+            /**
+             * Feature Enabled
+             * @default true
+             */
+            feature_enabled: boolean;
+            /** Sector */
+            sector?: string | null;
+            /**
+             * Total Count
+             * @default 0
+             */
+            total_count: number;
+            /**
+             * Total Value
+             * @default 0
+             */
+            total_value: number;
+        };
+        /**
          * ReplyRequest
          * @description Request to reply to a conversation.
          */
@@ -12765,6 +13252,47 @@ export interface components {
              * @description UF code (uppercase)
              */
             uf: string;
+        };
+        /**
+         * SeasonalPatternItem
+         * @description A single month's seasonal average (Jan-Dec).
+         */
+        SeasonalPatternItem: {
+            /**
+             * Avg Count
+             * @description Average number of contracts in this month over the period
+             */
+            avg_count: number;
+            /**
+             * Avg Value
+             * @description Average contract value in this month
+             */
+            avg_value: number;
+            /**
+             * Month Num
+             * @description Month number (1=January, 12=December)
+             */
+            month_num: number;
+        };
+        /**
+         * SeasonalPatternResponse
+         * @description Response from the seasonal pattern endpoint.
+         */
+        SeasonalPatternResponse: {
+            /**
+             * Feature Enabled
+             * @default true
+             */
+            feature_enabled: boolean;
+            /** Patterns */
+            patterns: components["schemas"]["SeasonalPatternItem"][];
+            /**
+             * Peak Month
+             * @description Month with highest average contract count
+             */
+            peak_month?: number | null;
+            /** Sector */
+            sector?: string | null;
         };
         /**
          * SectorAffinityResponse
@@ -18767,6 +19295,171 @@ export interface operations {
             };
         };
     };
+    list_clients_v1_consultoria_clients_get: {
+        parameters: {
+            query?: {
+                /** @description Filter by status: active, revoked */
+                status_filter?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConsultantClientListResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    revoke_client_v1_consultoria_clients__client_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                client_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    invite_client_v1_consultoria_invite_client_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["InviteClientRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConsultantInviteResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    share_resource_v1_consultoria_share__client_id__post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                client_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ConsultantShareCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConsultantShareResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_shared_resources_v1_consultoria_shared__client_id__get: {
+        parameters: {
+            query?: {
+                /** @description Filter by resource type */
+                resource_type?: string | null;
+            };
+            header?: never;
+            path: {
+                client_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     get_api_usage_v1_conta_api_usage_get: {
         parameters: {
             query?: never;
@@ -20892,6 +21585,107 @@ export interface operations {
             };
         };
     };
+    get_demand_forecast_v1_predint_forecast_get: {
+        parameters: {
+            query?: {
+                /** @description Sector ID (e.g., 'alimentos'). If omitted, returns all sectors. */
+                sector?: string | null;
+                /** @description UF filter (2-letter). If omitted, returns national aggregation. */
+                uf?: string | null;
+                /** @description Lookback period in months (1-120, default 12) */
+                months?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DemandForecastResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_renewal_alerts_v1_predint_renewals_get: {
+        parameters: {
+            query?: {
+                /** @description Sector ID. If omitted, returns alerts for all sectors. */
+                sector?: string | null;
+                /** @description Lookahead window in days (1-365, default 90) */
+                days?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RenewalAlertResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_seasonal_pattern_v1_predint_seasonality__sector_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                sector_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SeasonalPatternResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     list_products_v1_products_get: {
         parameters: {
             query?: never;
@@ -21263,6 +22057,121 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    cancel_subscription_v1_report_mensal_cancel__id__post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    preview_monthly_report_v1_report_mensal_preview__setor__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                setor: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MonthlyReportPreviewResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    subscribe_monthly_report_v1_report_mensal_subscribe_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MonthlyReportSubscribeRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MonthlyReportSubscriptionResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_subscriptions_v1_report_mensal_subscriptions_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MonthlyReportSubscriptionsListResponse"];
                 };
             };
         };
@@ -22286,6 +23195,62 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["RecommendedPlanResponse"];
+                };
+            };
+        };
+    };
+    widget_competitive_intel_v1_widget_competitive_intel_get: {
+        parameters: {
+            query: {
+                /** @description ID do setor (ex: ti, saude, construcao) */
+                setor: string;
+                /** @description Tema: market-share | top-winners | monthly-trend | orgao-ranking */
+                tema: string;
+                /** @description UF (2 letras, opcional) */
+                uf?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    widget_competitive_intel_options_v1_widget_competitive_intel_options: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
                 };
             };
         };
