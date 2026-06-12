@@ -1205,6 +1205,12 @@ PLAN_RECONCILIATION_DRIFT = _create_counter(
     labelnames=["direction"],
 )
 
+PLAN_RECONCILIATION_AUTO_HEALED = _create_counter(
+    "smartlic_plan_reconciliation_auto_healed_total",
+    "Auto-healed plan_type drift by direction (profiles_stale or orphan_profile)",
+    labelnames=["direction"],
+)
+
 
 # DEBT-014 SYS-010/SYS-018: Auth token cache metrics
 AUTH_CACHE_HITS = _create_counter(
