@@ -4128,6 +4128,108 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/intel-concorrente/benchmarks": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Sector Benchmarks — competitive performance comparison */
+        get: operations["get_competitor_benchmarks_v1_intel_concorrente_benchmarks_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/intel-concorrente/dossie/{cnpj}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Generate Competitive Dossie PDF */
+        post: operations["generate_competitive_dossie_v1_intel_concorrente_dossie__cnpj__post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/intel-concorrente/dossie/{cnpj}/{job_id}/download": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Download the generated Dossie PDF */
+        get: operations["download_dossie_v1_intel_concorrente_dossie__cnpj___job_id__download_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/intel-concorrente/dossie/{cnpj}/{job_id}/status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Check Dossie generation status */
+        get: operations["get_dossie_status_v1_intel_concorrente_dossie__cnpj___job_id__status_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/intel-concorrente/landscape": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Competitive Landscape — top players in a sector */
+        get: operations["get_competitive_landscape_v1_intel_concorrente_landscape_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/intel-concorrente/territory/{cnpj}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Territory Map — competitor geographic presence */
+        get: operations["get_competitor_territory_v1_intel_concorrente_territory__cnpj__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/intel-reports/": {
         parameters: {
             query?: never;
@@ -7291,6 +7393,27 @@ export interface components {
             [key: string]: unknown;
         };
         /**
+         * BenchmarkPercentile
+         * @description A single percentile value for a metric.
+         */
+        BenchmarkPercentile: {
+            /**
+             * P25
+             * @description Percentil 25
+             */
+            p25: number;
+            /**
+             * P50
+             * @description Percentil 50 (mediana)
+             */
+            p50: number;
+            /**
+             * P75
+             * @description Percentil 75
+             */
+            p75: number;
+        };
+        /**
          * BillingPlansResponse
          * @description Response for GET /plans (billing.py).
          */
@@ -8307,6 +8430,144 @@ export interface components {
             /** Uf */
             uf: string | null;
         };
+        /**
+         * CompetitiveLandscapeResponse
+         * @description Top-level response for GET /v1/intel-concorrente/landscape.
+         */
+        CompetitiveLandscapeResponse: {
+            /**
+             * Gerado Em
+             * @description Timestamp de geracao
+             */
+            gerado_em?: string;
+            /**
+             * Periodo
+             * @description Periodo analisado
+             * @default Ultimos 12 meses
+             */
+            periodo: string;
+            /**
+             * Setor Id
+             * @description ID do setor
+             */
+            setor_id: string;
+            /**
+             * Setor Nome
+             * @description Nome do setor
+             */
+            setor_nome: string;
+            /**
+             * Top Concorrentes
+             * @description Top concorrentes
+             */
+            top_concorrentes?: components["schemas"]["CompetitorItem"][];
+            /**
+             * Total Concorrentes
+             * @description Total de concorrentes identificados
+             * @default 0
+             */
+            total_concorrentes: number;
+            /**
+             * Total Contratado
+             * @description Valor total contratado no setor
+             */
+            total_contratado: number;
+            /**
+             * Total Contratos
+             * @description Total de contratos
+             * @default 0
+             */
+            total_contratos: number;
+            /**
+             * Uf
+             * @description UF filtrada (opcional)
+             */
+            uf?: string | null;
+        };
+        /**
+         * CompetitorBenchmark
+         * @description Benchmark comparison for a single metric.
+         */
+        CompetitorBenchmark: {
+            /** @description Benchmark do setor (P25/P50/P75) */
+            benchmark_setor: components["schemas"]["BenchmarkPercentile"];
+            /**
+             * Descricao
+             * @description Tooltip explicativo
+             * @default
+             */
+            descricao: string;
+            /**
+             * Label
+             * @description Label amigavel para exibicao
+             */
+            label: string;
+            /**
+             * Metrica
+             * @description Nome da metrica (ex: taxa_vitoria, ticket_medio)
+             */
+            metrica: string;
+            /**
+             * Percentil Concorrente
+             * @description Percentil do concorrente (0-100)
+             */
+            percentil_concorrente: number;
+            /**
+             * Valor Concorrente
+             * @description Valor do concorrente na metrica
+             */
+            valor_concorrente: number;
+        };
+        /**
+         * CompetitorItem
+         * @description A single competitor in the leaderboard.
+         */
+        CompetitorItem: {
+            /**
+             * Cnpj
+             * @description CNPJ do concorrente
+             */
+            cnpj: string;
+            /**
+             * Market Share
+             * @description Market share percentual (0-100)
+             * @default 0
+             */
+            market_share: number;
+            /**
+             * Numero Contratos
+             * @description Numero de contratos no periodo
+             * @default 0
+             */
+            numero_contratos: number;
+            /**
+             * Razao Social
+             * @description Nome / razao social
+             */
+            razao_social: string;
+            /**
+             * Tendencia
+             * @description Tendencia: crescimento/estavel/retracao
+             * @default estavel
+             */
+            tendencia: string;
+            /**
+             * Ticket Medio
+             * @description Ticket medio por contrato
+             * @default 0
+             */
+            ticket_medio: number;
+            /**
+             * Total Contratado
+             * @description Valor total contratado no periodo
+             */
+            total_contratado: number;
+            /**
+             * Ufs Atuacao
+             * @description UFs onde atua
+             */
+            ufs_atuacao?: string[];
+        };
         /** ComplianceProfileResponse */
         ComplianceProfileResponse: {
             /** Aviso Legal */
@@ -9288,6 +9549,93 @@ export interface components {
             total_searches?: number | null;
         } & {
             [key: string]: unknown;
+        };
+        /**
+         * DossieRequest
+         * @description Request parameters for dossie generation.
+         */
+        DossieRequest: {
+            /**
+             * Include Llm Summary
+             * @description Incluir sumario executivo gerado por IA
+             * @default true
+             */
+            include_llm_summary: boolean;
+            /**
+             * Setor Id
+             * @description Setor para contextualizacao
+             */
+            setor_id?: string | null;
+        };
+        /**
+         * DossieResponse
+         * @description Response for dossie generation request.
+         */
+        DossieResponse: {
+            /**
+             * Cnpj
+             * @description CNPJ do concorrente
+             */
+            cnpj: string;
+            /**
+             * Download Url
+             * @description URL para download do PDF quando pronto
+             */
+            download_url?: string | null;
+            /**
+             * Job Id
+             * @description ID do job ARQ para acompanhamento
+             */
+            job_id: string;
+            /**
+             * Message
+             * @description Mensagem de status
+             * @default Dossie sendo gerado em background.
+             */
+            message: string;
+            /**
+             * Status
+             * @description Status do job: queued/processing/done/error
+             * @default queued
+             */
+            status: string;
+        };
+        /**
+         * DossieStatusResponse
+         * @description Status polling response for dossie generation.
+         */
+        DossieStatusResponse: {
+            /**
+             * Cnpj
+             * @description CNPJ do concorrente
+             */
+            cnpj: string;
+            /**
+             * Download Url
+             * @description URL de download quando concluido
+             */
+            download_url?: string | null;
+            /**
+             * Error
+             * @description Mensagem de erro se aplicavel
+             */
+            error?: string | null;
+            /**
+             * Job Id
+             * @description ID do job
+             */
+            job_id: string;
+            /**
+             * Progress
+             * @description Progresso percentual (0-100)
+             * @default 0
+             */
+            progress: number;
+            /**
+             * Status
+             * @description Status atual: queued/processing/done/error
+             */
+            status: string;
         };
         /** EditaisAmostra */
         EditaisAmostra: {
@@ -13336,6 +13684,42 @@ export interface components {
             /** Total Value */
             total_value: number;
         };
+        /**
+         * SectorBenchmarkResponse
+         * @description Top-level response for GET /v1/intel-concorrente/benchmarks.
+         */
+        SectorBenchmarkResponse: {
+            /**
+             * Cnpj
+             * @description CNPJ do concorrente
+             */
+            cnpj: string;
+            /**
+             * Gerado Em
+             * @description Timestamp de geracao
+             */
+            gerado_em?: string;
+            /**
+             * Metricas
+             * @description Metricas comparativas
+             */
+            metricas?: components["schemas"]["CompetitorBenchmark"][];
+            /**
+             * Razao Social
+             * @description Nome / razao social
+             */
+            razao_social: string;
+            /**
+             * Setor Id
+             * @description ID do setor
+             */
+            setor_id: string;
+            /**
+             * Setor Nome
+             * @description Nome do setor
+             */
+            setor_nome: string;
+        };
         /** SectorBlogStats */
         SectorBlogStats: {
             /** Avg Value */
@@ -14057,6 +14441,77 @@ export interface components {
             razao_social: string;
             /** Total Won */
             total_won: number;
+        };
+        /**
+         * TerritoryData
+         * @description Territory map data for a single competitor.
+         */
+        TerritoryData: {
+            /**
+             * Cnpj
+             * @description CNPJ do concorrente
+             */
+            cnpj: string;
+            /**
+             * Razao Social
+             * @description Nome / razao social
+             */
+            razao_social: string;
+            /**
+             * Total Contratado
+             * @description Valor total contratado
+             */
+            total_contratado: number;
+            /**
+             * Total Contratos
+             * @description Total de contratos
+             * @default 0
+             */
+            total_contratos: number;
+            /**
+             * Ufs
+             * @description Dados por UF
+             */
+            ufs?: components["schemas"]["TerritoryUfData"][];
+        };
+        /**
+         * TerritoryUfData
+         * @description Territory data for a single UF.
+         */
+        TerritoryUfData: {
+            /**
+             * Market Share
+             * @description Market share do concorrente na UF (0-100)
+             * @default 0
+             */
+            market_share: number;
+            /**
+             * Numero Contratos
+             * @description Numero de contratos na UF
+             * @default 0
+             */
+            numero_contratos: number;
+            /**
+             * Orgaos Principais
+             * @description Principais orgaos compradores
+             */
+            orgaos_principais?: string[];
+            /**
+             * Tendencia
+             * @description Tendencia na UF
+             * @default estavel
+             */
+            tendencia: string;
+            /**
+             * Total Contratado
+             * @description Valor total contratado na UF
+             */
+            total_contratado: number;
+            /**
+             * Uf
+             * @description Sigla da UF
+             */
+            uf: string;
         };
         /** TimeSeriesDataPoint */
         TimeSeriesDataPoint: {
@@ -20290,6 +20745,206 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["IndiceResult"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_competitor_benchmarks_v1_intel_concorrente_benchmarks_get: {
+        parameters: {
+            query: {
+                /** @description CNPJ do concorrente */
+                cnpj: string;
+                /** @description ID do setor para benchmark */
+                setor: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SectorBenchmarkResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    generate_competitive_dossie_v1_intel_concorrente_dossie__cnpj__post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description CNPJ do concorrente */
+                cnpj: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["DossieRequest"] | null;
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DossieResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    download_dossie_v1_intel_concorrente_dossie__cnpj___job_id__download_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                cnpj: string;
+                job_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_dossie_status_v1_intel_concorrente_dossie__cnpj___job_id__status_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                cnpj: string;
+                job_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DossieStatusResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_competitive_landscape_v1_intel_concorrente_landscape_get: {
+        parameters: {
+            query: {
+                /** @description ID do setor (ex: ti, saude, construcao) */
+                setor: string;
+                /** @description UF (2 letras, opcional) */
+                uf?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CompetitiveLandscapeResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_competitor_territory_v1_intel_concorrente_territory__cnpj__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description CNPJ do concorrente (com ou sem mascara) */
+                cnpj: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TerritoryData"];
                 };
             };
             /** @description Validation Error */
