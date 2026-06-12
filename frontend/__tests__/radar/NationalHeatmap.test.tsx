@@ -131,7 +131,7 @@ describe("NationalHeatmap", () => {
     expect(spPath).toBeInTheDocument();
     fireEvent.mouseEnter(spPath!);
     expect(screen.getByTestId("heatmap-tooltip")).toBeInTheDocument();
-    expect(screen.getByText("SP")).toBeInTheDocument();
+    expect(screen.getAllByText("SP").length).toBeGreaterThan(0);
   });
 
   it("hides tooltip on state leave", () => {

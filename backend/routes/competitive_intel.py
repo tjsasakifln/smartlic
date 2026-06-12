@@ -498,6 +498,7 @@ async def get_dossie_status(
 @router.get(
     "/intel-concorrente/dossie/{cnpj}/{job_id}/download",
     summary="Download the generated Dossie PDF",
+    response_model=None,
     dependencies=[Depends(_comp_intel)],
 )
 async def download_dossie(
