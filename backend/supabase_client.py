@@ -15,6 +15,8 @@ Client types:
 STORY-291: Circuit breaker pattern for Supabase calls.
 CRIT-046: Connection pool exhaustion fix — enlarged httpx pool,
 explicit timeouts, pool utilization metrics, ConnectionError retry.
+CRIT-046 AC6: Pool increased to 30 (60 with 2 workers), health log
+frequency doubled (25 calls), WARN-level logging at >80% utilization.
 """
 
 import asyncio
@@ -42,10 +44,11 @@ _supabase_client_lock = threading.Lock()
 # Default: 25 per worker (50 total), down from 50 per worker (100 total).
 # ============================================================================
 
-# DEBT-IO-BUDGET: Reduced from 25→10 per worker (20 total with 2 workers)
-# to stay under Supabase free tier limit of 20 direct connections.
-# Override via SUPABASE_POOL_MAX_CONNECTIONS env if upgraded to paid tier.
-_POOL_MAX_CONNECTIONS = int(os.getenv("SUPABASE_POOL_MAX_CONNECTIONS", "20"))
+# CRIT-046 AC6: Increased from 20→30 per worker (60 total with 2 workers)
+# to prevent pool exhaustion under concurrent Googlebot ISR revalidation.
+# Supabase Pro tier supports 60 direct connections (3x free tier limit of 20).
+# Override via SUPABASE_POOL_MAX_CONNECTIONS env if needed.
+_POOL_MAX_CONNECTIONS = int(os.getenv("SUPABASE_POOL_MAX_CONNECTIONS", "30"))
 _POOL_MAX_KEEPALIVE = int(os.getenv("SUPABASE_POOL_MAX_KEEPALIVE", "10"))
 _POOL_TIMEOUT = float(os.getenv("SUPABASE_POOL_TIMEOUT", "30.0"))
 _POOL_CONNECT_TIMEOUT = 10.0
@@ -59,9 +62,10 @@ _RETRY_BASE_DELAY_S = float(os.getenv("SUPABASE_RETRY_BASE_DELAY", "0.5"))
 # Thread-safe active connection counter (for high-water logging)
 _pool_active_lock = threading.Lock()
 _pool_active_count = 0
-# STORY-287: Periodic pool health log counter (log every ~50 calls)
+# STORY-287: Periodic pool health log counter (log every ~25 calls).
+# CRIT-046 AC6: Increased frequency from 50→25 for earlier pool saturation detection.
 _pool_health_log_counter = 0
-_POOL_HEALTH_LOG_INTERVAL = 50
+_POOL_HEALTH_LOG_INTERVAL = 25
 
 
 def _get_config():
@@ -772,11 +776,13 @@ async def sb_execute(query, *, category: str = "read"):
             current_active, _POOL_MAX_CONNECTIONS,
         )
 
-    # STORY-287: Periodic pool health log (~every 50 calls)
+    # STORY-287: Periodic pool health log (~every 25 calls).
+    # CRIT-046 AC6: Log as WARN when utilization >80% for faster saturation detection.
     global _pool_health_log_counter
     _pool_health_log_counter = (_pool_health_log_counter + 1) % _POOL_HEALTH_LOG_INTERVAL
     if _pool_health_log_counter == 0:
-        logger.info(
+        _log_level = logger.warning if current_active > high_water else logger.info
+        _log_level(
             "STORY-287: Supabase pool health — active=%d/%d, keepalive=%d, timeout=%.0fs",
             current_active, _POOL_MAX_CONNECTIONS, _POOL_MAX_KEEPALIVE, _POOL_TIMEOUT,
         )
