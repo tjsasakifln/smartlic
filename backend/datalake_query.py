@@ -52,9 +52,11 @@ _SEO_SEMAPHORE = asyncio.Semaphore(5)
 
 # PostgREST caps RPC results at 1000 rows per call (hard limit, no negotiation).
 _POSTGREST_ROW_CAP = 1000
-# Maximum recursion depth for binary date-range splitting. 2^10 = 1024
-# sub-queries max, sufficient to resolve any realistic truncation.
+# Maximum recursion depth for binary date-range splitting. Beyond this depth
+# we switch to Range-header offset pagination (Issue #1746).
 _MAX_PAGINATION_DEPTH = 10
+# Maximum pages to fetch via Range-header pagination (safety limit).
+_MAX_RANGE_PAGES = 15
 
 
 def _cache_key(
@@ -150,12 +152,17 @@ async def _query_uf_with_pagination(
         Returns [] on error (fail-open).
     """
     if depth > _MAX_PAGINATION_DEPTH:
-        logger.error(
+        # Issue #1746: Instead of giving up, switch to Range-header offset
+        # pagination via direct PostgREST calls. This handles UFs with very
+        # high daily volume (e.g. SP >1000 bids/day).
+        logger.warning(
             f"[DatalakeQuery] Max pagination depth ({_MAX_PAGINATION_DEPTH}) "
             f"exceeded for UF={uf} range [{date_start}, {date_end}] — "
-            f"giving up and returning partial results."
+            f"falling back to Range-header pagination."
         )
-        return []
+        return await _query_uf_with_pagination_range(
+            sb, rpc_params, uf, date_start, date_end,
+        )
 
     # Build per-UF params — override date range + UF filter
     uf_params = {
@@ -196,12 +203,15 @@ async def _query_uf_with_pagination(
 
     total_days = (d_end - d_start).days
     if total_days < 1:
-        # Single date — cannot split further; return partial
+        # Issue #1746: Single date — cannot split further. Use Range-header
+        # offset pagination to fetch all rows for this single day.
         logger.warning(
             f"[DatalakeQuery] UF={uf} still exceeds cap at minimum granularity "
-            f"[{date_start}] — returning {len(uf_rows)} rows (possibly truncated)."
+            f"[{date_start}] — switching to Range-header pagination."
         )
-        return uf_rows
+        return await _query_uf_with_pagination_range(
+            sb, rpc_params, uf, date_start, date_end,
+        )
 
     # Compute midpoint
     mid = d_start + timedelta(days=total_days // 2)
@@ -231,6 +241,91 @@ async def _query_uf_with_pagination(
     )
 
     return left_rows + right_rows
+
+
+async def _query_uf_with_pagination_range(
+    sb: Any,
+    rpc_params: dict[str, Any],
+    uf: str,
+    date_start: str,
+    date_end: str,
+) -> list[dict]:
+    """PostgREST Range-header offset pagination (Issue #1746).
+
+    Called when binary date-range splitting reaches max depth or a single
+    date still exceeds the PostgREST row cap. Makes sequential offset-based
+    POST requests to the RPC endpoint with ``Range`` headers, each returning
+    at most ``_POSTGREST_ROW_CAP`` rows.
+
+    Uses the underlying httpx session from the Supabase client so that
+    connection pooling and keep-alive are preserved. Falls back gracefully
+    to whatever rows were collected on transient errors (fail-open).
+
+    Returns:
+        All rows for this UF+date range, possibly incomplete if the
+        page limit is exhausted.
+    """
+    uf_params = {
+        **rpc_params,
+        "p_ufs": [uf],
+        "p_date_start": date_start,
+        "p_date_end": date_end,
+    }
+
+    session = sb.postgrest.session
+    rpc_url = f"{session.base_url}/rpc/search_datalake"
+    base_headers = dict(session.headers)
+
+    offset = 0
+    all_rows: list[dict] = []
+    page_count = 0
+
+    while page_count < _MAX_RANGE_PAGES:
+        range_end = offset + _POSTGREST_ROW_CAP - 1
+        range_header = f"{offset}-{range_end}"
+
+        try:
+            resp = await asyncio.to_thread(
+                lambda: session.request(
+                    "POST",
+                    rpc_url,
+                    json=uf_params,
+                    headers={**base_headers, "Range": range_header},
+                    timeout=session.timeout,
+                )
+            )
+            resp.raise_for_status()
+            page = resp.json() or []
+        except Exception as e:
+            logger.warning(
+                f"[DatalakeQuery] Range-paginated RPC failed for UF={uf} "
+                f"offset={offset}: {type(e).__name__}: {e}"
+            )
+            break
+
+        all_rows.extend(page)
+        offset += len(page)
+        page_count += 1
+
+        # Increment Range-pagination metric per batch
+        try:
+            from metrics import DATALAKE_RANGE_PAGINATION_TOTAL
+            DATALAKE_RANGE_PAGINATION_TOTAL.labels(uf=uf).inc()
+        except Exception:
+            pass  # Metrics are optional
+
+        # Stop when we received fewer rows than the cap => last page
+        if len(page) < _POSTGREST_ROW_CAP:
+            break
+
+    if page_count > 0:
+        logger.info(
+            f"[DatalakeQuery] Range pagination for UF={uf} "
+            f"[{date_start}, {date_end}]: {page_count} page(s), "
+            f"{len(all_rows)} total rows"
+        )
+
+    return all_rows
 
 
 # ---------------------------------------------------------------------------
@@ -411,16 +506,72 @@ def _query_trigram_fallback(
     ufs: list[str],
     limit: int,
 ) -> list[dict]:
-    """Call the search_datalake_trigram_fallback RPC. Returns raw rows."""
+    """Call the search_datalake_trigram_fallback RPC with retry + timeout.
+
+    Uses the ``search_datalake_trigram_fallback_with_timeout`` wrapper RPC
+    (Issue #1750) which executes ``SET LOCAL statement_timeout = '15s'``
+    before the GIN trigram index scan — the default timeout is too low.
+
+    Retries on failure with exponential backoff (1s, 3s) to handle transient
+    pool exhaustion or contention.
+
+    Returns:
+        Raw rows from the RPC, or [] on failure.
+    """
+    # Issue #1750: Use the timeout-aware wrapper RPC that sets
+    # SET LOCAL statement_timeout = '15s' before the GIN scan.
+    rpc_name = "search_datalake_trigram_fallback_with_timeout"
+    rpc_params = {"p_query_term": query_term, "p_ufs": ufs, "p_limit": limit}
+
+    # Retry delays: [first attempt at 0, then 1s, then 3s]
+    retry_delays = [0.0, 1.0, 3.0]
+    last_exc: Exception | None = None
+
+    for attempt, delay in enumerate(retry_delays):
+        if delay > 0:
+            time.sleep(delay)
+
+        try:
+            result = sb.rpc(rpc_name, rpc_params).execute()
+            return result.data or []
+        except Exception as e:
+            last_exc = e
+            is_timeout = _is_trigram_timeout_error(e)
+            error_type = "timeout" if is_timeout else "error"
+            logger.warning(
+                f"[DatalakeQuery] Trigram fallback RPC attempt {attempt + 1}/"
+                f"{len(retry_delays)} failed for {query_term!r}: "
+                f"{type(e).__name__}: {e} [{error_type}]"
+            )
+            # Don't log metric on every attempt — only after exhaustion
+            continue
+
+    # All retries exhausted — log metric and return empty
     try:
-        result = sb.rpc(
-            "search_datalake_trigram_fallback",
-            {"p_query_term": query_term, "p_ufs": ufs, "p_limit": limit},
-        ).execute()
-        return result.data or []
-    except Exception as e:
-        logger.warning(f"[DatalakeQuery] Trigram fallback RPC failed: {type(e).__name__}: {e}")
-        return []
+        from metrics import DATALAKE_TRIGRAM_FAILURE_TOTAL
+        for uf in ufs:
+            error_type = "timeout" if _is_trigram_timeout_error(last_exc) else "error"
+            DATALAKE_TRIGRAM_FAILURE_TOTAL.labels(uf=uf, error_type=error_type).inc()
+    except Exception:
+        pass  # Metrics are optional
+
+    logger.warning(
+        f"[DatalakeQuery] Trigram fallback RPC exhausted all "
+        f"{len(retry_delays)} attempts for {query_term!r}: "
+        f"{type(last_exc).__name__}: {last_exc}"
+    )
+    return []
+
+
+def _is_trigram_timeout_error(exc: Exception | None) -> bool:
+    """Detect PostgreSQL statement timeout (SQLSTATE 57014) in the error."""
+    if exc is None:
+        return False
+    code = getattr(exc, "code", None)
+    if code == "57014":
+        return True
+    msg = str(exc).lower()
+    return "57014" in msg or "canceling statement due to statement timeout" in msg
 
 
 # ---------------------------------------------------------------------------

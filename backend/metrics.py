@@ -306,6 +306,24 @@ DATALAKE_TRUNCATION_SUSPECTED = _create_counter(
     labelnames=["uf"],
 )
 
+# Issue #1746: Range-header pagination used when binary date-split reached
+# max depth but single-date range still exceeds PostgREST row cap.
+# Each inc = one Range-paginated batch (not one row), labeled by UF so we
+# can see which states hit the offset-pagination escape hatch.
+DATALAKE_RANGE_PAGINATION_TOTAL = _create_counter(
+    "smartlic_datalake_range_pagination_total",
+    "Issue #1746: Range-header pagination batches — binary split max depth exceeded but still >1000 rows",
+    labelnames=["uf"],
+)
+
+# Issue #1750: Trigram fallback RPC failures after retry exhaustion.
+# Labels separate timeout (57014) from generic error.
+DATALAKE_TRIGRAM_FAILURE_TOTAL = _create_counter(
+    "smartlic_datalake_trigram_failure_total",
+    "Issue #1750: Trigram fallback RPC failures after retry exhaustion",
+    labelnames=["uf", "error_type"],  # error_type: timeout, error
+)
+
 # DATA-CAP-001: PostgREST max-rows=1000 silent truncation in non-RPC table queries.
 # Incremented every time ``utils.postgrest_paginate.paginate_full`` sees a full batch
 # (signal: the route would have truncated silently if it had used ``.limit()`` instead).
