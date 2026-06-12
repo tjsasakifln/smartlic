@@ -155,7 +155,6 @@ _v1_routers = [
     segment_router,
     api_search_router,
     intel_tasting_router,
-    pseo_intel_feed_router,
 ]
 
 
