@@ -28,7 +28,8 @@ export type RouteFamily =
   | 'contratos-setor-uf'
   | 'alertas-publicos'
   | 'municipios'
-  | 'itens';
+  | 'itens'
+  | 'inteligencia';
 
 /**
  * Builds the lookup key. Script-side analogue: `slug_from_url(url, family)`.
