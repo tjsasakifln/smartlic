@@ -20,6 +20,7 @@ import { GoogleAnalytics } from "./components/GoogleAnalytics";
 import { ClarityAnalytics } from "./components/ClarityAnalytics";
 import { WebVitalsReporter } from "./components/WebVitalsReporter";
 import { ExitIntentPopup } from "./components/ExitIntentPopup";
+import NetworkAnalyticsBanner from "../components/NetworkAnalyticsBanner";
 
 const dmSans = DM_Sans({
   subsets: ["latin"],
@@ -211,6 +212,7 @@ export default function RootLayout({
                   <SessionExpiredBanner />
                   <PaymentFailedBanner />
                   <FoundersTopBanner />
+                  <NetworkAnalyticsBanner />
                   <TrialProgressBar />
                   <NavigationShell>
                     {children}
