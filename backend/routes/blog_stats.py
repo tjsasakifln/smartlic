@@ -45,7 +45,7 @@ _NEGATIVE_CACHE_TTL_SECONDS = 5 * 60
 # ``wait_for`` alone leaves the thread holding the pool slot until
 # ``statement_timeout`` (the 2026-04-27 Stage 2 root cause). See memory
 # ``feedback_pool_leak_caller_timeout_vs_sql_timeout``.
-_CONTRATOS_QUERY_BUDGET_S = 8.0
+_CONTRATOS_QUERY_BUDGET_S = 15.0
 
 # ============================================================================
 # POOL-001: Semaphore gate for blog stats SQL queries.
@@ -1092,14 +1092,27 @@ async def _query_contratos_data(
         if uf:
             query = query.eq("uf", uf)
         if municipio_pattern:
-            query = query.ilike("municipio", f"%{municipio_pattern}%")
+            # ISSUE-1650/#1693: Try exact match first for city display names,
+            # then fall back to ILIKE for partial matches. The trigram index
+            # (idx_psc_municipio_trgm) accelerates the ILIKE path via GIN.
+            # Using .eq() avoids the trigram index overhead when the city
+            # name matches exactly.
+            exact_municipio = _CITY_DISPLAY.get(municipio_pattern.lower())
+            if exact_municipio:
+                # Use OR: exact match OR ilike for accent-normalized fallback
+                query = query.or_(
+                    f"municipio.eq.{exact_municipio},"
+                    f"municipio.ilike.%{municipio_pattern}%"
+                )
+            else:
+                query = query.ilike("municipio", f"%{municipio_pattern}%")
 
         # DATA-CAP-001: paginate via .range() because PostgREST silently caps
         # any single response at max_rows=1000.
         builder = query.order("data_assinatura", desc=True)
         rows: list[dict] = []
         batch_size = 1000
-        max_total = 10_000
+        max_total = 5_000
         offset = 0
         while len(rows) < max_total:
             end = offset + batch_size - 1

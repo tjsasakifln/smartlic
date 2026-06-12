@@ -59,29 +59,38 @@ from quota.quota_fallback import (
     try_quota_fallback,
 )
 
-# plan_enforcement: check_quota, require_active_plan, sessions
+# plan_enforcement: check_quota, sessions
 from quota.plan_enforcement import (
     QuotaExceededError,
     _ensure_profile_exists,
-    _require_active_plan_dep,
     check_quota,
     create_fallback_quota_info,
     create_legacy_quota_info,
-    get_active_plan_dependency,
     get_plan_from_profile,
-    get_subcontract_intel_dependency,
-    get_competitive_intel_dependency,
-    get_workspace_basic_dependency,
     get_trial_phase,
+)
+
+# session_tracker: session registration and tracking
+from quota.session_tracker import (
     register_search_session,
-    require_active_plan,
-    requires_subcontract_intel,
-    requires_predictive_intel,
-    get_predictive_intel_dependency,
-    requires_competitive_intel,
-    requires_workspace_basic,
     save_search_session,
     update_search_session_status,
+)
+
+# plan_auth: re-exported via __init__ for backwards compatibility (functions
+# were migrated from plan_enforcement to plan_auth; __init__ is the facade).
+from quota.plan_auth import (
+    _require_active_plan_dep,
+    get_active_plan_dependency,
+    get_competitive_intel_dependency,
+    get_predictive_intel_dependency,
+    get_subcontract_intel_dependency,
+    get_workspace_basic_dependency,
+    require_active_plan,
+    requires_competitive_intel,
+    requires_predictive_intel,
+    requires_subcontract_intel,
+    requires_workspace_basic,
 )
 
 # plan_auth: re-export via plan_enforcement facade (already re-exported above)

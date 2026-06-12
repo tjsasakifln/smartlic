@@ -219,7 +219,7 @@ async def start_revenue_share_task() -> asyncio.Task:
 async def run_plan_reconciliation() -> dict:
     """DEBT-010 DB-015: Compare profiles.plan_type vs user_subscriptions.plan_id."""
     from supabase_client import get_supabase, sb_execute
-    from metrics import PLAN_RECONCILIATION_RUNS, PLAN_RECONCILIATION_DRIFT
+    from metrics import PLAN_RECONCILIATION_RUNS, PLAN_RECONCILIATION_DRIFT, PLAN_RECONCILIATION_AUTO_HEALED
 
     PLAN_RECONCILIATION_RUNS.inc()
 
@@ -229,6 +229,7 @@ async def run_plan_reconciliation() -> dict:
         return {"status": "skipped", "reason": "lock_held"}
 
     drift_details = []
+    auto_healed = 0
     try:
         sb = get_supabase()
         profiles_result = await sb_execute(sb.table("profiles").select("id, plan_type"))
@@ -245,17 +246,39 @@ async def run_plan_reconciliation() -> dict:
                 if plan_type not in ("free_trial", "cancelled", None, ""):
                     drift_details.append({"user_id": user_id[:8] + "...", "profile_plan": plan_type, "sub_plan": None, "direction": "orphan_profile"})
                     PLAN_RECONCILIATION_DRIFT.labels(direction="orphan_profile").inc()
+                    # Self-heal: orphan profile with a paid plan — reset to free_trial
+                    try:
+                        await sb_execute(
+                            sb.table("profiles").update({"plan_type": "free_trial"}).eq("id", user_id),
+                            category="write",
+                        )
+                        logger.info("DEBT-010: auto-healed orphan profile %s: %s -> free_trial", user_id[:8], plan_type)
+                        PLAN_RECONCILIATION_AUTO_HEALED.labels(direction="orphan_profile").inc()
+                        auto_healed += 1
+                    except Exception as heal_err:
+                        logger.warning("DEBT-010: auto-heal failed for orphan profile %s: %s", user_id[:8], heal_err)
             elif plan_type != sub_plan:
                 drift_details.append({"user_id": user_id[:8] + "...", "profile_plan": plan_type, "sub_plan": sub_plan, "direction": "profiles_stale"})
                 PLAN_RECONCILIATION_DRIFT.labels(direction="profiles_stale").inc()
+                # Self-heal: profiles_stale — align profile plan with active subscription
+                try:
+                    await sb_execute(
+                        sb.table("profiles").update({"plan_type": sub_plan}).eq("id", user_id),
+                        category="write",
+                    )
+                    logger.info("DEBT-010: auto-healed profile for user %s: %s -> %s", user_id[:8], plan_type, sub_plan)
+                    PLAN_RECONCILIATION_AUTO_HEALED.labels(direction="profiles_stale").inc()
+                    auto_healed += 1
+                except Exception as heal_err:
+                    logger.warning("DEBT-010: auto-heal failed for user %s: %s", user_id[:8], heal_err)
 
         result = {
             "status": "completed", "total_profiles": len(profiles), "total_active_subs": len(subs),
-            "drift_count": len(drift_details), "drift_details": drift_details[:20],
+            "drift_count": len(drift_details), "auto_healed": auto_healed, "drift_details": drift_details[:20],
             "checked_at": datetime.now(timezone.utc).isoformat(),
         }
         if drift_details:
-            logger.warning("DEBT-010: Plan reconciliation found %d drifts: %s", len(drift_details), drift_details[:5])
+            logger.warning("DEBT-010: Plan reconciliation found %d drifts, auto-healed %d: %s", len(drift_details), auto_healed, drift_details[:5])
         else:
             logger.info("DEBT-010: Plan reconciliation clean — %d profiles, %d active subs", len(profiles), len(subs))
         return result

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getRefreshedToken } from "../../../../../../lib/serverAuth";
-import { sanitizeProxyError } from "../../../../../../lib/proxy-error-handler";
+import { getRefreshedToken } from "../../../../../../../lib/serverAuth";
+import { sanitizeProxyError } from "../../../../../../../lib/proxy-error-handler";
 
 /**
  * SUBINTEL-011 (#1674): Proxy for partnership score endpoint.

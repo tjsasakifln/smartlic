@@ -1,40 +1,80 @@
-"""SUBINTEL-011 (#1674): Partnership Score schemas.
+"""Pydantic schemas for the Subcontracting Intelligence vertical.
 
-Response models for GET /v1/subcontract/partnership-score/{cnpj}.
+EPIC-SUBINTEL (#1224):
+  - SUBINTEL-022 (#1678): Subcontract pSEO block
+
+Every endpoint in the subnet is gated by requires_subcontract_intel()
+from quota/plan_auth.py (SUBINTEL-030).
 """
 
 from __future__ import annotations
 
-from pydantic import BaseModel
+from typing import Optional
+
+from pydantic import BaseModel, Field
 
 
-class SignalDetail(BaseModel):
-    """Individual signal detail within the capacity assessment."""
-
-    score: float
-    label: str
-    description: str
-    details: dict
+# ============================================================================
+# SUBINTEL-022 (#1678): Subcontract pSEO block
+# ============================================================================
 
 
-class CapacitySignals(BaseModel):
-    """Composite capacity signals derived from subcontract_capacity_signals RPC."""
+class HistoricalSupplier(BaseModel):
+    """A historical supplier with similar contracts."""
 
-    repeat_winner: SignalDetail
-    large_contract: SignalDetail
-    subcontracting_pattern: SignalDetail
+    cnpj: str = Field(..., description="CNPJ do fornecedor")
+    razao_social: Optional[str] = Field(None, description="Razão social")
+    similar_contracts_count: int = Field(
+        ..., ge=0, description="Número de contratos similares"
+    )
+    total_value: float = Field(
+        ..., ge=0.0, description="Valor total dos contratos"
+    )
+    avg_value: float = Field(
+        ..., ge=0.0, description="Valor médio dos contratos"
+    )
+    last_contract_year: Optional[int] = Field(
+        None, description="Ano do último contrato"
+    )
+    match_reason: str = Field(
+        ..., description="Razão da correspondência"
+    )
 
 
-class PartnershipScoreResponse(BaseModel):
-    """Score de Oportunidade de Parceria for a given CNPJ supplier.
+class SubcontractReason(BaseModel):
+    """A reason contributing to the subcontract potential score."""
 
-    Overall score (0.0-1.0) indicates how suitable this supplier is as a
-    subcontractor or strategic partner based on public contract signals.
-    """
+    reason: str = Field(..., description="Descrição do fator")
+    weight: float = Field(
+        ..., ge=0.0, le=1.0, description="Peso do fator no score"
+    )
 
-    cnpj: str
-    razao_social: str
-    overall_score: float
-    signals: CapacitySignals
-    narrative: str | None = None
-    disclaimer: str
+
+class SubcontractBidOpportunityResponse(BaseModel):
+    """Response for GET /v1/subcontract/opportunities."""
+
+    bid_id: str = Field(..., description="ID do edital")
+    bid_value: float = Field(
+        ..., ge=0.0, description="Valor estimado do edital"
+    )
+    bid_sector: str = Field(
+        ..., description="Setor do edital"
+    )
+    subcontract_potential_score: float = Field(
+        ...,
+        ge=0.0,
+        le=1.0,
+        description="Score de potencial de subcontratação (0-1)",
+    )
+    reasons: list[SubcontractReason] = Field(
+        ..., description="Razões para o score"
+    )
+    historical_suppliers: list[HistoricalSupplier] = Field(
+        ..., description="Fornecedores históricos similares"
+    )
+    disclaimer: str = Field(
+        ..., description="Disclaimer obrigatório"
+    )
+    generated_at: str = Field(
+        ..., description="Timestamp ISO da geração dos dados"
+    )

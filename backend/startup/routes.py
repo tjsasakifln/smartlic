@@ -94,7 +94,6 @@ from routes.seasonal_calendar import router as seasonal_calendar_router
 from routes.network_events import router as network_events_router
 from routes.segment import router as segment_router
 from routes.api_search import router as api_search_router
-from routes.admin_metrics import router as admin_metrics_router
 from routes.email_tracking import router as email_tracking_router
 from routes.admin_digest_metrics import router as admin_digest_metrics_router
 from routes.admin_command import router as admin_command_router
@@ -105,7 +104,7 @@ from routes.intel_vitrine import router as intel_vitrine_router
 from routes.pseo_intel_feed import router as pseo_intel_feed_router
 from routes.widget_compint import router as widget_compint_router
 from routes.consultoria import router as consultoria_router
-from routes.subcontract_intel import router as subcontract_intel_router
+from routes.network_intel import router as network_intel_router
 
 _v1_routers = [
     admin_router, subscriptions_router, upgrade_to_lifetime_router,
@@ -163,9 +162,11 @@ _v1_routers = [
     intel_tasting_router,
     predint_router,
     monthly_report_router,
+    intel_vitrine_router,
+    pseo_intel_feed_router,
     widget_compint_router,
     consultoria_router,
-    subcontract_intel_router,
+    network_intel_router,
 ]
 
 
