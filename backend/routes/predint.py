@@ -5,7 +5,8 @@ Combines:
   - PREDINT-021: Predictive API          (forecast, seasonality, renewals)
 """
 
-from __future__ import annotationsimport logging
+from __future__ import annotations
+import logging
 from datetime import date, datetime, timezone
 from typing import Optional
 
@@ -13,7 +14,8 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 
 from auth import require_auth
 from config.features import get_feature_flag
-from log_sanitizer import mask_user_idfrom redis_pool import get_redis_pool
+from log_sanitizer import mask_user_id
+from redis_pool import get_redis_pool
 from schemas.predint import (
     DemandForecastItem,
     DemandForecastResponse,
@@ -28,12 +30,53 @@ from schemas.predint import (
     row_to_alert_response,
 )
 
-logger = logging.getLogger(__name__)router = APIRouter(tags=["predint"])
+logger = logging.getLogger(__name__)
+router = APIRouter(tags=["predint"])
 
 # ---------------------------------------------------------------------------
 # Constants
 # ---------------------------------------------------------------------------
 _MAX_ALERTS_PER_USER = 50
+
+_VALID_UFS = {
+    "AC", "AL", "AP", "AM", "BA", "CE", "DF", "ES", "GO",
+    "MA", "MT", "MS", "MG", "PA", "PB", "PE", "PI", "PR",
+    "RJ", "RN", "RS", "RO", "RR", "SC", "SP", "SE", "TO",
+}
+
+# Cache TTLs (seconds)
+_CACHE_FORECAST_TTL = 3600       # 1h — data changes slowly
+_CACHE_SEASONALITY_TTL = 21600   # 6h — seasonal patterns are stable
+_CACHE_RENEWALS_TTL = 3600       # 1h — renewals window shifts daily
+
+
+# ============================================================================
+# PREDINT-024: Predictive Alert CRUD helpers
+# ============================================================================
+
+
+async def _get_sb():
+    from supabase_client import get_supabase, sb_execute
+    return get_supabase(), sb_execute
+
+
+async def _verify_ownership(alert_id: str, user_id: str, sb):
+    from supabase_client import sb_execute
+    result = await sb_execute(
+        sb.table("predictive_alerts")
+        .select("*")
+        .eq("id", alert_id)
+        .eq("user_id", user_id)
+    )
+    if not result.data or len(result.data) == 0:
+        raise HTTPException(status_code=404, detail="Alerta preditivo nao encontrado.")
+    return result.data[0]
+
+
+# ============================================================================
+# PREDINT-021: Predictive API helpers
+# ============================================================================
+
 
 async def _build_cache_key(prefix: str, *parts: Optional[str]) -> str:
     """Build a Redis cache key from prefix and parts."""
@@ -201,6 +244,7 @@ async def delete_predictive_alert(alert_id: str, user: dict = Depends(require_au
 # PREDINT-021: Demand Forecast
 # ============================================================================
 
+
 @router.get(
     "/predint/forecast",
     summary="Demand Forecast — monthly contract volume over time",
@@ -251,9 +295,6 @@ async def get_demand_forecast(
         sb = get_supabase()
 
         if uf_upper:
-=======
-            # UF-specific trend — use get_uf_demand_trend RPC
->>>>>>> origin/main
             async def _query():
                 resp = await sb_execute(
                     sb.rpc("get_uf_demand_trend", {
@@ -310,6 +351,7 @@ async def get_demand_forecast(
 # ============================================================================
 # PREDINT-021: Seasonal Pattern
 # ============================================================================
+
 
 @router.get(
     "/predint/seasonality/{sector_id}",
@@ -376,6 +418,7 @@ async def get_seasonal_pattern(
 # ============================================================================
 # PREDINT-021: Renewal Alerts
 # ============================================================================
+
 
 @router.get(
     "/predint/renewals",
