@@ -144,6 +144,15 @@ try:
     except ImportError:
         logger.debug("competitive_alert_job module not available — skipping registration")
 
+    # MKT-001 (#1616): Subcontract discovery — daily at 03:00 UTC
+    try:
+        from jobs.cron.subcontract_discovery import run_subcontract_discovery as _run_subcontract_discovery
+        _worker_cron_jobs.append(
+            _arq_cron(_run_subcontract_discovery, hour={3}, minute=0, timeout=600),
+        )
+    except ImportError:
+        pass
+
 except Exception:
     _worker_cron_jobs = []
 
@@ -238,6 +247,13 @@ class WorkerSettings:
     except ImportError:
         _competitive_alert_functions = []
 
+    # MKT-001 (#1616): Subcontract marketplace discovery function
+    try:
+        from jobs.cron.subcontract_discovery import run_subcontract_discovery as _run_subcontract_discovery
+        _subcontract_functions = [_run_subcontract_discovery]
+    except ImportError:
+        _subcontract_functions = []
+
     # Lead magnet PDF delivery jobs
     try:
         from jobs.cron.send_lead_magnet import send_lead_magnet_job as _send_lead_magnet_job
@@ -263,6 +279,7 @@ class WorkerSettings:
         *_founders_functions,
         *_lead_magnet_functions,
         *_competitive_alert_functions,
+        *_subcontract_functions,
     ]
     cron_jobs = _worker_cron_jobs
     on_startup = _worker_on_startup
