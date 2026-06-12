@@ -5131,6 +5131,33 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/profile/network-analytics": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Update Network Analytics
+         * @description NETINT-006: Update user's network analytics opt-in preference.
+         *
+         *     Sets ``profiles.allow_network_analytics`` to true or false.
+         *     Null (undecided) is treated as opt-out — this PATCH is how users
+         *     explicitly opt in.
+         *
+         *     SYS-023: Uses user-scoped Supabase client. RLS on profiles ensures
+         *     users can only update their own profile row.
+         */
+        put: operations["update_network_analytics_v1_profile_network_analytics_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/profile/sector-affinity": {
         parameters: {
             query?: never;
@@ -10838,6 +10865,21 @@ export interface components {
             /** Valor Total Licitacoes */
             valor_total_licitacoes: number;
         };
+        /** NetworkAnalyticsRequest */
+        NetworkAnalyticsRequest: {
+            /** Allow Network Analytics */
+            allow_network_analytics: boolean;
+        };
+        /** NetworkAnalyticsResponse */
+        NetworkAnalyticsResponse: {
+            /** Allow Network Analytics */
+            allow_network_analytics: boolean;
+            /**
+             * Success
+             * @default true
+             */
+            success: boolean;
+        };
         /** NewBidsCountResponse */
         NewBidsCountResponse: {
             /** Count */
@@ -14092,6 +14134,11 @@ export interface components {
          *     necessary plan information for UI rendering.
          */
         UserProfileResponse: {
+            /**
+             * Allow Network Analytics
+             * @description NETINT-001/006: User consent for anonymized network analytics collection. NULL = undecided (treated as opt-out), true = opted in, false = opted out.
+             */
+            allow_network_analytics?: boolean | null;
             /**
              * Capabilities
              * @description Plan capabilities (max_history_days, allow_excel, etc.)
@@ -21025,6 +21072,39 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["PerfilContextoResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_network_analytics_v1_profile_network_analytics_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["NetworkAnalyticsRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NetworkAnalyticsResponse"];
                 };
             };
             /** @description Validation Error */
