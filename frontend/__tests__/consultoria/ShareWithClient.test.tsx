@@ -92,7 +92,7 @@ describe("ShareWithClient", () => {
     });
   });
 
-  it("shows error when resource id is empty", () => {
+  it("shows error when resource id is empty", async () => {
     render(
       <ShareWithClient
         clientId="client-1"
@@ -105,9 +105,7 @@ describe("ShareWithClient", () => {
     const shareButton = screen.getByText("Compartilhar");
     fireEvent.click(shareButton);
 
-    expect(
-      screen.getByText("Informe o ID do recurso."),
-    ).toBeInTheDocument();
+    expect(await screen.findByText("Informe o ID do recurso.", undefined, { timeout: 3000 })).toBeInTheDocument();
     expect(mockOnShare).not.toHaveBeenCalled();
   });
 
