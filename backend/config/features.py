@@ -225,6 +225,9 @@ B2G_OPS_ENABLED: bool = str_to_bool(os.getenv("B2G_OPS_ENABLED", "true"))
 # Set env var to "false" to disable globally.
 INTELLIGENCE_TASTING_ENABLED: bool = str_to_bool(os.getenv("INTELLIGENCE_TASTING_ENABLED", "true"))
 
+# SCORE-001 (#1614): SmartLic Score ML — win probability model (default: false — internal only)
+SMARTLIC_SCORE_ENABLED: bool = str_to_bool(os.getenv("SMARTLIC_SCORE_ENABLED", "false"))
+
 
 # ============================================
 # Runtime-Reloadable Feature Flags (STORY-226 AC16)
@@ -298,6 +301,8 @@ _FEATURE_FLAG_REGISTRY: dict[str, tuple[str, str]] = {
     "B2G_OPS_ENABLED": ("B2G_OPS_ENABLED", "true"),
     # DEGUST-001 (#1611): Intelligence Tasting — trial upsell
     "INTELLIGENCE_TASTING_ENABLED": ("INTELLIGENCE_TASTING_ENABLED", "true"),
+    # SCORE-001 (#1614): SmartLic Score ML model — win probability prediction
+    "SMARTLIC_SCORE_ENABLED": ("SMARTLIC_SCORE_ENABLED", "false"),
     # --- Infra ---
     "METRICS_ENABLED": ("METRICS_ENABLED", "true"),
     "RATE_LIMITING_ENABLED": ("RATE_LIMITING_ENABLED", "true"),

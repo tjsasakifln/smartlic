@@ -3,6 +3,7 @@
 All endpoints are gated by requires_subcontract_intel() (SUBINTEL-030).
 
 Routes:
+  - GET /v1/subcontract/health                       SUBINTEL-030 (#1665): Gate health
   - GET /v1/subcontract/opportunities?bid={id}&sector={id}
     SUBINTEL-022 (#1678): Subcontract pSEO block data
 """
@@ -15,8 +16,13 @@ from datetime import datetime, timezone
 from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
+from pydantic import BaseModel
 
-from quota.plan_auth import get_subcontract_intel_dependency
+from config.features import get_feature_flag
+from quota.plan_auth import (
+    check_subcontract_intel_access,
+    get_subcontract_intel_dependency,
+)
 from schemas.subcontract_intel import (
     SubcontractBidOpportunityResponse,
     SubcontractReason,
@@ -60,6 +66,39 @@ def _get_cached(key: str) -> Optional[dict]:
 def _set_cached(key: str, data: dict) -> None:
     _cache[key] = (data, time.time())
 
+
+# ============================================================================
+# SUBINTEL-030 (#1665): Gate health endpoint
+# ============================================================================
+
+
+class _HealthResponse(BaseModel):
+    """Response model for the subcontract health endpoint."""
+
+    enabled: bool
+    has_access: bool
+    feature_flag: str = "SUBCONTRACT_INTEL_ENABLED"
+
+
+@router.get(
+    "/subcontract/health",
+    summary="Subcontract Intel health/gate status (SUBINTEL-030)",
+)
+async def subcontract_health(
+    user: dict = Depends(get_subcontract_intel_dependency()),
+) -> _HealthResponse:
+    """Return the gate status for the SUBINTEL vertical."""
+    flag_on = get_feature_flag("SUBCONTRACT_INTEL_ENABLED")
+    has_access = await check_subcontract_intel_access(user) if flag_on else False
+    return _HealthResponse(
+        enabled=bool(flag_on),
+        has_access=has_access,
+    )
+
+
+# ============================================================================
+# SUBINTEL-022 (#1678): Subcontract pSEO block
+# ============================================================================
 
 # ============================================================================
 # SUBINTEL-022 (#1678): Subcontract pSEO block
