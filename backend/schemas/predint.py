@@ -6,7 +6,8 @@ Combines:
 """
 
 from __future__ import annotations
-from datetime import date, datetimefrom typing import Optional
+from datetime import date, datetime
+from typing import Optional
 
 from pydantic import BaseModel, Field
 
@@ -61,7 +62,8 @@ def row_to_alert_response(row: dict) -> PredictiveAlertResponse:
 
 
 # ============================================================================
-# PREDINT-021: Demand Forecast# ============================================================================
+# PREDINT-021: Demand Forecast
+# ============================================================================
 
 
 class DemandForecastItem(BaseModel):
@@ -114,7 +116,8 @@ class DemandForecastResponse(BaseModel):
 
 
 # ============================================================================
-# PREDINT-021: Seasonal Pattern# ============================================================================
+# PREDINT-021: Seasonal Pattern
+# ============================================================================
 
 
 class SeasonalPatternItem(BaseModel):
@@ -150,7 +153,8 @@ class SeasonalPatternResponse(BaseModel):
 
 
 # ============================================================================
-# PREDINT-021: Renewal Alert# ============================================================================
+# PREDINT-021: Renewal Alert
+# ============================================================================
 
 
 class RenewalAlertItem(BaseModel):
