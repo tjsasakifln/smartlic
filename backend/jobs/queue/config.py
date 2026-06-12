@@ -64,6 +64,17 @@ try:
     except ImportError:
         pass
 
+    # NETINT-007: weekly network_events cleanup job (Sun at configurable hour, default 03:00 UTC).
+    try:
+        from config import NETWORK_EVENTS_CLEANUP_HOUR, NETWORK_EVENTS_CLEANUP_ENABLED
+        if NETWORK_EVENTS_CLEANUP_ENABLED:
+            from jobs.cron.network_events_cleanup import aggregate_and_cleanup_network_events
+            _worker_cron_jobs.append(
+                _arq_cron(aggregate_and_cleanup_network_events, weekday={6}, hour={NETWORK_EVENTS_CLEANUP_HOUR}, minute=0, timeout=600)
+            )
+    except ImportError:
+        pass
+
     try:
         from ingestion.config import DATALAKE_ENABLED
         if DATALAKE_ENABLED:
@@ -249,6 +260,13 @@ class WorkerSettings:
         )
         _lead_magnet_functions = []
 
+    # NETINT-007: network_events cleanup function (weekly cron).
+    try:
+        from jobs.cron.network_events_cleanup import aggregate_and_cleanup_network_events as _network_events_cleanup_func
+        _network_events_functions = [_network_events_cleanup_func]
+    except ImportError:
+        _network_events_functions = []
+
     functions = [
         llm_summary_job, excel_generation_job, search_job,
         bid_analysis_job, daily_digest_job, email_alerts_job,
@@ -263,6 +281,7 @@ class WorkerSettings:
         *_founders_functions,
         *_lead_magnet_functions,
         *_competitive_alert_functions,
+        *_network_events_functions,
     ]
     cron_jobs = _worker_cron_jobs
     on_startup = _worker_on_startup
