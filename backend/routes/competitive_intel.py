@@ -1,8 +1,14 @@
 """COMPINT-011 (#1663): Competitive Intelligence route — supplier-level data.
+COMPINT-012 (#1666): Competitive Alerts CRUD.
 
-GET /v1/intel-concorrente/fornecedor/{cnpj}
-  Returns aggregated competitive data for a specific supplier (CNPJ).
-  Gated by COMPETITIVE_INTEL_ENABLED + allow_competitive_intel capability.
+Endpoints:
+  GET /v1/intel-concorrente/fornecedor/{cnpj}
+    Returns aggregated competitive data for a specific supplier (CNPJ).
+    Gated by COMPETITIVE_INTEL_ENABLED + allow_competitive_intel capability.
+
+  POST /v1/intel-concorrente/alerts — create alert
+  GET /v1/intel-concorrente/alerts — list user's alerts
+  DELETE /v1/intel-concorrente/alerts/{id} — delete alert
 
 Consumes:
   - competitor_territory_map (COMPINT-001 RPC)
@@ -15,9 +21,13 @@ from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Path
 
+from auth import require_auth
 from quota.plan_auth import get_competitive_intel_dependency
 from schemas.competitive_intel import (
     AlertaPosicionamento,
+    CompetitiveAlertCreate,
+    CompetitiveAlertListResponse,
+    CompetitiveAlertResponse,
     ConcorrenteInfo,
     FornecedorIntelResponse,
     TerritorioStats,
@@ -283,3 +293,153 @@ async def fornecedor_competitive_intel(
         feature_enabled=True,
         generated_at=now_iso,
     )
+
+
+# ============================================================================
+# COMPINT-012 (#1666): Competitive Alerts CRUD
+# ============================================================================
+
+
+def _validate_alert_cnpj(cnpj: str) -> str:
+    """Validate and clean CNPJ."""
+    clean = "".join(c for c in cnpj if c.isdigit())
+    if len(clean) != 14:
+        raise HTTPException(
+            status_code=400,
+            detail="CNPJ inválido: deve conter 14 dígitos.",
+        )
+    return clean
+
+
+@router.post(
+    "/intel-concorrente/alerts",
+    summary="Create competitive alert (COMPINT-012)",
+    response_model=CompetitiveAlertResponse,
+    status_code=201,
+)
+async def create_competitive_alert(
+    body: CompetitiveAlertCreate,
+    user: dict = Depends(require_auth),
+):
+    """Create a new competitive alert to monitor a competitor CNPJ."""
+    cnpj_clean = _validate_alert_cnpj(body.competitor_cnpj)
+
+    # Validate alert_type
+    valid_types = {"new_contract", "new_uf", "new_agency", "new_sector_entrant"}
+    if body.alert_type not in valid_types:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Tipo de alerta inválido. Válidos: {', '.join(sorted(valid_types))}",
+        )
+
+    sb = get_supabase()
+    now_iso = datetime.now(timezone.utc).isoformat()
+
+    try:
+        result = await sb_execute(
+            sb.table("competitive_alerts")
+            .insert({
+                "user_id": user["id"],
+                "competitor_cnpj": cnpj_clean,
+                "alert_type": body.alert_type,
+                "enabled": body.enabled,
+            })
+            .select("*"),
+            category="write",
+        )
+        rows = result.data or []
+        if not rows:
+            raise HTTPException(status_code=500, detail="Falha ao criar alerta.")
+        row = rows[0] if isinstance(rows, list) else rows
+        return CompetitiveAlertResponse(
+            id=row["id"],
+            user_id=row["user_id"],
+            competitor_cnpj=row["competitor_cnpj"],
+            alert_type=row["alert_type"],
+            enabled=row.get("enabled", True),
+            created_at=row.get("created_at", now_iso),
+        )
+    except HTTPException:
+        raise
+    except Exception as exc:
+        logger.error("Failed to create competitive alert: %s", exc)
+        raise HTTPException(status_code=500, detail="Falha ao criar alerta.")
+
+
+@router.get(
+    "/intel-concorrente/alerts",
+    summary="List user's competitive alerts (COMPINT-012)",
+    response_model=CompetitiveAlertListResponse,
+)
+async def list_competitive_alerts(
+    user: dict = Depends(require_auth),
+):
+    """List all competitive alerts for the authenticated user."""
+    sb = get_supabase()
+
+    try:
+        result = await sb_execute(
+            sb.table("competitive_alerts")
+            .select("*")
+            .eq("user_id", user["id"])
+            .order("created_at", desc=True)
+        )
+        rows = result.data or []
+        return CompetitiveAlertListResponse(
+            alerts=[
+                CompetitiveAlertResponse(
+                    id=r["id"],
+                    user_id=r["user_id"],
+                    competitor_cnpj=r["competitor_cnpj"],
+                    alert_type=r["alert_type"],
+                    enabled=r.get("enabled", True),
+                    created_at=r.get("created_at"),
+                )
+                for r in rows
+            ],
+            total=len(rows),
+        )
+    except Exception as exc:
+        logger.error("Failed to list competitive alerts: %s", exc)
+        raise HTTPException(status_code=500, detail="Falha ao listar alertas.")
+
+
+@router.delete(
+    "/intel-concorrente/alerts/{alert_id}",
+    summary="Delete competitive alert (COMPINT-012)",
+    status_code=204,
+)
+async def delete_competitive_alert(
+    alert_id: str,
+    user: dict = Depends(require_auth),
+):
+    """Delete a competitive alert by ID."""
+    sb = get_supabase()
+
+    try:
+        # Verify ownership
+        check = await sb_execute(
+            sb.table("competitive_alerts")
+            .select("id")
+            .eq("id", alert_id)
+            .eq("user_id", user["id"])
+            .single(),
+        )
+        if not check.data:
+            raise HTTPException(
+                status_code=404,
+                detail="Alerta não encontrado ou não pertence ao usuário.",
+            )
+
+        await sb_execute(
+            sb.table("competitive_alerts")
+            .delete()
+            .eq("id", alert_id)
+            .eq("user_id", user["id"]),
+            category="write",
+        )
+    except HTTPException:
+        raise
+    except Exception as exc:
+        logger.error("Failed to delete competitive alert %s: %s", alert_id, exc)
+        raise HTTPException(status_code=500, detail="Falha ao deletar alerta.")

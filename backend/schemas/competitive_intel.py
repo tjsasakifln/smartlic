@@ -3,13 +3,22 @@
 FornecedorIntelResponse — returned by GET /v1/intel-concorrente/fornecedor/{cnpj}.
 Aggregates data from competitor_territory_map (COMPINT-001) and
 competitor_win_metrics (COMPINT-002) RPCs.
+
+COMPINT-012 (#1666): Competitive Alert schemas.
+CompetitiveAlertCreate — POST body for creating an alert.
+CompetitiveAlertResponse — response for alert CRUD.
 """
 
 from __future__ import annotations
 
 from typing import Optional
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
+
+
+# ============================================================================
+# COMPINT-011: Fornecedor Intel Response
+# ============================================================================
 
 
 class TerritorioEntry(BaseModel):
@@ -91,3 +100,42 @@ class FornecedorIntelResponse(BaseModel):
     alertas: list[AlertaPosicionamento] = []
     feature_enabled: bool = True
     generated_at: str = ""
+
+
+# ============================================================================
+# COMPINT-012: Competitive Alert schemas
+# ============================================================================
+
+
+class CompetitiveAlertCreate(BaseModel):
+    """POST body for creating a competitive alert."""
+
+    competitor_cnpj: str = Field(
+        ..., description="CNPJ do concorrente a monitorar (14 dígitos)"
+    )
+    alert_type: str = Field(
+        "new_contract",
+        description="Tipo de alerta: new_contract, new_uf, new_agency, new_sector_entrant",
+    )
+    enabled: bool = True
+
+
+class CompetitiveAlertResponse(BaseModel):
+    """Response model for a competitive alert."""
+
+    id: str
+    user_id: str
+    competitor_cnpj: str
+    alert_type: str
+    enabled: bool
+    created_at: Optional[str] = None
+
+    class Config:
+        from_attributes = True
+
+
+class CompetitiveAlertListResponse(BaseModel):
+    """List of competitive alerts for the current user."""
+
+    alerts: list[CompetitiveAlertResponse]
+    total: int
