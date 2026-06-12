@@ -12,24 +12,31 @@ import React from "react";
 import { render, screen, waitFor } from "@testing-library/react";
 import { EmbedIntelFeed } from "@/components/pseo/EmbedIntelFeed";
 
-// Mock IntersectionObserver
+// Mock IntersectionObserver — plain class survives jest.config.js resetMocks/restoreMocks.
+// Cannot use jest.fn() because resetMocks clears its implementation, causing
+// `new IntersectionObserver(cb)` to return an object without `observe`.
 const mockObserve = jest.fn();
 const mockDisconnect = jest.fn();
 const mockIntersectionCallback = jest.fn();
 
 beforeAll(() => {
-  global.IntersectionObserver = jest.fn((callback) => {
-    mockIntersectionCallback.mockImplementation(callback);
-    return {
-      observe: mockObserve,
-      disconnect: mockDisconnect,
-      unobserve: jest.fn(),
-      takeRecords: jest.fn().mockReturnValue([]),
-      root: null,
-      rootMargin: "",
-      thresholds: [],
-    };
-  }) as unknown as typeof IntersectionObserver;
+  class TestIntersectionObserver {
+    observe = mockObserve;
+    unobserve = jest.fn();
+    disconnect = mockDisconnect;
+    takeRecords = jest.fn().mockReturnValue([]);
+    root = null;
+    rootMargin = "";
+    thresholds = [];
+    constructor(callback: IntersectionObserverCallback) {
+      mockIntersectionCallback.mockImplementation(callback);
+    }
+  }
+  Object.defineProperty(global, 'IntersectionObserver', {
+    value: TestIntersectionObserver as unknown as typeof IntersectionObserver,
+    writable: true,
+    configurable: true,
+  });
 });
 
 beforeEach(() => {

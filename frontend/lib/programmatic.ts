@@ -9,9 +9,33 @@ import { SECTORS, type SectorMeta } from './sectors';
 import { ssgLimitedFetch } from '@/lib/concurrency';
 
 // BUILD-FIX: Detect build phase to avoid throwing on 5xx during initial SSG.
-// During `next build`, NEXT_PHASE is set to 'phase-production-build'.
-// During ISR revalidation at runtime, it is unset or 'phase-production-server'.
-const IS_BUILD_PHASE = process.env.NEXT_PHASE === 'phase-production-build';
+// During `next build`, static generation has no ISR cache — a 5xx throw is
+// fatal. At runtime ISR, throwing on 5xx preserves the last-good cached page.
+//
+// Detection strategy:
+//   1. NEXT_PHASE env var — set by Next.js CLI in the main process. May not
+//      propagate to worker processes that actually generate static pages.
+//   2. process.argv fallback — Next.js build workers are spawned from
+//      next/dist/build/ or next/dist/compiled/ entry points. Runtime ISR
+//      workers use next/dist/server/ paths, which are excluded.
+const IS_BUILD_PHASE: boolean = (() => {
+  if (typeof process === 'undefined') return false;
+  if (
+    process.env.NEXT_PHASE === 'phase-production-build' ||
+    process.env.NEXT_PHASE === 'phase-development-build'
+  ) {
+    return true;
+  }
+  // Fallback: Next.js build worker detection via entry-point path.
+  const execPath = process.argv[1] || '';
+  if (
+    execPath.includes('next/dist/build') ||
+    execPath.includes('next/dist/compiled')
+  ) {
+    return true;
+  }
+  return false;
+})();
 
 // SEO-478: Slugs cujo ID no backend difere do padrão slug.replace(/-/g, '_').
 // Preserva URLs existentes sem quebrar o mapeamento para IDs do backend.

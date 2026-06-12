@@ -35,6 +35,18 @@ jest.mock('./lib/supabase', () => {
   };
 });
 
+// Mock mixpanel for jsdom — components access global.mixpanel.get('track')
+// Define as configurable property so tests can jest.spyOn(global, 'mixpanel', 'get')
+if (typeof global.mixpanel === 'undefined') {
+  let _mixpanelInstance: any = null;
+  Object.defineProperty(global, 'mixpanel', {
+    configurable: true,
+    enumerable: true,
+    get: () => _mixpanelInstance,
+    set: (v: any) => { _mixpanelInstance = v; },
+  });
+}
+
 // Polyfill for Next.js 14+ compatibility
 import { TextEncoder, TextDecoder } from 'util'
 
@@ -178,6 +190,30 @@ if (typeof window !== 'undefined') {
     writable: true,
     configurable: true,
     value: MockIntersectionObserver,
+  });
+}
+
+// Mock HTMLCanvasElement.getContext (not available in jsdom)
+// Required for Recharts components (MarketShareChart, SubscriptionList, etc.)
+if (typeof window !== 'undefined' && typeof HTMLCanvasElement !== 'undefined') {
+  HTMLCanvasElement.prototype.getContext = jest.fn().mockReturnValue({
+    clearRect: jest.fn(),
+    fillRect: jest.fn(),
+    fillText: jest.fn(),
+    measureText: jest.fn(() => ({ width: 0 })),
+    beginPath: jest.fn(),
+    moveTo: jest.fn(),
+    lineTo: jest.fn(),
+    stroke: jest.fn(),
+    arc: jest.fn(),
+    setTransform: jest.fn(),
+    drawImage: jest.fn(),
+    save: jest.fn(),
+    restore: jest.fn(),
+    scale: jest.fn(),
+    translate: jest.fn(),
+    rotate: jest.fn(),
+    createLinearGradient: jest.fn(() => ({ addColorStop: jest.fn() })),
   });
 }
 
