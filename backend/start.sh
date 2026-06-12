@@ -118,10 +118,13 @@ _start_worker() {
 # ── Uvicorn launcher (foreground) ───────────────────────────────────────
 _start_uvicorn() {
   local workers="${WEB_CONCURRENCY:-2}"
-  # CRIT-083 AC6 MEM-6: Reduced from 10000→5000 to limit memory accumulation.
-  # Worker RSS grows ~50KB/request (cache churn + object churn). At 5000 requests
-  # that's ~250MB growth — well within the 512MB threshold with margin.
-  local limit_max_requests="${GUNICORN_MAX_REQUESTS:-5000}"
+  # CRIT-083 AC6 MEM-6: 10000 — balance between memory accumulation (~500MB at
+  # 50KB/req) and availability (prevents worker recycling during ISR revalidation
+  # storms like blog_stats 100+ cities × sectors, issue #1749).
+  # Original values: 10000 (CRIT-083), reduced to 5000 (2026-04), increased back
+  # to 10000 (2026-06-12, #1749) when ISR storm exhausted 5000-request limit
+  # causing ~5-10s downtime per worker cycle.
+  local limit_max_requests="${GUNICORN_MAX_REQUESTS:-10000}"
   local graceful_timeout="${UVICORN_TIMEOUT_GRACEFUL_SHUTDOWN:-120}"
   local keep_alive="${GUNICORN_KEEP_ALIVE:-75}"
   local log_level="${UVICORN_LOG_LEVEL:-info}"
@@ -132,6 +135,8 @@ _start_uvicorn() {
   echo "  Cross-worker SSE: Redis Streams (STORY-276). Graceful timeout: ${graceful_timeout}s"
   echo "  host=0.0.0.0, port=${port}, workers=${workers}, keep-alive=${keep_alive}s"
   echo "  ADR-MEMORY-BUDGET rotation: limit_max_requests=${limit_max_requests}"
+  echo "  P0-#1749 readiness: /health/ready returns 503 until startup_time set;"
+  echo "  /health/live always 200. Railway probe interval prevents traffic during restart."
 
   uvicorn main:app \
     --host "0.0.0.0" \
@@ -187,7 +192,7 @@ case "$PROCESS_TYPE" in
         --log-level "${UVICORN_LOG_LEVEL:-info}" \
         --timeout-keep-alive "${GUNICORN_KEEP_ALIVE:-75}" \
         --workers "${WEB_CONCURRENCY:-2}" \
-        --limit-max-requests "${GUNICORN_MAX_REQUESTS:-5000}" \
+        --limit-max-requests "${GUNICORN_MAX_REQUESTS:-10000}" \
         --timeout-graceful-shutdown "${UVICORN_TIMEOUT_GRACEFUL_SHUTDOWN:-120}"
     fi
     ;;

@@ -421,6 +421,16 @@ async def recalcular_municipios_existentes(periodo: str) -> dict:
 
     logger.info("indice_municipal recalcular: %d municípios para período %s", len(municipios), periodo)
 
+    # P0-#1749: sem checkpoint — se o worker restartar durante a iteração,
+    # todo o progresso é perdido e recalcula do início. Recomendado:
+    # salvar índice processado atual a cada N municípios e retomar daí
+    # em caso de restart.
+    logger.warning(
+        "P0-#1749: recalcular_municipios_existentes nao possui checkpoint — "
+        "%d municipios serao recalculados do inicio em caso de restart do worker",
+        len(municipios),
+    )
+
     _total = len(municipios)
     for idx, entry in enumerate(municipios, 1):
         if idx % 10 == 0:
