@@ -1316,6 +1316,11 @@ FEEDBACK_NEGATIVE_TOTAL = _create_counter(
 )
 
 # STORY-SEO-005: GSC weekly sync observability
+NETWORK_CLEANUP_AFFECTED_ROWS = _create_gauge(
+    "smartlic_network_cleanup_affected_rows",
+    "NETINT-007: Rows affected by the last network_events cleanup run",
+)
+
 NETWORK_EVENTS_COLLECTED_TOTAL = _create_counter(
     "network_events_collected_total",
     "Total de eventos coletados por tipo",
@@ -1348,6 +1353,7 @@ network_events_cleanup_duration_seconds = _create_histogram(
     "network_cleanup_duration_seconds",
     "NETINT-008: Duracao do job de cleanup",
     buckets=[5, 10, 30, 60, 120, 300, 600],
+)
 )
 
 smartlic_gsc_sync_duration_seconds = _create_histogram(
