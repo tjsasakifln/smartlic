@@ -82,14 +82,42 @@ interface FornecedorProfile {
 
 async function fetchProfile(cnpj: string): Promise<FornecedorProfile | null> {
   const backendUrl = process.env.BACKEND_URL || 'http://localhost:8000';
-  // SEO-FE-ISR-001 (#1038): no try/catch — let network/timeout errors propagate so
-  // ISR keeps the last-good cached page rather than caching a null-driven EmptyState.
-  const res = await ssgLimitedFetch(`${backendUrl}/v1/fornecedores/${cnpj}/profile`, {
-    next: { revalidate: 3600 }, // 1h ISR
-    signal: AbortSignal.timeout(15_000),
-  });
+
+  async function attempt(timeoutMs: number): Promise<Response> {
+    return ssgLimitedFetch(`${backendUrl}/v1/fornecedores/${cnpj}/profile`, {
+      next: { revalidate: 3600 }, // 1h ISR
+      signal: AbortSignal.timeout(timeoutMs),
+    });
+  }
+
+  // 45s timeout covers backend fornecedor_profile 30s budget + 15s margem for retries/network
+  let res: Response;
+  try {
+    res = await attempt(45_000);
+  } catch (firstErr) {
+    // Timeout or network error — retry once after 2s backoff
+    console.warn(
+      '[fornecedores] fetchProfile first attempt failed, retrying in 2s:',
+      cnpj,
+      firstErr instanceof Error ? firstErr.message : firstErr,
+    );
+    await new Promise<void>((resolve) => setTimeout(resolve, 2000));
+    try {
+      res = await attempt(45_000);
+    } catch (retryErr) {
+      // Retry also failed — graceful degradation: return null instead of throwing,
+      // avoiding cascading TimeoutError that breaks the entire page (P0 #1747).
+      console.error(
+        '[fornecedores] fetchProfile retry also failed, returning null:',
+        cnpj,
+        retryErr instanceof Error ? retryErr.message : retryErr,
+      );
+      return null;
+    }
+  }
+  // SEO-FE-ISR-001 (#1038): 5xx throws so ISR keeps the last-good cached page
+  // rather than caching a null-driven EmptyState.
   if (res.status >= 500) {
-    // Transient backend error — throw so ISR preserves last-good cache.
     throw new Error(`fornecedores_profile_backend_5xx:${res.status}`);
   }
   // 4xx (incl. 404) → genuine "no data" — render EmptyStateSEO.
@@ -102,7 +130,7 @@ export async function generateStaticParams() {
   try {
     const res = await ssgLimitedFetch(`${backendUrl}/v1/sitemap/fornecedores-cnpj`, {
       next: { revalidate: 3600 }, // SEN-FE-001: align with page revalidate=3600; never mix cache:'no-store' + revalidate
-      signal: AbortSignal.timeout(15000),
+      signal: AbortSignal.timeout(30000),
     });
     if (!res.ok) return [];
     const data = await res.json();
@@ -177,8 +205,8 @@ export default async function FornecedorCnpjPage({ params }: Props) {
   if (!profile) {
     return (
       <EmptyStateSEO
-        title="Fornecedor sem contratos registrados ainda"
-        description="Este CNPJ não possui contratos públicos registrados nas fontes oficiais no momento. Os dados são indexados diariamente — volte em breve."
+        title="Dados temporariamente indisponíveis"
+        description="Não foi possível carregar os dados deste fornecedor no momento. Os dados das fontes oficiais são indexados diariamente — tente novamente em instantes."
         ctaHref="/fornecedores"
         ctaLabel="Ver outros fornecedores"
       />
