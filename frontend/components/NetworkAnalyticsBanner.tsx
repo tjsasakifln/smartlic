@@ -24,8 +24,8 @@ export default function NetworkAnalyticsBanner() {
     // Check if user has already made a decision (allow_network_analytics is not null)
     // We infer this from user profile data — if the user object has the field
     // and it's explicitly true or false, skip the banner
-    const hasDecided = (user as Record<string, unknown>)?.allow_network_analytics !== undefined
-      && (user as Record<string, unknown>)?.allow_network_analytics !== null;
+    const hasDecided = (user as unknown as Record<string, unknown>)?.allow_network_analytics !== undefined
+      && (user as unknown as Record<string, unknown>)?.allow_network_analytics !== null;
 
     if (!hasDecided) {
       setVisible(true);

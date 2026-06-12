@@ -1354,7 +1354,6 @@ network_events_cleanup_duration_seconds = _create_histogram(
     "NETINT-008: Duracao do job de cleanup",
     buckets=[5, 10, 30, 60, 120, 300, 600],
 )
-)
 
 smartlic_gsc_sync_duration_seconds = _create_histogram(
     "smartlic_gsc_sync_duration_seconds",

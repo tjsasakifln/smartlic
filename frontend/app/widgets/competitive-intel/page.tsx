@@ -275,7 +275,7 @@ function WidgetContent({ tema, data }: { tema: WidgetTema; data: WidgetData }) {
     case 'market-share':
       return (
         <MarketShareWidget
-          dados={dados as Record<string, unknown>}          setor={setor}
+          dados={dados as any}          setor={setor}
           uf={uf}
           periodo={periodo}
         />
@@ -283,7 +283,7 @@ function WidgetContent({ tema, data }: { tema: WidgetTema; data: WidgetData }) {
     case 'top-winners':
       return (
         <TopWinnersWidget
-          dados={dados as Record<string, unknown>}          setor={setor}
+          dados={dados as any}          setor={setor}
           uf={uf}
           periodo={periodo}
         />
@@ -291,7 +291,7 @@ function WidgetContent({ tema, data }: { tema: WidgetTema; data: WidgetData }) {
     case 'monthly-trend':
       return (
         <MonthlyTrendWidget
-          dados={dados as Record<string, unknown>}          setor={setor}
+          dados={dados as any}          setor={setor}
           uf={uf}
           periodo={periodo}
         />
@@ -299,7 +299,7 @@ function WidgetContent({ tema, data }: { tema: WidgetTema; data: WidgetData }) {
     case 'orgao-ranking':
       return (
         <OrgaoRankingWidget
-          dados={dados as Record<string, unknown>}          setor={setor}
+          dados={dados as any}          setor={setor}
           uf={uf}
           periodo={periodo}
         />
