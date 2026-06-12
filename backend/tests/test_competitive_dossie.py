@@ -1,6 +1,7 @@
 """Tests for COMPINT-014: Competitive Dossie PDF endpoint.
 
 Covers:
+  Issue: #1669 COMPINT-014 — Competitive Dossie PDF
   - POST /v1/intel-concorrente/dossie/{cnpj}
   - GET  /v1/intel-concorrente/dossie/{cnpj}/{job_id}/status
   - PDF generation
