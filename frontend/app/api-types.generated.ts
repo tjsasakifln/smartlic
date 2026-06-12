@@ -6180,6 +6180,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/subcontract/opportunities": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Subcontract Opportunities for Bid (SUBINTEL-022)
+         * @description Return subcontract potential score and historical suppliers for a bid.
+         */
+        get: operations["get_subcontract_opportunities_v1_subcontract_opportunities_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/subscription/status": {
         parameters: {
             query?: never;
@@ -10491,6 +10511,47 @@ export interface components {
             range_label: string;
         };
         /**
+         * HistoricalSupplier
+         * @description A historical supplier with similar contracts.
+         */
+        HistoricalSupplier: {
+            /**
+             * Avg Value
+             * @description Valor médio dos contratos
+             */
+            avg_value: number;
+            /**
+             * Cnpj
+             * @description CNPJ do fornecedor
+             */
+            cnpj: string;
+            /**
+             * Last Contract Year
+             * @description Ano do último contrato
+             */
+            last_contract_year?: number | null;
+            /**
+             * Match Reason
+             * @description Razão da correspondência
+             */
+            match_reason: string;
+            /**
+             * Razao Social
+             * @description Razão social
+             */
+            razao_social?: string | null;
+            /**
+             * Similar Contracts Count
+             * @description Número de contratos similares
+             */
+            similar_contracts_count: number;
+            /**
+             * Total Value
+             * @description Valor total dos contratos
+             */
+            total_value: number;
+        };
+        /**
          * IncidentEntry
          * @description One incident record from the public status timeline.
          */
@@ -13925,6 +13986,68 @@ export interface components {
             since?: string | null;
             /** Stripe */
             stripe: string;
+        };
+        /**
+         * SubcontractBidOpportunityResponse
+         * @description Response for GET /v1/subcontract/opportunities.
+         */
+        SubcontractBidOpportunityResponse: {
+            /**
+             * Bid Id
+             * @description ID do edital
+             */
+            bid_id: string;
+            /**
+             * Bid Sector
+             * @description Setor do edital
+             */
+            bid_sector: string;
+            /**
+             * Bid Value
+             * @description Valor estimado do edital
+             */
+            bid_value: number;
+            /**
+             * Disclaimer
+             * @description Disclaimer obrigatório
+             */
+            disclaimer: string;
+            /**
+             * Generated At
+             * @description Timestamp ISO da geração dos dados
+             */
+            generated_at: string;
+            /**
+             * Historical Suppliers
+             * @description Fornecedores históricos similares
+             */
+            historical_suppliers: components["schemas"]["HistoricalSupplier"][];
+            /**
+             * Reasons
+             * @description Razões para o score
+             */
+            reasons: components["schemas"]["SubcontractReason"][];
+            /**
+             * Subcontract Potential Score
+             * @description Score de potencial de subcontratação (0-1)
+             */
+            subcontract_potential_score: number;
+        };
+        /**
+         * SubcontractReason
+         * @description A reason contributing to the subcontract potential score.
+         */
+        SubcontractReason: {
+            /**
+             * Reason
+             * @description Descrição do fator
+             */
+            reason: string;
+            /**
+             * Weight
+             * @description Peso do fator no score
+             */
+            weight: number;
         };
         /**
          * SubscriptionStatusResponse
@@ -22949,6 +23072,40 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["UptimeHistoryResponse"];
+                };
+            };
+        };
+    };
+    get_subcontract_opportunities_v1_subcontract_opportunities_get: {
+        parameters: {
+            query: {
+                /** @description Bid ID (pncp_id from pncp_raw_bids). */
+                bid: string;
+                /** @description Sector ID for context (e.g., 'engenharia'). Optional. */
+                sector?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SubcontractBidOpportunityResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };
