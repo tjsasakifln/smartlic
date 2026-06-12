@@ -72,7 +72,8 @@ export type PageTemplateType =
   | 'orgao'
   | 'contrato'
   | 'cnpj'
-  | 'glossario';
+  | 'glossario'
+  | 'inteligencia';
 
 export interface OperationalContext {
   /** Tema principal, nome do setor, razão social, termo do glossário etc. */

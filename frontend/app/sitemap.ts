@@ -1030,6 +1030,14 @@ export default async function sitemap(props: { id: Promise<string> }): Promise<M
         priority: 0.6,
       }));
 
+      // VITRINE-001 (#1612): /inteligencia/{cnpj} — public intelligence vitrine pages.
+      const inteligenciaRoutes: MetadataRoute.Sitemap = fornecedoresCnpjList.map((cnpj) => ({
+        url: `${baseUrl}/inteligencia/${cnpj}`,
+        lastModified: today,
+        changeFrequency: 'weekly' as const,
+        priority: 0.6,
+      }));
+
       // SEO-460: /contratos/orgao/{cnpj} — usa lista filtrada por contratos reais.
       // Endpoint /v1/sitemap/contratos-orgao-indexable consulta pncp_supplier_contracts
       // (não pncp_raw_bids) para garantir que apenas CNPJs com contratos assinados
@@ -1048,6 +1056,7 @@ export default async function sitemap(props: { id: Promise<string> }): Promise<M
       const filteredOrgaos = filterNoindexedSitemap(orgaoRoutes, 'orgaos');
       const filteredFornecedoresCnpj = filterNoindexedSitemap(fornecedoresCnpjRoutes, 'fornecedores-cnpj');
       const filteredContratosOrgao = filterNoindexedSitemap(contratosOrgaoRoutes, 'contratos-orgao');
+      const filteredInteligencia = filterNoindexedSitemap(inteligenciaRoutes, 'inteligencia');
 
       // SEO-COVERAGE-MANIFEST-001 (#1039): apply coverage gate after noindex filter.
       // Excludes coverage_status='empty' slugs; demotes 'historical_empty' to priority=0.3.
@@ -1064,6 +1073,7 @@ export default async function sitemap(props: { id: Promise<string> }): Promise<M
         ...coveredOrgaos,
         ...coveredFornecedoresCnpj,
         ...filteredContratosOrgao, // contratos orgão: already filtered by supplier_contracts
+        ...filteredInteligencia,   // VITRINE-001: public intelligence vitrine pages
       ];
     }
 

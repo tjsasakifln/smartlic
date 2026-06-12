@@ -7,6 +7,7 @@ import SchemaMarkup from '@/components/blog/SchemaMarkup';
 import BlogCTA from '@/components/blog/BlogCTA';
 import RelatedPages from '@/components/blog/RelatedPages';
 import { FoundersRibbon } from '@/components/banners/FoundersRibbon';
+import { EmbedIntelFeed } from '@/components/pseo/EmbedIntelFeed';
 import {
   generateSectorParams,
   fetchSectorBlogStats,
@@ -249,6 +250,11 @@ export default async function SectorProgrammaticPage({
               </div>
             </section>
           )}
+
+          {/* #1519 (NETINT-014): EmbedIntelFeed — compact market intelligence widget */}
+          <div className="mb-10">
+            <EmbedIntelFeed sector={setor} />
+          </div>
 
           {/* FAQ Section */}
           <section className="mb-10">
