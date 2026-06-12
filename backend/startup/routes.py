@@ -157,6 +157,7 @@ _v1_routers = [
     segment_router,
     api_search_router,
     intel_tasting_router,
+    intel_vitrine_router,
     widget_compint_router,
 ]
 
