@@ -1,6 +1,7 @@
 """Tests for COMPINT-013: Sector Benchmarks endpoint.
 
 Covers:
+  Issue: #1667 COMPINT-013 — Sector Benchmarks
   - GET /v1/intel-concorrente/benchmarks
   - Response validation
   - Invalid input handling
