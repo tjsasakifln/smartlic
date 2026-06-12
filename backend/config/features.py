@@ -291,6 +291,8 @@ _FEATURE_FLAG_REGISTRY: dict[str, tuple[str, str]] = {
     "B2G_OPS_ENABLED": ("B2G_OPS_ENABLED", "true"),
     # DEGUST-001 (#1611): Intelligence Tasting — trial upsell
     "INTELLIGENCE_TASTING_ENABLED": ("INTELLIGENCE_TASTING_ENABLED", "true"),
+    # MKT-001 (#1616): Subcontract Marketplace MVP
+    "SUBCONTRACT_MARKETPLACE_ENABLED": ("SUBCONTRACT_MARKETPLACE_ENABLED", "true"),
     # --- Infra ---
     "METRICS_ENABLED": ("METRICS_ENABLED", "true"),
     "RATE_LIMITING_ENABLED": ("RATE_LIMITING_ENABLED", "true"),

@@ -26,6 +26,15 @@ try:
 
     _worker_cron_jobs = []
 
+    # MKT-001 (#1616): Subcontract discovery — daily at 03:00 UTC
+    try:
+        from jobs.cron.subcontract_discovery import run_subcontract_discovery as _run_subcontract_discovery
+        _worker_cron_jobs.append(
+            _arq_cron(_run_subcontract_discovery, hour={3}, minute=0, timeout=600),
+        )
+    except ImportError:
+        pass
+
     from config import DIGEST_ENABLED, DIGEST_HOUR_UTC
     if DIGEST_ENABLED:
         _worker_cron_jobs.append(_arq_cron(daily_digest_job, hour={DIGEST_HOUR_UTC}, minute=0, timeout=1800))
@@ -184,6 +193,13 @@ class WorkerSettings:
     except ImportError:
         _founders_functions = []
 
+    # MKT-001 (#1616): Subcontract marketplace discovery function
+    try:
+        from jobs.cron.subcontract_discovery import run_subcontract_discovery as _run_subcontract_discovery
+        _subcontract_functions = [_run_subcontract_discovery]
+    except ImportError:
+        _subcontract_functions = []
+
     # Lead magnet PDF delivery jobs
     try:
         from jobs.cron.send_lead_magnet import send_lead_magnet_job as _send_lead_magnet_job
@@ -207,6 +223,7 @@ class WorkerSettings:
         *_monitoring_functions,
         *_founders_functions,
         *_lead_magnet_functions,
+        *_subcontract_functions,
     ]
     cron_jobs = _worker_cron_jobs
     on_startup = _worker_on_startup
