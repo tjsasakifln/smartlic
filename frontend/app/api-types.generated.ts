@@ -5025,6 +5025,57 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/predint/forecast": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Demand Forecast — monthly contract volume over time */
+        get: operations["get_demand_forecast_v1_predint_forecast_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/predint/renewals": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Renewal Alerts — contracts approaching estimated expiry */
+        get: operations["get_renewal_alerts_v1_predint_renewals_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/predint/seasonality/{sector_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Seasonal Pattern — average monthly contract distribution */
+        get: operations["get_seasonal_pattern_v1_predint_seasonality__sector_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/products": {
         parameters: {
             query?: never;
@@ -8844,6 +8895,56 @@ export interface components {
             success: boolean;
         };
         /**
+         * DemandForecastItem
+         * @description A single month in the demand forecast time series.
+         */
+        DemandForecastItem: {
+            /**
+             * Bid Count
+             * @description Number of bids/contracts in this month
+             */
+            bid_count: number;
+            /**
+             * Month
+             * @description Month in YYYY-MM format
+             */
+            month: string;
+            /**
+             * Total Value
+             * @description Total value of contracts in this month
+             */
+            total_value: number;
+        };
+        /**
+         * DemandForecastResponse
+         * @description Response from the demand forecast endpoint.
+         */
+        DemandForecastResponse: {
+            /**
+             * Feature Enabled
+             * @default true
+             */
+            feature_enabled: boolean;
+            /** Forecast */
+            forecast: components["schemas"]["DemandForecastItem"][];
+            /** Months */
+            months: number;
+            /** Sector */
+            sector?: string | null;
+            /**
+             * Total Contracts
+             * @default 0
+             */
+            total_contracts: number;
+            /**
+             * Total Value
+             * @default 0
+             */
+            total_value: number;
+            /** Uf */
+            uf?: string | null;
+        };
+        /**
          * DiagnosticoRequest
          * @description Request body for PDF diagnostico report generation.
          */
@@ -12111,6 +12212,60 @@ export interface components {
             email_queued: boolean;
         };
         /**
+         * RenewalAlertItem
+         * @description A single contract approaching renewal.
+         */
+        RenewalAlertItem: {
+            /**
+             * Contract Id
+             * @description Contract ID from pncp_supplier_contracts
+             */
+            contract_id: number;
+            /**
+             * Estimated Expiry
+             * Format: date
+             * @description Estimated expiry date (data_assinatura + 1 year heuristic)
+             */
+            estimated_expiry: string;
+            /**
+             * Orgao
+             * @description Name of the contracting public agency
+             */
+            orgao: string;
+            /**
+             * Value
+             * @description Estimated contract value
+             */
+            value: number;
+        };
+        /**
+         * RenewalAlertResponse
+         * @description Response from the renewal alerts endpoint.
+         */
+        RenewalAlertResponse: {
+            /** Alerts */
+            alerts: components["schemas"]["RenewalAlertItem"][];
+            /** Days */
+            days: number;
+            /**
+             * Feature Enabled
+             * @default true
+             */
+            feature_enabled: boolean;
+            /** Sector */
+            sector?: string | null;
+            /**
+             * Total Count
+             * @default 0
+             */
+            total_count: number;
+            /**
+             * Total Value
+             * @default 0
+             */
+            total_value: number;
+        };
+        /**
          * ReplyRequest
          * @description Request to reply to a conversation.
          */
@@ -12765,6 +12920,47 @@ export interface components {
              * @description UF code (uppercase)
              */
             uf: string;
+        };
+        /**
+         * SeasonalPatternItem
+         * @description A single month's seasonal average (Jan-Dec).
+         */
+        SeasonalPatternItem: {
+            /**
+             * Avg Count
+             * @description Average number of contracts in this month over the period
+             */
+            avg_count: number;
+            /**
+             * Avg Value
+             * @description Average contract value in this month
+             */
+            avg_value: number;
+            /**
+             * Month Num
+             * @description Month number (1=January, 12=December)
+             */
+            month_num: number;
+        };
+        /**
+         * SeasonalPatternResponse
+         * @description Response from the seasonal pattern endpoint.
+         */
+        SeasonalPatternResponse: {
+            /**
+             * Feature Enabled
+             * @default true
+             */
+            feature_enabled: boolean;
+            /** Patterns */
+            patterns: components["schemas"]["SeasonalPatternItem"][];
+            /**
+             * Peak Month
+             * @description Month with highest average contract count
+             */
+            peak_month?: number | null;
+            /** Sector */
+            sector?: string | null;
         };
         /**
          * SectorAffinityResponse
@@ -20879,6 +21075,107 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["SeasonalCalendarResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_demand_forecast_v1_predint_forecast_get: {
+        parameters: {
+            query?: {
+                /** @description Sector ID (e.g., 'alimentos'). If omitted, returns all sectors. */
+                sector?: string | null;
+                /** @description UF filter (2-letter). If omitted, returns national aggregation. */
+                uf?: string | null;
+                /** @description Lookback period in months (1-120, default 12) */
+                months?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DemandForecastResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_renewal_alerts_v1_predint_renewals_get: {
+        parameters: {
+            query?: {
+                /** @description Sector ID. If omitted, returns alerts for all sectors. */
+                sector?: string | null;
+                /** @description Lookahead window in days (1-365, default 90) */
+                days?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RenewalAlertResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_seasonal_pattern_v1_predint_seasonality__sector_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                sector_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SeasonalPatternResponse"];
                 };
             };
             /** @description Validation Error */
