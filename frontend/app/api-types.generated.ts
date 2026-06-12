@@ -4128,6 +4128,75 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/intel-concorrente/alerts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List user's competitive alerts (COMPINT-012)
+         * @description List all competitive alerts for the authenticated user.
+         */
+        get: operations["list_competitive_alerts_v1_intel_concorrente_alerts_get"];
+        put?: never;
+        /**
+         * Create competitive alert (COMPINT-012)
+         * @description Create a new competitive alert to monitor a competitor CNPJ.
+         */
+        post: operations["create_competitive_alert_v1_intel_concorrente_alerts_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/intel-concorrente/alerts/{alert_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Delete competitive alert (COMPINT-012)
+         * @description Delete a competitive alert by ID.
+         */
+        delete: operations["delete_competitive_alert_v1_intel_concorrente_alerts__alert_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/intel-concorrente/fornecedor/{cnpj}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Competitive Intelligence data for a supplier CNPJ (COMPINT-011)
+         * @description Return competitive intelligence data for *cnpj*.
+         *
+         *     Aggregates:
+         *     - Territorial map (COMPINT-001 RPC)
+         *     - Win metrics (COMPINT-002 RPC)
+         *     - Derived positioning alerts
+         */
+        get: operations["fornecedor_competitive_intel_v1_intel_concorrente_fornecedor__cnpj__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/intel-reports/": {
         parameters: {
             query?: never;
@@ -7002,6 +7071,21 @@ export interface components {
             /** Valor */
             valor?: number | null;
         };
+        /**
+         * AlertaPosicionamento
+         * @description Derived positioning alert.
+         */
+        AlertaPosicionamento: {
+            /** Mensagem */
+            mensagem: string;
+            /**
+             * Severidade
+             * @default info
+             */
+            severidade: string;
+            /** Tipo */
+            tipo: string;
+        };
         /** AlertasResponse */
         AlertasResponse: {
             /** Bids */
@@ -8307,6 +8391,56 @@ export interface components {
             /** Uf */
             uf: string | null;
         };
+        /**
+         * CompetitiveAlertCreate
+         * @description POST body for creating a competitive alert.
+         */
+        CompetitiveAlertCreate: {
+            /**
+             * Alert Type
+             * @description Tipo de alerta: new_contract, new_uf, new_agency, new_sector_entrant
+             * @default new_contract
+             */
+            alert_type: string;
+            /**
+             * Competitor Cnpj
+             * @description CNPJ do concorrente a monitorar (14 dígitos)
+             */
+            competitor_cnpj: string;
+            /**
+             * Enabled
+             * @default true
+             */
+            enabled: boolean;
+        };
+        /**
+         * CompetitiveAlertListResponse
+         * @description List of competitive alerts for the current user.
+         */
+        CompetitiveAlertListResponse: {
+            /** Alerts */
+            alerts: components["schemas"]["CompetitiveAlertResponse"][];
+            /** Total */
+            total: number;
+        };
+        /**
+         * CompetitiveAlertResponse
+         * @description Response model for a competitive alert.
+         */
+        CompetitiveAlertResponse: {
+            /** Alert Type */
+            alert_type: string;
+            /** Competitor Cnpj */
+            competitor_cnpj: string;
+            /** Created At */
+            created_at?: string | null;
+            /** Enabled */
+            enabled: boolean;
+            /** Id */
+            id: string;
+            /** User Id */
+            user_id: string;
+        };
         /** ComplianceProfileResponse */
         ComplianceProfileResponse: {
             /** Aviso Legal */
@@ -8327,6 +8461,24 @@ export interface components {
             total_sancoes_ceis: number;
             /** Total Sancoes Cnep */
             total_sancoes_cnep: number;
+        };
+        /**
+         * ConcorrenteInfo
+         * @description High-level competitor information.
+         */
+        ConcorrenteInfo: {
+            /** Cnpj */
+            cnpj: string;
+            /** Nome */
+            nome: string;
+            /** Ticket Mediana */
+            ticket_mediana: number;
+            /** Ticket Medio */
+            ticket_medio: number;
+            /** Total Contratos */
+            total_contratos: number;
+            /** Valor Total Contratado */
+            valor_total_contratado: number;
         };
         /**
          * ConsultantClientListResponse
@@ -9857,6 +10009,36 @@ export interface components {
              * @default in_progress
              */
             status: string;
+        };
+        /**
+         * FornecedorIntelResponse
+         * @description Complete competitive intelligence response for a supplier CNPJ.
+         *
+         *     Returned by GET /v1/intel-concorrente/fornecedor/{cnpj}.
+         */
+        FornecedorIntelResponse: {
+            /**
+             * Alertas
+             * @default []
+             */
+            alertas: components["schemas"]["AlertaPosicionamento"][];
+            concorrente: components["schemas"]["ConcorrenteInfo"];
+            /**
+             * Feature Enabled
+             * @default true
+             */
+            feature_enabled: boolean;
+            /**
+             * Generated At
+             * @default
+             */
+            generated_at: string;
+            /** Orgaos Favoritos */
+            orgaos_favoritos: components["schemas"]["OrgaoFavorito"][];
+            stats: components["schemas"]["TerritorioStats"];
+            /** Territorio */
+            territorio: components["schemas"]["TerritorioEntry"][];
+            win_metrics?: components["schemas"]["WinMetrics"] | null;
         };
         /** FornecedorProfileResponse */
         FornecedorProfileResponse: {
@@ -11435,6 +11617,27 @@ export interface components {
             total_contracts: number;
             /** Total Value */
             total_value: number;
+        };
+        /**
+         * OrgaoFavorito
+         * @description Favorite (most-contracted) agencies.
+         */
+        OrgaoFavorito: {
+            /**
+             * Categorias
+             * @default []
+             */
+            categorias: string[];
+            /** Contratos */
+            contratos: number;
+            /** Frequencia Anual */
+            frequencia_anual?: number | null;
+            /** Orgao Nome */
+            orgao_nome: string;
+            /** Ultima Vitoria */
+            ultima_vitoria?: string | null;
+            /** Valor Total */
+            valor_total: number;
         };
         /** OrgaoRank */
         OrgaoRank: {
@@ -14058,6 +14261,45 @@ export interface components {
             /** Total Won */
             total_won: number;
         };
+        /**
+         * TerritorioEntry
+         * @description Per-UF competitive territory data.
+         */
+        TerritorioEntry: {
+            /** Contratos */
+            contratos: number;
+            /** Market Share Uf */
+            market_share_uf?: number | null;
+            /**
+             * Orgaos Principais
+             * @default []
+             */
+            orgaos_principais: string[];
+            /** Tendencia */
+            tendencia?: string | null;
+            /** Ticket Medio Uf */
+            ticket_medio_uf: number;
+            /** Uf */
+            uf: string;
+            /** Valor Total */
+            valor_total: number;
+        };
+        /**
+         * TerritorioStats
+         * @description Aggregate territorial statistics.
+         */
+        TerritorioStats: {
+            /** Anos Atuacao */
+            anos_atuacao: number;
+            /** Crescimento Anual */
+            crescimento_anual?: number | null;
+            /** Orgaos Unicos */
+            orgaos_unicos: number;
+            /** Tendencia Posicionamento */
+            tendencia_posicionamento?: string | null;
+            /** Ufs Atuacao */
+            ufs_atuacao: number;
+        };
         /** TimeSeriesDataPoint */
         TimeSeriesDataPoint: {
             /** Label */
@@ -14865,6 +15107,30 @@ export interface components {
             message: string;
             /** Sent */
             sent: boolean;
+        };
+        /**
+         * WinMetrics
+         * @description Win-rate and performance metrics.
+         */
+        WinMetrics: {
+            /** Dependencia Publica */
+            dependencia_publica?: number | null;
+            /** Indice Concentracao */
+            indice_concentracao?: number | null;
+            /** Taxa Vitoria Estimada */
+            taxa_vitoria_estimada?: number | null;
+            /** Tendencia */
+            tendencia?: string | null;
+            /** Ticket P25 */
+            ticket_p25?: number | null;
+            /** Ticket P50 */
+            ticket_p50?: number | null;
+            /** Ticket P75 */
+            ticket_p75?: number | null;
+            /** Ticket P90 */
+            ticket_p90?: number | null;
+            /** Velocidade Crescimento */
+            velocidade_crescimento?: number | null;
         };
         /**
          * _LivenessResponse
@@ -20290,6 +20556,122 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["IndiceResult"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_competitive_alerts_v1_intel_concorrente_alerts_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CompetitiveAlertListResponse"];
+                };
+            };
+        };
+    };
+    create_competitive_alert_v1_intel_concorrente_alerts_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CompetitiveAlertCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CompetitiveAlertResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_competitive_alert_v1_intel_concorrente_alerts__alert_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                alert_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    fornecedor_competitive_intel_v1_intel_concorrente_fornecedor__cnpj__get: {
+        parameters: {
+            query?: {
+                anos?: number;
+            };
+            header?: never;
+            path: {
+                /** @description Supplier CNPJ (14 digits) */
+                cnpj: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FornecedorIntelResponse"];
                 };
             };
             /** @description Validation Error */
