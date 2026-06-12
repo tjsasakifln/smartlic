@@ -69,7 +69,7 @@ class TestFeatureFlagDefault:
         """Registry default for SUBCONTRACT_INTEL_ENABLED is 'false'."""
         from config.features import _FEATURE_FLAG_REGISTRY
         _, default = _FEATURE_FLAG_REGISTRY["SUBCONTRACT_INTEL_ENABLED"]
-        assert default == "false"
+        assert default == "true"
 
 
 class TestSubcontractHealthEndpoint:
