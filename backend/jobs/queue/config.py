@@ -34,6 +34,13 @@ try:
     if ALERTS_ENABLED:
         _worker_cron_jobs.append(_arq_cron(email_alerts_job, hour={ALERTS_HOUR_UTC}, minute=0, timeout=1800))
 
+    # PREDINT-024: daily predictive alert evaluation (7:00 UTC = 4:00 BRT).
+    try:
+        from jobs.cron.predictive_alert_job import predictive_alert_job
+        _worker_cron_jobs.append(_arq_cron(predictive_alert_job, hour={7}, minute=0, timeout=600))
+    except ImportError:
+        pass
+
     # STORY-1.1 (EPIC-TD-2026Q2 P0): hourly pg_cron health monitor.
     # Always registered — surfaces silent failures of purge_old_bids + cleanup crons.
     try:
@@ -197,6 +204,13 @@ class WorkerSettings:
     except ImportError:
         pass
 
+    # PREDINT-024: include predictive_alert_job so ARQ can dispatch daily runs.
+    try:
+        from jobs.cron.predictive_alert_job import predictive_alert_job as _predictive_alert_job
+        _predictive_functions = [_predictive_alert_job]
+    except ImportError:
+        _predictive_functions = []
+
     # STORY-1.1: include cron_monitoring_job so ARQ can dispatch hourly runs.
     try:
         from jobs.cron.cron_monitor import cron_monitoring_job as _cron_monitoring_job
@@ -244,6 +258,7 @@ class WorkerSettings:
         send_post_purchase_step,
         send_founders_welcome,
         *_ingestion_functions,
+        *_predictive_functions,
         *_monitoring_functions,
         *_founders_functions,
         *_lead_magnet_functions,

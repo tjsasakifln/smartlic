@@ -100,12 +100,8 @@ from routes.admin_digest_metrics import router as admin_digest_metrics_router
 from routes.admin_command import router as admin_command_router
 from routes.intel_tasting import router as intel_tasting_router
 from routes.predint import router as predint_router
-from routes.monthly_report import router as monthly_report_router
 from routes.intel_vitrine import router as intel_vitrine_router
-from routes.pseo_intel_feed import router as pseo_intel_feed_router
-from routes.widget_compint import router as widget_compint_router
-from routes.consultoria import router as consultoria_router
-from routes.competitive_intel import router as competitive_intel_router
+from routes.pseo_intel_feed import router as pseo_intel_feed_routerfrom routes.competitive_intel import router as competitive_intel_router
 
 _v1_routers = [
     admin_router, subscriptions_router, upgrade_to_lifetime_router,
@@ -162,10 +158,8 @@ _v1_routers = [
     api_search_router,
     intel_tasting_router,
     predint_router,
-    monthly_report_router,
-    widget_compint_router,
-    consultoria_router,
-    competitive_intel_router,
+    intel_vitrine_router,
+    pseo_intel_feed_router,    competitive_intel_router,
 ]
 
 
