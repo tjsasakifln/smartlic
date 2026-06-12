@@ -16,7 +16,7 @@ from datetime import datetime, timezone, timedelta
 from typing import Optional
 
 import httpx
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 
 from database import get_db
 from public_rate_limit import rate_limit_public
@@ -247,7 +247,96 @@ def _compute_setor_ranking(
 
 
 # ---------------------------------------------------------------------------
-# Endpoint
+# Search Endpoint (VITRINE-001 #1612) — defined before CNPJ to avoid
+# path parameter collision: literal /search takes priority over {cnpj}.
+# ---------------------------------------------------------------------------
+
+
+@router.get(
+    "/intel/vitrine/search",
+    summary="Search companies by name or CNPJ (VITRINE-001)",
+)
+async def intel_vitrine_search(
+    q: str = Query(..., min_length=2, max_length=200, description="Search query"),
+    limit: int = Query(default=10, ge=1, le=50, description="Max results"),
+):
+    """Search for companies in pncp_supplier_contracts by name or partial CNPJ."""
+    query = q.strip()
+
+    try:
+        from supabase_client import get_supabase, sb_execute as _sb_execute
+
+        sb = get_supabase()
+        is_cnpj_search = re.sub(r"\D", "", query).isdigit()
+
+        if is_cnpj_search:
+            clean = re.sub(r"\D", "", query)
+            if len(clean) >= 4:
+                result = await _sb_execute(
+                    sb.table("pncp_supplier_contracts")
+                    .select("ni_fornecedor,nome_fornecedor,valor_global,data_assinatura")
+                    .ilike("ni_fornecedor", f"{clean}%")
+                    .eq("is_active", True)
+                    .order("valor_global", desc=True)
+                    .limit(limit * 2)
+                )
+                rows = result.data or []
+            else:
+                rows = []
+        else:
+            result = await _sb_execute(
+                sb.table("pncp_supplier_contracts")
+                .select("ni_fornecedor,nome_fornecedor,valor_global,data_assinatura")
+                .ilike("nome_fornecedor", f"%{query}%")
+                .eq("is_active", True)
+                .order("valor_global", desc=True)
+                .limit(limit * 2)
+            )
+            rows = result.data or []
+
+        # Aggregate by supplier
+        now = datetime.now(timezone.utc)
+        data_12m_ago = (now - timedelta(days=365)).strftime("%Y-%m-%d")
+        by_supplier: dict[str, dict] = {}
+        for row in rows:
+            cnpj_s = row.get("ni_fornecedor") or ""
+            if not cnpj_s:
+                continue
+            if cnpj_s not in by_supplier:
+                by_supplier[cnpj_s] = {
+                    "cnpj": cnpj_s,
+                    "razao_social": row.get("nome_fornecedor") or cnpj_s,
+                    "setor_nome": None,
+                    "total_contratos_12m": 0,
+                    "valor_total_12m": 0.0,
+                }
+            data_str = row.get("data_assinatura") or ""
+            if data_str[:10] >= data_12m_ago[:10]:
+                by_supplier[cnpj_s]["total_contratos_12m"] += 1
+                by_supplier[cnpj_s]["valor_total_12m"] += float(row.get("valor_global") or 0)
+
+        sorted_results = sorted(
+            by_supplier.values(),
+            key=lambda x: x["valor_total_12m"],
+            reverse=True,
+        )[:limit]
+
+        return {
+            "query": query,
+            "results": sorted_results,
+            "total": len(sorted_results),
+        }
+    except Exception as e:
+        logger.error("vitrine search failed for '%s': %s", query, e)
+        return {
+            "query": query,
+            "results": [],
+            "total": 0,
+        }
+
+
+# ---------------------------------------------------------------------------
+# CNPJ Endpoint
 # ---------------------------------------------------------------------------
 
 
@@ -360,3 +449,5 @@ def _build_not_found(cnpj: str) -> dict:
         "generated_at": datetime.now(timezone.utc),
         "aviso_legal": "CNPJ sem contratos registrados.",
     }
+
+

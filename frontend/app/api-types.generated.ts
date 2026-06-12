@@ -6306,29 +6306,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/v1/subcontract/health": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Subcontract Health
-         * @description Check if the Subcontracting Intelligence vertical is accessible.
-         *
-         *     Returns the global feature flag state and whether the authenticated user
-         *     has the allow_subcontract_intel plan capability.
-         */
-        get: operations["subcontract_health_v1_subcontract_health_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/v1/subcontract/opportunities": {
         parameters: {
             query?: never;
@@ -6341,6 +6318,26 @@ export interface paths {
          * @description Return subcontract potential score and historical suppliers for a bid.
          */
         get: operations["get_subcontract_opportunities_v1_subcontract_opportunities_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/subcontract/regional-dependency": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Regional Dependency Index (SUBINTEL-012)
+         * @description Return the regional dependency index for a sector.
+         */
+        get: operations["get_regional_dependency_v1_subcontract_regional_dependency_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -12877,6 +12874,83 @@ export interface components {
              * @default Novos códigos gerados. Os códigos anteriores foram invalidados.
              */
             message: string;
+        };
+        /**
+         * RegionalDependencyItem
+         * @description Per-UF dependency data for a sector.
+         */
+        RegionalDependencyItem: {
+            /**
+             * Contract Count
+             * @description Número de contratos na UF
+             */
+            contract_count: number;
+            /**
+             * Dependency Score
+             * @description Percentual de contratos nesta UF (0-100)
+             */
+            dependency_score: number;
+            /**
+             * Total Value
+             * @description Valor total dos contratos na UF
+             */
+            total_value: number;
+            /**
+             * Uf
+             * @description UF sigla (2 letras)
+             */
+            uf: string;
+        };
+        /**
+         * RegionalDependencyResponse
+         * @description Response for GET /v1/subcontract/regional-dependency.
+         */
+        RegionalDependencyResponse: {
+            /**
+             * Coverage Ufs
+             * @description Número de UFs com contratos
+             */
+            coverage_ufs: number;
+            /**
+             * Disclaimer
+             * @description Disclaimer obrigatório sobre a análise
+             */
+            disclaimer: string;
+            /**
+             * Generated At
+             * @description Timestamp ISO da geração dos dados
+             */
+            generated_at: string;
+            /**
+             * Hhi Normalized
+             * @description Índice HHI normalizado (1 - HHI). Quanto menor, mais concentrado.
+             */
+            hhi_normalized: number;
+            /**
+             * Risk Level
+             * @description Nível de risco: baixo (>=0.6), medio (0.3-0.6), alto (<0.3)
+             */
+            risk_level: string;
+            /**
+             * Sector Id
+             * @description ID do setor consultado
+             */
+            sector_id: string;
+            /**
+             * Total Contracts
+             * @description Total de contratos no período
+             */
+            total_contracts: number;
+            /**
+             * Total Value
+             * @description Valor total de contratos no período
+             */
+            total_value: number;
+            /**
+             * Uf Distribution
+             * @description Distribuição de contratos por UF
+             */
+            uf_distribution: components["schemas"]["RegionalDependencyItem"][];
         };
         /** RelatorioMensal */
         RelatorioMensal: {
@@ -23672,26 +23746,6 @@ export interface operations {
             };
         };
     };
-    subcontract_health_v1_subcontract_health_get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": unknown;
-                };
-            };
-        };
-    };
     get_subcontract_opportunities_v1_subcontract_opportunities_get: {
         parameters: {
             query: {
@@ -23713,6 +23767,38 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["SubcontractBidOpportunityResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_regional_dependency_v1_subcontract_regional_dependency_get: {
+        parameters: {
+            query: {
+                /** @description Sector ID (e.g., 'engenharia'). Must exist in sectors_data.yaml. */
+                setor: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RegionalDependencyResponse"];
                 };
             };
             /** @description Validation Error */

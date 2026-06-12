@@ -2,12 +2,12 @@
 
 import { useEffect, useState, useCallback } from "react";
 import Link from "next/link";
-import { Button } from "@/app/components/ui/button";
-import { AuthLoadingScreen } from "@/app/components/AuthLoadingScreen";
-import { useAuth } from "@/app/components/AuthProvider";
-import { PageHeader } from "@/app/components/PageHeader";
-import { EmptyState } from "@/app/components/EmptyState";
-import { ErrorStateWithRetry } from "@/app/components/ErrorStateWithRetry";
+import { Button } from "@/components/ui/button";
+import { AuthLoadingScreen } from "@/components/AuthLoadingScreen";
+import { useAuth } from "@/components/AuthProvider";
+import { PageHeader } from "@/components/PageHeader";
+import { EmptyState } from "@/components/EmptyState";
+import { ErrorStateWithRetry } from "@/components/ErrorStateWithRetry";
 import { OpportunityCard } from "./components/OpportunityCard";
 import { MarketplaceFilters } from "./components/MarketplaceFilters";
 import { ExpressInterestForm } from "./components/ExpressInterestForm";

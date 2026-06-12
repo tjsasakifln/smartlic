@@ -70,7 +70,7 @@ describe("SubscriptionList", () => {
     expect(screen.getByText("Cancelar")).toBeInTheDocument();
   });
 
-  it("renders canceled subscription without cancel button", async () => {
+  it("renders canceled subscription without cancel button", () => {
     render(
       <SubscriptionList
         subscriptions={[canceledSub]}
@@ -82,7 +82,7 @@ describe("SubscriptionList", () => {
     expect(
       screen.getByText(/Panorama Mensal — Engenharia/),
     ).toBeInTheDocument();
-    expect(await screen.findByText("Cancelado", undefined, { timeout: 3000 })).toBeInTheDocument();
+    expect(screen.getByText("Cancelado")).toBeInTheDocument();
     expect(
       screen.queryByText("Cancelar"),
     ).not.toBeInTheDocument();
