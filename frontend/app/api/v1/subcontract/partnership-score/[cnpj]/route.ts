@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getRefreshedToken } from "../../../../../../../lib/serverAuth";
-import { sanitizeProxyError } from "../../../../../../../lib/proxy-error-handler";
+import { getRefreshedToken } from "../../../../../../lib/serverAuth";
+import { sanitizeProxyError } from "../../../../../../lib/proxy-error-handler";
 
 /**
  * SUBINTEL-011 (#1674): Proxy for partnership score endpoint.
@@ -39,8 +39,14 @@ export async function GET(
 
     if (!response.ok) {
       const body = await response.text().catch(() => "");
+      const sanitized = sanitizeProxyError(
+        response.status,
+        body,
+        response.headers.get("content-type"),
+      );
+      if (sanitized) return sanitized;
       return NextResponse.json(
-        { message: sanitizeProxyError(body) || "Erro ao buscar score" },
+        { message: body || "Erro ao buscar score" },
         { status: response.status }
       );
     }
@@ -49,8 +55,10 @@ export async function GET(
     return NextResponse.json(data);
   } catch (error) {
     const message = error instanceof Error ? error.message : "Erro de conexao";
+    const sanitized = sanitizeProxyError(502, message, null);
+    if (sanitized) return sanitized;
     return NextResponse.json(
-      { message: sanitizeProxyError(message) },
+      { message },
       { status: 502 }
     );
   }

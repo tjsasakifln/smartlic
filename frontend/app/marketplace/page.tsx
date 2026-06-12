@@ -2,9 +2,10 @@
 
 import { useEffect, useState, useCallback } from "react";
 import Link from "next/link";
+import { Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { AuthLoadingScreen } from "@/components/AuthLoadingScreen";
-import { useAuth } from "@/components/AuthProvider";
+import { useAuth } from "@/app/components/AuthProvider";
 import { PageHeader } from "@/components/PageHeader";
 import { EmptyState } from "@/components/EmptyState";
 import { ErrorStateWithRetry } from "@/components/ErrorStateWithRetry";
@@ -160,8 +161,10 @@ export default function MarketplacePage() {
       <div className="max-w-7xl mx-auto px-4 py-6">
         <PageHeader
           title="Marketplace de Subcontratação"
-          description="Oportunidades de subcontratação identificadas automaticamente em contratos públicos"
         />
+        <p className="text-sm text-[var(--text-secondary)] mb-6">
+          Oportunidades de subcontratação identificadas automaticamente em contratos públicos
+        </p>
 
         {/* Filters */}
         <MarketplaceFilters
@@ -199,8 +202,11 @@ export default function MarketplacePage() {
         {/* Empty state */}
         {!loading && !error && opportunities.length === 0 && (
           <EmptyState
+            icon={<Search className="w-8 h-8 text-[var(--ink-secondary)]" />}
             title="Nenhuma oportunidade encontrada"
             description="No momento não há oportunidades de subcontratação disponíveis com os filtros selecionados."
+            ctaLabel="Ajustar filtros"
+            ctaHref="#"
           />
         )}
 

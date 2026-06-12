@@ -6,8 +6,7 @@
  */
 import type { Metadata } from 'next';
 import { redirect } from 'next/navigation';
-import { createServerComponentClient } from '@supabase/auth-helpers-nextjs';
-import { cookies } from 'next/headers';
+import { createSupabaseServerClient } from '@/lib/supabase-server';
 import LandingNavbar from '@/app/components/landing/LandingNavbar';
 import Footer from '@/app/components/Footer';
 import IntelConcorrenteClient from './IntelConcorrenteClient';
@@ -23,7 +22,7 @@ export const metadata: Metadata = {
 
 export default async function IntelConcorrentePage() {
   // Check auth server-side
-  const supabase = createServerComponentClient({ cookies });
+  const supabase = await createSupabaseServerClient();
   const {
     data: { session },
   } = await supabase.auth.getSession();

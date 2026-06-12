@@ -1,5 +1,6 @@
 'use client';
 
+import React from 'react';
 import {
   BarChart,
   Bar,
@@ -92,13 +93,14 @@ export default function MarketShareChart({ competitors }: MarketShareChartProps)
             width={100}
           />
           <Tooltip
-            formatter={(value: number, _name: string) => [
-              `${value.toFixed(1)}%`,
-              'Market Share',
-            ]}
-            labelFormatter={(label: string) => {
-              const item = chartData.find((d) => d.name === label);
-              return `${item?.fullName || label}\n${item?.value ? formatCurrency(item.value) : ''}`;
+            formatter={(value, _name) => {
+              const v = value as number | string | undefined;
+              return [`${typeof v === 'number' ? v.toFixed(1) : v}%`, 'Market Share'];
+            }}
+            labelFormatter={(label) => {
+              const labelStr = typeof label === 'string' ? label : String(label ?? '');
+              const item = chartData.find((d) => d.name === labelStr);
+              return `${item?.fullName || labelStr}\n${item?.value ? formatCurrency(item.value) : ''}`;
             }}
           />
           <Bar dataKey="share" radius={[0, 4, 4, 0]}>
