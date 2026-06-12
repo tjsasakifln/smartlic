@@ -20,7 +20,7 @@ describe('NetworkAnalyticsSection', () => {
   it('mentions what is NOT collected', () => {
     render(<NetworkAnalyticsSection />);
     expect(
-      screen.getByText(/CNPJ|CPF|nome|email/i)
+      screen.getByText(/CNPJ, CPF, nome, email/i)
     ).toBeInTheDocument();
   });
 
