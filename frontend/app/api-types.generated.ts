@@ -4238,6 +4238,51 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/intel/score": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Score Bid
+         * @description Score a single (bid, CNPJ) pair for win probability.
+         *
+         *     Requires SMARTLIC_SCORE_ENABLED=true. Returns default 0.5 probability
+         *     when the feature is disabled or model is unavailable.
+         */
+        post: operations["score_bid_v1_intel_score_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/intel/score/batch": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Score Batch
+         * @description Score multiple bids for the same CNPJ.
+         *
+         *     Requires SMARTLIC_SCORE_ENABLED=true.
+         */
+        post: operations["score_batch_v1_intel_score_batch_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/intel/tasting": {
         parameters: {
             query?: never;
@@ -13072,6 +13117,90 @@ export interface components {
             status: string;
         };
         /**
+         * ScoreBatchRequest
+         * @description Batch score request — multiple bids, single CNPJ.
+         */
+        ScoreBatchRequest: {
+            /**
+             * Bids
+             * @description List of bid dicts to score.
+             */
+            bids: {
+                [key: string]: unknown;
+            }[];
+            /**
+             * Cnpj
+             * @description CNPJ to score (14 digits, no mask).
+             */
+            cnpj: string;
+        };
+        /**
+         * ScoreBatchResponse
+         * @description Batch score response.
+         */
+        ScoreBatchResponse: {
+            /** Count */
+            count: number;
+            /**
+             * Feature Enabled
+             * @default true
+             */
+            feature_enabled: boolean;
+            /**
+             * Model Version
+             * @default v1
+             */
+            model_version: string;
+            /** Scores */
+            scores: components["schemas"]["ScoreResponse"][];
+        };
+        /**
+         * ScoreRequest
+         * @description Single bid score request.
+         */
+        ScoreRequest: {
+            /**
+             * Bid
+             * @description Bid dictionary with modalidade, uf, valor, etc.
+             */
+            bid: {
+                [key: string]: unknown;
+            };
+            /**
+             * Cnpj
+             * @description CNPJ to score (14 digits, no mask).
+             */
+            cnpj: string;
+        };
+        /**
+         * ScoreResponse
+         * @description Single bid score response.
+         */
+        ScoreResponse: {
+            /**
+             * Confidence
+             * @description Model confidence proxy (0.0 to 1.0).
+             */
+            confidence: number;
+            /**
+             * Feature Enabled
+             * @description Whether SmartLic Score is enabled.
+             * @default true
+             */
+            feature_enabled: boolean;
+            /**
+             * Model Version
+             * @description Model version identifier.
+             * @default v1
+             */
+            model_version: string;
+            /**
+             * Probability
+             * @description Estimated win probability (0.0 to 1.0).
+             */
+            probability: number;
+        };
+        /**
          * SearchActionResponse
          * @description Generic ack for `regenerate-excel`, `retry`, `cancel`.
          */
@@ -20405,6 +20534,72 @@ export interface operations {
                 };
                 content: {
                     "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    score_bid_v1_intel_score_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ScoreRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ScoreResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    score_batch_v1_intel_score_batch_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ScoreBatchRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ScoreBatchResponse"];
                 };
             };
             /** @description Validation Error */
