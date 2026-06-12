@@ -8,6 +8,11 @@
 import { SECTORS, type SectorMeta } from './sectors';
 import { ssgLimitedFetch } from '@/lib/concurrency';
 
+// BUILD-FIX: Detect build phase to avoid throwing on 5xx during initial SSG.
+// During `next build`, NEXT_PHASE is set to 'phase-production-build'.
+// During ISR revalidation at runtime, it is unset or 'phase-production-server'.
+const IS_BUILD_PHASE = process.env.NEXT_PHASE === 'phase-production-build';
+
 // SEO-478: Slugs cujo ID no backend difere do padrão slug.replace(/-/g, '_').
 // Preserva URLs existentes sem quebrar o mapeamento para IDs do backend.
 export const SECTOR_SLUG_TO_BACKEND_ID: Record<string, string> = {
@@ -211,7 +216,13 @@ export async function fetchSectorUfBlogStats(
       signal: AbortSignal.timeout(25000),
     });
     if (res.status >= 500) {
-      // Transient backend error — throw so ISR preserves last-good cache.
+      // Transient backend error — during ISR, throw so Next.js preserves
+      // last-good cache. During initial build, return null so the page
+      // renders with fallback content instead of killing the build.
+      if (IS_BUILD_PHASE) {
+        console.warn(`[programmatic] Backend 5xx (${res.status}) during build for ${sectorId}/${uf} — rendering fallback`);
+        return null;
+      }
       throw new Error(`blog_stats_backend_5xx:${res.status}`);
     }
     // 4xx (incl. 404) → genuine "no data" — render fallback.
@@ -236,7 +247,10 @@ export async function fetchPanoramaStats(sectorSlug: string): Promise<PanoramaSt
       signal: AbortSignal.timeout(25000),
     });
     if (res.status >= 500) {
-      // Transient backend error — throw so ISR preserves last-good cache.
+      if (IS_BUILD_PHASE) {
+        console.warn(`[programmatic] Backend 5xx (${res.status}) during build for panorama/${sectorId} — rendering fallback`);
+        return null;
+      }
       throw new Error(`panorama_stats_backend_5xx:${res.status}`);
     }
     // 4xx (incl. 404) → genuine "no data" — render fallback.
