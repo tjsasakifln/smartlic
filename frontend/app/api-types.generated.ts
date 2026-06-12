@@ -4349,66 +4349,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/v1/marketplace/contact/{opportunity_id}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Revelar dados de contato (Insight+)
-         * @description Revela dados de contato do vencedor do contrato. Gate: plano Insight+ ou superior. Usuários em plano gratuito ou trial recebem upgrade prompt.
-         */
-        post: operations["reveal_contact_v1_marketplace_contact__opportunity_id__post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/marketplace/express-interest": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Demonstrar interesse em oportunidade
-         * @description Registra o interesse do usuário autenticado em uma oportunidade de subcontratação. Cada usuário pode se interessar uma única vez por oportunidade.
-         */
-        post: operations["express_interest_v1_marketplace_express_interest_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/marketplace/opportunities": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Listar oportunidades de subcontratação
-         * @description Retorna oportunidades abertas de subcontratação. Filtrável por setor e UF. Paginação padrão: 20 itens.
-         */
-        get: operations["list_opportunities_v1_marketplace_opportunities_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/v1/me": {
         parameters: {
             query?: never;
@@ -4753,6 +4693,32 @@ export interface paths {
          *     Public endpoint — returns only anonymized aggregated data.
          */
         get: operations["get_top_network_events_v1_network_events_top_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/network-intel/health": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Network Intel Health
+         * @description Get health status of the network intelligence pipeline.
+         *
+         *     Returns aggregated metrics: 24h event counts, opt-in rate,
+         *     table size, and cleanup job metadata.
+         *
+         *     No authentication required — endpoint exposes only anonymized
+         *     aggregated data. No PII.
+         */
+        get: operations["network_intel_health_v1_network_intel_health_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -8556,29 +8522,6 @@ export interface components {
             /** Shared At */
             shared_at: string;
         };
-        /**
-         * ContactRevealResponse
-         * @description Contact information revealed for Insight+ users.
-         */
-        ContactRevealResponse: {
-            /** Contract Value */
-            contract_value?: number | null;
-            /**
-             * Message
-             * @default Dados de contato liberados — plano Insight+
-             */
-            message: string;
-            /** Orgao Nome */
-            orgao_nome?: string | null;
-            /** Winner Cnpj */
-            winner_cnpj: string;
-            /** Winner Email */
-            winner_email?: string | null;
-            /** Winner Name */
-            winner_name?: string | null;
-            /** Winner Phone */
-            winner_phone?: string | null;
-        };
         /** ContratoPublico */
         ContratoPublico: {
             /** Data Inicio */
@@ -9602,38 +9545,6 @@ export interface components {
             id: string;
             /** Submitted At */
             submitted_at: string;
-        };
-        /**
-         * ExpressInterestRequest
-         * @description Request body for POST /v1/marketplace/express-interest.
-         */
-        ExpressInterestRequest: {
-            /**
-             * Message
-             * @description Mensagem opcional para o vencedor do contrato
-             */
-            message?: string | null;
-            /**
-             * Opportunity Id
-             * @description UUID da oportunidade
-             */
-            opportunity_id: string;
-        };
-        /**
-         * ExpressInterestResponse
-         * @description Confirmation of expressed interest.
-         */
-        ExpressInterestResponse: {
-            /**
-             * Message
-             * @default Interesse registrado com sucesso
-             */
-            message: string;
-            /**
-             * Success
-             * @default true
-             */
-            success: boolean;
         };
         /** ExtendRequest */
         ExtendRequest: {
@@ -14334,67 +14245,6 @@ export interface components {
             since?: string | null;
             /** Stripe */
             stripe: string;
-        };
-        /**
-         * SubcontractOpportunity
-         * @description A single subcontract opportunity listed on the marketplace.
-         */
-        SubcontractOpportunity: {
-            /** Contract Id */
-            contract_id?: string | null;
-            /**
-             * Created At
-             * Format: date-time
-             */
-            created_at: string;
-            /** Discovery Reason */
-            discovery_reason?: string | null;
-            /** Id */
-            id: string;
-            /**
-             * Interest Count
-             * @default 0
-             */
-            interest_count: number;
-            /** Municipio */
-            municipio?: string | null;
-            /** Objeto */
-            objeto?: string | null;
-            /** Orgao Nome */
-            orgao_nome?: string | null;
-            /** Sector */
-            sector?: string | null;
-            /** Services Needed */
-            services_needed?: string[];
-            /**
-             * Status
-             * @default open
-             */
-            status: string;
-            /** Uf */
-            uf?: string | null;
-            /** Value */
-            value?: number | null;
-            /** Winner Cnpj */
-            winner_cnpj: string;
-            /** Winner Name */
-            winner_name?: string | null;
-        };
-        /**
-         * SubcontractOpportunityResponse
-         * @description Paginated response for marketplace opportunities.
-         */
-        SubcontractOpportunityResponse: {
-            /** Opportunities */
-            opportunities: components["schemas"]["SubcontractOpportunity"][];
-            /** Page */
-            page: number;
-            /** Page Size */
-            page_size: number;
-            /** Total */
-            total: number;
-            /** Total Pages */
-            total_pages: number;
         };
         /**
          * SubscriptionStatusResponse
@@ -21056,108 +20906,6 @@ export interface operations {
             };
         };
     };
-    reveal_contact_v1_marketplace_contact__opportunity_id__post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                opportunity_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ContactRevealResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    express_interest_v1_marketplace_express_interest_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["ExpressInterestRequest"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ExpressInterestResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    list_opportunities_v1_marketplace_opportunities_get: {
-        parameters: {
-            query?: {
-                /** @description Filtrar por setor */
-                setor?: string | null;
-                /** @description Filtrar por UF */
-                uf?: string | null;
-                /** @description Número da página */
-                page?: number;
-                /** @description Itens por página */
-                page_size?: number;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["SubcontractOpportunityResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
     get_profile_v1_me_get: {
         parameters: {
             query?: never;
@@ -21542,6 +21290,26 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    network_intel_health_v1_network_intel_health_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
                 };
             };
         };

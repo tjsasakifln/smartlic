@@ -64,6 +64,17 @@ try:
     except ImportError:
         pass
 
+    # NETINT-007: weekly network_events cleanup job (Sun at configurable hour, default 03:00 UTC).
+    try:
+        from config import NETWORK_EVENTS_CLEANUP_HOUR, NETWORK_EVENTS_CLEANUP_ENABLED
+        if NETWORK_EVENTS_CLEANUP_ENABLED:
+            from jobs.cron.network_events_cleanup import aggregate_and_cleanup_network_events
+            _worker_cron_jobs.append(
+                _arq_cron(aggregate_and_cleanup_network_events, weekday={6}, hour={NETWORK_EVENTS_CLEANUP_HOUR}, minute=0, timeout=600)
+            )
+    except ImportError:
+        pass
+
     try:
         from ingestion.config import DATALAKE_ENABLED
         if DATALAKE_ENABLED:
@@ -143,15 +154,6 @@ try:
         )
     except ImportError:
         logger.debug("competitive_alert_job module not available — skipping registration")
-
-    # MKT-001 (#1616): Subcontract discovery — daily at 03:00 UTC
-    try:
-        from jobs.cron.subcontract_discovery import run_subcontract_discovery as _run_subcontract_discovery
-        _worker_cron_jobs.append(
-            _arq_cron(_run_subcontract_discovery, hour={3}, minute=0, timeout=600),
-        )
-    except ImportError:
-        pass
 
 except Exception:
     _worker_cron_jobs = []
@@ -247,13 +249,6 @@ class WorkerSettings:
     except ImportError:
         _competitive_alert_functions = []
 
-    # MKT-001 (#1616): Subcontract marketplace discovery function
-    try:
-        from jobs.cron.subcontract_discovery import run_subcontract_discovery as _run_subcontract_discovery
-        _subcontract_functions = [_run_subcontract_discovery]
-    except ImportError:
-        _subcontract_functions = []
-
     # Lead magnet PDF delivery jobs
     try:
         from jobs.cron.send_lead_magnet import send_lead_magnet_job as _send_lead_magnet_job
@@ -264,6 +259,13 @@ class WorkerSettings:
             "Lead magnet jobs not registered; queued lead-magnet jobs will silently fail"
         )
         _lead_magnet_functions = []
+
+    # NETINT-007: network_events cleanup function (weekly cron).
+    try:
+        from jobs.cron.network_events_cleanup import aggregate_and_cleanup_network_events as _network_events_cleanup_func
+        _network_events_functions = [_network_events_cleanup_func]
+    except ImportError:
+        _network_events_functions = []
 
     functions = [
         llm_summary_job, excel_generation_job, search_job,
@@ -279,7 +281,7 @@ class WorkerSettings:
         *_founders_functions,
         *_lead_magnet_functions,
         *_competitive_alert_functions,
-        *_subcontract_functions,
+        *_network_events_functions,
     ]
     cron_jobs = _worker_cron_jobs
     on_startup = _worker_on_startup
