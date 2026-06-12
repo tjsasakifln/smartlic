@@ -21,6 +21,7 @@ import { AdvisoryDisclaimer } from "@/components/legal/AdvisoryDisclaimer";
 import { RecentEditaisBlock } from "@/app/components/programmatic/RecentEditaisBlock";
 import { TopSuppliersBlock } from "@/app/components/programmatic/TopSuppliersBlock";
 import { MarketPatternsBlock } from "@/components/pseo/MarketPatternsBlock";
+import { EmbedIntelFeed } from "@/components/pseo/EmbedIntelFeed";
 import { SubcontratacaoSetorBlock } from "@/app/components/SubcontratacaoSetorBlock";
 import { TrackedCTALink } from "@/app/components/seo/TrackedCTALink";
 import { SeoOpportunityBanner } from "@/app/components/seo/SeoOpportunityBanner";
@@ -316,6 +317,11 @@ export default async function SectorPage({
 
       {/* #1288 (NETINT-011): Padrões de Mercado — aggregated market intelligence */}
       <MarketPatternsBlock setor={setor} />
+
+      {/* #1519 (NETINT-014): EmbedIntelFeed — compact market intelligence widget */}
+      <div className="max-w-5xl mx-auto px-4 py-6">
+        <EmbedIntelFeed sector={setor} />
+      </div>
 
       {/* CONV-REV-005 (#1321): Subcontratação block — pontes no setor */}
       <div className="max-w-5xl mx-auto px-4">

@@ -23,6 +23,7 @@ import { buildCanonical } from '@/lib/seo';
 import ObservatorioRelatorioClient from './ObservatorioRelatorioClient';
 import { FoundersRibbon } from '@/components/banners/FoundersRibbon';
 import EmptyStateSEO from '@/components/seo/EmptyStateSEO';
+import { EmbedIntelFeed } from '@/components/pseo/EmbedIntelFeed';
 
 const BACKEND_URL = process.env.BACKEND_URL || 'http://localhost:8000';
 
@@ -275,6 +276,17 @@ export default async function RelatorioPage({
           variant="contextual"
           copy="Receba inteligência B2G sem mensalidade. Acesso vitalício R$997."
           src="pseo_observatorio"
+        />
+      </div>
+
+      {/* #1519 (NETINT-014): EmbedIntelFeed — compact market intelligence widget */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+        <EmbedIntelFeed
+          sector={(
+            relatorio?.setores_em_alta?.[0]?.setor_id
+              ? String(relatorio.setores_em_alta[0].setor_id).replace(/_/g, "-")
+              : slug
+          )}
         />
       </div>
     </>
