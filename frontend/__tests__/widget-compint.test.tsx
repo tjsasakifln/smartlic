@@ -151,7 +151,6 @@ describe('Widget Competitive Intel Page', () => {
     await waitFor(() => {
       expect(screen.getByText('Market Share')).toBeInTheDocument();
     });
-
     expect(screen.getByText('Tech Solutions Ltda')).toBeInTheDocument();
     expect(screen.getByText('Dados & Sistemas S.A.')).toBeInTheDocument();
   });
@@ -168,8 +167,7 @@ describe('Widget Competitive Intel Page', () => {
 
     await waitFor(() => {
       expect(screen.getByText('Top Vencedores')).toBeInTheDocument();
-    });
-  });
+    });  });
 
   it('renderiza monthly-trend widget com dados', async () => {
     mockSearchParams('informatica', 'monthly-trend');
@@ -184,7 +182,6 @@ describe('Widget Competitive Intel Page', () => {
     await waitFor(() => {
       expect(screen.getByText('Tendência Mensal')).toBeInTheDocument();
     });
-
     expect(screen.getByText(/em crescimento/)).toBeInTheDocument();
   });
 
@@ -201,7 +198,6 @@ describe('Widget Competitive Intel Page', () => {
     await waitFor(() => {
       expect(screen.getByText('Ranking de Órgãos')).toBeInTheDocument();
     });
-
     expect(screen.getByText('Secretaria de Tecnologia')).toBeInTheDocument();
   });
 

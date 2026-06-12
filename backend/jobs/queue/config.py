@@ -117,6 +117,33 @@ try:
             )
     except ImportError:
         pass
+
+    # COMPINT-012 (#1666): Competitive alert detection (3x/day) + weekly digest.
+    try:
+        from jobs.cron.competitive_alert_job import (
+            run_competitive_alert_detection,
+            run_competitive_alert_weekly_digest,
+        )
+        _worker_cron_jobs.append(
+            _arq_cron(
+                run_competitive_alert_detection,
+                hour={8, 14, 20},
+                minute=0,
+                timeout=600,
+            )
+        )
+        _worker_cron_jobs.append(
+            _arq_cron(
+                run_competitive_alert_weekly_digest,
+                weekday={0},  # Monday
+                hour={11},
+                minute=0,
+                timeout=300,
+            )
+        )
+    except ImportError:
+        logger.debug("competitive_alert_job module not available — skipping registration")
+
 except Exception:
     _worker_cron_jobs = []
 
@@ -198,6 +225,19 @@ class WorkerSettings:
     except ImportError:
         _founders_functions = []
 
+    # COMPINT-012 (#1666): Competitive alert detection + digest functions
+    try:
+        from jobs.cron.competitive_alert_job import (
+            run_competitive_alert_detection,
+            run_competitive_alert_weekly_digest,
+        )
+        _competitive_alert_functions = [
+            run_competitive_alert_detection,
+            run_competitive_alert_weekly_digest,
+        ]
+    except ImportError:
+        _competitive_alert_functions = []
+
     # Lead magnet PDF delivery jobs
     try:
         from jobs.cron.send_lead_magnet import send_lead_magnet_job as _send_lead_magnet_job
@@ -222,6 +262,7 @@ class WorkerSettings:
         *_monitoring_functions,
         *_founders_functions,
         *_lead_magnet_functions,
+        *_competitive_alert_functions,
     ]
     cron_jobs = _worker_cron_jobs
     on_startup = _worker_on_startup
