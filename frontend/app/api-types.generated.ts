@@ -3355,6 +3355,91 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/consultoria/clients": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List consultant's clients (CONSULT-001) */
+        get: operations["list_clients_v1_consultoria_clients_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/consultoria/clients/{client_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Revoke client access (CONSULT-001) */
+        delete: operations["revoke_client_v1_consultoria_clients__client_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/consultoria/invite-client": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Generate invite link for a client (CONSULT-001) */
+        post: operations["invite_client_v1_consultoria_invite_client_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/consultoria/share/{client_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Share a resource with a client (CONSULT-001) */
+        post: operations["share_resource_v1_consultoria_share__client_id__post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/consultoria/shared/{client_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List shared resources for a client (CONSULT-001) */
+        get: operations["get_shared_resources_v1_consultoria_shared__client_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/conta/api-usage": {
         parameters: {
             query?: never;
@@ -8094,6 +8179,74 @@ export interface components {
             /** Total Sancoes Cnep */
             total_sancoes_cnep: number;
         };
+        /**
+         * ConsultantClientListResponse
+         * @description Wrapper for list of consultant clients.
+         */
+        ConsultantClientListResponse: {
+            /** Active Count */
+            active_count: number;
+            /** Clients */
+            clients: components["schemas"]["ConsultantClientResponse"][];
+            /** Total */
+            total: number;
+        };
+        /**
+         * ConsultantClientResponse
+         * @description Response model for a consultant-client relationship.
+         */
+        ConsultantClientResponse: {
+            /** Client Email */
+            client_email?: string | null;
+            /** Client Id */
+            client_id?: string | null;
+            /** Consultant Id */
+            consultant_id: string;
+            /** Created At */
+            created_at: string;
+            /** Id */
+            id: string;
+            /** Status */
+            status: string;
+        };
+        /**
+         * ConsultantInviteResponse
+         * @description Response with invite link details.
+         */
+        ConsultantInviteResponse: {
+            /** Expires At */
+            expires_at: string;
+            /** Invite Url */
+            invite_url: string;
+        };
+        /**
+         * ConsultantShareCreate
+         * @description Request to share a resource with a client.
+         */
+        ConsultantShareCreate: {
+            /** Resource Id */
+            resource_id: string;
+            /** Resource Type */
+            resource_type: string;
+        };
+        /**
+         * ConsultantShareResponse
+         * @description Response model for a shared resource.
+         */
+        ConsultantShareResponse: {
+            /** Client Id */
+            client_id: string;
+            /** Consultant Id */
+            consultant_id: string;
+            /** Id */
+            id: string;
+            /** Resource Id */
+            resource_id: string;
+            /** Resource Type */
+            resource_type: string;
+            /** Shared At */
+            shared_at: string;
+        };
         /** ContratoPublico */
         ContratoPublico: {
             /** Data Inicio */
@@ -10286,6 +10439,14 @@ export interface components {
             total_winners: number;
             /** Uf */
             uf?: string | null;
+        };
+        /**
+         * InviteClientRequest
+         * @description Request payload for inviting a client by email.
+         */
+        InviteClientRequest: {
+            /** Client Email */
+            client_email: string;
         };
         /** InviteMemberRequest */
         InviteMemberRequest: {
@@ -18754,6 +18915,171 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ComplianceProfileResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_clients_v1_consultoria_clients_get: {
+        parameters: {
+            query?: {
+                /** @description Filter by status: active, revoked */
+                status_filter?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConsultantClientListResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    revoke_client_v1_consultoria_clients__client_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                client_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    invite_client_v1_consultoria_invite_client_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["InviteClientRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConsultantInviteResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    share_resource_v1_consultoria_share__client_id__post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                client_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ConsultantShareCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConsultantShareResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_shared_resources_v1_consultoria_shared__client_id__get: {
+        parameters: {
+            query?: {
+                /** @description Filter by resource type */
+                resource_type?: string | null;
+            };
+            header?: never;
+            path: {
+                client_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
                 };
             };
             /** @description Validation Error */
