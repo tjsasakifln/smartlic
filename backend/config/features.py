@@ -193,10 +193,11 @@ EMBEDDING_ENABLED: bool = str_to_bool(os.getenv("EMBEDDING_ENABLED", "false"))
 EMBEDDING_THRESHOLD: float = float(os.getenv("EMBEDDING_THRESHOLD", "0.6"))
 
 # SUBINTEL-030 (EPIC-SUBINTEL #1224): global kill-switch for the Subcontracting
-# / Supply-Chain Intelligence vertical. Default ON (true) — the vertical is
-# active by default. Set env var to "false" to disable. Strictly additive: no
-# existing feature changes while this is false.
-SUBCONTRACT_INTEL_ENABLED: bool = str_to_bool(os.getenv("SUBCONTRACT_INTEL_ENABLED", "true"))
+# / Supply-Chain Intelligence vertical. Default OFF (false) — the vertical is
+# inert in production until the data foundation (SUBINTEL-001/002/003) is ready
+# and the flag is explicitly set to true. Strictly additive: no existing feature
+# changes while this is false.
+SUBCONTRACT_INTEL_ENABLED: bool = str_to_bool(os.getenv("SUBCONTRACT_INTEL_ENABLED", "false"))
 
 # PREDINT-000 (EPIC-PREDINT #1260): global kill-switch for the Predictive
 # Intelligence vertical. Default ON (true) — the vertical is active by default.
@@ -282,7 +283,7 @@ _FEATURE_FLAG_REGISTRY: dict[str, tuple[str, str]] = {
     "MESSAGES_ENABLED": ("MESSAGES_ENABLED", "true"),
     "PARTNERS_ENABLED": ("PARTNERS_ENABLED", "false"),
     # SUBINTEL-030 (EPIC-SUBINTEL #1224): subcontracting intelligence vertical
-    "SUBCONTRACT_INTEL_ENABLED": ("SUBCONTRACT_INTEL_ENABLED", "true"),
+    "SUBCONTRACT_INTEL_ENABLED": ("SUBCONTRACT_INTEL_ENABLED", "false"),
     # PREDINT-000 (EPIC-PREDINT #1260): predictive intelligence vertical
     "PREDICTIVE_INTEL_ENABLED": ("PREDICTIVE_INTEL_ENABLED", "true"),
     # COMPINT-000 (EPIC-COMPINT #1261): competitive intelligence vertical
