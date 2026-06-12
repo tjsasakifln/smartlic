@@ -1310,6 +1310,11 @@ FEEDBACK_NEGATIVE_TOTAL = _create_counter(
 )
 
 # STORY-SEO-005: GSC weekly sync observability
+NETWORK_CLEANUP_AFFECTED_ROWS = _create_gauge(
+    "smartlic_network_cleanup_affected_rows",
+    "NETINT-007: Rows affected by the last network_events cleanup run",
+)
+
 smartlic_gsc_sync_duration_seconds = _create_histogram(
     "smartlic_gsc_sync_duration_seconds",
     "Duration of the weekly Google Search Console sync job",

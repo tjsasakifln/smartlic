@@ -174,6 +174,13 @@ ATESTADOS_DISPONIVEIS: list[dict] = [
 # Plano Fundadores v2 (epic:fundadores) — kill switch for the lifetime offer
 FOUNDERS_OFFER_ENABLED: bool = str_to_bool(os.getenv("FOUNDERS_OFFER_ENABLED", "true"))
 
+# NETINT-007 (EPIC-NETINT #1263): network_events cleanup job retention config
+NETWORK_EVENTS_RETENTION_DAYS: int = int(os.getenv("NETWORK_EVENTS_RETENTION_DAYS", "365"))
+NETWORK_EVENTS_AGG_WINDOW_DAYS: int = int(os.getenv("NETWORK_EVENTS_AGG_WINDOW_DAYS", "7"))
+NETWORK_EVENTS_WEEKLY_RETENTION_DAYS: int = int(os.getenv("NETWORK_EVENTS_WEEKLY_RETENTION_DAYS", "730"))
+NETWORK_EVENTS_CLEANUP_HOUR: int = int(os.getenv("NETWORK_EVENTS_CLEANUP_HOUR", "3"))
+NETWORK_EVENTS_CLEANUP_ENABLED: bool = str_to_bool(os.getenv("NETWORK_EVENTS_CLEANUP_ENABLED", "true"))
+
 # A/B Testing
 AB_EXPERIMENTS_ENABLED: bool = str_to_bool(os.getenv("AB_EXPERIMENTS_ENABLED", "false"))
 AB_ACTIVE_EXPERIMENTS: str = os.getenv("AB_ACTIVE_EXPERIMENTS", "{}")
@@ -478,6 +485,12 @@ def validate_feature_flags() -> None:
     _check_float("TERM_SEARCH_VALUE_RANGE_MIN", "10000", min_val=0.0)
     _check_float("TERM_SEARCH_VALUE_RANGE_MAX", "50000000", min_val=0.0)
 
+    # NETINT-007: network_events cleanup retention validation
+    _check_int("NETWORK_EVENTS_RETENTION_DAYS", "365", min_val=30, max_val=730)
+    _check_int("NETWORK_EVENTS_AGG_WINDOW_DAYS", "7", min_val=1, max_val=90)
+    _check_int("NETWORK_EVENTS_WEEKLY_RETENTION_DAYS", "730", min_val=30, max_val=1460)
+    _check_int("NETWORK_EVENTS_CLEANUP_HOUR", "3", min_val=0, max_val=23)
+
     if errors:
         for error in errors:
             logger.critical("Invalid feature flag configuration: %s", error)
@@ -491,7 +504,7 @@ def validate_feature_flags() -> None:
 
 # Number of flags validated by validate_feature_flags() — used in log message above.
 # Update this constant whenever a new _check_* call is added.
-_VALIDATED_FLAG_COUNT = 34
+_VALIDATED_FLAG_COUNT = 38
 
 
 def log_feature_flags() -> None:
