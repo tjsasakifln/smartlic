@@ -6180,6 +6180,30 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/subcontract/partnership-score/{cnpj}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Partnership Opportunity Score — avalia fornecedor como potencial parceiro (SUBINTEL-011)
+         * @description Return partnership opportunity score for the given CNPJ supplier.
+         *
+         *     Computes the score from the subcontract_capacity_signals RPC and returns
+         *     three signal dimensions plus an optional LLM-generated narrative for
+         *     premium users.
+         */
+        get: operations["get_partnership_score_v1_subcontract_partnership_score__cnpj__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/subscription/status": {
         parameters: {
             query?: never;
@@ -8039,6 +8063,15 @@ export interface components {
             already_cancelled: boolean;
             /** Cancelled */
             cancelled: boolean;
+        };
+        /**
+         * CapacitySignals
+         * @description Composite capacity signals derived from subcontract_capacity_signals RPC.
+         */
+        CapacitySignals: {
+            large_contract: components["schemas"]["SignalDetail"];
+            repeat_winner: components["schemas"]["SignalDetail"];
+            subcontracting_pattern: components["schemas"]["SignalDetail"];
         };
         /**
          * CheckEmailResponse
@@ -11656,6 +11689,26 @@ export interface components {
         } & {
             [key: string]: unknown;
         };
+        /**
+         * PartnershipScoreResponse
+         * @description Score de Oportunidade de Parceria for a given CNPJ supplier.
+         *
+         *     Overall score (0.0-1.0) indicates how suitable this supplier is as a
+         *     subcontractor or strategic partner based on public contract signals.
+         */
+        PartnershipScoreResponse: {
+            /** Cnpj */
+            cnpj: string;
+            /** Disclaimer */
+            disclaimer: string;
+            /** Narrative */
+            narrative?: string | null;
+            /** Overall Score */
+            overall_score: number;
+            /** Razao Social */
+            razao_social: string;
+            signals: components["schemas"]["CapacitySignals"];
+        };
         /** PdfEditalRequest */
         PdfEditalRequest: {
             /** Data Encerramento */
@@ -13583,6 +13636,22 @@ export interface components {
              * @default 0
              */
             view_count: number;
+        };
+        /**
+         * SignalDetail
+         * @description Individual signal detail within the capacity assessment.
+         */
+        SignalDetail: {
+            /** Description */
+            description: string;
+            /** Details */
+            details: {
+                [key: string]: unknown;
+            };
+            /** Label */
+            label: string;
+            /** Score */
+            score: number;
         };
         /**
          * SignupRequest
@@ -22949,6 +23018,38 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["UptimeHistoryResponse"];
+                };
+            };
+        };
+    };
+    get_partnership_score_v1_subcontract_partnership_score__cnpj__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description CNPJ do fornecedor (14 digitos) */
+                cnpj: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PartnershipScoreResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };
