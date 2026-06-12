@@ -9877,6 +9877,37 @@
         "title": "MunicipioProfileResponse",
         "type": "object"
       },
+      "NetworkAnalyticsRequest": {
+        "properties": {
+          "allow_network_analytics": {
+            "title": "Allow Network Analytics",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "allow_network_analytics"
+        ],
+        "title": "NetworkAnalyticsRequest",
+        "type": "object"
+      },
+      "NetworkAnalyticsResponse": {
+        "properties": {
+          "allow_network_analytics": {
+            "title": "Allow Network Analytics",
+            "type": "boolean"
+          },
+          "success": {
+            "default": true,
+            "title": "Success",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "allow_network_analytics"
+        ],
+        "title": "NetworkAnalyticsResponse",
+        "type": "object"
+      },
       "NewBidsCountResponse": {
         "properties": {
           "count": {
@@ -17248,6 +17279,18 @@
       "UserProfileResponse": {
         "description": "User profile with plan capabilities and quota status.\n\nReturned by /api/me endpoint to provide frontend with all\nnecessary plan information for UI rendering.",
         "properties": {
+          "allow_network_analytics": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "NETINT-001/006: User consent for anonymized network analytics collection. NULL = undecided (treated as opt-out), true = opted in, false = opted out.",
+            "title": "Allow Network Analytics"
+          },
           "capabilities": {
             "additionalProperties": true,
             "description": "Plan capabilities (max_history_days, allow_excel, etc.)",
@@ -28176,6 +28219,53 @@
           }
         ],
         "summary": "Save Profile Context",
+        "tags": [
+          "user"
+        ]
+      }
+    },
+    "/v1/profile/network-analytics": {
+      "put": {
+        "description": "NETINT-006: Update user's network analytics opt-in preference.\n\nSets ``profiles.allow_network_analytics`` to true or false.\nNull (undecided) is treated as opt-out \u2014 this PATCH is how users\nexplicitly opt in.\n\nSYS-023: Uses user-scoped Supabase client. RLS on profiles ensures\nusers can only update their own profile row.",
+        "operationId": "update_network_analytics_v1_profile_network_analytics_put",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NetworkAnalyticsRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NetworkAnalyticsResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Update Network Analytics",
         "tags": [
           "user"
         ]

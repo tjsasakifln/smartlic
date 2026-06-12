@@ -4128,75 +4128,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/v1/intel-concorrente/alerts": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * List user's competitive alerts (COMPINT-012)
-         * @description List all competitive alerts for the authenticated user.
-         */
-        get: operations["list_competitive_alerts_v1_intel_concorrente_alerts_get"];
-        put?: never;
-        /**
-         * Create competitive alert (COMPINT-012)
-         * @description Create a new competitive alert to monitor a competitor CNPJ.
-         */
-        post: operations["create_competitive_alert_v1_intel_concorrente_alerts_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/intel-concorrente/alerts/{alert_id}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post?: never;
-        /**
-         * Delete competitive alert (COMPINT-012)
-         * @description Delete a competitive alert by ID.
-         */
-        delete: operations["delete_competitive_alert_v1_intel_concorrente_alerts__alert_id__delete"];
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/intel-concorrente/fornecedor/{cnpj}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Competitive Intelligence data for a supplier CNPJ (COMPINT-011)
-         * @description Return competitive intelligence data for *cnpj*.
-         *
-         *     Aggregates:
-         *     - Territorial map (COMPINT-001 RPC)
-         *     - Win metrics (COMPINT-002 RPC)
-         *     - Derived positioning alerts
-         */
-        get: operations["fornecedor_competitive_intel_v1_intel_concorrente_fornecedor__cnpj__get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/v1/intel-reports/": {
         parameters: {
             query?: never;
@@ -4316,6 +4247,26 @@ export interface paths {
         };
         /** Intelligence Tasting — aggregated supplier data for trial upsell (DEGUST-001) */
         get: operations["intel_tasting_v1_intel_tasting_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/intel/vitrine/{cnpj}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Public company intelligence vitrine
+         * @description Retorna dados agregados de contratos públicos para um CNPJ. Endpoint público — sem autenticação necessária. Cache: 6h. Rate limit: 30 req/min por IP.
+         */
+        get: operations["intel_vitrine_v1_intel_vitrine__cnpj__get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -4742,6 +4693,32 @@ export interface paths {
          *     Public endpoint — returns only anonymized aggregated data.
          */
         get: operations["get_top_network_events_v1_network_events_top_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/network-intel/health": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Network Intel Health
+         * @description Get health status of the network intelligence pipeline.
+         *
+         *     Returns aggregated metrics: 24h event counts, opt-in rate,
+         *     table size, and cleanup job metadata.
+         *
+         *     No authentication required — endpoint exposes only anonymized
+         *     aggregated data. No PII.
+         */
+        get: operations["network_intel_health_v1_network_intel_health_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -5179,6 +5156,42 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/predint/alerts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Predictive Alerts */
+        get: operations["list_predictive_alerts_v1_predint_alerts_get"];
+        put?: never;
+        /** Create Predictive Alert */
+        post: operations["create_predictive_alert_v1_predint_alerts_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/predint/alerts/{alert_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Delete Predictive Alert */
+        delete: operations["delete_predictive_alert_v1_predint_alerts__alert_id__delete"];
+        options?: never;
+        head?: never;
+        /** Update Predictive Alert */
+        patch: operations["update_predictive_alert_v1_predint_alerts__alert_id__patch"];
+        trace?: never;
+    };
     "/v1/predint/forecast": {
         parameters: {
             query?: never;
@@ -5336,6 +5349,33 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/profile/network-analytics": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Update Network Analytics
+         * @description NETINT-006: Update user's network analytics opt-in preference.
+         *
+         *     Sets ``profiles.allow_network_analytics`` to true or false.
+         *     Null (undecided) is treated as opt-out — this PATCH is how users
+         *     explicitly opt in.
+         *
+         *     SYS-023: Uses user-scoped Supabase client. RLS on profiles ensures
+         *     users can only update their own profile row.
+         */
+        put: operations["update_network_analytics_v1_profile_network_analytics_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/profile/sector-affinity": {
         parameters: {
             query?: never;
@@ -5381,6 +5421,23 @@ export interface paths {
          *     Unmute: restores pre-mute value. Never deletes the row or sets affinity to 0 permanently.
          */
         patch: operations["mute_unmute_sector_v1_profile_sector_affinity__sector_id__patch"];
+        trace?: never;
+    };
+    "/v1/pseo/intel-feed": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Compact market intelligence feed for a sector (EmbedIntelFeed widget) */
+        get: operations["get_intel_feed_v1_pseo_intel_feed_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
         trace?: never;
     };
     "/v1/pseo/recent-editais": {
@@ -7071,21 +7128,6 @@ export interface components {
             /** Valor */
             valor?: number | null;
         };
-        /**
-         * AlertaPosicionamento
-         * @description Derived positioning alert.
-         */
-        AlertaPosicionamento: {
-            /** Mensagem */
-            mensagem: string;
-            /**
-             * Severidade
-             * @default info
-             */
-            severidade: string;
-            /** Tipo */
-            tipo: string;
-        };
         /** AlertasResponse */
         AlertasResponse: {
             /** Bids */
@@ -8391,56 +8433,6 @@ export interface components {
             /** Uf */
             uf: string | null;
         };
-        /**
-         * CompetitiveAlertCreate
-         * @description POST body for creating a competitive alert.
-         */
-        CompetitiveAlertCreate: {
-            /**
-             * Alert Type
-             * @description Tipo de alerta: new_contract, new_uf, new_agency, new_sector_entrant
-             * @default new_contract
-             */
-            alert_type: string;
-            /**
-             * Competitor Cnpj
-             * @description CNPJ do concorrente a monitorar (14 dígitos)
-             */
-            competitor_cnpj: string;
-            /**
-             * Enabled
-             * @default true
-             */
-            enabled: boolean;
-        };
-        /**
-         * CompetitiveAlertListResponse
-         * @description List of competitive alerts for the current user.
-         */
-        CompetitiveAlertListResponse: {
-            /** Alerts */
-            alerts: components["schemas"]["CompetitiveAlertResponse"][];
-            /** Total */
-            total: number;
-        };
-        /**
-         * CompetitiveAlertResponse
-         * @description Response model for a competitive alert.
-         */
-        CompetitiveAlertResponse: {
-            /** Alert Type */
-            alert_type: string;
-            /** Competitor Cnpj */
-            competitor_cnpj: string;
-            /** Created At */
-            created_at?: string | null;
-            /** Enabled */
-            enabled: boolean;
-            /** Id */
-            id: string;
-            /** User Id */
-            user_id: string;
-        };
         /** ComplianceProfileResponse */
         ComplianceProfileResponse: {
             /** Aviso Legal */
@@ -8461,24 +8453,6 @@ export interface components {
             total_sancoes_ceis: number;
             /** Total Sancoes Cnep */
             total_sancoes_cnep: number;
-        };
-        /**
-         * ConcorrenteInfo
-         * @description High-level competitor information.
-         */
-        ConcorrenteInfo: {
-            /** Cnpj */
-            cnpj: string;
-            /** Nome */
-            nome: string;
-            /** Ticket Mediana */
-            ticket_mediana: number;
-            /** Ticket Medio */
-            ticket_medio: number;
-            /** Total Contratos */
-            total_contratos: number;
-            /** Valor Total Contratado */
-            valor_total_contratado: number;
         };
         /**
          * ConsultantClientListResponse
@@ -9441,6 +9415,18 @@ export interface components {
         } & {
             [key: string]: unknown;
         };
+        /**
+         * DistribuicaoItem
+         * @description Item de distribuição por UF, ano, ou modalidade.
+         */
+        DistribuicaoItem: {
+            /** Chave */
+            chave: string;
+            /** Quantidade */
+            quantidade: number;
+            /** Valor Total */
+            valor_total: number;
+        };
         /** EditaisAmostra */
         EditaisAmostra: {
             /** Data Encerramento */
@@ -10009,36 +9995,6 @@ export interface components {
              * @default in_progress
              */
             status: string;
-        };
-        /**
-         * FornecedorIntelResponse
-         * @description Complete competitive intelligence response for a supplier CNPJ.
-         *
-         *     Returned by GET /v1/intel-concorrente/fornecedor/{cnpj}.
-         */
-        FornecedorIntelResponse: {
-            /**
-             * Alertas
-             * @default []
-             */
-            alertas: components["schemas"]["AlertaPosicionamento"][];
-            concorrente: components["schemas"]["ConcorrenteInfo"];
-            /**
-             * Feature Enabled
-             * @default true
-             */
-            feature_enabled: boolean;
-            /**
-             * Generated At
-             * @default
-             */
-            generated_at: string;
-            /** Orgaos Favoritos */
-            orgaos_favoritos: components["schemas"]["OrgaoFavorito"][];
-            stats: components["schemas"]["TerritorioStats"];
-            /** Territorio */
-            territorio: components["schemas"]["TerritorioEntry"][];
-            win_metrics?: components["schemas"]["WinMetrics"] | null;
         };
         /** FornecedorProfileResponse */
         FornecedorProfileResponse: {
@@ -10737,6 +10693,33 @@ export interface components {
             uf_nome: string;
         };
         /**
+         * IntelFeedResponse
+         * @description Full response payload for the intel feed endpoint.
+         */
+        IntelFeedResponse: {
+            /**
+             * Generated At
+             * Format: date-time
+             */
+            generated_at: string;
+            /** Sector */
+            sector: string;
+            /** Signals */
+            signals: components["schemas"]["IntelFeedSignal"][];
+        };
+        /**
+         * IntelFeedSignal
+         * @description Single market signal displayed in the widget.
+         */
+        IntelFeedSignal: {
+            /** Label */
+            label: string;
+            /** Trend */
+            trend?: string | null;
+            /** Value */
+            value: string;
+        };
+        /**
          * IntelReportCheckoutRequest
          * @description Request body for POST /v1/intel-reports/checkout.
          */
@@ -10820,6 +10803,61 @@ export interface components {
             total_winners: number;
             /** Uf */
             uf?: string | null;
+        };
+        /**
+         * IntelVitrineResponse
+         * @description Resposta completa da vitrine de inteligência pública.
+         */
+        IntelVitrineResponse: {
+            /**
+             * Aviso Legal
+             * @default Dados públicos do Portal Nacional de Contratações Públicas (PNCP). Os valores refletem contratos registrados — podem não representar o total faturado pela empresa no período.
+             */
+            aviso_legal: string;
+            /** Cnpj */
+            cnpj: string;
+            /**
+             * Distribuicao Ano
+             * @default []
+             */
+            distribuicao_ano: components["schemas"]["DistribuicaoItem"][];
+            /**
+             * Distribuicao Modalidade
+             * @default []
+             */
+            distribuicao_modalidade: components["schemas"]["DistribuicaoItem"][];
+            /**
+             * Distribuicao Uf
+             * @default []
+             */
+            distribuicao_uf: components["schemas"]["DistribuicaoItem"][];
+            /**
+             * Generated At
+             * Format: date-time
+             */
+            generated_at: string;
+            /** Nome Fantasia */
+            nome_fantasia?: string | null;
+            ranking?: components["schemas"]["RankingInfo"] | null;
+            /** Razao Social */
+            razao_social: string;
+            /** Setor Nome */
+            setor_nome?: string | null;
+            /** Setor Principal */
+            setor_principal?: string | null;
+            /**
+             * Top Orgaos
+             * @default []
+             */
+            top_orgaos: components["schemas"]["OrgaoInfo"][];
+            /** Total Contratos 12M */
+            total_contratos_12m: number;
+            /** Total Contratos Alltime */
+            total_contratos_alltime: number;
+            /** Valor Total 12M */
+            valor_total_12m: number;
+            /** Valor Total Alltime */
+            valor_total_alltime: number;
         };
         /**
          * InviteClientRequest
@@ -11453,6 +11491,21 @@ export interface components {
             /** Valor Total Licitacoes */
             valor_total_licitacoes: number;
         };
+        /** NetworkAnalyticsRequest */
+        NetworkAnalyticsRequest: {
+            /** Allow Network Analytics */
+            allow_network_analytics: boolean;
+        };
+        /** NetworkAnalyticsResponse */
+        NetworkAnalyticsResponse: {
+            /** Allow Network Analytics */
+            allow_network_analytics: boolean;
+            /**
+             * Success
+             * @default true
+             */
+            success: boolean;
+        };
         /** NewBidsCountResponse */
         NewBidsCountResponse: {
             /** Count */
@@ -11619,23 +11672,16 @@ export interface components {
             total_value: number;
         };
         /**
-         * OrgaoFavorito
-         * @description Favorite (most-contracted) agencies.
+         * OrgaoInfo
+         * @description Órgão comprador com total de contratos e valor.
          */
-        OrgaoFavorito: {
-            /**
-             * Categorias
-             * @default []
-             */
-            categorias: string[];
-            /** Contratos */
-            contratos: number;
-            /** Frequencia Anual */
-            frequencia_anual?: number | null;
-            /** Orgao Nome */
-            orgao_nome: string;
-            /** Ultima Vitoria */
-            ultima_vitoria?: string | null;
+        OrgaoInfo: {
+            /** Cnpj */
+            cnpj: string;
+            /** Nome */
+            nome: string;
+            /** Total Contratos */
+            total_contratos: number;
             /** Valor Total */
             valor_total: number;
         };
@@ -12230,6 +12276,63 @@ export interface components {
          * @enum {string}
          */
         PorteEmpresa: "MEI" | "ME" | "EPP" | "MEDIO" | "GRANDE";
+        /** PredictiveAlertCreate */
+        PredictiveAlertCreate: {
+            /** Alert Type */
+            alert_type: string;
+            /** Sector Id */
+            sector_id: string;
+            /**
+             * Threshold Value
+             * @default 0
+             */
+            threshold_value: number;
+            /** Uf */
+            uf?: string | null;
+        };
+        /** PredictiveAlertListResponse */
+        PredictiveAlertListResponse: {
+            /** Alerts */
+            alerts: components["schemas"]["PredictiveAlertResponse"][];
+            /** Total */
+            total: number;
+        };
+        /** PredictiveAlertResponse */
+        PredictiveAlertResponse: {
+            /** Alert Type */
+            alert_type: string;
+            /** Created At */
+            created_at: string;
+            /** Enabled */
+            enabled: boolean;
+            /** Id */
+            id: string;
+            /** Last Triggered At */
+            last_triggered_at?: string | null;
+            /** Sector Id */
+            sector_id: string;
+            /** Threshold Value */
+            threshold_value: number;
+            /** Uf */
+            uf?: string | null;
+            /** Updated At */
+            updated_at: string;
+            /** User Id */
+            user_id: string;
+        };
+        /** PredictiveAlertUpdate */
+        PredictiveAlertUpdate: {
+            /** Alert Type */
+            alert_type?: string | null;
+            /** Enabled */
+            enabled?: boolean | null;
+            /** Sector Id */
+            sector_id?: string | null;
+            /** Threshold Value */
+            threshold_value?: number | null;
+            /** Uf */
+            uf?: string | null;
+        };
         /**
          * PreferenciasRequest
          * @description Request body for PATCH /conta/preferencias — frequency toggle.
@@ -12332,6 +12435,20 @@ export interface components {
             timestamp?: string | null;
         } & {
             [key: string]: unknown;
+        };
+        /**
+         * RankingInfo
+         * @description Posição da empresa no ranking setorial.
+         */
+        RankingInfo: {
+            /** Percentil */
+            percentil: number;
+            /** Posicao */
+            posicao: number;
+            /** Texto Contexto */
+            texto_contexto: string;
+            /** Total Empresas Setor */
+            total_empresas_setor: number;
         };
         /** RankingResponse */
         RankingResponse: {
@@ -14261,45 +14378,6 @@ export interface components {
             /** Total Won */
             total_won: number;
         };
-        /**
-         * TerritorioEntry
-         * @description Per-UF competitive territory data.
-         */
-        TerritorioEntry: {
-            /** Contratos */
-            contratos: number;
-            /** Market Share Uf */
-            market_share_uf?: number | null;
-            /**
-             * Orgaos Principais
-             * @default []
-             */
-            orgaos_principais: string[];
-            /** Tendencia */
-            tendencia?: string | null;
-            /** Ticket Medio Uf */
-            ticket_medio_uf: number;
-            /** Uf */
-            uf: string;
-            /** Valor Total */
-            valor_total: number;
-        };
-        /**
-         * TerritorioStats
-         * @description Aggregate territorial statistics.
-         */
-        TerritorioStats: {
-            /** Anos Atuacao */
-            anos_atuacao: number;
-            /** Crescimento Anual */
-            crescimento_anual?: number | null;
-            /** Orgaos Unicos */
-            orgaos_unicos: number;
-            /** Tendencia Posicionamento */
-            tendencia_posicionamento?: string | null;
-            /** Ufs Atuacao */
-            ufs_atuacao: number;
-        };
         /** TimeSeriesDataPoint */
         TimeSeriesDataPoint: {
             /** Label */
@@ -14863,6 +14941,11 @@ export interface components {
          */
         UserProfileResponse: {
             /**
+             * Allow Network Analytics
+             * @description NETINT-001/006: User consent for anonymized network analytics collection. NULL = undecided (treated as opt-out), true = opted in, false = opted out.
+             */
+            allow_network_analytics?: boolean | null;
+            /**
              * Capabilities
              * @description Plan capabilities (max_history_days, allow_excel, etc.)
              */
@@ -15107,30 +15190,6 @@ export interface components {
             message: string;
             /** Sent */
             sent: boolean;
-        };
-        /**
-         * WinMetrics
-         * @description Win-rate and performance metrics.
-         */
-        WinMetrics: {
-            /** Dependencia Publica */
-            dependencia_publica?: number | null;
-            /** Indice Concentracao */
-            indice_concentracao?: number | null;
-            /** Taxa Vitoria Estimada */
-            taxa_vitoria_estimada?: number | null;
-            /** Tendencia */
-            tendencia?: string | null;
-            /** Ticket P25 */
-            ticket_p25?: number | null;
-            /** Ticket P50 */
-            ticket_p50?: number | null;
-            /** Ticket P75 */
-            ticket_p75?: number | null;
-            /** Ticket P90 */
-            ticket_p90?: number | null;
-            /** Velocidade Crescimento */
-            velocidade_crescimento?: number | null;
         };
         /**
          * _LivenessResponse
@@ -20569,122 +20628,6 @@ export interface operations {
             };
         };
     };
-    list_competitive_alerts_v1_intel_concorrente_alerts_get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["CompetitiveAlertListResponse"];
-                };
-            };
-        };
-    };
-    create_competitive_alert_v1_intel_concorrente_alerts_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["CompetitiveAlertCreate"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["CompetitiveAlertResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    delete_competitive_alert_v1_intel_concorrente_alerts__alert_id__delete: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                alert_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            204: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    fornecedor_competitive_intel_v1_intel_concorrente_fornecedor__cnpj__get: {
-        parameters: {
-            query?: {
-                anos?: number;
-            };
-            header?: never;
-            path: {
-                /** @description Supplier CNPJ (14 digits) */
-                cnpj: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["FornecedorIntelResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
     list_intel_report_purchases_v1_intel_reports__get: {
         parameters: {
             query?: never;
@@ -20823,6 +20766,37 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["IntelTastingResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    intel_vitrine_v1_intel_vitrine__cnpj__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                cnpj: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["IntelVitrineResponse"];
                 };
             };
             /** @description Validation Error */
@@ -21316,6 +21290,26 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    network_intel_health_v1_network_intel_health_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
                 };
             };
         };
@@ -21967,6 +21961,136 @@ export interface operations {
             };
         };
     };
+    list_predictive_alerts_v1_predint_alerts_get: {
+        parameters: {
+            query?: {
+                enabled_only?: boolean;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PredictiveAlertListResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_predictive_alert_v1_predint_alerts_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PredictiveAlertCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PredictiveAlertResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_predictive_alert_v1_predint_alerts__alert_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                alert_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_predictive_alert_v1_predint_alerts__alert_id__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                alert_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PredictiveAlertUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PredictiveAlertResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     get_demand_forecast_v1_predint_forecast_get: {
         parameters: {
             query?: {
@@ -22214,6 +22338,39 @@ export interface operations {
             };
         };
     };
+    update_network_analytics_v1_profile_network_analytics_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["NetworkAnalyticsRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NetworkAnalyticsResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     get_sector_affinity_v1_profile_sector_affinity_get: {
         parameters: {
             query?: never;
@@ -22256,6 +22413,40 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["SectorAffinityResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_intel_feed_v1_pseo_intel_feed_get: {
+        parameters: {
+            query: {
+                /** @description Sector URL slug, e.g. 'engenharia' */
+                sector: string;
+                /** @description Optional UF filter (e.g. 'SP') */
+                uf?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["IntelFeedResponse"];
                 };
             };
             /** @description Validation Error */
