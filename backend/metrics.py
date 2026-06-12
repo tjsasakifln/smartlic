@@ -1316,6 +1316,40 @@ FEEDBACK_NEGATIVE_TOTAL = _create_counter(
 )
 
 # STORY-SEO-005: GSC weekly sync observability
+NETWORK_EVENTS_COLLECTED_TOTAL = _create_counter(
+    "network_events_collected_total",
+    "Total de eventos coletados por tipo",
+    labelnames=["evento_tipo"],
+)
+
+NETWORK_EVENTS_DISCARDED_TOTAL = _create_counter(
+    "network_events_discarded_total",
+    "Eventos descartados por opt-out/sanitizacao",
+    labelnames=["motivo"],  # opt_out, sanitization_fail, invalid_type
+)
+
+NETWORK_EVENTS_SANITIZATION_FAILURES_TOTAL = _create_counter(
+    "network_events_sanitization_failures_total",
+    "NETINT-008: Eventos rejeitados por sanitizacao LGPD",
+)
+
+NETWORK_EVENTS_COLLECTION_DURATION_SECONDS = _create_histogram(
+    "network_events_collection_duration_seconds",
+    "NETINT-008: Latencia de coleta de evento",
+    buckets=[0.01, 0.05, 0.1, 0.5, 1.0],
+)
+
+NETWORK_EVENTS_CLEANUP_LAST_RUN = _create_gauge(
+    "network_events_cleanup_last_run_timestamp",
+    "NETINT-008: Timestamp da ultima execucao do job de cleanup",
+)
+
+network_events_cleanup_duration_seconds = _create_histogram(
+    "network_cleanup_duration_seconds",
+    "NETINT-008: Duracao do job de cleanup",
+    buckets=[5, 10, 30, 60, 120, 300, 600],
+)
+
 smartlic_gsc_sync_duration_seconds = _create_histogram(
     "smartlic_gsc_sync_duration_seconds",
     "Duration of the weekly Google Search Console sync job",
