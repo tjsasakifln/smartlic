@@ -294,6 +294,8 @@ _FEATURE_FLAG_REGISTRY: dict[str, tuple[str, str]] = {
     "PREDICTIVE_INTEL_ENABLED": ("PREDICTIVE_INTEL_ENABLED", "true"),
     # COMPINT-000 (EPIC-COMPINT #1261): competitive intelligence vertical
     "COMPETITIVE_INTEL_ENABLED": ("COMPETITIVE_INTEL_ENABLED", "true"),
+    # WIDGET-COMPINT-001 (#1619): Competitive Intelligence embeddable widget
+    "COMPETITIVE_INTEL_WIDGET_ENABLED": ("COMPETITIVE_INTEL_WIDGET_ENABLED", "true"),
     # B2GOPS-000 (EPIC-B2GOPS #1262): B2G Operations workspace_basic gate
     "B2G_OPS_ENABLED": ("B2G_OPS_ENABLED", "true"),
     # DEGUST-001 (#1611): Intelligence Tasting — trial upsell
