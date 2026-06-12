@@ -2,9 +2,7 @@
 
 Extracted from main.py to keep the app factory lean.
 """
-
 from fastapi import FastAPI
-
 # Routers
 from admin import router as admin_router
 from routes.subscriptions import router as subscriptions_router
@@ -105,8 +103,7 @@ from routes.pseo_intel_feed import router as pseo_intel_feed_router
 from routes.widget_compint import router as widget_compint_router
 from routes.competitive_intel import router as competitive_intel_router
 from routes.consultoria import router as consultoria_router
-from routes.network_intel import router as network_intel_router
-
+from routes.competitive_intel import router as competitive_intel_router
 _v1_routers = [
     admin_router, subscriptions_router, upgrade_to_lifetime_router,
     features_router, messages_router,
@@ -168,19 +165,15 @@ _v1_routers = [
     competitive_intel_router,
     widget_compint_router,
     consultoria_router,
-    network_intel_router,
+    competitive_intel_router,
 ]
-
-
 def register_routes(app: FastAPI) -> None:
     """Register all application routers onto *app*."""
     # Health core at root (not /v1/) for container probes
     app.include_router(health_core_router)
-
     # All API routers at /v1/
     for r in _v1_routers:
         app.include_router(r, prefix="/v1")
-
     # Self-prefixed routers
     app.include_router(admin_trace_router)
     app.include_router(admin_cron_router)
@@ -191,30 +184,23 @@ def register_routes(app: FastAPI) -> None:
     app.include_router(admin_founding_router)
     app.include_router(admin_metrics_router)
     app.include_router(slo_router)
-
     # Issue #1002: founders availability — self-prefixed at /api/founders/*
     # (NOT under /v1/ — public landing-page consumers + SEO programmatic).
     app.include_router(founders_router)
-
     # Issue #1008: Hall of Founders public listing + LGPD opt-in toggle.
     # Self-prefixed at /api/founders/hall/* — public listing + authenticated
     # consent toggle. Mirrors PR #1014's /api/founders/availability prefix.
     app.include_router(founders_hall_router)
-
     # CONV-005b-2: Checkout endpoint — self-prefixed at /api/checkout/*
     # (NOT under /v1/ — generic path for frontend convenience).
     app.include_router(checkout_router)
-
     # DIGEST-005 (#1421): Email tracking (open/click/unsubscribe) endpoints
     # Self-prefixed at /api/email/* — no auth, must be accessible from email clients
     app.include_router(email_tracking_router)
-
     # DIGEST-005 (#1421): Admin digest metrics dashboard widget
     app.include_router(admin_digest_metrics_router)
-
     # GAP-002 (#1579): Command plan provisioning — self-prefixed at /v1/admin/subscriptions/*
     app.include_router(admin_command_router)
-
     # Stripe webhook at root — DEBT-324: single registration only.
     # Removed from _v1_routers above to prevent duplicate at /v1/webhooks/stripe.
     # Stripe Dashboard must be configured with: POST /webhooks/stripe
