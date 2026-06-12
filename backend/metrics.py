@@ -1347,6 +1347,8 @@ NETWORK_EVENTS_COLLECTION_DURATION_SECONDS = _create_histogram(
 NETWORK_EVENTS_CLEANUP_LAST_RUN = _create_gauge(
     "network_events_cleanup_last_run_timestamp",
     "NETINT-008: Timestamp da ultima execucao do job de cleanup",
+)
+
 network_events_cleanup_duration_seconds = _create_histogram(
     "network_cleanup_duration_seconds",
     "NETINT-008: Duracao do job de cleanup",
