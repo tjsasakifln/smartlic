@@ -6180,6 +6180,31 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/subcontract/health": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Subcontract Health
+         * @description Check if the Subcontracting Intelligence vertical is accessible.
+         *
+         *     Returns the global feature flag state and whether the authenticated user
+         *     has the ``allow_subcontract_intel`` plan capability (or is master/admin).
+         *
+         *     Frontend uses this to decide if SUBINTEL UI sections should render.
+         */
+        get: operations["subcontract_health_v1_subcontract_health_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/subscription/status": {
         parameters: {
             query?: never;
@@ -13925,6 +13950,28 @@ export interface components {
             since?: string | null;
             /** Stripe */
             stripe: string;
+        };
+        /**
+         * SubcontractHealthResponse
+         * @description Health check response for the Subcontracting Intelligence vertical.
+         */
+        SubcontractHealthResponse: {
+            /**
+             * Enabled
+             * @description Global feature flag state
+             */
+            enabled: boolean;
+            /**
+             * Feature Flag
+             * @description Feature flag name
+             * @default SUBCONTRACT_INTEL_ENABLED
+             */
+            feature_flag: string;
+            /**
+             * Has Access
+             * @description Current user has plan capability
+             */
+            has_access: boolean;
         };
         /**
          * SubscriptionStatusResponse
@@ -22949,6 +22996,26 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["UptimeHistoryResponse"];
+                };
+            };
+        };
+    };
+    subcontract_health_v1_subcontract_health_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SubcontractHealthResponse"];
                 };
             };
         };
