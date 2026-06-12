@@ -4170,6 +4170,46 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/intel/vitrine/search": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Search companies by name or CNPJ (VITRINE-001)
+         * @description Search for companies in pncp_supplier_contracts by name or partial CNPJ.
+         */
+        get: operations["intel_vitrine_search_v1_intel_vitrine_search_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/intel/vitrine/{cnpj}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Public company intelligence vitrine
+         * @description Retorna dados agregados de contratos públicos para um CNPJ. Endpoint público — sem autenticação necessária. Cache: 6h. Rate limit: 30 req/min por IP.
+         */
+        get: operations["intel_vitrine_v1_intel_vitrine__cnpj__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/itens/{catmat}/profile": {
         parameters: {
             query?: never;
@@ -6185,6 +6225,36 @@ export interface paths {
         post?: never;
         delete?: never;
         options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/widget/competitive-intel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Dados de Inteligência Competitiva para Widget Embedável
+         * @description Retorna dados agregados de contratos públicos por setor para widget embedável.
+         *
+         *     Temas:
+         *     - market-share: Market share dos fornecedores no setor
+         *     - top-winners: Top vencedores com indicadores de crescimento
+         *     - monthly-trend: Tendência mensal de contratos
+         *     - orgao-ranking: Ranking de órgãos compradores
+         */
+        get: operations["widget_competitive_intel_v1_widget_competitive_intel_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        /**
+         * Widget Competitive Intel Options
+         * @description Handle CORS preflight requests.
+         */
+        options: operations["widget_competitive_intel_options_v1_widget_competitive_intel_options"];
         head?: never;
         patch?: never;
         trace?: never;
@@ -8937,6 +9007,18 @@ export interface components {
         } & {
             [key: string]: unknown;
         };
+        /**
+         * DistribuicaoItem
+         * @description Item de distribuição por UF, ano, ou modalidade.
+         */
+        DistribuicaoItem: {
+            /** Chave */
+            chave: string;
+            /** Quantidade */
+            quantidade: number;
+            /** Valor Total */
+            valor_total: number;
+        };
         /** EditaisAmostra */
         EditaisAmostra: {
             /** Data Encerramento */
@@ -10287,6 +10369,61 @@ export interface components {
             /** Uf */
             uf?: string | null;
         };
+        /**
+         * IntelVitrineResponse
+         * @description Resposta completa da vitrine de inteligência pública.
+         */
+        IntelVitrineResponse: {
+            /**
+             * Aviso Legal
+             * @default Dados públicos do Portal Nacional de Contratações Públicas (PNCP). Os valores refletem contratos registrados — podem não representar o total faturado pela empresa no período.
+             */
+            aviso_legal: string;
+            /** Cnpj */
+            cnpj: string;
+            /**
+             * Distribuicao Ano
+             * @default []
+             */
+            distribuicao_ano: components["schemas"]["DistribuicaoItem"][];
+            /**
+             * Distribuicao Modalidade
+             * @default []
+             */
+            distribuicao_modalidade: components["schemas"]["DistribuicaoItem"][];
+            /**
+             * Distribuicao Uf
+             * @default []
+             */
+            distribuicao_uf: components["schemas"]["DistribuicaoItem"][];
+            /**
+             * Generated At
+             * Format: date-time
+             */
+            generated_at: string;
+            /** Nome Fantasia */
+            nome_fantasia?: string | null;
+            ranking?: components["schemas"]["RankingInfo"] | null;
+            /** Razao Social */
+            razao_social: string;
+            /** Setor Nome */
+            setor_nome?: string | null;
+            /** Setor Principal */
+            setor_principal?: string | null;
+            /**
+             * Top Orgaos
+             * @default []
+             */
+            top_orgaos: components["schemas"]["OrgaoInfo"][];
+            /** Total Contratos 12M */
+            total_contratos_12m: number;
+            /** Total Contratos Alltime */
+            total_contratos_alltime: number;
+            /** Valor Total 12M */
+            valor_total_12m: number;
+            /** Valor Total Alltime */
+            valor_total_alltime: number;
+        };
         /** InviteMemberRequest */
         InviteMemberRequest: {
             /** Email */
@@ -11003,6 +11140,20 @@ export interface components {
             /** Total Value */
             total_value: number;
         };
+        /**
+         * OrgaoInfo
+         * @description Órgão comprador com total de contratos e valor.
+         */
+        OrgaoInfo: {
+            /** Cnpj */
+            cnpj: string;
+            /** Nome */
+            nome: string;
+            /** Total Contratos */
+            total_contratos: number;
+            /** Valor Total */
+            valor_total: number;
+        };
         /** OrgaoRank */
         OrgaoRank: {
             /** Cnpj */
@@ -11696,6 +11847,20 @@ export interface components {
             timestamp?: string | null;
         } & {
             [key: string]: unknown;
+        };
+        /**
+         * RankingInfo
+         * @description Posição da empresa no ranking setorial.
+         */
+        RankingInfo: {
+            /** Percentil */
+            percentil: number;
+            /** Posicao */
+            posicao: number;
+            /** Texto Contexto */
+            texto_contexto: string;
+            /** Total Empresas Setor */
+            total_empresas_setor: number;
         };
         /** RankingResponse */
         RankingResponse: {
@@ -19761,6 +19926,71 @@ export interface operations {
             };
         };
     };
+    intel_vitrine_search_v1_intel_vitrine_search_get: {
+        parameters: {
+            query: {
+                /** @description Search query */
+                q: string;
+                /** @description Max results */
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    intel_vitrine_v1_intel_vitrine__cnpj__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                cnpj: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["IntelVitrineResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     item_profile_v1_itens__catmat__profile_get: {
         parameters: {
             query?: never;
@@ -22286,6 +22516,62 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["RecommendedPlanResponse"];
+                };
+            };
+        };
+    };
+    widget_competitive_intel_v1_widget_competitive_intel_get: {
+        parameters: {
+            query: {
+                /** @description ID do setor (ex: ti, saude, construcao) */
+                setor: string;
+                /** @description Tema: market-share | top-winners | monthly-trend | orgao-ranking */
+                tema: string;
+                /** @description UF (2 letras, opcional) */
+                uf?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    widget_competitive_intel_options_v1_widget_competitive_intel_options: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
                 };
             };
         };
