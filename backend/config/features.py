@@ -290,6 +290,8 @@ _FEATURE_FLAG_REGISTRY: dict[str, tuple[str, str]] = {
     "PARTNERS_ENABLED": ("PARTNERS_ENABLED", "false"),
     # SUBINTEL-030 (EPIC-SUBINTEL #1224): subcontracting intelligence vertical
     "SUBCONTRACT_INTEL_ENABLED": ("SUBCONTRACT_INTEL_ENABLED", "true"),
+    # MKT-001 (#1616): Subcontract Marketplace MVP
+    "SUBCONTRACT_MARKETPLACE_ENABLED": ("SUBCONTRACT_MARKETPLACE_ENABLED", "true"),
     # PREDINT-000 (EPIC-PREDINT #1260): predictive intelligence vertical
     "PREDICTIVE_INTEL_ENABLED": ("PREDICTIVE_INTEL_ENABLED", "true"),
     # COMPINT-000 (EPIC-COMPINT #1261): competitive intelligence vertical
@@ -300,6 +302,8 @@ _FEATURE_FLAG_REGISTRY: dict[str, tuple[str, str]] = {
     "B2G_OPS_ENABLED": ("B2G_OPS_ENABLED", "true"),
     # DEGUST-001 (#1611): Intelligence Tasting — trial upsell
     "INTELLIGENCE_TASTING_ENABLED": ("INTELLIGENCE_TASTING_ENABLED", "true"),
+    # REPORT-MONTHLY-001 (#1620): Monthly Report subscriptions
+    "MONTHLY_REPORT_ENABLED": ("MONTHLY_REPORT_ENABLED", "true"),
     # --- Infra ---
     "METRICS_ENABLED": ("METRICS_ENABLED", "true"),
     "RATE_LIMITING_ENABLED": ("RATE_LIMITING_ENABLED", "true"),
