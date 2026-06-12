@@ -99,6 +99,8 @@ from routes.email_tracking import router as email_tracking_router
 from routes.admin_digest_metrics import router as admin_digest_metrics_router
 from routes.admin_command import router as admin_command_router
 from routes.intel_tasting import router as intel_tasting_router
+from routes.intel_vitrine import router as intel_vitrine_router
+from routes.competitive_intel import router as competitive_intel_router
 
 _v1_routers = [
     admin_router, subscriptions_router, upgrade_to_lifetime_router,
@@ -154,6 +156,8 @@ _v1_routers = [
     segment_router,
     api_search_router,
     intel_tasting_router,
+    intel_vitrine_router,
+    competitive_intel_router,
 ]
 
 
