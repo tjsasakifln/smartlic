@@ -252,6 +252,7 @@ def calculate_viability(
     user_profile: dict | None = None,
     custom_terms: list[str] | None = None,
     weights: dict[str, float] | None = None,
+    ml_score: float | None = None,
 ) -> ViabilityAssessment:
     """Calculate viability assessment for a single accepted bid.
 
@@ -346,6 +347,16 @@ def calculate_viability(
         + vf_score * w_vf
         + geo_score * w_geo
     ) + porte_bonus
+
+    # SCORE-001 (#1614): Blend optional ML win probability into the final score.
+    # ml_score is the model's predicted win probability (0.0 to 1.0).
+    # The ML score contributes 20% weight when available, gradually phased in
+    # as the model proves itself. Disabled (ml_score is None) = pure deterministic.
+    if ml_score is not None and 0.0 <= ml_score <= 1.0:
+        ml_component = ml_score * 100.0  # Convert 0-1 to 0-100 scale
+        # Blend: 80% deterministic + 20% ML
+        raw_score = 0.8 * raw_score + 0.2 * ml_component
+
     composite = max(0, min(100, round(raw_score)))
 
     # Map to level
