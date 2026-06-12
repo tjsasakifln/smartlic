@@ -18,9 +18,9 @@ from typing import Any, Dict, List, Optional
 
 from config import (
     RetryConfig,
+    PNCP_MODALITY_RETRY_BACKOFF,  # noqa: F401 — re-exported via pncp_client.py
     PNCP_TIMEOUT_PER_MODALITY as _CFG_TIMEOUT_PER_MODALITY,
     PNCP_TIMEOUT_PER_UF as _CFG_TIMEOUT_PER_UF,
-    PNCP_MODALITY_RETRY_BACKOFF,
 )
 
 logger = logging.getLogger(__name__)

@@ -34,6 +34,13 @@ try:
     if ALERTS_ENABLED:
         _worker_cron_jobs.append(_arq_cron(email_alerts_job, hour={ALERTS_HOUR_UTC}, minute=0, timeout=1800))
 
+    # PREDINT-024: daily predictive alert evaluation (7:00 UTC = 4:00 BRT).
+    try:
+        from jobs.cron.predictive_alert_job import predictive_alert_job
+        _worker_cron_jobs.append(_arq_cron(predictive_alert_job, hour={7}, minute=0, timeout=600))
+    except ImportError:
+        pass
+
     # STORY-1.1 (EPIC-TD-2026Q2 P0): hourly pg_cron health monitor.
     # Always registered — surfaces silent failures of purge_old_bids + cleanup crons.
     try:
@@ -54,6 +61,17 @@ try:
     try:
         from jobs.cron.gsc_sync import gsc_sync_job
         _worker_cron_jobs.append(_arq_cron(gsc_sync_job, weekday={6}, hour={6}, minute=0, timeout=1800))
+    except ImportError:
+        pass
+
+    # NETINT-007: weekly network_events cleanup job (Sun at configurable hour, default 03:00 UTC).
+    try:
+        from config import NETWORK_EVENTS_CLEANUP_HOUR, NETWORK_EVENTS_CLEANUP_ENABLED
+        if NETWORK_EVENTS_CLEANUP_ENABLED:
+            from jobs.cron.network_events_cleanup import aggregate_and_cleanup_network_events
+            _worker_cron_jobs.append(
+                _arq_cron(aggregate_and_cleanup_network_events, weekday={6}, hour={NETWORK_EVENTS_CLEANUP_HOUR}, minute=0, timeout=600)
+            )
     except ImportError:
         pass
 
@@ -110,6 +128,33 @@ try:
             )
     except ImportError:
         pass
+
+    # COMPINT-012 (#1666): Competitive alert detection (3x/day) + weekly digest.
+    try:
+        from jobs.cron.competitive_alert_job import (
+            run_competitive_alert_detection,
+            run_competitive_alert_weekly_digest,
+        )
+        _worker_cron_jobs.append(
+            _arq_cron(
+                run_competitive_alert_detection,
+                hour={8, 14, 20},
+                minute=0,
+                timeout=600,
+            )
+        )
+        _worker_cron_jobs.append(
+            _arq_cron(
+                run_competitive_alert_weekly_digest,
+                weekday={0},  # Monday
+                hour={11},
+                minute=0,
+                timeout=300,
+            )
+        )
+    except ImportError:
+        logger.debug("competitive_alert_job module not available — skipping registration")
+
 except Exception:
     _worker_cron_jobs = []
 
@@ -170,6 +215,13 @@ class WorkerSettings:
     except ImportError:
         pass
 
+    # PREDINT-024: include predictive_alert_job so ARQ can dispatch daily runs.
+    try:
+        from jobs.cron.predictive_alert_job import predictive_alert_job as _predictive_alert_job
+        _predictive_functions = [_predictive_alert_job]
+    except ImportError:
+        _predictive_functions = []
+
     # STORY-1.1: include cron_monitoring_job so ARQ can dispatch hourly runs.
     try:
         from jobs.cron.cron_monitor import cron_monitoring_job as _cron_monitoring_job
@@ -184,6 +236,19 @@ class WorkerSettings:
     except ImportError:
         _founders_functions = []
 
+    # COMPINT-012 (#1666): Competitive alert detection + digest functions
+    try:
+        from jobs.cron.competitive_alert_job import (
+            run_competitive_alert_detection,
+            run_competitive_alert_weekly_digest,
+        )
+        _competitive_alert_functions = [
+            run_competitive_alert_detection,
+            run_competitive_alert_weekly_digest,
+        ]
+    except ImportError:
+        _competitive_alert_functions = []
+
     # Lead magnet PDF delivery jobs
     try:
         from jobs.cron.send_lead_magnet import send_lead_magnet_job as _send_lead_magnet_job
@@ -195,6 +260,13 @@ class WorkerSettings:
         )
         _lead_magnet_functions = []
 
+    # NETINT-007: network_events cleanup function (weekly cron).
+    try:
+        from jobs.cron.network_events_cleanup import aggregate_and_cleanup_network_events as _network_events_cleanup_func
+        _network_events_functions = [_network_events_cleanup_func]
+    except ImportError:
+        _network_events_functions = []
+
     functions = [
         llm_summary_job, excel_generation_job, search_job,
         bid_analysis_job, daily_digest_job, email_alerts_job,
@@ -204,9 +276,12 @@ class WorkerSettings:
         send_post_purchase_step,
         send_founders_welcome,
         *_ingestion_functions,
+        *_predictive_functions,
         *_monitoring_functions,
         *_founders_functions,
         *_lead_magnet_functions,
+        *_competitive_alert_functions,
+        *_network_events_functions,
     ]
     cron_jobs = _worker_cron_jobs
     on_startup = _worker_on_startup

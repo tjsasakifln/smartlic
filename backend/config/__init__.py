@@ -88,6 +88,12 @@ from config.features import (
     ZERO_MATCH_JOB_TIMEOUT_S,  # noqa: F401
     ZERO_MATCH_VALUE_RATIO,  # noqa: F401
     ZERO_RESULTS_RELAXATION_ENABLED,  # noqa: F401
+    # NETINT-007: network_events cleanup retention
+    NETWORK_EVENTS_RETENTION_DAYS,  # noqa: F401
+    NETWORK_EVENTS_AGG_WINDOW_DAYS,  # noqa: F401
+    NETWORK_EVENTS_WEEKLY_RETENTION_DAYS,  # noqa: F401
+    NETWORK_EVENTS_CLEANUP_HOUR,  # noqa: F401
+    NETWORK_EVENTS_CLEANUP_ENABLED,  # noqa: F401
     _feature_flag_cache,  # noqa: F401
     get_feature_flag,  # noqa: F401
     log_feature_flags,  # noqa: F401
