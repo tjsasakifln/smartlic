@@ -339,6 +339,14 @@ class UserProfileResponse(BaseModel):
         ge=0,
         description="LIFECYCLE-001: Contador total de logins bem-sucedidos.",
     )
+    # ── NETINT-001/006: Network analytics consent ───────────────────────────────
+    allow_network_analytics: Optional[bool] = Field(
+        default=None,
+        description=(
+            "NETINT-001/006: User consent for anonymized network analytics collection. "
+            "NULL = undecided (treated as opt-out), true = opted in, false = opted out."
+        ),
+    )
 
 
 class DeleteAccountResponse(BaseModel):

@@ -1,4 +1,5 @@
 import { Metadata } from 'next';
+import NetworkAnalyticsSection from './components/NetworkAnalyticsSection';
 
 export const metadata: Metadata = {
   title: 'Política de Privacidade',
@@ -302,10 +303,13 @@ export default function PrivacidadePage() {
               </p>
             </section>
 
-            {/* 9. Retencao de Dados */}
+            {/* 9. Network Analytics */}
+            <NetworkAnalyticsSection />
+
+            {/* 10. Retencao de Dados */}
             <section className="mb-8">
               <h2 className="text-2xl font-semibold mb-4 text-gray-900 dark:text-white">
-                9. Retencao e Eliminacao de Dados
+                10. Retencao e Eliminacao de Dados
               </h2>
               <p className="text-gray-700 dark:text-gray-300 leading-relaxed mb-4">
                 Mantemos seus dados apenas pelo tempo necessario para cumprir as finalidades descritas nesta politica.
