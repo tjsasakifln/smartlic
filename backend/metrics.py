@@ -1422,6 +1422,14 @@ FOUNDING_CHECKOUTS_TOTAL = _create_counter(
 )
 
 
+# NETINT-005: Network events collection counter
+NETWORK_EVENTS_COLLECTED_TOTAL = _create_counter(
+    "smartlic_network_events_collected_total",
+    "Network intelligence events collected (fire-and-forget)",
+    labelnames=["evento_tipo", "status"],  # status: success, timeout, error
+)
+
+
 # ============================================================================
 # ASGI app factory for /metrics endpoint
 # ============================================================================
