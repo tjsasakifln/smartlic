@@ -3,6 +3,7 @@
 All endpoints are gated by requires_subcontract_intel() (SUBINTEL-030).
 
 Routes:
+  - GET /v1/subcontract/health                       SUBINTEL-030 (#1665): Gate health
   - GET /v1/subcontract/opportunities?bid={id}&sector={id}
     SUBINTEL-022 (#1678): Subcontract pSEO block data
 """
@@ -15,8 +16,13 @@ from datetime import datetime, timezone
 from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
+from pydantic import BaseModel, Field
 
-from quota.plan_auth import get_subcontract_intel_dependency
+from auth import require_auth
+from quota.plan_auth import (
+    check_subcontract_intel_access,
+    get_subcontract_intel_dependency,
+)
 from schemas.subcontract_intel import (
     SubcontractBidOpportunityResponse,
     SubcontractReason,
@@ -26,10 +32,44 @@ from sectors import SECTORS
 
 logger = logging.getLogger(__name__)
 
+# Separate router for health endpoint — doesn't use requires_subcontract_intel
+# dependency (which calls check_quota requiring Supabase). Instead, the health
+# endpoint checks the flag + capability internally.
+health_router = APIRouter(prefix="/subcontract", tags=["subcontract"])
+
+# Main router for gated subcontract endpoints
 router = APIRouter(
     tags=["subcontract"],
     dependencies=[Depends(get_subcontract_intel_dependency())],
 )
+
+
+class _HealthResponse(BaseModel):
+    """Response model for the subcontract health endpoint."""
+
+    enabled: bool = Field(..., description="Global feature flag state")
+    has_access: bool = Field(..., description="Current user has plan capability")
+    feature_flag: str = Field(
+        "SUBCONTRACT_INTEL_ENABLED",
+        description="Feature flag name",
+    )
+
+
+@health_router.get("/health")
+async def subcontract_health(user: dict = Depends(require_auth)):
+    """Check if the Subcontracting Intelligence vertical is accessible.
+
+    Returns the global feature flag state and whether the authenticated user
+    has the allow_subcontract_intel plan capability.
+    """
+    from config.features import get_feature_flag as _get_flag
+    flag_enabled = _get_flag("SUBCONTRACT_INTEL_ENABLED")
+    has_access = await check_subcontract_intel_access(user)
+    return _HealthResponse(
+        enabled=flag_enabled,
+        has_access=has_access,
+    )
+
 
 # ---------------------------------------------------------------------------
 # Constants
