@@ -15,9 +15,15 @@ import { EmbedIntelFeed } from "@/components/pseo/EmbedIntelFeed";
 // Mock IntersectionObserver — plain class survives jest.config.js resetMocks/restoreMocks.
 // Cannot use jest.fn() because resetMocks clears its implementation, causing
 // `new IntersectionObserver(cb)` to return an object without `observe`.
+//
+// Strategy: store the latest callback in a module-level variable.
+// mockIntersectionCallback.mock.calls[0] would be empty because the mock
+// is never *invoked* — only its .mockImplementation() setter is used.
+// jest.clearAllMocks() in beforeEach clears mockImplementation, so we
+// stash the callback in a plain variable that survives clearAllMocks.
+let storedCallback: IntersectionObserverCallback | null = null;
 const mockObserve = jest.fn();
 const mockDisconnect = jest.fn();
-const mockIntersectionCallback = jest.fn();
 
 beforeAll(() => {
   class TestIntersectionObserver {
@@ -29,7 +35,7 @@ beforeAll(() => {
     rootMargin = "";
     thresholds = [];
     constructor(callback: IntersectionObserverCallback) {
-      mockIntersectionCallback.mockImplementation(callback);
+      storedCallback = callback;
     }
   }
   Object.defineProperty(global, 'IntersectionObserver', {
@@ -80,10 +86,9 @@ describe("EmbedIntelFeed — SEO page integration", () => {
   it("renders data after intersection triggers fetch", async () => {
     render(<EmbedIntelFeed sector="engenharia" />);
 
-    // Simulate intersection
-    const callback = mockIntersectionCallback.mock.calls[0]?.[0];
-    if (callback) {
-      callback([{ isIntersecting: true }]);
+    // Simulate intersection — callback was stored in module-level variable
+    if (storedCallback) {
+      storedCallback([{ isIntersecting: true }] as IntersectionObserverEntry[]);
     }
 
     await waitFor(() => {
@@ -98,10 +103,9 @@ describe("EmbedIntelFeed — SEO page integration", () => {
 
     render(<EmbedIntelFeed sector="engenharia" />);
 
-    // Simulate intersection
-    const callback = mockIntersectionCallback.mock.calls[0]?.[0];
-    if (callback) {
-      callback([{ isIntersecting: true }]);
+    // Simulate intersection — callback was stored in module-level variable
+    if (storedCallback) {
+      storedCallback([{ isIntersecting: true }] as IntersectionObserverEntry[]);
     }
 
     await waitFor(() => {

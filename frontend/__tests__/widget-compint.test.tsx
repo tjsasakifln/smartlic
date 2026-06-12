@@ -254,10 +254,11 @@ describe('Widget Preview Page', () => {
     expect(screen.getByText('Widget de Inteligência Competitiva')).toBeInTheDocument();
     expect(screen.getByText('Setor')).toBeInTheDocument();
     expect(screen.getByText(/UF/)).toBeInTheDocument();
-    expect(screen.getByText(/Market Share/)).toBeInTheDocument();
-    expect(screen.getByText(/Top Vencedores/)).toBeInTheDocument();
-    expect(screen.getByText(/Tendência Mensal/)).toBeInTheDocument();
-    expect(screen.getByText(/Ranking de Órgãos/)).toBeInTheDocument();
+    // Tema labels appear in both the description <p> and each <button> — use getAllByText
+    expect(screen.getAllByText(/Market Share/).length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/Top Vencedores/).length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/Tendência Mensal/).length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/Ranking de Órgãos/).length).toBeGreaterThan(0);
   });
 
   it('renderiza iframe de preview', async () => {
