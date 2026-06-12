@@ -4153,6 +4153,60 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/intel/score": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Score a single bid for win probability (internal/admin) */
+        post: operations["score_bid_v1_intel_score_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/intel/score/batch": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Score multiple bids for a CNPJ (internal/admin) */
+        post: operations["score_batch_v1_intel_score_batch_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/intel/score/status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Score Status
+         * @description Check if the ML model is loaded and ready (public health check).
+         */
+        get: operations["score_status_v1_intel_score_status_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/intel/tasting": {
         parameters: {
             query?: never;
@@ -6189,6 +6243,36 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/widget/competitive-intel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Dados de Inteligência Competitiva para Widget Embedável
+         * @description Retorna dados agregados de contratos públicos por setor para widget embedável.
+         *
+         *     Temas:
+         *     - market-share: Market share dos fornecedores no setor
+         *     - top-winners: Top vencedores com indicadores de crescimento
+         *     - monthly-trend: Tendência mensal de contratos
+         *     - orgao-ranking: Ranking de órgãos compradores
+         */
+        get: operations["widget_competitive_intel_v1_widget_competitive_intel_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        /**
+         * Widget Competitive Intel Options
+         * @description Handle CORS preflight requests.
+         */
+        options: operations["widget_competitive_intel_options_v1_widget_competitive_intel_options"];
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/webhooks/stripe": {
         parameters: {
             query?: never;
@@ -7055,6 +7139,42 @@ export interface components {
             status?: string | null;
         } & {
             [key: string]: unknown;
+        };
+        /**
+         * BatchScoreRequest
+         * @description Request to score multiple bids for a single CNPJ.
+         */
+        BatchScoreRequest: {
+            /**
+             * Bids
+             * @description List of bids to score
+             */
+            bids: components["schemas"]["ScoreRequest"][];
+            /**
+             * Cnpj
+             * @description Supplier CNPJ (14 digits, no mask)
+             */
+            cnpj: string;
+        };
+        /**
+         * BatchScoreResponse
+         * @description Batch score response.
+         */
+        BatchScoreResponse: {
+            /** Cnpj */
+            cnpj: string;
+            /**
+             * Mean Probability
+             * @description Average win probability across all bids
+             */
+            mean_probability: number;
+            /**
+             * Model Version
+             * @default v1
+             */
+            model_version: string;
+            /** Scores */
+            scores: components["schemas"]["ScoreResponse"][];
         };
         /**
          * BillingPlansResponse
@@ -12583,6 +12703,74 @@ export interface components {
              * @description Operation status, always 'ok' on success
              */
             status: string;
+        };
+        /**
+         * ScoreRequest
+         * @description Request to score a single bid for a given CNPJ.
+         */
+        ScoreRequest: {
+            /**
+             * Bid Id
+             * @description Unique identifier for the bid
+             */
+            bid_id: string;
+            /**
+             * Cnpj
+             * @description Supplier CNPJ (14 digits, no mask)
+             */
+            cnpj: string;
+            /**
+             * Data Encerramento
+             * @description Proposal deadline (ISO date)
+             */
+            data_encerramento?: string | null;
+            /**
+             * Modalidade
+             * @description Procurement modality name
+             */
+            modalidade?: string | null;
+            /**
+             * Porte
+             * @description Company size (MEI, ME, EPP, Medio, Grande)
+             */
+            porte?: string | null;
+            /**
+             * Uf
+             * @description State UF (2 letters)
+             */
+            uf?: string | null;
+            /**
+             * Valor Estimado
+             * @description Estimated bid value
+             */
+            valor_estimado?: number | null;
+        };
+        /**
+         * ScoreResponse
+         * @description Score response for a single bid.
+         */
+        ScoreResponse: {
+            /** Bid Id */
+            bid_id: string;
+            /** Cnpj */
+            cnpj: string;
+            /**
+             * Model Version
+             * @description Model version identifier
+             * @default v1
+             */
+            model_version: string;
+            /**
+             * Score Available
+             * @description Whether the ML model was available for scoring
+             * @default true
+             */
+            score_available: boolean;
+            /**
+             * Win Probability
+             * @description Win probability score (0.0–1.0)
+             */
+            win_probability: number;
         };
         /**
          * SearchActionResponse
@@ -19725,6 +19913,92 @@ export interface operations {
             };
         };
     };
+    score_bid_v1_intel_score_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ScoreRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ScoreResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    score_batch_v1_intel_score_batch_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BatchScoreRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BatchScoreResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    score_status_v1_intel_score_status_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+        };
+    };
     intel_tasting_v1_intel_tasting_get: {
         parameters: {
             query?: {
@@ -22286,6 +22560,62 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["RecommendedPlanResponse"];
+                };
+            };
+        };
+    };
+    widget_competitive_intel_v1_widget_competitive_intel_get: {
+        parameters: {
+            query: {
+                /** @description ID do setor (ex: ti, saude, construcao) */
+                setor: string;
+                /** @description Tema: market-share | top-winners | monthly-trend | orgao-ranking */
+                tema: string;
+                /** @description UF (2 letras, opcional) */
+                uf?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    widget_competitive_intel_options_v1_widget_competitive_intel_options: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
                 };
             };
         };
