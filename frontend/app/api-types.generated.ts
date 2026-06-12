@@ -6274,6 +6274,36 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/widget/competitive-intel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Dados de Inteligência Competitiva para Widget Embedável
+         * @description Retorna dados agregados de contratos públicos por setor para widget embedável.
+         *
+         *     Temas:
+         *     - market-share: Market share dos fornecedores no setor
+         *     - top-winners: Top vencedores com indicadores de crescimento
+         *     - monthly-trend: Tendência mensal de contratos
+         *     - orgao-ranking: Ranking de órgãos compradores
+         */
+        get: operations["widget_competitive_intel_v1_widget_competitive_intel_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        /**
+         * Widget Competitive Intel Options
+         * @description Handle CORS preflight requests.
+         */
+        options: operations["widget_competitive_intel_options_v1_widget_competitive_intel_options"];
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/webhooks/stripe": {
         parameters: {
             query?: never;
@@ -22612,6 +22642,62 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["RecommendedPlanResponse"];
+                };
+            };
+        };
+    };
+    widget_competitive_intel_v1_widget_competitive_intel_get: {
+        parameters: {
+            query: {
+                /** @description ID do setor (ex: ti, saude, construcao) */
+                setor: string;
+                /** @description Tema: market-share | top-winners | monthly-trend | orgao-ranking */
+                tema: string;
+                /** @description UF (2 letras, opcional) */
+                uf?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    widget_competitive_intel_options_v1_widget_competitive_intel_options: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
                 };
             };
         };
