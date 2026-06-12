@@ -38,12 +38,15 @@ jest.mock('./lib/supabase', () => {
 // Mock mixpanel for jsdom — components access global.mixpanel.get('track')
 // Define as configurable property so tests can jest.spyOn(global, 'mixpanel', 'get')
 if (typeof global.mixpanel === 'undefined') {
-  let _mixpanelInstance: any = null;
   Object.defineProperty(global, 'mixpanel', {
     configurable: true,
     enumerable: true,
-    get: () => _mixpanelInstance,
-    set: (v: any) => { _mixpanelInstance = v; },
+    get: function () {
+      return null;
+    },
+    set: function (v) {
+      // no-op — tests can override via jest.spyOn
+    },
   });
 }
 
