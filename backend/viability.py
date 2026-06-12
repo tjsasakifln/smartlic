@@ -46,6 +46,8 @@ class ViabilityAssessment(BaseModel):
     viability_score: int = Field(ge=0, le=100)
     viability_level: Literal["alta", "media", "baixa"]
     factors: ViabilityFactors
+    # SCORE-001 (#1614): Optional ML-derived win probability
+    ml_score: float | None = Field(default=None, ge=0.0, le=1.0, description="ML win probability (0.0–1.0) if available")
 
 
 # =============================================================================
@@ -252,6 +254,7 @@ def calculate_viability(
     user_profile: dict | None = None,
     custom_terms: list[str] | None = None,
     weights: dict[str, float] | None = None,
+    ml_score: float | None = None,
 ) -> ViabilityAssessment:
     """Calculate viability assessment for a single accepted bid.
 
@@ -369,6 +372,7 @@ def calculate_viability(
             geography=geo_score,
             geography_label=geo_label,
         ),
+        ml_score=ml_score,
     )
 
 

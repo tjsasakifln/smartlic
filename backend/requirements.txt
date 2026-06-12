@@ -114,3 +114,9 @@ opentelemetry-instrumentation-httpx>=0.62b1
 
 # Schema validation — contract tests (STORY-3.4) + PNCP canary (STORY-4.5)
 jsonschema==4.26.0
+
+# SCORE-001 (#1614): SmartLic Score ML model — GradientBoostingClassifier
+scikit-learn>=1.5.2,<2.0
+
+# SCORE-001 (#1614): Model serialization
+joblib>=1.4.2,<2.0

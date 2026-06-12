@@ -291,6 +291,8 @@ _FEATURE_FLAG_REGISTRY: dict[str, tuple[str, str]] = {
     "B2G_OPS_ENABLED": ("B2G_OPS_ENABLED", "true"),
     # DEGUST-001 (#1611): Intelligence Tasting — trial upsell
     "INTELLIGENCE_TASTING_ENABLED": ("INTELLIGENCE_TASTING_ENABLED", "true"),
+    # SCORE-001 (#1614): SmartLic Score ML model — win probability prediction
+    "SMARTLIC_SCORE_ENABLED": ("SMARTLIC_SCORE_ENABLED", "false"),
     # --- Infra ---
     "METRICS_ENABLED": ("METRICS_ENABLED", "true"),
     "RATE_LIMITING_ENABLED": ("RATE_LIMITING_ENABLED", "true"),
@@ -491,7 +493,9 @@ def validate_feature_flags() -> None:
 
 # Number of flags validated by validate_feature_flags() — used in log message above.
 # Update this constant whenever a new _check_* call is added.
-_VALIDATED_FLAG_COUNT = 34
+_VALIDATED_FLAG_COUNT = 34  # no new _check_* calls added for SCORE-001 (#1614)
+# SCORE-001 (#1614): SmartLic Score ML feature flag env var (default: false — internal only)
+SMARTLIC_SCORE_ENABLED: bool = str_to_bool(os.getenv("SMARTLIC_SCORE_ENABLED", "false"))
 
 
 def log_feature_flags() -> None:

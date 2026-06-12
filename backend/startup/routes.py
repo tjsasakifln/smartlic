@@ -102,6 +102,7 @@ from routes.intel_tasting import router as intel_tasting_router
 from routes.intel_vitrine import router as intel_vitrine_router
 from routes.pseo_intel_feed import router as pseo_intel_feed_router
 from routes.widget_compint import router as widget_compint_router
+from routes.score import router as score_router
 
 _v1_routers = [
     admin_router, subscriptions_router, upgrade_to_lifetime_router,
@@ -158,6 +159,7 @@ _v1_routers = [
     api_search_router,
     intel_tasting_router,
     widget_compint_router,
+    score_router,
 ]
 
 
