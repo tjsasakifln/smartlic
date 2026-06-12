@@ -25,47 +25,6 @@ interface WidgetData {
   dados: Record<string, unknown>;
 }
 
-type MarketShareWidgetProps = {
-  dados: {
-    valor_total: number;
-    total_contratos: number;
-    top_fornecedores: Array<{
-      nome: string;
-      percentual: number;
-      valor: number;
-      contratos: number;
-    }>;
-    concentracao: string;
-  };
-  setor: string;
-  uf?: string | null;
-  periodo: string;
-};
-
-type TopWinnersWidgetProps = {
-  dados: { winners: Array<{ nome: string; contratos: number; valor_total: number; crescimento?: string | null }> };
-  setor: string;
-  uf?: string | null;
-  periodo: string;
-};
-
-type MonthlyTrendWidgetProps = {
-  dados: {
-    serie: Array<{ mes: string; valor: number; contratos: number }>;
-    tendencia: string;
-  };
-  setor: string;
-  uf?: string | null;
-  periodo: string;
-};
-
-type OrgaoRankingWidgetProps = {
-  dados: { orgaos: Array<{ nome: string; valor: number; contratos: number }> };
-  setor: string;
-  uf?: string | null;
-  periodo: string;
-};
-
 // ---------- Formatting helpers ----------
 
 function fmtBRL(value: number): string {
@@ -91,7 +50,22 @@ function MarketShareWidget({
   setor,
   uf,
   periodo,
-}: MarketShareWidgetProps) {
+}: {
+  dados: {
+    valor_total: number;
+    total_contratos: number;
+    top_fornecedores: Array<{
+      nome: string;
+      percentual: number;
+      valor: number;
+      contratos: number;
+    }>;
+    concentracao: string;
+  };
+  setor: string;
+  uf?: string | null;
+  periodo: string;
+}) {
   const maxPct = Math.max(...dados.top_fornecedores.map((f) => f.percentual), 1);
 
   return (
@@ -149,7 +123,12 @@ function TopWinnersWidget({
   setor,
   uf,
   periodo,
-}: TopWinnersWidgetProps) {
+}: {
+  dados: { winners: Array<{ nome: string; contratos: number; valor_total: number; crescimento?: string | null }> };
+  setor: string;
+  uf?: string | null;
+  periodo: string;
+}) {
   return (
     <div className="widget-body">
       <h2 className="widget-title">
@@ -183,7 +162,15 @@ function MonthlyTrendWidget({
   setor,
   uf,
   periodo,
-}: MonthlyTrendWidgetProps) {
+}: {
+  dados: {
+    serie: Array<{ mes: string; valor: number; contratos: number }>;
+    tendencia: string;
+  };
+  setor: string;
+  uf?: string | null;
+  periodo: string;
+}) {
   const maxValor = Math.max(...dados.serie.map((m) => m.valor), 1);
 
   const tendenciaLabel: Record<string, string> = {
@@ -240,7 +227,12 @@ function OrgaoRankingWidget({
   setor,
   uf,
   periodo,
-}: OrgaoRankingWidgetProps) {
+}: {
+  dados: { orgaos: Array<{ nome: string; valor: number; contratos: number }> };
+  setor: string;
+  uf?: string | null;
+  periodo: string;
+}) {
   const maxValor = Math.max(...dados.orgaos.map((o) => o.valor), 1);
 
   return (
@@ -284,7 +276,7 @@ function WidgetContent({ tema, data }: { tema: WidgetTema; data: WidgetData }) {
     case 'market-share':
       return (
         <MarketShareWidget
-          dados={dados as MarketShareWidgetProps['dados']}
+          dados={dados as Record<string, unknown>}
           setor={setor}
           uf={uf}
           periodo={periodo}
@@ -293,7 +285,7 @@ function WidgetContent({ tema, data }: { tema: WidgetTema; data: WidgetData }) {
     case 'top-winners':
       return (
         <TopWinnersWidget
-          dados={dados as TopWinnersWidgetProps['dados']}
+          dados={dados as Record<string, unknown>}
           setor={setor}
           uf={uf}
           periodo={periodo}
@@ -302,7 +294,7 @@ function WidgetContent({ tema, data }: { tema: WidgetTema; data: WidgetData }) {
     case 'monthly-trend':
       return (
         <MonthlyTrendWidget
-          dados={dados as MonthlyTrendWidgetProps['dados']}
+          dados={dados as Record<string, unknown>}
           setor={setor}
           uf={uf}
           periodo={periodo}
@@ -311,7 +303,7 @@ function WidgetContent({ tema, data }: { tema: WidgetTema; data: WidgetData }) {
     case 'orgao-ranking':
       return (
         <OrgaoRankingWidget
-          dados={dados as OrgaoRankingWidgetProps['dados']}
+          dados={dados as Record<string, unknown>}
           setor={setor}
           uf={uf}
           periodo={periodo}
