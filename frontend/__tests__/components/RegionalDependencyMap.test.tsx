@@ -19,6 +19,12 @@ import userEvent from "@testing-library/user-event";
 import "@testing-library/jest-dom";
 import { RegionalDependencyMap } from "@/components/RegionalDependencyMap";
 
+// Mock mixpanel-browser module (same pattern as viability-badge, useAnalytics, etc.)
+// Component calls mixpanel.track() on successful fetch; the real module throws in jsdom.
+jest.mock("mixpanel-browser", () => ({
+  track: jest.fn(),
+}));
+
 // ---------------------------------------------------------------------------
 // Mock data
 // ---------------------------------------------------------------------------
@@ -74,17 +80,16 @@ function mockFetch(data: object | null, status = 200) {
 
 beforeEach(() => {
   jest.clearAllMocks();
-  // Mock mixpanel
-  jest.spyOn(global, "mixpanel" as any, "get").mockReturnValue({
-    track: jest.fn(),
-  });
+  // mixpanel-browser is mocked at module level (line 24).
+  // Do NOT spy on global.mixpanel getter — conflicts with jest.setup.js Object.defineProperty.
 });
 
 describe("RegionalDependencyMap", () => {
   it("renders loading skeleton initially", () => {
     mockFetch(MOCK_DATA);
-    render(<RegionalDependencyMap sectorId="engenharia" />);
-    expect(screen.getByText("Indice de Dependencia Regional")).toBeInTheDocument();
+    const { container } = render(<RegionalDependencyMap sectorId="engenharia" />);
+    // Loading state renders animated placeholder blocks, not the title text
+    expect(container.querySelector(".animate-pulse")).toBeInTheDocument();
   });
 
   it("renders SVG map with UF data after successful fetch", async () => {
@@ -92,9 +97,10 @@ describe("RegionalDependencyMap", () => {
     render(<RegionalDependencyMap sectorId="engenharia" isPremiumUser={true} />);
 
     await waitFor(() => {
-      expect(screen.getByText("SP")).toBeInTheDocument();
-      expect(screen.getByText("RJ")).toBeInTheDocument();
-      expect(screen.getByText("MG")).toBeInTheDocument();
+      // UF text appears in both SVG <text> elements AND table <td> cells
+      expect(screen.getAllByText("SP").length).toBeGreaterThanOrEqual(1);
+      expect(screen.getAllByText("RJ").length).toBeGreaterThanOrEqual(1);
+      expect(screen.getAllByText("MG").length).toBeGreaterThanOrEqual(1);
     });
 
     // Verify SVG has role="img"
@@ -127,10 +133,11 @@ describe("RegionalDependencyMap", () => {
     render(<RegionalDependencyMap sectorId="engenharia" isPremiumUser={true} />);
 
     await waitFor(() => {
-      expect(screen.getByText("880")).toBeInTheDocument(); // total contracts
-      expect(screen.getByText("Contratos")).toBeInTheDocument();
-      expect(screen.getByText("5/27")).toBeInTheDocument(); // coverage
-      expect(screen.getByText("UFs com contratos")).toBeInTheDocument();
+      expect(screen.getByText("880")).toBeInTheDocument(); // total contracts — unique
+      // "Contratos" appears in both stats grid <p> and table <th>
+      expect(screen.getAllByText("Contratos").length).toBeGreaterThanOrEqual(1);
+      expect(screen.getByText("5/27")).toBeInTheDocument(); // coverage — unique
+      expect(screen.getByText("UFs com contratos")).toBeInTheDocument(); // unique
     });
   });
 
@@ -139,7 +146,8 @@ describe("RegionalDependencyMap", () => {
     render(<RegionalDependencyMap sectorId="engenharia" isPremiumUser={true} />);
 
     await waitFor(() => {
-      expect(screen.getByText("SP")).toBeInTheDocument();
+      // UF text appears in both SVG <text> and table <td> cells
+      expect(screen.getAllByText("SP").length).toBeGreaterThanOrEqual(1);
       // Verify SP is listed first (highest contract count)
       const rows = document.querySelectorAll("tbody tr");
       expect(rows.length).toBeGreaterThanOrEqual(5);

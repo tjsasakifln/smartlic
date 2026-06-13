@@ -5,6 +5,11 @@ import { render, screen, waitFor } from "@testing-library/react";
 import "@testing-library/jest-dom";
 import { SubcontractOpportunityBlock } from "@/components/pseo/SubcontractOpportunityBlock";
 
+// mock mixpanel-browser — component calls mixpanel.track() after successful fetch
+jest.mock("mixpanel-browser", () => ({
+  track: jest.fn(),
+}));
+
 const MOCK_RESPONSE = {
   bid_id: "test-bid-123",
   bid_value: 3200000.0,

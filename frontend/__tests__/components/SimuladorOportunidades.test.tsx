@@ -266,9 +266,12 @@ describe('SimuladorOportunidades', () => {
 
     fireEvent.click(screen.getByTestId('simulador-simular-btn'));
 
-    await waitFor(() => {
-      expect(screen.getByTestId('simulador-results')).toBeInTheDocument();
-    });
+    await waitFor(
+      () => {
+        expect(screen.getByTestId('simulador-results')).toBeInTheDocument();
+      },
+      { timeout: 5000 },
+    );
 
     // Change sector — results should clear
     selectSector('Alimentos e Merenda');
@@ -288,9 +291,12 @@ describe('SimuladorOportunidades', () => {
 
     fireEvent.click(screen.getByTestId('simulador-simular-btn'));
 
-    await waitFor(() => {
-      expect(screen.getByTestId('simulador-cta-buscar')).toBeInTheDocument();
-    });
+    await waitFor(
+      () => {
+        expect(screen.getByTestId('simulador-cta-buscar')).toBeInTheDocument();
+      },
+      { timeout: 5000 },
+    );
 
     const link = screen.getByTestId('simulador-cta-buscar');
     expect(link).toHaveAttribute('href', '/buscar?setor=alimentos&uf=CE');

@@ -1,6 +1,23 @@
 import { render, screen } from '@testing-library/react';
 import MarketShareChart from '@/app/intel-concorrente/components/MarketShareChart';
 
+// Recharts ResponsiveContainer has 0-width in jsdom → chart labels invisible.
+// Mock to inject fixed width/height into the child chart element,
+// matching real ResponsiveContainer behavior (React.cloneElement).
+jest.mock('recharts', () => {
+  const actual = jest.requireActual('recharts');
+  const React = require('react');
+  return {
+    ...actual,
+    ResponsiveContainer: ({ children }: { children: React.ReactNode }) => {
+      if (React.isValidElement(children)) {
+        return React.cloneElement(children, { width: 600, height: 300 });
+      }
+      return children;
+    },
+  };
+});
+
 describe('MarketShareChart', () => {
   it('renders empty state when no competitors', () => {
     render(<MarketShareChart competitors={[]} />);
