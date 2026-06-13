@@ -103,6 +103,7 @@ from routes.monthly_report import router as monthly_report_router
 from routes.intel_vitrine import router as intel_vitrine_router
 from routes.pseo_intel_feed import router as pseo_intel_feed_router
 from routes.widget_compint import router as widget_compint_router
+from routes.competitive_intel import router as competitive_intel_router
 from routes.subcontract import router as subcontract_router
 from routes.subcontract import health_router as subcontract_health_router
 from routes.consultoria import router as consultoria_router
@@ -166,6 +167,7 @@ _v1_routers = [
     intel_vitrine_router,
     pseo_intel_feed_router,
     widget_compint_router,
+    competitive_intel_router,
     subcontract_router,
     subcontract_health_router,
     consultoria_router,
