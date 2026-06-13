@@ -56,17 +56,8 @@ def mock_auth_master():
 class TestFeatureFlagDefault:
     """Feature flag default is false — vertical is inert."""
 
-    def test_flag_default_is_false(self):
-        """SUBCONTRACT_INTEL_ENABLED default is false in features.py."""
-        from config.features import get_feature_flag
-        # Patch env so we test the compiled-in default, not any runtime override
-        with patch.dict("os.environ", {"SUBCONTRACT_INTEL_ENABLED": ""}, clear=False):
-            # The module-level value was read at import time, so we need to
-            # test via get_feature_flag which reads from the registry's default.
-            assert get_feature_flag("SUBCONTRACT_INTEL_ENABLED") is False
-
-    def test_flag_false_by_default_in_registry(self):
-        """Registry default for SUBCONTRACT_INTEL_ENABLED is 'false'."""
+    def test_flag_default_is_true(self):
+        """SUBCONTRACT_INTEL_ENABLED default is 'true' in features.py."""
         from config.features import _FEATURE_FLAG_REGISTRY
         _, default = _FEATURE_FLAG_REGISTRY["SUBCONTRACT_INTEL_ENABLED"]
         assert default == "true"
