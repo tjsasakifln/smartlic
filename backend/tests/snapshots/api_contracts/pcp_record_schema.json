@@ -32,7 +32,7 @@
     "codigoSituacaoEdital": "int",
     "codigoTratamentoDiferenciado": "int",
     "comprador": "NoneType",
-    "dataHoraFinalLances": "NoneType",
+    "dataHoraFinalLances": "str",
     "dataHoraFinalPropostas": "str",
     "dataHoraInicioLances": "str",
     "dataHoraInicioPropostas": "str",
@@ -78,16 +78,16 @@
     ]
   },
   "sample_record": {
-    "codigoLicitacao": 479821,
+    "codigoLicitacao": 487926,
     "numeroLicitacao": null,
-    "identificacao": "069",
-    "numero": "022/2026",
-    "resumo": "Constitui o objeto da presente licitação a contratação de seguro para veículos diversos pertencentes a frota do Município e Edificação do Corpo de Bombeiros Militar do Estado de Santa, localizado em Mondaí/SC, conforme especificações e quantitativos...",
-    "razaoSocial": "Município de Mondaí",
-    "nomeUnidade": "MUNICÍPIO DE MONDAI",
+    "identificacao": "288624",
+    "numero": "288624/2026",
+    "resumo": "Adquirir a solução FIDO2 para permitir o acesso aos sistemas sem o uso de senhas",
+    "razaoSocial": "Serviço Brasileiro de Apoio às Micro e Pequenas Empresas - SEBRAE/NA",
+    "nomeUnidade": "SEBRAE NACIONAL",
     "status": {
-      "codigo": 9,
-      "descricao": "Sessão Pública Iniciada"
+      "codigo": 1,
+      "descricao": "Recebendo Propostas"
     },
     "situacao": {
       "codigo": 0,
@@ -95,39 +95,39 @@
     },
     "tipoLicitacao": {
       "codigoModalidadeLicitacao": 0,
-      "modalidadeLicitacao": "Pregão",
-      "codigoTipoLicitacao": 1,
-      "siglaTipoLicitacao": "PE",
-      "tipoLicitacao": "Pregão Eletrônico",
+      "modalidadeLicitacao": "Cotação",
+      "codigoTipoLicitacao": 11,
+      "siglaTipoLicitacao": "CFP",
+      "tipoLicitacao": "Cotação para Formação de Preços",
       "tipoRealizacao": "Eletrônico",
       "tipoJulgamento": "Menor Preço"
     },
-    "codigoSituacaoEdital": 1,
+    "codigoSituacaoEdital": 5,
     "codigoTratamentoDiferenciado": 1,
     "codigoSituacaoCadastroLicitacao": 2,
-    "dataHoraInicioLances": "2026-06-05T17:16:00Z",
-    "dataHoraInicioPropostas": "2026-05-22T17:15:00Z",
-    "dataHoraFinalPropostas": "2026-06-05T17:15:00Z",
-    "dataHoraFinalLances": null,
-    "dataHoraPublicacao": "2026-05-22T14:14:00Z",
+    "dataHoraInicioLances": "2026-06-12T23:04:00Z",
+    "dataHoraInicioPropostas": "2026-06-12T23:04:00Z",
+    "dataHoraFinalPropostas": "2026-06-17T03:00:00Z",
+    "dataHoraFinalLances": "2026-06-17T03:00:00Z",
+    "dataHoraPublicacao": "2026-06-12T23:04:00Z",
     "isPublicado": false,
     "unidadeCompradora": {
-      "codigoUnidadeCompradora": 2149,
-      "nomeUnidadeCompradora": "MUNICÍPIO DE MONDAI",
-      "codigoComprador": 1360,
+      "codigoUnidadeCompradora": 6924,
+      "nomeUnidadeCompradora": "SEBRAE NACIONAL",
+      "codigoComprador": 3946,
       "nomeComprador": null,
-      "cidade": "Mondaí",
+      "cidade": "Brasília",
       "codigoMunicipioIbge": null,
-      "uf": "SC"
+      "uf": "DF"
     },
     "comprador": null,
-    "urlReferencia": "/sc/municipio-de-mondai-1360/pe-022-2026-2026-479821",
+    "urlReferencia": "/df/servico-brasileiro-de-apoio-as-micro-e-pequenas-empresas-sebrae-na-3946/cfp-288624-2026-2026-487926",
     "statusProcessoPublico": {
-      "codigo": 9,
-      "descricao": "Sessão Pública Iniciada"
+      "codigo": 1,
+      "descricao": "Recebendo Propostas"
     },
     "isExclusivoME": false,
     "isBeneficoLocal": false
   },
-  "captured_at": "2026-06-07T13:40:45.396674+00:00"
+  "captured_at": "2026-06-13T11:54:19.997646+00:00"
 }

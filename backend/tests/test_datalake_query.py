@@ -448,7 +448,7 @@ class TestQueryDatalake:
             m = MagicMock()
             if rpc_name == "search_datalake":
                 m.execute.return_value.data = []
-            elif rpc_name == "search_datalake_trigram_fallback":
+            elif rpc_name == "search_datalake_trigram_fallback_with_timeout":
                 m.execute.return_value.data = [SAMPLE_TRIGRAM_ROW]
             else:
                 m.execute.return_value.data = []
@@ -466,7 +466,7 @@ class TestQueryDatalake:
 
         # Must have called both RPCs
         rpc_names = [call[0][0] for call in mock_sb.rpc.call_args_list]
-        assert "search_datalake_trigram_fallback" in rpc_names
+        assert "search_datalake_trigram_fallback_with_timeout" in rpc_names
 
         # Results must be tagged as trigram_fallback
         assert len(result) == 1
@@ -808,8 +808,8 @@ class TestQueryUfWithPagination:
         assert len(result) == 200
 
     @pytest.mark.asyncio
-    async def test_single_day_truncation_returns_partial(self):
-        """When truncation persists at minimum granularity, return partial."""
+    async def test_single_day_truncation_falls_back_to_range_pagination(self):
+        """When truncation persists at minimum granularity, switch to Range-header pagination."""
         from datalake_query import _query_uf_with_pagination, _POSTGREST_ROW_CAP
 
         sb = MagicMock()
@@ -822,6 +822,23 @@ class TestQueryUfWithPagination:
 
         sb_execute.side_effect = mock_execute
 
+        # Mock the session for Range-header pagination
+        EXPECTED_ROWS = _POSTGREST_ROW_CAP - 1  # one less than cap -> stops after 1 page
+        session_mock = MagicMock()
+        session_mock.base_url = "https://test.supabase.co"
+        session_mock.headers = {}
+        session_mock.timeout = 30
+
+        resp_body = [{"pncp_id": f"row-{i}"} for i in range(EXPECTED_ROWS)]
+
+        def mock_request(method, url, **kwargs):
+            resp = MagicMock()
+            resp.json.return_value = resp_body
+            return resp
+
+        session_mock.request.side_effect = mock_request
+        sb.postgrest.session = session_mock
+
         result = await _query_uf_with_pagination(
             sb=sb, sb_execute=sb_execute,
             rpc_params={}, uf="SP",
@@ -829,8 +846,10 @@ class TestQueryUfWithPagination:
             depth=0,
         )
 
-        # Should return partial results (1000 rows) instead of crashing
-        assert len(result) == _POSTGREST_ROW_CAP
+        # Should fetch rows via Range-header pagination (1 page, stops because len < cap)
+        assert len(result) == EXPECTED_ROWS
+        # Must have called session.request (Range pagination) instead of sb_execute
+        assert session_mock.request.called
 
     @pytest.mark.asyncio
     async def test_max_depth_exceeded_returns_empty(self):
