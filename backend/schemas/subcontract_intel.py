@@ -132,3 +132,41 @@ class RegionalDependencyResponse(BaseModel):
     generated_at: str = Field(
         ..., description="Timestamp ISO da geração dos dados"
     )
+
+
+# ============================================================================
+# SUBINTEL-011 (#1674): Partnership Score
+# ============================================================================
+
+
+class SignalDetail(BaseModel):
+    """Individual signal score with label and supporting details."""
+
+    score: float = Field(
+        ..., ge=0.0, le=1.0, description="Score normalizado (0-1)"
+    )
+    label: str = Field(..., description="Label qualitativo (alto/medio/baixo)")
+    details: dict = Field(..., description="Detalhes brutos do cálculo")
+
+
+class CapacitySignals(BaseModel):
+    """Three signal dimensions for partnership scoring."""
+
+    repeat_winner: SignalDetail
+    large_contract: SignalDetail
+    subcontracting_pattern: SignalDetail
+
+
+class PartnershipScoreResponse(BaseModel):
+    """Response for GET /v1/subcontract/partnership-score/{cnpj}."""
+
+    cnpj: str = Field(..., description="CNPJ consultado (14 dígitos)")
+    razao_social: str = Field(..., description="Razão social do fornecedor")
+    overall_score: float = Field(
+        ..., ge=0.0, le=1.0, description="Score geral de parceria (0-1)"
+    )
+    signals: CapacitySignals
+    narrative: str | None = Field(
+        None, description="Narrativa LLM opcional (premium)"
+    )
+    disclaimer: str = Field(..., description="Disclaimer obrigatório")
