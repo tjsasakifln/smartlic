@@ -84,6 +84,12 @@ export async function safeFetch(
     }
     return resp;
   } catch (err) {
+    // ISR stale-while-revalidate: let deliberate 5xx throws propagate to
+    // the page component so Next.js preserves last-good cache. The throw
+    // originates from the if-block above (line ~80) when throwOn5xx=true.
+    if (throwOn5xx && err instanceof Error && err.message.startsWith('safeFetch ') && err.message.includes('server error')) {
+      throw err;
+    }
     const errName = (err as Error)?.name || '';
     outcome =
       errName === 'TimeoutError' || errName === 'AbortError'

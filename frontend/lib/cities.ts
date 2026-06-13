@@ -6,6 +6,8 @@
  * Keep this file in sync manually (or via a script) if the backend changes.
  */
 
+import { ssgLimitedFetch } from '@/lib/concurrency';
+
 export interface CityMeta {
   /** URL slug (lowercase, no accents, hyphens). */
   slug: string;
@@ -118,7 +120,7 @@ export async function fetchCidadeStats(citySlug: string): Promise<CidadeStats | 
   if (!backendUrl) return null;
 
   try {
-    const res = await fetch(
+    const res = await ssgLimitedFetch(
       `${backendUrl}/v1/blog/stats/cidade/${encodeURIComponent(citySlug)}`,
       { signal: AbortSignal.timeout(25000) },
     );
@@ -167,7 +169,7 @@ export async function fetchCidadeSectorStats(
   if (!backendUrl) return null;
 
   try {
-    const res = await fetch(
+    const res = await ssgLimitedFetch(
       `${backendUrl}/v1/blog/stats/cidade/${encodeURIComponent(citySlug)}/setor/${encodeURIComponent(sectorId)}`,
       { signal: AbortSignal.timeout(25000) },
     );
