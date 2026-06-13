@@ -476,9 +476,9 @@ class TestPoolConstants:
     """Verify CRIT-046 constants are correctly defined."""
 
     def test_pool_max_connections(self):
-        """POOL-001: raised default to 20 (env-tunable via SUPABASE_POOL_MAX_CONNECTIONS)."""
+        """POOL-001: raised default to 30 (env-tunable via SUPABASE_POOL_MAX_CONNECTIONS)."""
         from supabase_client import _POOL_MAX_CONNECTIONS
-        assert _POOL_MAX_CONNECTIONS == 20
+        assert _POOL_MAX_CONNECTIONS == 30
 
     def test_pool_max_keepalive(self):
         """POOL-001: raised default to 10 (env-tunable via SUPABASE_POOL_MAX_KEEPALIVE)."""
