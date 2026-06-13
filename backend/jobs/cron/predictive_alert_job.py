@@ -1,9 +1,11 @@
 """PREDINT-024: ARQ daily job that evaluates predictive alerts and sends notifications."""
 from __future__ import annotations
 import logging
+import os
 from datetime import datetime, timezone
 from collections import defaultdict
-from config import FRONTEND_URL
+
+FRONTEND_URL = os.getenv("FRONTEND_URL", "https://smartlic.tech")
 
 logger = logging.getLogger(__name__)
 _PREDICTIVE_ALERT_LOCK_KEY = "smartlic:predictive:alerts:lock"
