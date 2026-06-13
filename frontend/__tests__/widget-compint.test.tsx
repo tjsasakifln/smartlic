@@ -99,27 +99,17 @@ function mockSearchParams(setor: string, tema: string, uf?: string) {
   const params = new URLSearchParams({ setor, tema });
   if (uf) params.set('uf', uf);
 
-  // jsdom doesn't implement URLSearchParams on window.location
-  // We need to mock it
-  delete (window as Record<string, unknown>).location;
-  (window as Record<string, unknown>).location = {
-    ...window.location,
-    search: `?${params.toString()}`,
-    href: `https://smartlic.tech/widgets/competitive-intel?${params.toString()}`,
-  };
+  // Use pushState + hashchange to simulate URL change for jsdom
+  // (window.location is unforgeable in modern jsdom — delete/reassign doesn't work)
+  window.history.pushState({}, '', `?${params.toString()}`);
 }
 
 // ---------- Tests: Widget embed ----------
 
 describe('Widget Competitive Intel Page', () => {
   beforeEach(() => {
-    // Reset URL
-    delete (window as Record<string, unknown>).location;
-    (window as Record<string, unknown>).location = {
-      ...window.location,
-      search: '',
-      href: 'https://smartlic.tech/widgets/competitive-intel',
-    };
+    // Reset URL via history API (window.location is unforgeable in modern jsdom)
+    window.history.pushState({}, '', '/widgets/competitive-intel');
   });
 
   // eslint-disable-next-line jest/expect-expect
