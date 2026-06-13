@@ -4196,6 +4196,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/intel-concorrente/fornecedor/{cnpj}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Competitive Intelligence data for a supplier CNPJ (COMPINT-011)
+         * @description Return competitive intelligence data for *cnpj*.
+         */
+        get: operations["fornecedor_competitive_intel_v1_intel_concorrente_fornecedor__cnpj__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/intel-concorrente/landscape": {
         parameters: {
             query?: never;
@@ -6490,6 +6510,30 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/subcontract/partnership-score/{cnpj}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Partnership Opportunity Score — avalia fornecedor como potencial parceiro (SUBINTEL-011)
+         * @description Return partnership opportunity score for the given CNPJ supplier.
+         *
+         *     Computes the score from the subcontract_capacity_signals RPC and returns
+         *     three signal dimensions plus an optional LLM-generated narrative for
+         *     premium users.
+         */
+        get: operations["get_partnership_score_v1_subcontract_partnership_score__cnpj__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/subcontract/regional-dependency": {
         parameters: {
             query?: never;
@@ -7331,6 +7375,21 @@ export interface components {
             uf: string;
             /** Valor */
             valor?: number | null;
+        };
+        /**
+         * AlertaPosicionamento
+         * @description Derived positioning alert.
+         */
+        AlertaPosicionamento: {
+            /** Mensagem */
+            mensagem: string;
+            /**
+             * Severidade
+             * @default info
+             */
+            severidade: string;
+            /** Tipo */
+            tipo: string;
         };
         /** AlertasResponse */
         AlertasResponse: {
@@ -8392,6 +8451,15 @@ export interface components {
             cancelled: boolean;
         };
         /**
+         * CapacitySignals
+         * @description Three signal dimensions for partnership scoring.
+         */
+        CapacitySignals: {
+            large_contract: components["schemas"]["SignalDetail"];
+            repeat_winner: components["schemas"]["SignalDetail"];
+            subcontracting_pattern: components["schemas"]["SignalDetail"];
+        };
+        /**
          * CheckEmailResponse
          * @description STORY-258 AC15: Pre-signup email validation response.
          */
@@ -8816,6 +8884,24 @@ export interface components {
             total_sancoes_ceis: number;
             /** Total Sancoes Cnep */
             total_sancoes_cnep: number;
+        };
+        /**
+         * ConcorrenteInfo
+         * @description High-level competitor information.
+         */
+        ConcorrenteInfo: {
+            /** Cnpj */
+            cnpj: string;
+            /** Nome */
+            nome: string;
+            /** Ticket Mediana */
+            ticket_mediana: number;
+            /** Ticket Medio */
+            ticket_medio: number;
+            /** Total Contratos */
+            total_contratos: number;
+            /** Valor Total Contratado */
+            valor_total_contratado: number;
         };
         /**
          * ConsultantClientListResponse
@@ -10445,6 +10531,36 @@ export interface components {
              * @default in_progress
              */
             status: string;
+        };
+        /**
+         * FornecedorIntelResponse
+         * @description Complete competitive intelligence response for a supplier CNPJ.
+         *
+         *     Returned by GET /v1/intel-concorrente/fornecedor/{cnpj}.
+         */
+        FornecedorIntelResponse: {
+            /**
+             * Alertas
+             * @default []
+             */
+            alertas: components["schemas"]["AlertaPosicionamento"][];
+            concorrente: components["schemas"]["ConcorrenteInfo"];
+            /**
+             * Feature Enabled
+             * @default true
+             */
+            feature_enabled: boolean;
+            /**
+             * Generated At
+             * @default
+             */
+            generated_at: string;
+            /** Orgaos Favoritos */
+            orgaos_favoritos: components["schemas"]["OrgaoFavorito"][];
+            stats: components["schemas"]["TerritorioStats"];
+            /** Territorio */
+            territorio: components["schemas"]["TerritorioEntry"][];
+            win_metrics?: components["schemas"]["WinMetrics"] | null;
         };
         /** FornecedorProfileResponse */
         FornecedorProfileResponse: {
@@ -12163,6 +12279,27 @@ export interface components {
             total_value: number;
         };
         /**
+         * OrgaoFavorito
+         * @description Favorite (most-contracted) agencies.
+         */
+        OrgaoFavorito: {
+            /**
+             * Categorias
+             * @default []
+             */
+            categorias: string[];
+            /** Contratos */
+            contratos: number;
+            /** Frequencia Anual */
+            frequencia_anual?: number | null;
+            /** Orgao Nome */
+            orgao_nome: string;
+            /** Ultima Vitoria */
+            ultima_vitoria?: string | null;
+            /** Valor Total */
+            valor_total: number;
+        };
+        /**
          * OrgaoInfo
          * @description Órgão comprador com total de contratos e valor.
          */
@@ -12395,6 +12532,38 @@ export interface components {
             partners: components["schemas"]["PartnerSummary"][];
         } & {
             [key: string]: unknown;
+        };
+        /**
+         * PartnershipScoreResponse
+         * @description Response for GET /v1/subcontract/partnership-score/{cnpj}.
+         */
+        PartnershipScoreResponse: {
+            /**
+             * Cnpj
+             * @description CNPJ consultado (14 dígitos)
+             */
+            cnpj: string;
+            /**
+             * Disclaimer
+             * @description Disclaimer obrigatório
+             */
+            disclaimer: string;
+            /**
+             * Narrative
+             * @description Narrativa LLM opcional (premium)
+             */
+            narrative?: string | null;
+            /**
+             * Overall Score
+             * @description Score geral de parceria (0-1)
+             */
+            overall_score: number;
+            /**
+             * Razao Social
+             * @description Razão social do fornecedor
+             */
+            razao_social: string;
+            signals: components["schemas"]["CapacitySignals"];
         };
         /** PdfEditalRequest */
         PdfEditalRequest: {
@@ -14593,6 +14762,29 @@ export interface components {
             view_count: number;
         };
         /**
+         * SignalDetail
+         * @description Individual signal score with label and supporting details.
+         */
+        SignalDetail: {
+            /**
+             * Details
+             * @description Detalhes brutos do cálculo
+             */
+            details: {
+                [key: string]: unknown;
+            };
+            /**
+             * Label
+             * @description Label qualitativo (alto/medio/baixo)
+             */
+            label: string;
+            /**
+             * Score
+             * @description Score normalizado (0-1)
+             */
+            score: number;
+        };
+        /**
          * SignupRequest
          * @description Request body for POST /v1/auth/signup (STORY-CONV-003a AC1).
          *
@@ -15127,6 +15319,45 @@ export interface components {
             razao_social: string;
             /** Total Won */
             total_won: number;
+        };
+        /**
+         * TerritorioEntry
+         * @description Per-UF competitive territory data.
+         */
+        TerritorioEntry: {
+            /** Contratos */
+            contratos: number;
+            /** Market Share Uf */
+            market_share_uf?: number | null;
+            /**
+             * Orgaos Principais
+             * @default []
+             */
+            orgaos_principais: string[];
+            /** Tendencia */
+            tendencia?: string | null;
+            /** Ticket Medio Uf */
+            ticket_medio_uf: number;
+            /** Uf */
+            uf: string;
+            /** Valor Total */
+            valor_total: number;
+        };
+        /**
+         * TerritorioStats
+         * @description Aggregate territorial statistics.
+         */
+        TerritorioStats: {
+            /** Anos Atuacao */
+            anos_atuacao: number;
+            /** Crescimento Anual */
+            crescimento_anual?: number | null;
+            /** Orgaos Unicos */
+            orgaos_unicos: number;
+            /** Tendencia Posicionamento */
+            tendencia_posicionamento?: string | null;
+            /** Ufs Atuacao */
+            ufs_atuacao: number;
         };
         /**
          * TerritoryData
@@ -16011,6 +16242,30 @@ export interface components {
             message: string;
             /** Sent */
             sent: boolean;
+        };
+        /**
+         * WinMetrics
+         * @description Win-rate and performance metrics.
+         */
+        WinMetrics: {
+            /** Dependencia Publica */
+            dependencia_publica?: number | null;
+            /** Indice Concentracao */
+            indice_concentracao?: number | null;
+            /** Taxa Vitoria Estimada */
+            taxa_vitoria_estimada?: number | null;
+            /** Tendencia */
+            tendencia?: string | null;
+            /** Ticket P25 */
+            ticket_p25?: number | null;
+            /** Ticket P50 */
+            ticket_p50?: number | null;
+            /** Ticket P75 */
+            ticket_p75?: number | null;
+            /** Ticket P90 */
+            ticket_p90?: number | null;
+            /** Velocidade Crescimento */
+            velocidade_crescimento?: number | null;
         };
         /**
          * _LivenessResponse
@@ -21583,6 +21838,40 @@ export interface operations {
             };
         };
     };
+    fornecedor_competitive_intel_v1_intel_concorrente_fornecedor__cnpj__get: {
+        parameters: {
+            query?: {
+                anos?: number;
+            };
+            header?: never;
+            path: {
+                /** @description Supplier CNPJ (14 digits) */
+                cnpj: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FornecedorIntelResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     get_competitive_landscape_v1_intel_concorrente_landscape_get: {
         parameters: {
             query: {
@@ -24668,6 +24957,38 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["SubcontractBidOpportunityResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_partnership_score_v1_subcontract_partnership_score__cnpj__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description CNPJ do fornecedor (14 digitos) */
+                cnpj: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PartnershipScoreResponse"];
                 };
             };
             /** @description Validation Error */
