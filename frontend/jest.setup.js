@@ -208,6 +208,15 @@ if (typeof window !== "undefined") {
   });
 }
 
+// Mock mixpanel global for tests that spy on global mixpanel getter
+// (used by RegionalDependencyMap and other component tests)
+if (typeof global !== 'undefined' && typeof global.mixpanel === 'undefined') {
+  Object.defineProperty(global, 'mixpanel', {
+    get: () => ({ track: jest.fn(), people: { set: jest.fn() } }),
+    configurable: true,
+  });
+}
+
 // Global test timeout (default: 5000ms)
 jest.setTimeout(10000)
 

@@ -147,10 +147,11 @@ export default function IntelConcorrenteClient() {
 
         {/* Sector Selector */}
         <div className="mb-6 rounded-lg bg-white p-4 shadow-sm">
-          <label className="block text-sm font-medium text-gray-700">
+          <label htmlFor="sector-select" className="block text-sm font-medium text-gray-700">
             Setor
           </label>
           <select
+            id="sector-select"
             value={selectedSector}
             onChange={(e) => {
               setSelectedSector(e.target.value);
@@ -168,10 +169,11 @@ export default function IntelConcorrenteClient() {
 
           {/* UF filter */}
           <div className="mt-3">
-            <label className="block text-sm font-medium text-gray-700">
+            <label htmlFor="uf-filter" className="block text-sm font-medium text-gray-700">
               Filtrar por UF (opcional)
             </label>
             <input
+              id="uf-filter"
               type="text"
               value={selectedUF}
               onChange={(e) => setSelectedUF(e.target.value.toUpperCase())}

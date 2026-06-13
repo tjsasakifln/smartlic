@@ -29,7 +29,7 @@ describe('IntelConcorrenteClient', () => {
     render(<IntelConcorrenteClient />);
 
     expect(screen.getByLabelText(/CNPJ/i)).toBeInTheDocument();
-    expect(screen.getByText(/Carregar Panorama/)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Carregar Panorama/i })).toBeInTheDocument();
   });
 
   it('shows empty state initially', () => {
