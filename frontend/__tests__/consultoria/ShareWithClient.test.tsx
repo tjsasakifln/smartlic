@@ -93,7 +93,7 @@ describe("ShareWithClient", () => {
   });
 
   it("shows error when resource id is empty", () => {
-    render(
+    const { container } = render(
       <ShareWithClient
         clientId="client-1"
         isOpen={true}
@@ -102,8 +102,9 @@ describe("ShareWithClient", () => {
       />,
     );
 
-    const shareButton = screen.getByText("Compartilhar");
-    fireEvent.click(shareButton);
+    // fireEvent.submit on the form bypasses native required-field validation
+    const form = container.querySelector("form")!;
+    fireEvent.submit(form);
 
     expect(
       screen.getByText("Informe o ID do recurso."),

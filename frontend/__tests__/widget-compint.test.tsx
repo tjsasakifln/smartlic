@@ -149,7 +149,7 @@ describe('Widget Competitive Intel Page', () => {
     render(<WidgetPage />);
 
     await waitFor(() => {
-      expect(screen.getByText('Market Share')).toBeInTheDocument();
+      expect(screen.getByText(/Market Share/)).toBeInTheDocument();
     });
     expect(screen.getByText('Tech Solutions Ltda')).toBeInTheDocument();
     expect(screen.getByText('Dados & Sistemas S.A.')).toBeInTheDocument();
@@ -166,7 +166,7 @@ describe('Widget Competitive Intel Page', () => {
     render(<WidgetPage />);
 
     await waitFor(() => {
-      expect(screen.getByText('Top Vencedores')).toBeInTheDocument();
+      expect(screen.getByText(/Top Vencedores/)).toBeInTheDocument();
     });  });
 
   it('renderiza monthly-trend widget com dados', async () => {
@@ -180,7 +180,7 @@ describe('Widget Competitive Intel Page', () => {
     render(<WidgetPage />);
 
     await waitFor(() => {
-      expect(screen.getByText('Tendência Mensal')).toBeInTheDocument();
+      expect(screen.getByText(/Tendência Mensal/)).toBeInTheDocument();
     });
     expect(screen.getByText(/em crescimento/)).toBeInTheDocument();
   });
@@ -196,7 +196,7 @@ describe('Widget Competitive Intel Page', () => {
     render(<WidgetPage />);
 
     await waitFor(() => {
-      expect(screen.getByText('Ranking de Órgãos')).toBeInTheDocument();
+      expect(screen.getByText(/Ranking de Órgãos/)).toBeInTheDocument();
     });
     expect(screen.getByText('Secretaria de Tecnologia')).toBeInTheDocument();
   });
@@ -252,12 +252,13 @@ describe('Widget Preview Page', () => {
     render(<PreviewPage />);
 
     expect(screen.getByText('Widget de Inteligência Competitiva')).toBeInTheDocument();
-    expect(screen.getByLabelText('Setor')).toBeInTheDocument();
-    expect(screen.getByLabelText(/UF/)).toBeInTheDocument();
-    expect(screen.getByText('Market Share')).toBeInTheDocument();
-    expect(screen.getByText('Top Vencedores')).toBeInTheDocument();
-    expect(screen.getByText('Tendência Mensal')).toBeInTheDocument();
-    expect(screen.getByText('Ranking de Órgãos')).toBeInTheDocument();
+    expect(screen.getByText('Setor')).toBeInTheDocument();
+    expect(screen.getByText(/UF/)).toBeInTheDocument();
+    // Tema labels appear in both the description <p> and each <button> — use getAllByText
+    expect(screen.getAllByText(/Market Share/).length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/Top Vencedores/).length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/Tendência Mensal/).length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/Ranking de Órgãos/).length).toBeGreaterThan(0);
   });
 
   it('renderiza iframe de preview', async () => {

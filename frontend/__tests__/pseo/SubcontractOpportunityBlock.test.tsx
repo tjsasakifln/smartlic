@@ -5,6 +5,11 @@ import { render, screen, waitFor } from "@testing-library/react";
 import "@testing-library/jest-dom";
 import { SubcontractOpportunityBlock } from "@/components/pseo/SubcontractOpportunityBlock";
 
+// mock mixpanel-browser — component calls mixpanel.track() after successful fetch
+jest.mock("mixpanel-browser", () => ({
+  track: jest.fn(),
+}));
+
 const MOCK_RESPONSE = {
   bid_id: "test-bid-123",
   bid_value: 3200000.0,
@@ -49,7 +54,9 @@ describe("SubcontractOpportunityBlock", () => {
   it("renders loading skeleton initially", () => {
     global.fetch = jest.fn().mockReturnValue(new Promise(() => {}));
     render(<SubcontractOpportunityBlock bidId="test-bid-123" sector="engenharia" />);
-    expect(screen.getByText("Potencial de Subcontratacao")).toBeInTheDocument();
+    // During loading, component renders skeleton (animate-pulse divs) without title text
+    expect(document.querySelector("[data-subcontract-opportunity-block]")).toBeInTheDocument();
+    expect(document.querySelector(".animate-pulse")).toBeInTheDocument();
   });
 
   it("shows score and reasons after successful API fetch", async () => {

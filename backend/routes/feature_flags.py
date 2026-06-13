@@ -233,6 +233,9 @@ _FLAG_DESCRIPTIONS: dict[str, str] = {
     "COMMAND_DATA_EXPORT": "Command tier: data export capability (TIER-COMMAND-003)",
     "COMMAND_CUSTOM_ALERTS": "Command tier: custom alerts capability (TIER-COMMAND-003)",
     "INTELLIGENCE_TASTING_ENABLED": "Intelligence Tasting no trial — degustação de dados reais com blur (DEGUST-001 #1611)",
+    "SUBCONTRACT_MARKETPLACE_ENABLED": "Subcontract Marketplace MVP (MKT-001 #1616)",
+    "COMPETITIVE_INTEL_WIDGET_ENABLED": "Competitive Intelligence embeddable widget (WIDGET-COMPINT-001 #1619)",
+    "MONTHLY_REPORT_ENABLED": "Monthly Report subscriptions (REPORT-MONTHLY-001 #1620)",
 }
 
 
@@ -316,6 +319,12 @@ _FLAG_LIFECYCLE: dict[str, dict] = {
     "COMMAND_CUSTOM_ALERTS": {"owner": "billing", "category": "command", "lifecycle": "experimental", "created": "2026-06"},
     # DEGUST-001 (#1611): Intelligence Tasting
     "INTELLIGENCE_TASTING_ENABLED": {"owner": "product", "category": "growth", "lifecycle": "experimental", "created": "2026-06"},
+    # MKT-001 (#1616): Subcontract Marketplace MVP
+    "SUBCONTRACT_MARKETPLACE_ENABLED": {"owner": "product", "category": "subcontract", "lifecycle": "experimental", "created": "2026-06"},
+    # WIDGET-COMPINT-001 (#1619): Competitive Intelligence embeddable widget
+    "COMPETITIVE_INTEL_WIDGET_ENABLED": {"owner": "product", "category": "competitive", "lifecycle": "experimental", "created": "2026-06"},
+    # REPORT-MONTHLY-001 (#1620): Monthly Report subscriptions
+    "MONTHLY_REPORT_ENABLED": {"owner": "product", "category": "reports", "lifecycle": "experimental", "created": "2026-06"},
 }
 
 

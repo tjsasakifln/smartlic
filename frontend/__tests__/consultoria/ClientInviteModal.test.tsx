@@ -61,7 +61,7 @@ describe("ClientInviteModal", () => {
   });
 
   it("shows error for empty email", async () => {
-    render(
+    const { container } = render(
       <ClientInviteModal
         isOpen={true}
         onClose={mockOnClose}
@@ -69,8 +69,10 @@ describe("ClientInviteModal", () => {
       />,
     );
 
-    const submitButton = screen.getByText("Convidar");
-    fireEvent.click(submitButton);
+    // fireEvent.submit on the form bypasses native required-field validation
+    // (jsdom blocks submit events when required fields are empty)
+    const form = container.querySelector("form")!;
+    fireEvent.submit(form);
 
     expect(screen.getByText("Informe o email do cliente.")).toBeInTheDocument();
     expect(mockOnInvite).not.toHaveBeenCalled();

@@ -12,7 +12,7 @@ from pathlib import Path
 
 
 # Migration file paths
-MIGRATIONS_DIR = Path("supabase/migrations")
+MIGRATIONS_DIR = Path("../supabase/migrations")
 
 
 def _get_migration(name: str) -> str:

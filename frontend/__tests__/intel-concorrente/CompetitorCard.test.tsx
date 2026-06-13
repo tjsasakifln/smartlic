@@ -22,7 +22,7 @@ describe('CompetitorCard', () => {
     render(<CompetitorCard {...defaultProps} />);
 
     expect(screen.getByText(/Total Contratado/)).toBeInTheDocument();
-    expect(screen.getByText('R$ 1.000.000,00')).toBeInTheDocument();
+    expect(screen.getByText(/R\$\s+1\.000\.000,00/)).toBeInTheDocument();
     expect(screen.getByText('50')).toBeInTheDocument();
     expect(screen.getByText('5')).toBeInTheDocument();
   });

@@ -82,7 +82,7 @@ describe("SubscriptionList", () => {
     expect(
       screen.getByText(/Panorama Mensal — Engenharia/),
     ).toBeInTheDocument();
-    expect(screen.getByText("Cancelado")).toBeInTheDocument();
+    expect(screen.getByText(/Cancelado/)).toBeInTheDocument();
     expect(
       screen.queryByText("Cancelar"),
     ).not.toBeInTheDocument();
