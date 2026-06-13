@@ -41,7 +41,15 @@ def create_app() -> FastAPI:
     #
     # Raise max_workers=20 so 2× Gunicorn workers × 10 SB slots = 20 parallel
     # thread-offloaded Supabase calls before queuing.
-    _loop = asyncio.get_event_loop()
+    try:
+        _loop = asyncio.get_running_loop()
+    except RuntimeError:
+        # Python 3.12+: no running event loop in the current thread
+        # (e.g., during TestClient tests that call create_app() synchronously).
+        # Fall back to a fresh loop — production always has get_running_loop().
+        _loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(_loop)
+
     _loop.set_default_executor(
         concurrent.futures.ThreadPoolExecutor(max_workers=20)
     )
