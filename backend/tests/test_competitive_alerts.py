@@ -39,7 +39,7 @@ class TestCompetitiveAlertsCRUD:
 
     def test_create_alert_success(self, client):
         """POST creates alert and returns 201 with alert data."""
-        with patch("routes.competitive_intel.sb_execute") as mock_sb:
+        with patch("supabase_client.sb_execute") as mock_sb:
             mock_sb.side_effect = [
                 MagicMock(data={
                     "id": "alert-123",
@@ -88,7 +88,7 @@ class TestCompetitiveAlertsCRUD:
 
     def test_list_alerts_success(self, client):
         """GET returns list of alerts."""
-        with patch("routes.competitive_intel.sb_execute") as mock_sb:
+        with patch("supabase_client.sb_execute") as mock_sb:
             mock_sb.side_effect = [
                 MagicMock(data=[
                     {
@@ -118,7 +118,7 @@ class TestCompetitiveAlertsCRUD:
 
     def test_list_alerts_empty(self, client):
         """GET returns empty list when no alerts."""
-        with patch("routes.competitive_intel.sb_execute") as mock_sb:
+        with patch("supabase_client.sb_execute") as mock_sb:
             mock_sb.side_effect = [
                 MagicMock(data=[]),
             ]
@@ -130,7 +130,7 @@ class TestCompetitiveAlertsCRUD:
 
     def test_delete_alert_success(self, client):
         """DELETE removes alert and returns 204."""
-        with patch("routes.competitive_intel.sb_execute") as mock_sb:
+        with patch("supabase_client.sb_execute") as mock_sb:
             # First call: ownership check returns data
             # Second call: delete succeeds
             mock_sb.side_effect = [
@@ -142,7 +142,7 @@ class TestCompetitiveAlertsCRUD:
 
     def test_delete_alert_not_found(self, client):
         """DELETE on non-existent alert returns 404."""
-        with patch("routes.competitive_intel.sb_execute") as mock_sb:
+        with patch("supabase_client.sb_execute") as mock_sb:
             mock_sb.side_effect = [
                 MagicMock(data=None),  # ownership check returns empty
             ]
