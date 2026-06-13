@@ -1119,6 +1119,30 @@
         "title": "AlertaBid",
         "type": "object"
       },
+      "AlertaPosicionamento": {
+        "description": "Derived positioning alert.",
+        "properties": {
+          "mensagem": {
+            "title": "Mensagem",
+            "type": "string"
+          },
+          "severidade": {
+            "default": "info",
+            "title": "Severidade",
+            "type": "string"
+          },
+          "tipo": {
+            "title": "Tipo",
+            "type": "string"
+          }
+        },
+        "required": [
+          "tipo",
+          "mensagem"
+        ],
+        "title": "AlertaPosicionamento",
+        "type": "object"
+      },
       "AlertasResponse": {
         "properties": {
           "bids": {
@@ -1712,6 +1736,33 @@
           }
         },
         "title": "BackgroundTasksHealthResponse",
+        "type": "object"
+      },
+      "BenchmarkPercentile": {
+        "description": "A single percentile value for a metric.",
+        "properties": {
+          "p25": {
+            "description": "Percentil 25",
+            "title": "P25",
+            "type": "number"
+          },
+          "p50": {
+            "description": "Percentil 50 (mediana)",
+            "title": "P50",
+            "type": "number"
+          },
+          "p75": {
+            "description": "Percentil 75",
+            "title": "P75",
+            "type": "number"
+          }
+        },
+        "required": [
+          "p25",
+          "p50",
+          "p75"
+        ],
+        "title": "BenchmarkPercentile",
         "type": "object"
       },
       "BillingPlansResponse": {
@@ -3219,6 +3270,27 @@
         "title": "CancelTrialResponse",
         "type": "object"
       },
+      "CapacitySignals": {
+        "description": "Three signal dimensions for partnership scoring.",
+        "properties": {
+          "large_contract": {
+            "$ref": "#/components/schemas/SignalDetail"
+          },
+          "repeat_winner": {
+            "$ref": "#/components/schemas/SignalDetail"
+          },
+          "subcontracting_pattern": {
+            "$ref": "#/components/schemas/SignalDetail"
+          }
+        },
+        "required": [
+          "repeat_winner",
+          "large_contract",
+          "subcontracting_pattern"
+        ],
+        "title": "CapacitySignals",
+        "type": "object"
+      },
       "CheckEmailResponse": {
         "additionalProperties": true,
         "description": "STORY-258 AC15: Pre-signup email validation response.",
@@ -3878,6 +3950,179 @@
         "title": "ComparadorSearchResponse",
         "type": "object"
       },
+      "CompetitiveLandscapeResponse": {
+        "description": "Top-level response for GET /v1/intel-concorrente/landscape.",
+        "properties": {
+          "gerado_em": {
+            "description": "Timestamp de geracao",
+            "title": "Gerado Em",
+            "type": "string"
+          },
+          "periodo": {
+            "default": "Ultimos 12 meses",
+            "description": "Periodo analisado",
+            "title": "Periodo",
+            "type": "string"
+          },
+          "setor_id": {
+            "description": "ID do setor",
+            "title": "Setor Id",
+            "type": "string"
+          },
+          "setor_nome": {
+            "description": "Nome do setor",
+            "title": "Setor Nome",
+            "type": "string"
+          },
+          "top_concorrentes": {
+            "description": "Top concorrentes",
+            "items": {
+              "$ref": "#/components/schemas/CompetitorItem"
+            },
+            "title": "Top Concorrentes",
+            "type": "array"
+          },
+          "total_concorrentes": {
+            "default": 0,
+            "description": "Total de concorrentes identificados",
+            "title": "Total Concorrentes",
+            "type": "integer"
+          },
+          "total_contratado": {
+            "description": "Valor total contratado no setor",
+            "title": "Total Contratado",
+            "type": "number"
+          },
+          "total_contratos": {
+            "default": 0,
+            "description": "Total de contratos",
+            "title": "Total Contratos",
+            "type": "integer"
+          },
+          "uf": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "UF filtrada (opcional)",
+            "title": "Uf"
+          }
+        },
+        "required": [
+          "setor_id",
+          "setor_nome",
+          "total_contratado"
+        ],
+        "title": "CompetitiveLandscapeResponse",
+        "type": "object"
+      },
+      "CompetitorBenchmark": {
+        "description": "Benchmark comparison for a single metric.",
+        "properties": {
+          "benchmark_setor": {
+            "$ref": "#/components/schemas/BenchmarkPercentile",
+            "description": "Benchmark do setor (P25/P50/P75)"
+          },
+          "descricao": {
+            "default": "",
+            "description": "Tooltip explicativo",
+            "title": "Descricao",
+            "type": "string"
+          },
+          "label": {
+            "description": "Label amigavel para exibicao",
+            "title": "Label",
+            "type": "string"
+          },
+          "metrica": {
+            "description": "Nome da metrica (ex: taxa_vitoria, ticket_medio)",
+            "title": "Metrica",
+            "type": "string"
+          },
+          "percentil_concorrente": {
+            "description": "Percentil do concorrente (0-100)",
+            "title": "Percentil Concorrente",
+            "type": "number"
+          },
+          "valor_concorrente": {
+            "description": "Valor do concorrente na metrica",
+            "title": "Valor Concorrente",
+            "type": "number"
+          }
+        },
+        "required": [
+          "metrica",
+          "label",
+          "valor_concorrente",
+          "percentil_concorrente",
+          "benchmark_setor"
+        ],
+        "title": "CompetitorBenchmark",
+        "type": "object"
+      },
+      "CompetitorItem": {
+        "description": "A single competitor in the leaderboard.",
+        "properties": {
+          "cnpj": {
+            "description": "CNPJ do concorrente",
+            "title": "Cnpj",
+            "type": "string"
+          },
+          "market_share": {
+            "default": 0,
+            "description": "Market share percentual (0-100)",
+            "title": "Market Share",
+            "type": "number"
+          },
+          "numero_contratos": {
+            "default": 0,
+            "description": "Numero de contratos no periodo",
+            "title": "Numero Contratos",
+            "type": "integer"
+          },
+          "razao_social": {
+            "description": "Nome / razao social",
+            "title": "Razao Social",
+            "type": "string"
+          },
+          "tendencia": {
+            "default": "estavel",
+            "description": "Tendencia: crescimento/estavel/retracao",
+            "title": "Tendencia",
+            "type": "string"
+          },
+          "ticket_medio": {
+            "default": 0,
+            "description": "Ticket medio por contrato",
+            "title": "Ticket Medio",
+            "type": "number"
+          },
+          "total_contratado": {
+            "description": "Valor total contratado no periodo",
+            "title": "Total Contratado",
+            "type": "number"
+          },
+          "ufs_atuacao": {
+            "description": "UFs onde atua",
+            "items": {
+              "type": "string"
+            },
+            "title": "Ufs Atuacao",
+            "type": "array"
+          }
+        },
+        "required": [
+          "cnpj",
+          "razao_social",
+          "total_contratado"
+        ],
+        "title": "CompetitorItem",
+        "type": "object"
+      },
       "ComplianceProfileResponse": {
         "properties": {
           "aviso_legal": {
@@ -3932,6 +4177,202 @@
           "aviso_legal"
         ],
         "title": "ComplianceProfileResponse",
+        "type": "object"
+      },
+      "ConcorrenteInfo": {
+        "description": "High-level competitor information.",
+        "properties": {
+          "cnpj": {
+            "title": "Cnpj",
+            "type": "string"
+          },
+          "nome": {
+            "title": "Nome",
+            "type": "string"
+          },
+          "ticket_mediana": {
+            "title": "Ticket Mediana",
+            "type": "number"
+          },
+          "ticket_medio": {
+            "title": "Ticket Medio",
+            "type": "number"
+          },
+          "total_contratos": {
+            "title": "Total Contratos",
+            "type": "integer"
+          },
+          "valor_total_contratado": {
+            "title": "Valor Total Contratado",
+            "type": "number"
+          }
+        },
+        "required": [
+          "cnpj",
+          "nome",
+          "total_contratos",
+          "ticket_medio",
+          "ticket_mediana",
+          "valor_total_contratado"
+        ],
+        "title": "ConcorrenteInfo",
+        "type": "object"
+      },
+      "ConsultantClientListResponse": {
+        "description": "Wrapper for list of consultant clients.",
+        "properties": {
+          "active_count": {
+            "title": "Active Count",
+            "type": "integer"
+          },
+          "clients": {
+            "items": {
+              "$ref": "#/components/schemas/ConsultantClientResponse"
+            },
+            "title": "Clients",
+            "type": "array"
+          },
+          "total": {
+            "title": "Total",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "clients",
+          "total",
+          "active_count"
+        ],
+        "title": "ConsultantClientListResponse",
+        "type": "object"
+      },
+      "ConsultantClientResponse": {
+        "description": "Response model for a consultant-client relationship.",
+        "properties": {
+          "client_email": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Client Email"
+          },
+          "client_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Client Id"
+          },
+          "consultant_id": {
+            "title": "Consultant Id",
+            "type": "string"
+          },
+          "created_at": {
+            "title": "Created At",
+            "type": "string"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "consultant_id",
+          "status",
+          "created_at"
+        ],
+        "title": "ConsultantClientResponse",
+        "type": "object"
+      },
+      "ConsultantInviteResponse": {
+        "description": "Response with invite link details.",
+        "properties": {
+          "expires_at": {
+            "title": "Expires At",
+            "type": "string"
+          },
+          "invite_url": {
+            "title": "Invite Url",
+            "type": "string"
+          }
+        },
+        "required": [
+          "invite_url",
+          "expires_at"
+        ],
+        "title": "ConsultantInviteResponse",
+        "type": "object"
+      },
+      "ConsultantShareCreate": {
+        "description": "Request to share a resource with a client.",
+        "properties": {
+          "resource_id": {
+            "minLength": 1,
+            "title": "Resource Id",
+            "type": "string"
+          },
+          "resource_type": {
+            "pattern": "^(busca|pipeline|analise)$",
+            "title": "Resource Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "resource_type",
+          "resource_id"
+        ],
+        "title": "ConsultantShareCreate",
+        "type": "object"
+      },
+      "ConsultantShareResponse": {
+        "description": "Response model for a shared resource.",
+        "properties": {
+          "client_id": {
+            "title": "Client Id",
+            "type": "string"
+          },
+          "consultant_id": {
+            "title": "Consultant Id",
+            "type": "string"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "resource_id": {
+            "title": "Resource Id",
+            "type": "string"
+          },
+          "resource_type": {
+            "title": "Resource Type",
+            "type": "string"
+          },
+          "shared_at": {
+            "title": "Shared At",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "consultant_id",
+          "client_id",
+          "resource_type",
+          "resource_id",
+          "shared_at"
+        ],
+        "title": "ConsultantShareResponse",
         "type": "object"
       },
       "ContratoPublico": {
@@ -5689,6 +6130,95 @@
         "title": "DeleteAccountResponse",
         "type": "object"
       },
+      "DemandForecastItem": {
+        "description": "A single month in the demand forecast time series.",
+        "properties": {
+          "bid_count": {
+            "description": "Number of bids/contracts in this month",
+            "minimum": 0.0,
+            "title": "Bid Count",
+            "type": "integer"
+          },
+          "month": {
+            "description": "Month in YYYY-MM format",
+            "pattern": "^\\d{4}-\\d{2}$",
+            "title": "Month",
+            "type": "string"
+          },
+          "total_value": {
+            "description": "Total value of contracts in this month",
+            "minimum": 0.0,
+            "title": "Total Value",
+            "type": "number"
+          }
+        },
+        "required": [
+          "month",
+          "bid_count",
+          "total_value"
+        ],
+        "title": "DemandForecastItem",
+        "type": "object"
+      },
+      "DemandForecastResponse": {
+        "description": "Response from the demand forecast endpoint.",
+        "properties": {
+          "feature_enabled": {
+            "default": true,
+            "title": "Feature Enabled",
+            "type": "boolean"
+          },
+          "forecast": {
+            "items": {
+              "$ref": "#/components/schemas/DemandForecastItem"
+            },
+            "title": "Forecast",
+            "type": "array"
+          },
+          "months": {
+            "title": "Months",
+            "type": "integer"
+          },
+          "sector": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sector"
+          },
+          "total_contracts": {
+            "default": 0,
+            "title": "Total Contracts",
+            "type": "integer"
+          },
+          "total_value": {
+            "default": 0.0,
+            "title": "Total Value",
+            "type": "number"
+          },
+          "uf": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Uf"
+          }
+        },
+        "required": [
+          "months",
+          "forecast"
+        ],
+        "title": "DemandForecastResponse",
+        "type": "object"
+      },
       "DiagnosticoRequest": {
         "description": "Request body for PDF diagnostico report generation.",
         "properties": {
@@ -5868,6 +6398,157 @@
           }
         },
         "title": "DiscardRateResponse",
+        "type": "object"
+      },
+      "DistribuicaoItem": {
+        "description": "Item de distribui\u00e7\u00e3o por UF, ano, ou modalidade.",
+        "properties": {
+          "chave": {
+            "title": "Chave",
+            "type": "string"
+          },
+          "quantidade": {
+            "title": "Quantidade",
+            "type": "integer"
+          },
+          "valor_total": {
+            "title": "Valor Total",
+            "type": "number"
+          }
+        },
+        "required": [
+          "chave",
+          "quantidade",
+          "valor_total"
+        ],
+        "title": "DistribuicaoItem",
+        "type": "object"
+      },
+      "DossieRequest": {
+        "description": "Request parameters for dossie generation.",
+        "properties": {
+          "include_llm_summary": {
+            "default": true,
+            "description": "Incluir sumario executivo gerado por IA",
+            "title": "Include Llm Summary",
+            "type": "boolean"
+          },
+          "setor_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Setor para contextualizacao",
+            "title": "Setor Id"
+          }
+        },
+        "title": "DossieRequest",
+        "type": "object"
+      },
+      "DossieResponse": {
+        "description": "Response for dossie generation request.",
+        "properties": {
+          "cnpj": {
+            "description": "CNPJ do concorrente",
+            "title": "Cnpj",
+            "type": "string"
+          },
+          "download_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "URL para download do PDF quando pronto",
+            "title": "Download Url"
+          },
+          "job_id": {
+            "description": "ID do job ARQ para acompanhamento",
+            "title": "Job Id",
+            "type": "string"
+          },
+          "message": {
+            "default": "Dossie sendo gerado em background.",
+            "description": "Mensagem de status",
+            "title": "Message",
+            "type": "string"
+          },
+          "status": {
+            "default": "queued",
+            "description": "Status do job: queued/processing/done/error",
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "cnpj",
+          "job_id"
+        ],
+        "title": "DossieResponse",
+        "type": "object"
+      },
+      "DossieStatusResponse": {
+        "description": "Status polling response for dossie generation.",
+        "properties": {
+          "cnpj": {
+            "description": "CNPJ do concorrente",
+            "title": "Cnpj",
+            "type": "string"
+          },
+          "download_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "URL de download quando concluido",
+            "title": "Download Url"
+          },
+          "error": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Mensagem de erro se aplicavel",
+            "title": "Error"
+          },
+          "job_id": {
+            "description": "ID do job",
+            "title": "Job Id",
+            "type": "string"
+          },
+          "progress": {
+            "default": 0,
+            "description": "Progresso percentual (0-100)",
+            "title": "Progress",
+            "type": "integer"
+          },
+          "status": {
+            "description": "Status atual: queued/processing/done/error",
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "cnpj",
+          "job_id",
+          "status"
+        ],
+        "title": "DossieStatusResponse",
         "type": "object"
       },
       "EditaisAmostra": {
@@ -6960,6 +7641,67 @@
           "search_id"
         ],
         "title": "FirstAnalysisResponse",
+        "type": "object"
+      },
+      "FornecedorIntelResponse": {
+        "description": "Complete competitive intelligence response for a supplier CNPJ.\n\nReturned by GET /v1/intel-concorrente/fornecedor/{cnpj}.",
+        "properties": {
+          "alertas": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/AlertaPosicionamento"
+            },
+            "title": "Alertas",
+            "type": "array"
+          },
+          "concorrente": {
+            "$ref": "#/components/schemas/ConcorrenteInfo"
+          },
+          "feature_enabled": {
+            "default": true,
+            "title": "Feature Enabled",
+            "type": "boolean"
+          },
+          "generated_at": {
+            "default": "",
+            "title": "Generated At",
+            "type": "string"
+          },
+          "orgaos_favoritos": {
+            "items": {
+              "$ref": "#/components/schemas/OrgaoFavorito"
+            },
+            "title": "Orgaos Favoritos",
+            "type": "array"
+          },
+          "stats": {
+            "$ref": "#/components/schemas/TerritorioStats"
+          },
+          "territorio": {
+            "items": {
+              "$ref": "#/components/schemas/TerritorioEntry"
+            },
+            "title": "Territorio",
+            "type": "array"
+          },
+          "win_metrics": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/WinMetrics"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "concorrente",
+          "territorio",
+          "orgaos_favoritos",
+          "stats"
+        ],
+        "title": "FornecedorIntelResponse",
         "type": "object"
       },
       "FornecedorProfileResponse": {
@@ -8291,6 +9033,72 @@
         "title": "HistogramBucket",
         "type": "object"
       },
+      "HistoricalSupplier": {
+        "description": "A historical supplier with similar contracts.",
+        "properties": {
+          "avg_value": {
+            "description": "Valor m\u00e9dio dos contratos",
+            "minimum": 0.0,
+            "title": "Avg Value",
+            "type": "number"
+          },
+          "cnpj": {
+            "description": "CNPJ do fornecedor",
+            "title": "Cnpj",
+            "type": "string"
+          },
+          "last_contract_year": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Ano do \u00faltimo contrato",
+            "title": "Last Contract Year"
+          },
+          "match_reason": {
+            "description": "Raz\u00e3o da correspond\u00eancia",
+            "title": "Match Reason",
+            "type": "string"
+          },
+          "razao_social": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Raz\u00e3o social",
+            "title": "Razao Social"
+          },
+          "similar_contracts_count": {
+            "description": "N\u00famero de contratos similares",
+            "minimum": 0.0,
+            "title": "Similar Contracts Count",
+            "type": "integer"
+          },
+          "total_value": {
+            "description": "Valor total dos contratos",
+            "minimum": 0.0,
+            "title": "Total Value",
+            "type": "number"
+          }
+        },
+        "required": [
+          "cnpj",
+          "similar_contracts_count",
+          "total_value",
+          "avg_value",
+          "match_reason"
+        ],
+        "title": "HistoricalSupplier",
+        "type": "object"
+      },
       "IncidentEntry": {
         "additionalProperties": true,
         "description": "One incident record from the public status timeline.",
@@ -8463,6 +9271,64 @@
           "calculado_em"
         ],
         "title": "IndiceResult",
+        "type": "object"
+      },
+      "IntelFeedResponse": {
+        "description": "Full response payload for the intel feed endpoint.",
+        "properties": {
+          "generated_at": {
+            "format": "date-time",
+            "title": "Generated At",
+            "type": "string"
+          },
+          "sector": {
+            "title": "Sector",
+            "type": "string"
+          },
+          "signals": {
+            "items": {
+              "$ref": "#/components/schemas/IntelFeedSignal"
+            },
+            "title": "Signals",
+            "type": "array"
+          }
+        },
+        "required": [
+          "sector",
+          "signals",
+          "generated_at"
+        ],
+        "title": "IntelFeedResponse",
+        "type": "object"
+      },
+      "IntelFeedSignal": {
+        "description": "Single market signal displayed in the widget.",
+        "properties": {
+          "label": {
+            "title": "Label",
+            "type": "string"
+          },
+          "trend": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Trend"
+          },
+          "value": {
+            "title": "Value",
+            "type": "string"
+          }
+        },
+        "required": [
+          "label",
+          "value"
+        ],
+        "title": "IntelFeedSignal",
         "type": "object"
       },
       "IntelReportCheckoutRequest": {
@@ -8675,6 +9541,147 @@
           "generated_at"
         ],
         "title": "IntelTastingResponse",
+        "type": "object"
+      },
+      "IntelVitrineResponse": {
+        "description": "Resposta completa da vitrine de intelig\u00eancia p\u00fablica.",
+        "properties": {
+          "aviso_legal": {
+            "default": "Dados p\u00fablicos do Portal Nacional de Contrata\u00e7\u00f5es P\u00fablicas (PNCP). Os valores refletem contratos registrados \u2014 podem n\u00e3o representar o total faturado pela empresa no per\u00edodo.",
+            "title": "Aviso Legal",
+            "type": "string"
+          },
+          "cnpj": {
+            "title": "Cnpj",
+            "type": "string"
+          },
+          "distribuicao_ano": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/DistribuicaoItem"
+            },
+            "title": "Distribuicao Ano",
+            "type": "array"
+          },
+          "distribuicao_modalidade": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/DistribuicaoItem"
+            },
+            "title": "Distribuicao Modalidade",
+            "type": "array"
+          },
+          "distribuicao_uf": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/DistribuicaoItem"
+            },
+            "title": "Distribuicao Uf",
+            "type": "array"
+          },
+          "generated_at": {
+            "format": "date-time",
+            "title": "Generated At",
+            "type": "string"
+          },
+          "nome_fantasia": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Nome Fantasia"
+          },
+          "ranking": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/RankingInfo"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "razao_social": {
+            "title": "Razao Social",
+            "type": "string"
+          },
+          "setor_nome": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Setor Nome"
+          },
+          "setor_principal": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Setor Principal"
+          },
+          "top_orgaos": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/OrgaoInfo"
+            },
+            "title": "Top Orgaos",
+            "type": "array"
+          },
+          "total_contratos_12m": {
+            "title": "Total Contratos 12M",
+            "type": "integer"
+          },
+          "total_contratos_alltime": {
+            "title": "Total Contratos Alltime",
+            "type": "integer"
+          },
+          "valor_total_12m": {
+            "title": "Valor Total 12M",
+            "type": "number"
+          },
+          "valor_total_alltime": {
+            "title": "Valor Total Alltime",
+            "type": "number"
+          }
+        },
+        "required": [
+          "cnpj",
+          "razao_social",
+          "total_contratos_12m",
+          "valor_total_12m",
+          "total_contratos_alltime",
+          "valor_total_alltime",
+          "generated_at"
+        ],
+        "title": "IntelVitrineResponse",
+        "type": "object"
+      },
+      "InviteClientRequest": {
+        "description": "Request payload for inviting a client by email.",
+        "properties": {
+          "client_email": {
+            "maxLength": 320,
+            "minLength": 1,
+            "title": "Client Email",
+            "type": "string"
+          }
+        },
+        "required": [
+          "client_email"
+        ],
+        "title": "InviteClientRequest",
         "type": "object"
       },
       "InviteMemberRequest": {
@@ -9765,6 +10772,171 @@
         "title": "ModalidadeAggregate",
         "type": "object"
       },
+      "MonthlyReportPreviewResponse": {
+        "description": "Preview data for a sector's monthly report (sample data).",
+        "properties": {
+          "avg_value": {
+            "title": "Avg Value",
+            "type": "number"
+          },
+          "executive_summary": {
+            "title": "Executive Summary",
+            "type": "string"
+          },
+          "period": {
+            "title": "Period",
+            "type": "string"
+          },
+          "sample_pdf_available": {
+            "default": false,
+            "title": "Sample Pdf Available",
+            "type": "boolean"
+          },
+          "sector_id": {
+            "title": "Sector Id",
+            "type": "string"
+          },
+          "sector_name": {
+            "title": "Sector Name",
+            "type": "string"
+          },
+          "top_opportunities": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "title": "Top Opportunities",
+            "type": "array"
+          },
+          "top_winners": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "title": "Top Winners",
+            "type": "array"
+          },
+          "total_licitacoes": {
+            "title": "Total Licitacoes",
+            "type": "integer"
+          },
+          "total_value": {
+            "title": "Total Value",
+            "type": "number"
+          }
+        },
+        "required": [
+          "sector_id",
+          "sector_name",
+          "period",
+          "total_licitacoes",
+          "total_value",
+          "avg_value",
+          "top_opportunities",
+          "top_winners",
+          "executive_summary"
+        ],
+        "title": "MonthlyReportPreviewResponse",
+        "type": "object"
+      },
+      "MonthlyReportSubscribeRequest": {
+        "description": "Request body for POST /v1/report-mensal/subscribe.",
+        "properties": {
+          "sector_id": {
+            "minLength": 1,
+            "title": "Sector Id",
+            "type": "string"
+          },
+          "stripe_price_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Stripe Price Id"
+          }
+        },
+        "required": [
+          "sector_id"
+        ],
+        "title": "MonthlyReportSubscribeRequest",
+        "type": "object"
+      },
+      "MonthlyReportSubscriptionResponse": {
+        "description": "Response model for a monthly report subscription.",
+        "properties": {
+          "created_at": {
+            "title": "Created At",
+            "type": "string"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "sector_id": {
+            "title": "Sector Id",
+            "type": "string"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          },
+          "stripe_sub_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Stripe Sub Id"
+          },
+          "user_id": {
+            "title": "User Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "user_id",
+          "sector_id",
+          "status",
+          "created_at"
+        ],
+        "title": "MonthlyReportSubscriptionResponse",
+        "type": "object"
+      },
+      "MonthlyReportSubscriptionsListResponse": {
+        "description": "Wrapper for list of subscriptions.",
+        "properties": {
+          "active_count": {
+            "title": "Active Count",
+            "type": "integer"
+          },
+          "subscriptions": {
+            "items": {
+              "$ref": "#/components/schemas/MonthlyReportSubscriptionResponse"
+            },
+            "title": "Subscriptions",
+            "type": "array"
+          },
+          "total": {
+            "title": "Total",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "subscriptions",
+          "total",
+          "active_count"
+        ],
+        "title": "MonthlyReportSubscriptionsListResponse",
+        "type": "object"
+      },
       "MrrHistoryEntry": {
         "description": "Single month entry in the MRR time series.",
         "properties": {
@@ -10390,6 +11562,89 @@
         "title": "OrgaoContratosStatsResponse",
         "type": "object"
       },
+      "OrgaoFavorito": {
+        "description": "Favorite (most-contracted) agencies.",
+        "properties": {
+          "categorias": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Categorias",
+            "type": "array"
+          },
+          "contratos": {
+            "title": "Contratos",
+            "type": "integer"
+          },
+          "frequencia_anual": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Frequencia Anual"
+          },
+          "orgao_nome": {
+            "title": "Orgao Nome",
+            "type": "string"
+          },
+          "ultima_vitoria": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ultima Vitoria"
+          },
+          "valor_total": {
+            "title": "Valor Total",
+            "type": "number"
+          }
+        },
+        "required": [
+          "orgao_nome",
+          "contratos",
+          "valor_total"
+        ],
+        "title": "OrgaoFavorito",
+        "type": "object"
+      },
+      "OrgaoInfo": {
+        "description": "\u00d3rg\u00e3o comprador com total de contratos e valor.",
+        "properties": {
+          "cnpj": {
+            "title": "Cnpj",
+            "type": "string"
+          },
+          "nome": {
+            "title": "Nome",
+            "type": "string"
+          },
+          "total_contratos": {
+            "title": "Total Contratos",
+            "type": "integer"
+          },
+          "valor_total": {
+            "title": "Valor Total",
+            "type": "number"
+          }
+        },
+        "required": [
+          "nome",
+          "cnpj",
+          "total_contratos",
+          "valor_total"
+        ],
+        "title": "OrgaoInfo",
+        "type": "object"
+      },
       "OrgaoRank": {
         "properties": {
           "cnpj": {
@@ -10999,6 +12254,57 @@
           }
         },
         "title": "PartnersListResponse",
+        "type": "object"
+      },
+      "PartnershipScoreResponse": {
+        "description": "Response for GET /v1/subcontract/partnership-score/{cnpj}.",
+        "properties": {
+          "cnpj": {
+            "description": "CNPJ consultado (14 d\u00edgitos)",
+            "title": "Cnpj",
+            "type": "string"
+          },
+          "disclaimer": {
+            "description": "Disclaimer obrigat\u00f3rio",
+            "title": "Disclaimer",
+            "type": "string"
+          },
+          "narrative": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Narrativa LLM opcional (premium)",
+            "title": "Narrative"
+          },
+          "overall_score": {
+            "description": "Score geral de parceria (0-1)",
+            "maximum": 1.0,
+            "minimum": 0.0,
+            "title": "Overall Score",
+            "type": "number"
+          },
+          "razao_social": {
+            "description": "Raz\u00e3o social do fornecedor",
+            "title": "Razao Social",
+            "type": "string"
+          },
+          "signals": {
+            "$ref": "#/components/schemas/CapacitySignals"
+          }
+        },
+        "required": [
+          "cnpj",
+          "razao_social",
+          "overall_score",
+          "signals",
+          "disclaimer"
+        ],
+        "title": "PartnershipScoreResponse",
         "type": "object"
       },
       "PdfEditalRequest": {
@@ -11926,6 +13232,204 @@
         "title": "PorteEmpresa",
         "type": "string"
       },
+      "PredictiveAlertCreate": {
+        "properties": {
+          "alert_type": {
+            "pattern": "^(volume_spike|new_opportunity|recurrence|deadline_approaching)$",
+            "title": "Alert Type",
+            "type": "string"
+          },
+          "sector_id": {
+            "maxLength": 60,
+            "minLength": 1,
+            "title": "Sector Id",
+            "type": "string"
+          },
+          "threshold_value": {
+            "default": 0.0,
+            "minimum": 0.0,
+            "title": "Threshold Value",
+            "type": "number"
+          },
+          "uf": {
+            "anyOf": [
+              {
+                "maxLength": 2,
+                "minLength": 2,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Uf"
+          }
+        },
+        "required": [
+          "sector_id",
+          "alert_type"
+        ],
+        "title": "PredictiveAlertCreate",
+        "type": "object"
+      },
+      "PredictiveAlertListResponse": {
+        "properties": {
+          "alerts": {
+            "items": {
+              "$ref": "#/components/schemas/PredictiveAlertResponse"
+            },
+            "title": "Alerts",
+            "type": "array"
+          },
+          "total": {
+            "title": "Total",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "alerts",
+          "total"
+        ],
+        "title": "PredictiveAlertListResponse",
+        "type": "object"
+      },
+      "PredictiveAlertResponse": {
+        "properties": {
+          "alert_type": {
+            "title": "Alert Type",
+            "type": "string"
+          },
+          "created_at": {
+            "title": "Created At",
+            "type": "string"
+          },
+          "enabled": {
+            "title": "Enabled",
+            "type": "boolean"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "last_triggered_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Triggered At"
+          },
+          "sector_id": {
+            "title": "Sector Id",
+            "type": "string"
+          },
+          "threshold_value": {
+            "title": "Threshold Value",
+            "type": "number"
+          },
+          "uf": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Uf"
+          },
+          "updated_at": {
+            "title": "Updated At",
+            "type": "string"
+          },
+          "user_id": {
+            "title": "User Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "user_id",
+          "sector_id",
+          "alert_type",
+          "threshold_value",
+          "enabled",
+          "created_at",
+          "updated_at"
+        ],
+        "title": "PredictiveAlertResponse",
+        "type": "object"
+      },
+      "PredictiveAlertUpdate": {
+        "properties": {
+          "alert_type": {
+            "anyOf": [
+              {
+                "pattern": "^(volume_spike|new_opportunity|recurrence|deadline_approaching)$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Alert Type"
+          },
+          "enabled": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Enabled"
+          },
+          "sector_id": {
+            "anyOf": [
+              {
+                "maxLength": 60,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sector Id"
+          },
+          "threshold_value": {
+            "anyOf": [
+              {
+                "minimum": 0.0,
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Threshold Value"
+          },
+          "uf": {
+            "anyOf": [
+              {
+                "maxLength": 2,
+                "minLength": 2,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Uf"
+          }
+        },
+        "title": "PredictiveAlertUpdate",
+        "type": "object"
+      },
       "PreferenciasRequest": {
         "description": "Request body for PATCH /conta/preferencias \u2014 frequency toggle.",
         "properties": {
@@ -12120,6 +13624,35 @@
           }
         },
         "title": "PublicStatusResponse",
+        "type": "object"
+      },
+      "RankingInfo": {
+        "description": "Posi\u00e7\u00e3o da empresa no ranking setorial.",
+        "properties": {
+          "percentil": {
+            "title": "Percentil",
+            "type": "number"
+          },
+          "posicao": {
+            "title": "Posicao",
+            "type": "integer"
+          },
+          "texto_contexto": {
+            "title": "Texto Contexto",
+            "type": "string"
+          },
+          "total_empresas_setor": {
+            "title": "Total Empresas Setor",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "percentil",
+          "posicao",
+          "total_empresas_setor",
+          "texto_contexto"
+        ],
+        "title": "RankingInfo",
         "type": "object"
       },
       "RankingResponse": {
@@ -12862,6 +14395,114 @@
         "title": "RegenerateRecoveryResponse",
         "type": "object"
       },
+      "RegionalDependencyItem": {
+        "description": "Per-UF dependency data for a sector.",
+        "properties": {
+          "contract_count": {
+            "description": "N\u00famero de contratos na UF",
+            "minimum": 0.0,
+            "title": "Contract Count",
+            "type": "integer"
+          },
+          "dependency_score": {
+            "description": "Percentual de contratos nesta UF (0-100)",
+            "maximum": 100.0,
+            "minimum": 0.0,
+            "title": "Dependency Score",
+            "type": "number"
+          },
+          "total_value": {
+            "description": "Valor total dos contratos na UF",
+            "minimum": 0.0,
+            "title": "Total Value",
+            "type": "number"
+          },
+          "uf": {
+            "description": "UF sigla (2 letras)",
+            "title": "Uf",
+            "type": "string"
+          }
+        },
+        "required": [
+          "uf",
+          "dependency_score",
+          "contract_count",
+          "total_value"
+        ],
+        "title": "RegionalDependencyItem",
+        "type": "object"
+      },
+      "RegionalDependencyResponse": {
+        "description": "Response for GET /v1/subcontract/regional-dependency.",
+        "properties": {
+          "coverage_ufs": {
+            "description": "N\u00famero de UFs com contratos",
+            "minimum": 0.0,
+            "title": "Coverage Ufs",
+            "type": "integer"
+          },
+          "disclaimer": {
+            "description": "Disclaimer obrigat\u00f3rio sobre a an\u00e1lise",
+            "title": "Disclaimer",
+            "type": "string"
+          },
+          "generated_at": {
+            "description": "Timestamp ISO da gera\u00e7\u00e3o dos dados",
+            "title": "Generated At",
+            "type": "string"
+          },
+          "hhi_normalized": {
+            "description": "\u00cdndice HHI normalizado (1 - HHI). Quanto menor, mais concentrado.",
+            "maximum": 1.0,
+            "minimum": 0.0,
+            "title": "Hhi Normalized",
+            "type": "number"
+          },
+          "risk_level": {
+            "description": "N\u00edvel de risco: baixo (>=0.6), medio (0.3-0.6), alto (<0.3)",
+            "title": "Risk Level",
+            "type": "string"
+          },
+          "sector_id": {
+            "description": "ID do setor consultado",
+            "title": "Sector Id",
+            "type": "string"
+          },
+          "total_contracts": {
+            "description": "Total de contratos no per\u00edodo",
+            "minimum": 0.0,
+            "title": "Total Contracts",
+            "type": "integer"
+          },
+          "total_value": {
+            "description": "Valor total de contratos no per\u00edodo",
+            "minimum": 0.0,
+            "title": "Total Value",
+            "type": "number"
+          },
+          "uf_distribution": {
+            "description": "Distribui\u00e7\u00e3o de contratos por UF",
+            "items": {
+              "$ref": "#/components/schemas/RegionalDependencyItem"
+            },
+            "title": "Uf Distribution",
+            "type": "array"
+          }
+        },
+        "required": [
+          "sector_id",
+          "uf_distribution",
+          "total_contracts",
+          "total_value",
+          "coverage_ufs",
+          "hhi_normalized",
+          "risk_level",
+          "disclaimer",
+          "generated_at"
+        ],
+        "title": "RegionalDependencyResponse",
+        "type": "object"
+      },
       "RelatorioMensal": {
         "properties": {
           "ano": {
@@ -13034,6 +14675,89 @@
           "email_queued"
         ],
         "title": "RelatorioResponse",
+        "type": "object"
+      },
+      "RenewalAlertItem": {
+        "description": "A single contract approaching renewal.",
+        "properties": {
+          "contract_id": {
+            "description": "Contract ID from pncp_supplier_contracts",
+            "title": "Contract Id",
+            "type": "integer"
+          },
+          "estimated_expiry": {
+            "description": "Estimated expiry date (data_assinatura + 1 year heuristic)",
+            "format": "date",
+            "title": "Estimated Expiry",
+            "type": "string"
+          },
+          "orgao": {
+            "description": "Name of the contracting public agency",
+            "title": "Orgao",
+            "type": "string"
+          },
+          "value": {
+            "description": "Estimated contract value",
+            "minimum": 0.0,
+            "title": "Value",
+            "type": "number"
+          }
+        },
+        "required": [
+          "contract_id",
+          "orgao",
+          "value",
+          "estimated_expiry"
+        ],
+        "title": "RenewalAlertItem",
+        "type": "object"
+      },
+      "RenewalAlertResponse": {
+        "description": "Response from the renewal alerts endpoint.",
+        "properties": {
+          "alerts": {
+            "items": {
+              "$ref": "#/components/schemas/RenewalAlertItem"
+            },
+            "title": "Alerts",
+            "type": "array"
+          },
+          "days": {
+            "title": "Days",
+            "type": "integer"
+          },
+          "feature_enabled": {
+            "default": true,
+            "title": "Feature Enabled",
+            "type": "boolean"
+          },
+          "sector": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sector"
+          },
+          "total_count": {
+            "default": 0,
+            "title": "Total Count",
+            "type": "integer"
+          },
+          "total_value": {
+            "default": 0.0,
+            "title": "Total Value",
+            "type": "number"
+          }
+        },
+        "required": [
+          "days",
+          "alerts"
+        ],
+        "title": "RenewalAlertResponse",
         "type": "object"
       },
       "ReplyRequest": {
@@ -13806,6 +15530,128 @@
         "title": "SaveSegmentResponse",
         "type": "object"
       },
+      "ScoreBatchRequest": {
+        "description": "Batch score request \u2014 multiple bids, single CNPJ.",
+        "properties": {
+          "bids": {
+            "description": "List of bid dicts to score.",
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "maxItems": 100,
+            "minItems": 1,
+            "title": "Bids",
+            "type": "array"
+          },
+          "cnpj": {
+            "description": "CNPJ to score (14 digits, no mask).",
+            "maxLength": 14,
+            "minLength": 14,
+            "title": "Cnpj",
+            "type": "string"
+          }
+        },
+        "required": [
+          "bids",
+          "cnpj"
+        ],
+        "title": "ScoreBatchRequest",
+        "type": "object"
+      },
+      "ScoreBatchResponse": {
+        "description": "Batch score response.",
+        "properties": {
+          "count": {
+            "title": "Count",
+            "type": "integer"
+          },
+          "feature_enabled": {
+            "default": true,
+            "title": "Feature Enabled",
+            "type": "boolean"
+          },
+          "model_version": {
+            "default": "v1",
+            "title": "Model Version",
+            "type": "string"
+          },
+          "scores": {
+            "items": {
+              "$ref": "#/components/schemas/ScoreResponse"
+            },
+            "title": "Scores",
+            "type": "array"
+          }
+        },
+        "required": [
+          "scores",
+          "count"
+        ],
+        "title": "ScoreBatchResponse",
+        "type": "object"
+      },
+      "ScoreRequest": {
+        "description": "Single bid score request.",
+        "properties": {
+          "bid": {
+            "additionalProperties": true,
+            "description": "Bid dictionary with modalidade, uf, valor, etc.",
+            "title": "Bid",
+            "type": "object"
+          },
+          "cnpj": {
+            "description": "CNPJ to score (14 digits, no mask).",
+            "maxLength": 14,
+            "minLength": 14,
+            "title": "Cnpj",
+            "type": "string"
+          }
+        },
+        "required": [
+          "bid",
+          "cnpj"
+        ],
+        "title": "ScoreRequest",
+        "type": "object"
+      },
+      "ScoreResponse": {
+        "description": "Single bid score response.",
+        "properties": {
+          "confidence": {
+            "description": "Model confidence proxy (0.0 to 1.0).",
+            "maximum": 1.0,
+            "minimum": 0.0,
+            "title": "Confidence",
+            "type": "number"
+          },
+          "feature_enabled": {
+            "default": true,
+            "description": "Whether SmartLic Score is enabled.",
+            "title": "Feature Enabled",
+            "type": "boolean"
+          },
+          "model_version": {
+            "default": "v1",
+            "description": "Model version identifier.",
+            "title": "Model Version",
+            "type": "string"
+          },
+          "probability": {
+            "description": "Estimated win probability (0.0 to 1.0).",
+            "maximum": 1.0,
+            "minimum": 0.0,
+            "title": "Probability",
+            "type": "number"
+          }
+        },
+        "required": [
+          "probability",
+          "confidence"
+        ],
+        "title": "ScoreResponse",
+        "type": "object"
+      },
       "SearchActionResponse": {
         "additionalProperties": true,
         "description": "Generic ack for `regenerate-excel`, `retry`, `cancel`.",
@@ -14174,6 +16020,84 @@
         "title": "SeasonalCalendarStats",
         "type": "object"
       },
+      "SeasonalPatternItem": {
+        "description": "A single month's seasonal average (Jan-Dec).",
+        "properties": {
+          "avg_count": {
+            "description": "Average number of contracts in this month over the period",
+            "minimum": 0.0,
+            "title": "Avg Count",
+            "type": "number"
+          },
+          "avg_value": {
+            "description": "Average contract value in this month",
+            "minimum": 0.0,
+            "title": "Avg Value",
+            "type": "number"
+          },
+          "month_num": {
+            "description": "Month number (1=January, 12=December)",
+            "maximum": 12.0,
+            "minimum": 1.0,
+            "title": "Month Num",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "month_num",
+          "avg_count",
+          "avg_value"
+        ],
+        "title": "SeasonalPatternItem",
+        "type": "object"
+      },
+      "SeasonalPatternResponse": {
+        "description": "Response from the seasonal pattern endpoint.",
+        "properties": {
+          "feature_enabled": {
+            "default": true,
+            "title": "Feature Enabled",
+            "type": "boolean"
+          },
+          "patterns": {
+            "items": {
+              "$ref": "#/components/schemas/SeasonalPatternItem"
+            },
+            "title": "Patterns",
+            "type": "array"
+          },
+          "peak_month": {
+            "anyOf": [
+              {
+                "maximum": 12.0,
+                "minimum": 1.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Month with highest average contract count",
+            "title": "Peak Month"
+          },
+          "sector": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sector"
+          }
+        },
+        "required": [
+          "patterns"
+        ],
+        "title": "SeasonalPatternResponse",
+        "type": "object"
+      },
       "SectorAffinityResponse": {
         "description": "FEEDBACK-004: User affinity score for a sector.\n\nReturned by GET /v1/profile/sector-affinity.",
         "properties": {
@@ -14240,6 +16164,52 @@
           "avg_value"
         ],
         "title": "SectorAggregate",
+        "type": "object"
+      },
+      "SectorBenchmarkResponse": {
+        "description": "Top-level response for GET /v1/intel-concorrente/benchmarks.",
+        "properties": {
+          "cnpj": {
+            "description": "CNPJ do concorrente",
+            "title": "Cnpj",
+            "type": "string"
+          },
+          "gerado_em": {
+            "description": "Timestamp de geracao",
+            "title": "Gerado Em",
+            "type": "string"
+          },
+          "metricas": {
+            "description": "Metricas comparativas",
+            "items": {
+              "$ref": "#/components/schemas/CompetitorBenchmark"
+            },
+            "title": "Metricas",
+            "type": "array"
+          },
+          "razao_social": {
+            "description": "Nome / razao social",
+            "title": "Razao Social",
+            "type": "string"
+          },
+          "setor_id": {
+            "description": "ID do setor",
+            "title": "Setor Id",
+            "type": "string"
+          },
+          "setor_nome": {
+            "description": "Nome do setor",
+            "title": "Setor Nome",
+            "type": "string"
+          }
+        },
+        "required": [
+          "cnpj",
+          "razao_social",
+          "setor_id",
+          "setor_nome"
+        ],
+        "title": "SectorBenchmarkResponse",
         "type": "object"
       },
       "SectorBlogStats": {
@@ -14831,6 +16801,36 @@
           "created_at"
         ],
         "title": "SharedAnalisePublic",
+        "type": "object"
+      },
+      "SignalDetail": {
+        "description": "Individual signal score with label and supporting details.",
+        "properties": {
+          "details": {
+            "additionalProperties": true,
+            "description": "Detalhes brutos do c\u00e1lculo",
+            "title": "Details",
+            "type": "object"
+          },
+          "label": {
+            "description": "Label qualitativo (alto/medio/baixo)",
+            "title": "Label",
+            "type": "string"
+          },
+          "score": {
+            "description": "Score normalizado (0-1)",
+            "maximum": 1.0,
+            "minimum": 0.0,
+            "title": "Score",
+            "type": "number"
+          }
+        },
+        "required": [
+          "score",
+          "label",
+          "details"
+        ],
+        "title": "SignalDetail",
         "type": "object"
       },
       "SignupRequest": {
@@ -15651,6 +17651,95 @@
         "title": "StripeHealthResponse",
         "type": "object"
       },
+      "SubcontractBidOpportunityResponse": {
+        "description": "Response for GET /v1/subcontract/opportunities.",
+        "properties": {
+          "bid_id": {
+            "description": "ID do edital",
+            "title": "Bid Id",
+            "type": "string"
+          },
+          "bid_sector": {
+            "description": "Setor do edital",
+            "title": "Bid Sector",
+            "type": "string"
+          },
+          "bid_value": {
+            "description": "Valor estimado do edital",
+            "minimum": 0.0,
+            "title": "Bid Value",
+            "type": "number"
+          },
+          "disclaimer": {
+            "description": "Disclaimer obrigat\u00f3rio",
+            "title": "Disclaimer",
+            "type": "string"
+          },
+          "generated_at": {
+            "description": "Timestamp ISO da gera\u00e7\u00e3o dos dados",
+            "title": "Generated At",
+            "type": "string"
+          },
+          "historical_suppliers": {
+            "description": "Fornecedores hist\u00f3ricos similares",
+            "items": {
+              "$ref": "#/components/schemas/HistoricalSupplier"
+            },
+            "title": "Historical Suppliers",
+            "type": "array"
+          },
+          "reasons": {
+            "description": "Raz\u00f5es para o score",
+            "items": {
+              "$ref": "#/components/schemas/SubcontractReason"
+            },
+            "title": "Reasons",
+            "type": "array"
+          },
+          "subcontract_potential_score": {
+            "description": "Score de potencial de subcontrata\u00e7\u00e3o (0-1)",
+            "maximum": 1.0,
+            "minimum": 0.0,
+            "title": "Subcontract Potential Score",
+            "type": "number"
+          }
+        },
+        "required": [
+          "bid_id",
+          "bid_value",
+          "bid_sector",
+          "subcontract_potential_score",
+          "reasons",
+          "historical_suppliers",
+          "disclaimer",
+          "generated_at"
+        ],
+        "title": "SubcontractBidOpportunityResponse",
+        "type": "object"
+      },
+      "SubcontractReason": {
+        "description": "A reason contributing to the subcontract potential score.",
+        "properties": {
+          "reason": {
+            "description": "Descri\u00e7\u00e3o do fator",
+            "title": "Reason",
+            "type": "string"
+          },
+          "weight": {
+            "description": "Peso do fator no score",
+            "maximum": 1.0,
+            "minimum": 0.0,
+            "title": "Weight",
+            "type": "number"
+          }
+        },
+        "required": [
+          "reason",
+          "weight"
+        ],
+        "title": "SubcontractReason",
+        "type": "object"
+      },
       "SubscriptionStatusResponse": {
         "additionalProperties": true,
         "description": "GET /subscription/status \u2014 current plan + period info.",
@@ -16027,6 +18116,199 @@
           "contracts_count"
         ],
         "title": "TastingWinner",
+        "type": "object"
+      },
+      "TerritorioEntry": {
+        "description": "Per-UF competitive territory data.",
+        "properties": {
+          "contratos": {
+            "title": "Contratos",
+            "type": "integer"
+          },
+          "market_share_uf": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Market Share Uf"
+          },
+          "orgaos_principais": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Orgaos Principais",
+            "type": "array"
+          },
+          "tendencia": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Tendencia"
+          },
+          "ticket_medio_uf": {
+            "title": "Ticket Medio Uf",
+            "type": "number"
+          },
+          "uf": {
+            "title": "Uf",
+            "type": "string"
+          },
+          "valor_total": {
+            "title": "Valor Total",
+            "type": "number"
+          }
+        },
+        "required": [
+          "uf",
+          "contratos",
+          "valor_total",
+          "ticket_medio_uf"
+        ],
+        "title": "TerritorioEntry",
+        "type": "object"
+      },
+      "TerritorioStats": {
+        "description": "Aggregate territorial statistics.",
+        "properties": {
+          "anos_atuacao": {
+            "title": "Anos Atuacao",
+            "type": "integer"
+          },
+          "crescimento_anual": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Crescimento Anual"
+          },
+          "orgaos_unicos": {
+            "title": "Orgaos Unicos",
+            "type": "integer"
+          },
+          "tendencia_posicionamento": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Tendencia Posicionamento"
+          },
+          "ufs_atuacao": {
+            "title": "Ufs Atuacao",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "ufs_atuacao",
+          "orgaos_unicos",
+          "anos_atuacao"
+        ],
+        "title": "TerritorioStats",
+        "type": "object"
+      },
+      "TerritoryData": {
+        "description": "Territory map data for a single competitor.",
+        "properties": {
+          "cnpj": {
+            "description": "CNPJ do concorrente",
+            "title": "Cnpj",
+            "type": "string"
+          },
+          "razao_social": {
+            "description": "Nome / razao social",
+            "title": "Razao Social",
+            "type": "string"
+          },
+          "total_contratado": {
+            "description": "Valor total contratado",
+            "title": "Total Contratado",
+            "type": "number"
+          },
+          "total_contratos": {
+            "default": 0,
+            "description": "Total de contratos",
+            "title": "Total Contratos",
+            "type": "integer"
+          },
+          "ufs": {
+            "description": "Dados por UF",
+            "items": {
+              "$ref": "#/components/schemas/TerritoryUfData"
+            },
+            "title": "Ufs",
+            "type": "array"
+          }
+        },
+        "required": [
+          "cnpj",
+          "razao_social",
+          "total_contratado"
+        ],
+        "title": "TerritoryData",
+        "type": "object"
+      },
+      "TerritoryUfData": {
+        "description": "Territory data for a single UF.",
+        "properties": {
+          "market_share": {
+            "default": 0,
+            "description": "Market share do concorrente na UF (0-100)",
+            "title": "Market Share",
+            "type": "number"
+          },
+          "numero_contratos": {
+            "default": 0,
+            "description": "Numero de contratos na UF",
+            "title": "Numero Contratos",
+            "type": "integer"
+          },
+          "orgaos_principais": {
+            "description": "Principais orgaos compradores",
+            "items": {
+              "type": "string"
+            },
+            "title": "Orgaos Principais",
+            "type": "array"
+          },
+          "tendencia": {
+            "default": "estavel",
+            "description": "Tendencia na UF",
+            "title": "Tendencia",
+            "type": "string"
+          },
+          "total_contratado": {
+            "description": "Valor total contratado na UF",
+            "title": "Total Contratado",
+            "type": "number"
+          },
+          "uf": {
+            "description": "Sigla da UF",
+            "title": "Uf",
+            "type": "string"
+          }
+        },
+        "required": [
+          "uf",
+          "total_contratado"
+        ],
+        "title": "TerritoryUfData",
         "type": "object"
       },
       "TimeSeriesDataPoint": {
@@ -17842,6 +20124,112 @@
           "message"
         ],
         "title": "WelcomeEmailResponse",
+        "type": "object"
+      },
+      "WinMetrics": {
+        "description": "Win-rate and performance metrics.",
+        "properties": {
+          "dependencia_publica": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Dependencia Publica"
+          },
+          "indice_concentracao": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Indice Concentracao"
+          },
+          "taxa_vitoria_estimada": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Taxa Vitoria Estimada"
+          },
+          "tendencia": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Tendencia"
+          },
+          "ticket_p25": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ticket P25"
+          },
+          "ticket_p50": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ticket P50"
+          },
+          "ticket_p75": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ticket P75"
+          },
+          "ticket_p90": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ticket P90"
+          },
+          "velocidade_crescimento": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Velocidade Crescimento"
+          }
+        },
+        "title": "WinMetrics",
         "type": "object"
       },
       "_LivenessResponse": {
@@ -24871,6 +27259,273 @@
         ]
       }
     },
+    "/v1/consultoria/clients": {
+      "get": {
+        "operationId": "list_clients_v1_consultoria_clients_get",
+        "parameters": [
+          {
+            "description": "Filter by status: active, revoked",
+            "in": "query",
+            "name": "status_filter",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Filter by status: active, revoked",
+              "title": "Status Filter"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConsultantClientListResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "List consultant's clients (CONSULT-001)",
+        "tags": [
+          "consultoria"
+        ]
+      }
+    },
+    "/v1/consultoria/clients/{client_id}": {
+      "delete": {
+        "operationId": "revoke_client_v1_consultoria_clients__client_id__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "client_id",
+            "required": true,
+            "schema": {
+              "title": "Client Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Revoke client access (CONSULT-001)",
+        "tags": [
+          "consultoria"
+        ]
+      }
+    },
+    "/v1/consultoria/invite-client": {
+      "post": {
+        "operationId": "invite_client_v1_consultoria_invite_client_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/InviteClientRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConsultantInviteResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Generate invite link for a client (CONSULT-001)",
+        "tags": [
+          "consultoria"
+        ]
+      }
+    },
+    "/v1/consultoria/share/{client_id}": {
+      "post": {
+        "operationId": "share_resource_v1_consultoria_share__client_id__post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "client_id",
+            "required": true,
+            "schema": {
+              "title": "Client Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ConsultantShareCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConsultantShareResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Share a resource with a client (CONSULT-001)",
+        "tags": [
+          "consultoria"
+        ]
+      }
+    },
+    "/v1/consultoria/shared/{client_id}": {
+      "get": {
+        "operationId": "get_shared_resources_v1_consultoria_shared__client_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "client_id",
+            "required": true,
+            "schema": {
+              "title": "Client Id",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Filter by resource type",
+            "in": "query",
+            "name": "resource_type",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Filter by resource type",
+              "title": "Resource Type"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "List shared resources for a client (CONSULT-001)",
+        "tags": [
+          "consultoria"
+        ]
+      }
+    },
     "/v1/conta/api-usage": {
       "get": {
         "description": "API-SELF-006: Return API usage data for the authenticated user's dashboard.\n\nIncludes API keys, current month usage, daily breakdown, tier, and limits.",
@@ -26055,6 +28710,418 @@
         ]
       }
     },
+    "/v1/intel-concorrente/benchmarks": {
+      "get": {
+        "operationId": "get_competitor_benchmarks_v1_intel_concorrente_benchmarks_get",
+        "parameters": [
+          {
+            "description": "CNPJ do concorrente",
+            "in": "query",
+            "name": "cnpj",
+            "required": true,
+            "schema": {
+              "description": "CNPJ do concorrente",
+              "title": "Cnpj",
+              "type": "string"
+            }
+          },
+          {
+            "description": "ID do setor para benchmark",
+            "in": "query",
+            "name": "setor",
+            "required": true,
+            "schema": {
+              "description": "ID do setor para benchmark",
+              "title": "Setor",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SectorBenchmarkResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Sector Benchmarks \u2014 competitive performance comparison",
+        "tags": [
+          "competitive_intel"
+        ]
+      }
+    },
+    "/v1/intel-concorrente/dossie/{cnpj}": {
+      "post": {
+        "operationId": "generate_competitive_dossie_v1_intel_concorrente_dossie__cnpj__post",
+        "parameters": [
+          {
+            "description": "CNPJ do concorrente",
+            "in": "path",
+            "name": "cnpj",
+            "required": true,
+            "schema": {
+              "description": "CNPJ do concorrente",
+              "title": "Cnpj",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "anyOf": [
+                  {
+                    "$ref": "#/components/schemas/DossieRequest"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "title": "Body"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DossieResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Generate Competitive Dossie PDF",
+        "tags": [
+          "competitive_intel"
+        ]
+      }
+    },
+    "/v1/intel-concorrente/dossie/{cnpj}/{job_id}/download": {
+      "get": {
+        "operationId": "download_dossie_v1_intel_concorrente_dossie__cnpj___job_id__download_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "cnpj",
+            "required": true,
+            "schema": {
+              "title": "Cnpj",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "job_id",
+            "required": true,
+            "schema": {
+              "title": "Job Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Download the generated Dossie PDF",
+        "tags": [
+          "competitive_intel"
+        ]
+      }
+    },
+    "/v1/intel-concorrente/dossie/{cnpj}/{job_id}/status": {
+      "get": {
+        "operationId": "get_dossie_status_v1_intel_concorrente_dossie__cnpj___job_id__status_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "cnpj",
+            "required": true,
+            "schema": {
+              "title": "Cnpj",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "job_id",
+            "required": true,
+            "schema": {
+              "title": "Job Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DossieStatusResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Check Dossie generation status",
+        "tags": [
+          "competitive_intel"
+        ]
+      }
+    },
+    "/v1/intel-concorrente/fornecedor/{cnpj}": {
+      "get": {
+        "description": "Return competitive intelligence data for *cnpj*.",
+        "operationId": "fornecedor_competitive_intel_v1_intel_concorrente_fornecedor__cnpj__get",
+        "parameters": [
+          {
+            "description": "Supplier CNPJ (14 digits)",
+            "in": "path",
+            "name": "cnpj",
+            "required": true,
+            "schema": {
+              "description": "Supplier CNPJ (14 digits)",
+              "title": "Cnpj",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "anos",
+            "required": false,
+            "schema": {
+              "default": 3,
+              "title": "Anos",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FornecedorIntelResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Competitive Intelligence data for a supplier CNPJ (COMPINT-011)",
+        "tags": [
+          "competitive_intel"
+        ]
+      }
+    },
+    "/v1/intel-concorrente/landscape": {
+      "get": {
+        "operationId": "get_competitive_landscape_v1_intel_concorrente_landscape_get",
+        "parameters": [
+          {
+            "description": "ID do setor (ex: ti, saude, construcao)",
+            "in": "query",
+            "name": "setor",
+            "required": true,
+            "schema": {
+              "description": "ID do setor (ex: ti, saude, construcao)",
+              "title": "Setor",
+              "type": "string"
+            }
+          },
+          {
+            "description": "UF (2 letras, opcional)",
+            "in": "query",
+            "name": "uf",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "UF (2 letras, opcional)",
+              "title": "Uf"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CompetitiveLandscapeResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Competitive Landscape \u2014 top players in a sector",
+        "tags": [
+          "competitive_intel"
+        ]
+      }
+    },
+    "/v1/intel-concorrente/territory/{cnpj}": {
+      "get": {
+        "operationId": "get_competitor_territory_v1_intel_concorrente_territory__cnpj__get",
+        "parameters": [
+          {
+            "description": "CNPJ do concorrente (com ou sem mascara)",
+            "in": "path",
+            "name": "cnpj",
+            "required": true,
+            "schema": {
+              "description": "CNPJ do concorrente (com ou sem mascara)",
+              "title": "Cnpj",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TerritoryData"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Territory Map \u2014 competitor geographic presence",
+        "tags": [
+          "competitive_intel"
+        ]
+      }
+    },
     "/v1/intel-reports/": {
       "get": {
         "description": "List all Intel Report purchases for the authenticated user.",
@@ -26227,6 +29294,90 @@
         ]
       }
     },
+    "/v1/intel/score": {
+      "post": {
+        "description": "Score a single (bid, CNPJ) pair for win probability.\n\nRequires SMARTLIC_SCORE_ENABLED=true. Returns default 0.5 probability\nwhen the feature is disabled or model is unavailable.",
+        "operationId": "score_bid_v1_intel_score_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ScoreRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ScoreResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Score Bid",
+        "tags": [
+          "score"
+        ]
+      }
+    },
+    "/v1/intel/score/batch": {
+      "post": {
+        "description": "Score multiple bids for the same CNPJ.\n\nRequires SMARTLIC_SCORE_ENABLED=true.",
+        "operationId": "score_batch_v1_intel_score_batch_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ScoreBatchRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ScoreBatchResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Score Batch",
+        "tags": [
+          "score"
+        ]
+      }
+    },
     "/v1/intel/tasting": {
       "get": {
         "operationId": "intel_tasting_v1_intel_tasting_get",
@@ -26307,6 +29458,108 @@
         "summary": "Intelligence Tasting \u2014 aggregated supplier data for trial upsell (DEGUST-001)",
         "tags": [
           "intel_tasting"
+        ]
+      }
+    },
+    "/v1/intel/vitrine/search": {
+      "get": {
+        "description": "Search for companies in pncp_supplier_contracts by name or partial CNPJ.",
+        "operationId": "intel_vitrine_search_v1_intel_vitrine_search_get",
+        "parameters": [
+          {
+            "description": "Search query",
+            "in": "query",
+            "name": "q",
+            "required": true,
+            "schema": {
+              "description": "Search query",
+              "maxLength": 200,
+              "minLength": 2,
+              "title": "Q",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Max results",
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 10,
+              "description": "Max results",
+              "maximum": 50,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Search companies by name or CNPJ (VITRINE-001)",
+        "tags": [
+          "intel-vitrine"
+        ]
+      }
+    },
+    "/v1/intel/vitrine/{cnpj}": {
+      "get": {
+        "description": "Retorna dados agregados de contratos p\u00fablicos para um CNPJ. Endpoint p\u00fablico \u2014 sem autentica\u00e7\u00e3o necess\u00e1ria. Cache: 6h. Rate limit: 30 req/min por IP.",
+        "operationId": "intel_vitrine_v1_intel_vitrine__cnpj__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "cnpj",
+            "required": true,
+            "schema": {
+              "title": "Cnpj",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IntelVitrineResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Public company intelligence vitrine",
+        "tags": [
+          "intel-vitrine"
         ]
       }
     },
@@ -28031,6 +31284,389 @@
         ]
       }
     },
+    "/v1/predint/alerts": {
+      "get": {
+        "operationId": "list_predictive_alerts_v1_predint_alerts_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "enabled_only",
+            "required": false,
+            "schema": {
+              "default": false,
+              "title": "Enabled Only",
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PredictiveAlertListResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "List Predictive Alerts",
+        "tags": [
+          "predint"
+        ]
+      },
+      "post": {
+        "operationId": "create_predictive_alert_v1_predint_alerts_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PredictiveAlertCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PredictiveAlertResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Create Predictive Alert",
+        "tags": [
+          "predint"
+        ]
+      }
+    },
+    "/v1/predint/alerts/{alert_id}": {
+      "delete": {
+        "operationId": "delete_predictive_alert_v1_predint_alerts__alert_id__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "alert_id",
+            "required": true,
+            "schema": {
+              "title": "Alert Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Delete Predictive Alert",
+        "tags": [
+          "predint"
+        ]
+      },
+      "patch": {
+        "operationId": "update_predictive_alert_v1_predint_alerts__alert_id__patch",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "alert_id",
+            "required": true,
+            "schema": {
+              "title": "Alert Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PredictiveAlertUpdate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PredictiveAlertResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Update Predictive Alert",
+        "tags": [
+          "predint"
+        ]
+      }
+    },
+    "/v1/predint/forecast": {
+      "get": {
+        "operationId": "get_demand_forecast_v1_predint_forecast_get",
+        "parameters": [
+          {
+            "description": "Sector ID (e.g., 'alimentos'). If omitted, returns all sectors.",
+            "in": "query",
+            "name": "sector",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Sector ID (e.g., 'alimentos'). If omitted, returns all sectors.",
+              "title": "Sector"
+            }
+          },
+          {
+            "description": "UF filter (2-letter). If omitted, returns national aggregation.",
+            "in": "query",
+            "name": "uf",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "pattern": "^[A-Z]{2}$",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "UF filter (2-letter). If omitted, returns national aggregation.",
+              "title": "Uf"
+            }
+          },
+          {
+            "description": "Lookback period in months (1-120, default 12)",
+            "in": "query",
+            "name": "months",
+            "required": false,
+            "schema": {
+              "default": 12,
+              "description": "Lookback period in months (1-120, default 12)",
+              "maximum": 120,
+              "minimum": 1,
+              "title": "Months",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DemandForecastResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Demand Forecast \u2014 monthly contract volume over time",
+        "tags": [
+          "predint"
+        ]
+      }
+    },
+    "/v1/predint/renewals": {
+      "get": {
+        "operationId": "get_renewal_alerts_v1_predint_renewals_get",
+        "parameters": [
+          {
+            "description": "Sector ID. If omitted, returns alerts for all sectors.",
+            "in": "query",
+            "name": "sector",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Sector ID. If omitted, returns alerts for all sectors.",
+              "title": "Sector"
+            }
+          },
+          {
+            "description": "Lookahead window in days (1-365, default 90)",
+            "in": "query",
+            "name": "days",
+            "required": false,
+            "schema": {
+              "default": 90,
+              "description": "Lookahead window in days (1-365, default 90)",
+              "maximum": 365,
+              "minimum": 1,
+              "title": "Days",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RenewalAlertResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Renewal Alerts \u2014 contracts approaching estimated expiry",
+        "tags": [
+          "predint"
+        ]
+      }
+    },
+    "/v1/predint/seasonality/{sector_id}": {
+      "get": {
+        "operationId": "get_seasonal_pattern_v1_predint_seasonality__sector_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "sector_id",
+            "required": true,
+            "schema": {
+              "title": "Sector Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SeasonalPatternResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Seasonal Pattern \u2014 average monthly contract distribution",
+        "tags": [
+          "predint"
+        ]
+      }
+    },
     "/v1/products": {
       "get": {
         "description": "List active digital products available for one-time purchase.\n\nPublic (no auth required). Results cached in Redis for 1 hour.",
@@ -28360,6 +31996,68 @@
         ]
       }
     },
+    "/v1/pseo/intel-feed": {
+      "get": {
+        "operationId": "get_intel_feed_v1_pseo_intel_feed_get",
+        "parameters": [
+          {
+            "description": "Sector URL slug, e.g. 'engenharia'",
+            "in": "query",
+            "name": "sector",
+            "required": true,
+            "schema": {
+              "description": "Sector URL slug, e.g. 'engenharia'",
+              "title": "Sector",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Optional UF filter (e.g. 'SP')",
+            "in": "query",
+            "name": "uf",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Optional UF filter (e.g. 'SP')",
+              "title": "Uf"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IntelFeedResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Compact market intelligence feed for a sector (EmbedIntelFeed widget)",
+        "tags": [
+          "pseo-intel-feed"
+        ]
+      }
+    },
     "/v1/pseo/recent-editais": {
       "get": {
         "description": "Most recent open editais for sector+UF.\n\nReturns orgao, objeto, valor_estimado, data_limite, link_interno.\nlink_interno = /licitacoes/{setor}?query={orgao}\nCache: 6h InMemory.",
@@ -28670,6 +32368,165 @@
         "summary": "Request Relatorio",
         "tags": [
           "relatorio"
+        ]
+      }
+    },
+    "/v1/report-mensal/cancel/{id}": {
+      "post": {
+        "operationId": "cancel_subscription_v1_report_mensal_cancel__id__post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "title": "Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Cancel monthly report subscription (REPORT-MONTHLY-001)",
+        "tags": [
+          "monthly_report"
+        ]
+      }
+    },
+    "/v1/report-mensal/preview/{setor}": {
+      "get": {
+        "operationId": "preview_monthly_report_v1_report_mensal_preview__setor__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "setor",
+            "required": true,
+            "schema": {
+              "title": "Setor",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MonthlyReportPreviewResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Preview monthly report data for a sector (REPORT-MONTHLY-001)",
+        "tags": [
+          "monthly_report"
+        ]
+      }
+    },
+    "/v1/report-mensal/subscribe": {
+      "post": {
+        "operationId": "subscribe_monthly_report_v1_report_mensal_subscribe_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MonthlyReportSubscribeRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MonthlyReportSubscriptionResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Subscribe to monthly report (REPORT-MONTHLY-001)",
+        "tags": [
+          "monthly_report"
+        ]
+      }
+    },
+    "/v1/report-mensal/subscriptions": {
+      "get": {
+        "operationId": "list_subscriptions_v1_report_mensal_subscriptions_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MonthlyReportSubscriptionsListResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "List monthly report subscriptions (REPORT-MONTHLY-001)",
+        "tags": [
+          "monthly_report"
         ]
       }
     },
@@ -29750,6 +33607,192 @@
         ]
       }
     },
+    "/v1/subcontract/health": {
+      "get": {
+        "description": "Check if the Subcontracting Intelligence vertical is accessible.\n\nReturns the global feature flag state and whether the authenticated user\nhas the allow_subcontract_intel plan capability.",
+        "operationId": "subcontract_health_v1_subcontract_health_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Subcontract Health",
+        "tags": [
+          "subcontract"
+        ]
+      }
+    },
+    "/v1/subcontract/opportunities": {
+      "get": {
+        "description": "Return subcontract potential score and historical suppliers for a bid.",
+        "operationId": "get_subcontract_opportunities_v1_subcontract_opportunities_get",
+        "parameters": [
+          {
+            "description": "Bid ID (pncp_id from pncp_raw_bids).",
+            "in": "query",
+            "name": "bid",
+            "required": true,
+            "schema": {
+              "description": "Bid ID (pncp_id from pncp_raw_bids).",
+              "title": "Bid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Sector ID for context (e.g., 'engenharia'). Optional.",
+            "in": "query",
+            "name": "sector",
+            "required": false,
+            "schema": {
+              "description": "Sector ID for context (e.g., 'engenharia'). Optional.",
+              "title": "Sector",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SubcontractBidOpportunityResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Subcontract Opportunities for Bid (SUBINTEL-022)",
+        "tags": [
+          "subcontract"
+        ]
+      }
+    },
+    "/v1/subcontract/partnership-score/{cnpj}": {
+      "get": {
+        "description": "Return partnership opportunity score for the given CNPJ supplier.\n\nComputes the score from the subcontract_capacity_signals RPC and returns\nthree signal dimensions plus an optional LLM-generated narrative for\npremium users.",
+        "operationId": "get_partnership_score_v1_subcontract_partnership_score__cnpj__get",
+        "parameters": [
+          {
+            "description": "CNPJ do fornecedor (14 digitos)",
+            "in": "path",
+            "name": "cnpj",
+            "required": true,
+            "schema": {
+              "description": "CNPJ do fornecedor (14 digitos)",
+              "title": "Cnpj",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PartnershipScoreResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Partnership Opportunity Score \u2014 avalia fornecedor como potencial parceiro (SUBINTEL-011)",
+        "tags": [
+          "subcontract_intel"
+        ]
+      }
+    },
+    "/v1/subcontract/regional-dependency": {
+      "get": {
+        "description": "Return the regional dependency index for a sector.",
+        "operationId": "get_regional_dependency_v1_subcontract_regional_dependency_get",
+        "parameters": [
+          {
+            "description": "Sector ID (e.g., 'engenharia'). Must exist in sectors_data.yaml.",
+            "in": "query",
+            "name": "setor",
+            "required": true,
+            "schema": {
+              "description": "Sector ID (e.g., 'engenharia'). Must exist in sectors_data.yaml.",
+              "title": "Setor",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RegionalDependencyResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Regional Dependency Index (SUBINTEL-012)",
+        "tags": [
+          "subcontract"
+        ]
+      }
+    },
     "/v1/subscription/status": {
       "get": {
         "description": "Check subscription activation status (GTM-FIX-016).\n\nUsed by obrigado page to poll for webhook completion.\nReturns current subscription state from DB, with Stripe API fallback.",
@@ -30130,6 +34173,96 @@
         "summary": "Get Recommended Plan",
         "tags": [
           "user"
+        ]
+      }
+    },
+    "/v1/widget/competitive-intel": {
+      "get": {
+        "description": "Retorna dados agregados de contratos p\u00fablicos por setor para widget embed\u00e1vel.\n\nTemas:\n- market-share: Market share dos fornecedores no setor\n- top-winners: Top vencedores com indicadores de crescimento\n- monthly-trend: Tend\u00eancia mensal de contratos\n- orgao-ranking: Ranking de \u00f3rg\u00e3os compradores",
+        "operationId": "widget_competitive_intel_v1_widget_competitive_intel_get",
+        "parameters": [
+          {
+            "description": "ID do setor (ex: ti, saude, construcao)",
+            "in": "query",
+            "name": "setor",
+            "required": true,
+            "schema": {
+              "description": "ID do setor (ex: ti, saude, construcao)",
+              "title": "Setor",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Tema: market-share | top-winners | monthly-trend | orgao-ranking",
+            "in": "query",
+            "name": "tema",
+            "required": true,
+            "schema": {
+              "description": "Tema: market-share | top-winners | monthly-trend | orgao-ranking",
+              "title": "Tema",
+              "type": "string"
+            }
+          },
+          {
+            "description": "UF (2 letras, opcional)",
+            "in": "query",
+            "name": "uf",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "UF (2 letras, opcional)",
+              "title": "Uf"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Dados de Intelig\u00eancia Competitiva para Widget Embed\u00e1vel",
+        "tags": [
+          "widget_compint"
+        ]
+      },
+      "options": {
+        "description": "Handle CORS preflight requests.",
+        "operationId": "widget_competitive_intel_options_v1_widget_competitive_intel_options",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Widget Competitive Intel Options",
+        "tags": [
+          "widget_compint"
         ]
       }
     },
