@@ -104,6 +104,7 @@ from routes.widget_compint import router as widget_compint_router
 from routes.competitive_intel import router as competitive_intel_router
 from routes.consultoria import router as consultoria_router
 from routes.subcontract import router as subcontract_router, health_router as subcontract_health_router
+from routes.score import router as score_router
 _v1_routers = [
     admin_router, subscriptions_router, upgrade_to_lifetime_router,
     features_router, messages_router,
@@ -167,6 +168,7 @@ _v1_routers = [
     consultoria_router,
     subcontract_router,
     subcontract_health_router,
+    score_router,
 ]
 def register_routes(app: FastAPI) -> None:
     """Register all application routers onto *app*."""
