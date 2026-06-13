@@ -14,7 +14,7 @@ import os
 
 def _read_migration() -> str:
     """Read the migration SQL file."""
-    path = "supabase/migrations/20260612100000_subcontract_capacity_signals.sql"
+    path = "../supabase/migrations/20260612100000_subcontract_capacity_signals.sql"
     assert os.path.exists(path), f"Migration file not found: {path}"
     with open(path) as f:
         return f.read()
@@ -22,7 +22,7 @@ def _read_migration() -> str:
 
 def _read_down_migration() -> str:
     """Read the down migration SQL file."""
-    path = "supabase/migrations/20260612100000_subcontract_capacity_signals.down.sql"
+    path = "../supabase/migrations/20260612100000_subcontract_capacity_signals.down.sql"
     assert os.path.exists(path), f"Down migration file not found: {path}"
     with open(path) as f:
         return f.read()
@@ -33,12 +33,12 @@ class TestMigrationStructure:
 
     def test_migration_up_exists(self):
         """Migration up file exists."""
-        path = "supabase/migrations/20260612100000_subcontract_capacity_signals.sql"
+        path = "../supabase/migrations/20260612100000_subcontract_capacity_signals.sql"
         assert os.path.exists(path), f"Migration file not found: {path}"
 
     def test_migration_down_exists(self):
         """Migration down file exists."""
-        path = "supabase/migrations/20260612100000_subcontract_capacity_signals.down.sql"
+        path = "../supabase/migrations/20260612100000_subcontract_capacity_signals.down.sql"
         assert os.path.exists(path), f"Down migration not found: {path}"
 
     def test_migration_creates_function(self):
