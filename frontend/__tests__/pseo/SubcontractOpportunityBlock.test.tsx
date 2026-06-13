@@ -54,7 +54,9 @@ describe("SubcontractOpportunityBlock", () => {
   it("renders loading skeleton initially", () => {
     global.fetch = jest.fn().mockReturnValue(new Promise(() => {}));
     render(<SubcontractOpportunityBlock bidId="test-bid-123" sector="engenharia" />);
-    expect(screen.getByText("Potencial de Subcontratacao")).toBeInTheDocument();
+    // During loading, component renders skeleton (animate-pulse divs) without title text
+    expect(document.querySelector("[data-subcontract-opportunity-block]")).toBeInTheDocument();
+    expect(document.querySelector(".animate-pulse")).toBeInTheDocument();
   });
 
   it("shows score and reasons after successful API fetch", async () => {
