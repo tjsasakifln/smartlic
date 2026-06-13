@@ -15,21 +15,57 @@ from datetime import datetime, timezone
 from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
+from pydantic import BaseModel, Field
 
-from quota.plan_auth import get_subcontract_intel_dependency
+from auth import require_auth
+from config.features import get_feature_flag
+from quota.plan_auth import (
+    check_subcontract_intel_access,
+    get_subcontract_intel_dependency,
+)
 from schemas.subcontract_intel import (
+    HistoricalSupplier,
     SubcontractBidOpportunityResponse,
     SubcontractReason,
-    HistoricalSupplier,
 )
 from sectors import SECTORS
 
 logger = logging.getLogger(__name__)
 
+# Router for health endpoint — no intel gate, just auth
+health_router = APIRouter(tags=["subcontract"])
+
+# Main router for gated subcontract endpoints (requires intel capability)
 router = APIRouter(
     tags=["subcontract"],
     dependencies=[Depends(get_subcontract_intel_dependency())],
 )
+
+
+class _HealthResponse(BaseModel):
+    """Response model for the subcontract health endpoint."""
+
+    enabled: bool = Field(..., description="Global feature flag state")
+    has_access: bool = Field(..., description="Current user has plan capability")
+    feature_flag: str = Field(
+        "SUBCONTRACT_INTEL_ENABLED",
+        description="Feature flag name",
+    )
+
+
+@health_router.get("/subcontract/health")
+async def subcontract_health(user: dict = Depends(require_auth)):
+    """Check if the Subcontracting Intelligence vertical is accessible.
+
+    Returns the global feature flag state and whether the authenticated user
+    has the allow_subcontract_intel plan capability.
+    """
+    flag_enabled = get_feature_flag("SUBCONTRACT_INTEL_ENABLED")
+    has_access = await check_subcontract_intel_access(user)
+    return _HealthResponse(
+        enabled=flag_enabled,
+        has_access=has_access,
+    )
 
 # ---------------------------------------------------------------------------
 # Constants

@@ -1,6 +1,7 @@
 """Pydantic schemas for the Subcontracting Intelligence vertical.
 
 EPIC-SUBINTEL (#1224):
+  - SUBINTEL-011 (#1674): Partnership Score
   - SUBINTEL-022 (#1678): Subcontract pSEO block
 
 Every endpoint in the subnet is gated by requires_subcontract_intel()
@@ -12,7 +13,6 @@ from __future__ import annotations
 from typing import Optional
 
 from pydantic import BaseModel, Field
-
 
 # ============================================================================
 # SUBINTEL-022 (#1678): Subcontract pSEO block
@@ -77,4 +77,58 @@ class SubcontractBidOpportunityResponse(BaseModel):
     )
     generated_at: str = Field(
         ..., description="Timestamp ISO da geração dos dados"
+    )
+
+
+# ============================================================================
+# SUBINTEL-011 (#1674): Partnership Score schemas
+# ============================================================================
+
+
+class SignalDetail(BaseModel):
+    """Individual signal detail within the capacity assessment."""
+
+    score: float = Field(..., ge=0.0, le=1.0, description="Score do sinal (0-1)")
+    label: str = Field(..., description="Rótulo do sinal (Alto/Medio/Baixo)")
+    description: str = Field(..., description="Descrição explicativa do sinal")
+    details: dict = Field(
+        default_factory=dict,
+        description="Detalhes adicionais específicos do sinal",
+    )
+
+
+class CapacitySignals(BaseModel):
+    """Composite capacity signals derived from subcontract_capacity_signals RPC."""
+
+    repeat_winner: SignalDetail = Field(
+        ..., description="Sinal de vencedor recorrente"
+    )
+    large_contract: SignalDetail = Field(
+        ..., description="Sinal de contrato de grande porte"
+    )
+    subcontracting_pattern: SignalDetail = Field(
+        ..., description="Sinal de padrão de subcontratação"
+    )
+
+
+class PartnershipScoreResponse(BaseModel):
+    """Score de Oportunidade de Parceria for a given CNPJ supplier.
+
+    Overall score (0.0-1.0) indicates how suitable this supplier is as a
+    subcontractor or strategic partner based on public contract signals.
+    """
+
+    cnpj: str = Field(..., description="CNPJ do fornecedor (14 dígitos)")
+    razao_social: str = Field(..., description="Razão social do fornecedor")
+    overall_score: float = Field(
+        ..., ge=0.0, le=1.0, description="Score geral (0-1)"
+    )
+    signals: CapacitySignals = Field(
+        ..., description="Sinais de capacidade do fornecedor"
+    )
+    narrative: Optional[str] = Field(
+        None, description="Narrativa LLM (premium apenas)"
+    )
+    disclaimer: str = Field(
+        ..., description="Disclaimer obrigatório"
     )

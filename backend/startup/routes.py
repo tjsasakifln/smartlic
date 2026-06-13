@@ -7,103 +7,109 @@ from fastapi import FastAPI
 
 # Routers
 from admin import router as admin_router
-from routes.subscriptions import router as subscriptions_router
-from routes.upgrade_to_lifetime import router as upgrade_to_lifetime_router
-from routes.features import router as features_router
-from routes.messages import router as messages_router
-from routes.analytics import router as analytics_router
-from routes.auth_oauth import router as oauth_router
-from routes.export_sheets import router as export_sheets_router
-from webhooks.stripe import router as stripe_webhook_router
-from routes.search import router as search_router
-from routes.user import router as user_router
-from routes.billing import router as billing_router
-from routes.sessions import router as sessions_router
-from routes.plans import router as plans_router
-from routes.emails import router as emails_router
-from routes.pipeline import router as pipeline_router
-from routes.onboarding import router as onboarding_router
-from routes.auth_email import router as auth_email_router
-from routes.auth_signup import router as auth_signup_router
-from routes.health import router as cache_health_router
-from routes.health_core import router as health_core_router
-from routes.feedback import router as feedback_router
-from routes.admin_trace import router as admin_trace_router
-from routes.admin_cron import router as admin_cron_router
-from routes.admin_cnae_mapping import router as admin_cnae_mapping_router
-from routes.admin_llm_cost import router as admin_llm_cost_router
-from routes.admin_calibration import router as admin_calibration_router
-from routes.survey import router as survey_router
 from routes.admin_billing_sync import router as admin_billing_sync_router
+from routes.admin_calibration import router as admin_calibration_router
+from routes.admin_cnae_mapping import router as admin_cnae_mapping_router
+from routes.admin_command import router as admin_command_router
+from routes.admin_cron import router as admin_cron_router
+from routes.admin_digest_metrics import router as admin_digest_metrics_router
 from routes.admin_founding import router as admin_founding_router
+from routes.admin_llm_cost import router as admin_llm_cost_router
 from routes.admin_metrics import router as admin_metrics_router
-from routes.auth_check import router as auth_check_router
-from routes.bid_analysis import router as bid_analysis_router
-from routes.slo import router as slo_router
-from routes.alerts import router as alerts_router
-from routes.trial_emails import router as trial_emails_router
-from routes.mfa import router as mfa_router
-from routes.organizations import router as org_router
-from routes.partners import router as partners_router
-from routes.sectors_public import router as sectors_public_router
-from routes.reports import router as reports_router
-from routes.blog_stats import router as blog_stats_router
-from routes.metrics_api import router as metrics_api_router
-from routes.feature_flags import router as feature_flags_router
-from routes.feature_flags import public_router as feature_flags_public_router
-from routes.calculadora import router as calculadora_router
-from routes.empresa_publica import router as empresa_publica_router
-from routes.share import router as share_router
-from routes.referral import router as referral_router
-from routes.relatorio import router as relatorio_router
-from routes.trial_extension import router as trial_extension_router
-from routes.weekly_digest import router as weekly_digest_router
-from routes.stats_public import router as stats_public_router
-from routes.dados_publicos import router as dados_publicos_router
+from routes.admin_trace import router as admin_trace_router
 from routes.alertas_publicos import router as alertas_publicos_router
-from routes.lead_capture import router as lead_capture_router
-from routes.lead_magnet import router as lead_magnet_router
+from routes.alerts import router as alerts_router
+from routes.analytics import router as analytics_router
+from routes.api_keys import router as api_keys_router
+from routes.api_search import router as api_search_router
+from routes.auth_check import router as auth_check_router
+from routes.auth_email import router as auth_email_router
+from routes.auth_oauth import router as oauth_router
+from routes.auth_signup import router as auth_signup_router
+from routes.bid_analysis import router as bid_analysis_router
+from routes.billing import router as billing_router
+from routes.blog_stats import router as blog_stats_router
+from routes.calculadora import router as calculadora_router
+from routes.checkout import router as checkout_router
 from routes.comparador import router as comparador_router
-from routes.seo_admin import router as seo_admin_router
-from routes.sitemap_cnpjs import router as sitemap_cnpjs_router
-from routes.sitemap_orgaos import router as sitemap_orgaos_router
-from routes.orgao_publico import router as orgao_publico_router
-from routes.contratos_publicos import router as contratos_publicos_router
-from routes.daily_digest import router as daily_digest_router
-from routes.municipios_publicos import router as municipios_publicos_router
+from routes.competitive_intel import router as competitive_intel_router
 from routes.compliance_publicos import router as compliance_publicos_router
-from routes.itens_publicos import router as itens_publicos_router
-from routes.observatorio import router as observatorio_router
-from routes.sitemap_licitacoes import router as sitemap_licitacoes_router
-from routes.sitemap_licitacoes_do_dia import router as sitemap_licitacoes_do_dia_router
-from routes.indice_municipal import router as indice_municipal_router
-from routes.notifications import router as notifications_router
+from routes.consultoria import router as consultoria_router
+from routes.conta import router as conta_router
+from routes.contratos_publicos import router as contratos_publicos_router
+from routes.dados_publicos import router as dados_publicos_router
+from routes.daily_digest import router as daily_digest_router
+from routes.datalake_api import router as datalake_api_router
+from routes.email_tracking import router as email_tracking_router
+from routes.emails import router as emails_router
+from routes.empresa_publica import router as empresa_publica_router
 from routes.export import router as edital_export_router
-from routes.founding import router as founding_router
+from routes.export_sheets import router as export_sheets_router
+from routes.feature_flags import public_router as feature_flags_public_router
+from routes.feature_flags import router as feature_flags_router
+from routes.features import router as features_router
+from routes.feedback import router as feedback_router
 from routes.founders import router as founders_router
 from routes.founders_hall import router as founders_hall_router
-from routes.conta import router as conta_router
+from routes.founding import router as founding_router
+from routes.health import router as cache_health_router
+from routes.health_core import router as health_core_router
+from routes.indice_municipal import router as indice_municipal_router
 from routes.intel_reports import router as intel_reports_router
-from routes.pseo_data import router as pseo_data_router
-from routes.seo_coverage_manifest import router as seo_coverage_manifest_router
-from routes.products import router as products_router
-from routes.datalake_api import router as datalake_api_router
-from routes.api_keys import router as api_keys_router
-from routes.checkout import router as checkout_router
-from routes.seasonal_calendar import router as seasonal_calendar_router
-from routes.network_events import router as network_events_router
-from routes.segment import router as segment_router
-from routes.api_search import router as api_search_router
-from routes.email_tracking import router as email_tracking_router
-from routes.admin_digest_metrics import router as admin_digest_metrics_router
-from routes.admin_command import router as admin_command_router
 from routes.intel_tasting import router as intel_tasting_router
-from routes.predint import router as predint_router
-from routes.monthly_report import router as monthly_report_router
 from routes.intel_vitrine import router as intel_vitrine_router
+from routes.itens_publicos import router as itens_publicos_router
+from routes.lead_capture import router as lead_capture_router
+from routes.lead_magnet import router as lead_magnet_router
+from routes.marketplace import router as marketplace_router
+from routes.messages import router as messages_router
+from routes.metrics_api import router as metrics_api_router
+from routes.mfa import router as mfa_router
+from routes.monthly_report import router as monthly_report_router
+from routes.municipios_publicos import router as municipios_publicos_router
+from routes.network_events import router as network_events_router
+from routes.notifications import router as notifications_router
+from routes.observatorio import router as observatorio_router
+from routes.onboarding import router as onboarding_router
+from routes.organizations import router as org_router
+from routes.orgao_publico import router as orgao_publico_router
+from routes.partners import router as partners_router
+from routes.pipeline import router as pipeline_router
+from routes.plans import router as plans_router
+from routes.predint import router as predint_router
+from routes.products import router as products_router
+from routes.pseo_data import router as pseo_data_router
 from routes.pseo_intel_feed import router as pseo_intel_feed_router
+from routes.referral import router as referral_router
+from routes.relatorio import router as relatorio_router
+from routes.reports import router as reports_router
+from routes.score import router as score_router
+from routes.search import router as search_router
+from routes.seasonal_calendar import router as seasonal_calendar_router
+from routes.sectors_public import router as sectors_public_router
+from routes.segment import router as segment_router
+from routes.seo_admin import router as seo_admin_router
+from routes.seo_coverage_manifest import router as seo_coverage_manifest_router
+from routes.sessions import router as sessions_router
+from routes.share import router as share_router
+from routes.sitemap_cnpjs import router as sitemap_cnpjs_router
+from routes.sitemap_licitacoes import router as sitemap_licitacoes_router
+from routes.sitemap_licitacoes_do_dia import router as sitemap_licitacoes_do_dia_router
+from routes.sitemap_orgaos import router as sitemap_orgaos_router
+from routes.slo import router as slo_router
+from routes.stats_public import router as stats_public_router
+from routes.subcontract import health_router as subcontract_health_router
+from routes.subcontract import router as subcontract_router
+from routes.subcontract_intel import router as subcontract_intel_router
+from routes.subscriptions import router as subscriptions_router
+from routes.survey import router as survey_router
+from routes.trial_emails import router as trial_emails_router
+from routes.trial_extension import router as trial_extension_router
+from routes.upgrade_to_lifetime import router as upgrade_to_lifetime_router
+from routes.user import router as user_router
+from routes.weekly_digest import router as weekly_digest_router
 from routes.widget_compint import router as widget_compint_router
-from routes.consultoria import router as consultoria_router
+from webhooks.stripe import router as stripe_webhook_router
 
 _v1_routers = [
     admin_router, subscriptions_router, upgrade_to_lifetime_router,
@@ -164,7 +170,13 @@ _v1_routers = [
     intel_vitrine_router,
     pseo_intel_feed_router,
     widget_compint_router,
+    competitive_intel_router,
     consultoria_router,
+    subcontract_router,
+    subcontract_health_router,
+    subcontract_intel_router,
+    score_router,
+    marketplace_router,
 ]
 
 

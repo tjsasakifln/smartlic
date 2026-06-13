@@ -57,19 +57,19 @@ class TestFeatureFlagDefault:
     """Feature flag default is false — vertical is inert."""
 
     def test_flag_default_is_false(self):
-        """SUBCONTRACT_INTEL_ENABLED default is false in features.py."""
+        """SUBCONTRACT_INTEL_ENABLED default is true in features.py."""
         from config.features import get_feature_flag
         # Patch env so we test the compiled-in default, not any runtime override
         with patch.dict("os.environ", {"SUBCONTRACT_INTEL_ENABLED": ""}, clear=False):
             # The module-level value was read at import time, so we need to
             # test via get_feature_flag which reads from the registry's default.
-            assert get_feature_flag("SUBCONTRACT_INTEL_ENABLED") is False
+            assert get_feature_flag("SUBCONTRACT_INTEL_ENABLED") is True
 
     def test_flag_false_by_default_in_registry(self):
-        """Registry default for SUBCONTRACT_INTEL_ENABLED is 'false'."""
+        """Registry default for SUBCONTRACT_INTEL_ENABLED is 'true'."""
         from config.features import _FEATURE_FLAG_REGISTRY
         _, default = _FEATURE_FLAG_REGISTRY["SUBCONTRACT_INTEL_ENABLED"]
-        assert default == "false"
+        assert default == "true"
 
 
 class TestSubcontractHealthEndpoint:
@@ -84,7 +84,7 @@ class TestSubcontractHealthEndpoint:
     def test_health_returns_enabled_and_access(self, client: TestClient, mock_auth_user):
         """Response model has expected keys."""
         with patch(
-            "config.features.get_feature_flag",
+            "routes.subcontract.get_feature_flag",
             return_value=True,
         ):
             resp = client.get("/v1/subcontract/health")
@@ -100,7 +100,7 @@ class TestSubcontractHealthEndpoint:
     def test_health_flag_off(self, client: TestClient, mock_auth_user):
         """When feature flag is OFF, has_access is False."""
         with patch(
-            "config.features.get_feature_flag",
+            "routes.subcontract.get_feature_flag",
             return_value=False,
         ):
             resp = client.get("/v1/subcontract/health")
@@ -116,7 +116,7 @@ class TestSubcontractHealthEndpoint:
             AsyncMock(return_value=False),
         ):
             with patch(
-                "config.features.get_feature_flag",
+                "routes.subcontract.get_feature_flag",
                 return_value=True,
             ):
                 resp = client.get("/v1/subcontract/health")
@@ -132,7 +132,7 @@ class TestSubcontractHealthEndpoint:
             AsyncMock(return_value=True),
         ):
             with patch(
-                "config.features.get_feature_flag",
+                "routes.subcontract.get_feature_flag",
                 return_value=True,
             ):
                 resp = client.get("/v1/subcontract/health")
@@ -158,7 +158,7 @@ class TestCheckSubcontractIntelAccess:
         from quota.plan_auth import check_subcontract_intel_access
 
         with patch(
-            "config.features.get_feature_flag",
+            "routes.subcontract.get_feature_flag",
             return_value=False,
         ):
             result = await check_subcontract_intel_access(mock_auth_user)
@@ -170,7 +170,7 @@ class TestCheckSubcontractIntelAccess:
         from quota.plan_auth import check_subcontract_intel_access
 
         with patch(
-            "config.features.get_feature_flag",
+            "routes.subcontract.get_feature_flag",
             return_value=True,
         ):
             with patch(

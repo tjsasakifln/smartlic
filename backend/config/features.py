@@ -288,6 +288,8 @@ _FEATURE_FLAG_REGISTRY: dict[str, tuple[str, str]] = {
     "ORGANIZATIONS_ENABLED": ("ORGANIZATIONS_ENABLED", "false"),
     "MESSAGES_ENABLED": ("MESSAGES_ENABLED", "true"),
     "PARTNERS_ENABLED": ("PARTNERS_ENABLED", "false"),
+    # MKT-001 (#1616): Subcontract Marketplace MVP
+    "SUBCONTRACT_MARKETPLACE_ENABLED": ("SUBCONTRACT_MARKETPLACE_ENABLED", "true"),
     # SUBINTEL-030 (EPIC-SUBINTEL #1224): subcontracting intelligence vertical
     "SUBCONTRACT_INTEL_ENABLED": ("SUBCONTRACT_INTEL_ENABLED", "true"),
     # PREDINT-000 (EPIC-PREDINT #1260): predictive intelligence vertical

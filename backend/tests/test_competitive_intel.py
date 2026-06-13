@@ -133,7 +133,7 @@ class TestCompetitiveIntelRoute:
             patch("authorization.has_master_access", new=AsyncMock(return_value=True)),
             patch("quota.plan_enforcement.check_quota", return_value=MOCK_QUOTA_PASS),
         ):
-            with patch("routes.competitive_intel.sb_execute") as mock_sb:
+            with patch("supabase_client.sb_execute") as mock_sb:
                 mock_sb.side_effect = [
                     _make_rpc_result(SAMPLE_TERRITORY_DATA),
                     _make_rpc_result(SAMPLE_WIN_METRICS_DATA),
@@ -148,7 +148,7 @@ class TestCompetitiveIntelRoute:
             patch("authorization.has_master_access", new=AsyncMock(return_value=True)),
             patch("quota.plan_enforcement.check_quota", return_value=MOCK_QUOTA_PASS),
         ):
-            with patch("routes.competitive_intel.sb_execute") as mock_sb:
+            with patch("supabase_client.sb_execute") as mock_sb:
                 mock_sb.side_effect = [
                     _make_rpc_result(SAMPLE_TERRITORY_DATA),
                     _make_rpc_result(SAMPLE_WIN_METRICS_DATA),
@@ -173,7 +173,7 @@ class TestCompetitiveIntelRoute:
             patch("config.features.get_feature_flag", return_value=True),
             patch("authorization.has_master_access", new=AsyncMock(return_value=True)),
             patch("quota.plan_enforcement.check_quota", return_value=MOCK_QUOTA_PASS),
-            patch("routes.competitive_intel.sb_execute"),
+            patch("supabase_client.sb_execute"),
         ):
             resp = client.get("/v1/intel-concorrente/fornecedor/123")
             assert resp.status_code == 400
@@ -185,7 +185,7 @@ class TestCompetitiveIntelRoute:
             patch("authorization.has_master_access", new=AsyncMock(return_value=True)),
             patch("quota.plan_enforcement.check_quota", return_value=MOCK_QUOTA_PASS),
         ):
-            with patch("routes.competitive_intel.sb_execute") as mock_sb:
+            with patch("supabase_client.sb_execute") as mock_sb:
                 mock_sb.side_effect = Exception("RPC failed")
                 resp = client.get("/v1/intel-concorrente/fornecedor/12345678000199")
                 assert resp.status_code == 502
@@ -197,7 +197,7 @@ class TestCompetitiveIntelRoute:
             patch("authorization.has_master_access", new=AsyncMock(return_value=True)),
             patch("quota.plan_enforcement.check_quota", return_value=MOCK_QUOTA_PASS),
         ):
-            with patch("routes.competitive_intel.sb_execute") as mock_sb:
+            with patch("supabase_client.sb_execute") as mock_sb:
                 mock_sb.side_effect = [
                     _make_rpc_result({"erro": "CNPJ invalido"}),
                 ]
