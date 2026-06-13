@@ -66,7 +66,7 @@ class TestFeatureFlagDefault:
             assert get_feature_flag("SUBCONTRACT_INTEL_ENABLED") is False
 
     def test_flag_false_by_default_in_registry(self):
-        """Registry default for SUBCONTRACT_INTEL_ENABLED is 'false'."""
+        """Registry default for SUBCONTRACT_INTEL_ENABLED is 'true'."""
         from config.features import _FEATURE_FLAG_REGISTRY
         _, default = _FEATURE_FLAG_REGISTRY["SUBCONTRACT_INTEL_ENABLED"]
         assert default == "true"
@@ -84,7 +84,7 @@ class TestSubcontractHealthEndpoint:
     def test_health_returns_enabled_and_access(self, client: TestClient, mock_auth_user):
         """Response model has expected keys."""
         with patch(
-            "config.features.get_feature_flag",
+            "routes.subcontract.get_feature_flag",
             return_value=True,
         ):
             resp = client.get("/v1/subcontract/health")
@@ -100,7 +100,7 @@ class TestSubcontractHealthEndpoint:
     def test_health_flag_off(self, client: TestClient, mock_auth_user):
         """When feature flag is OFF, has_access is False."""
         with patch(
-            "config.features.get_feature_flag",
+            "routes.subcontract.get_feature_flag",
             return_value=False,
         ):
             resp = client.get("/v1/subcontract/health")
@@ -112,11 +112,11 @@ class TestSubcontractHealthEndpoint:
     def test_health_flag_on_no_capability(self, client: TestClient, mock_auth_user):
         """Feature flag ON but user has no capability => has_access=False."""
         with patch(
-            "quota.plan_auth.check_subcontract_intel_access",
+            "routes.subcontract.check_subcontract_intel_access",
             AsyncMock(return_value=False),
         ):
             with patch(
-                "config.features.get_feature_flag",
+                "routes.subcontract.get_feature_flag",
                 return_value=True,
             ):
                 resp = client.get("/v1/subcontract/health")
@@ -132,7 +132,7 @@ class TestSubcontractHealthEndpoint:
             AsyncMock(return_value=True),
         ):
             with patch(
-                "config.features.get_feature_flag",
+                "routes.subcontract.get_feature_flag",
                 return_value=True,
             ):
                 resp = client.get("/v1/subcontract/health")

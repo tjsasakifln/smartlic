@@ -18,7 +18,7 @@ from httpx import AsyncClient, ASGITransport
 from main import app
 
 SAMPLE_RPC_DATA = {
-    "sector": "ti",
+    "sector": "informatica",
     "uf": None,
     "window_months": 12,
     "total_contracts": 500,
@@ -95,9 +95,9 @@ def mock_rpc():
     mock_sb.rpc.return_value = mock_result
 
     with (
-        patch("supabase_client.get_supabase", return_value=mock_sb) as _mock_supabase,
+        patch("routes.widget_compint.get_supabase", return_value=mock_sb) as _mock_supabase,
         patch(
-            "supabase_client.sb_execute",
+            "routes.widget_compint.sb_execute",
             return_value=mock_result,
         ) as _mock_execute,
         patch("routes.widget_compint._check_rate_limit") as _mock_rl,
@@ -118,8 +118,8 @@ def mock_rpc_uf():
     mock_sb.rpc.return_value = mock_result
 
     with (
-        patch("supabase_client.get_supabase", return_value=mock_sb),
-        patch("supabase_client.sb_execute", return_value=mock_result),
+        patch("routes.widget_compint.get_supabase", return_value=mock_sb),
+        patch("routes.widget_compint.sb_execute", return_value=mock_result),
         patch("routes.widget_compint._check_rate_limit"),
         patch("routes.widget_compint._get_cached", return_value=None),
         patch("routes.widget_compint._set_cached"),
@@ -131,7 +131,7 @@ def mock_rpc_uf():
 def mock_rpc_empty():
     """Mock RPC returning empty data."""
     empty = {
-        "sector": "seguro",
+        "sector": "vigilancia",
         "uf": None,
         "window_months": 12,
         "total_contracts": 0,
@@ -146,8 +146,8 @@ def mock_rpc_empty():
     mock_sb.rpc.return_value = mock_result
 
     with (
-        patch("supabase_client.get_supabase", return_value=mock_sb),
-        patch("supabase_client.sb_execute", return_value=mock_result),
+        patch("routes.widget_compint.get_supabase", return_value=mock_sb),
+        patch("routes.widget_compint.sb_execute", return_value=mock_result),
         patch("routes.widget_compint._check_rate_limit"),
         patch("routes.widget_compint._get_cached", return_value=None),
         patch("routes.widget_compint._set_cached"),
@@ -165,7 +165,7 @@ async def test_market_share_theme(clear_cache, mock_rpc):
     """Test market-share theme returns valid data."""
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as client:
-        resp = await client.get("/v1/widget/competitive-intel?setor=ti&tema=market-share")
+        resp = await client.get("/v1/widget/competitive-intel?setor=informatica&tema=market-share")
 
     assert resp.status_code == 200
     data = resp.json()
@@ -187,7 +187,7 @@ async def test_top_winners_theme(clear_cache, mock_rpc):
     """Test top-winners theme returns valid data."""
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as client:
-        resp = await client.get("/v1/widget/competitive-intel?setor=ti&tema=top-winners")
+        resp = await client.get("/v1/widget/competitive-intel?setor=informatica&tema=top-winners")
 
     assert resp.status_code == 200
     data = resp.json()
@@ -205,7 +205,7 @@ async def test_monthly_trend_theme(clear_cache, mock_rpc):
     """Test monthly-trend theme returns valid data."""
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as client:
-        resp = await client.get("/v1/widget/competitive-intel?setor=ti&tema=monthly-trend")
+        resp = await client.get("/v1/widget/competitive-intel?setor=informatica&tema=monthly-trend")
 
     assert resp.status_code == 200
     data = resp.json()
@@ -223,7 +223,7 @@ async def test_orgao_ranking_theme(clear_cache, mock_rpc):
     """Test orgao-ranking theme returns valid data."""
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as client:
-        resp = await client.get("/v1/widget/competitive-intel?setor=ti&tema=orgao-ranking")
+        resp = await client.get("/v1/widget/competitive-intel?setor=informatica&tema=orgao-ranking")
 
     assert resp.status_code == 200
     data = resp.json()
@@ -241,7 +241,7 @@ async def test_with_uf_param(clear_cache, mock_rpc_uf):
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as client:
         resp = await client.get(
-            "/v1/widget/competitive-intel?setor=ti&tema=market-share&uf=SP"
+            "/v1/widget/competitive-intel?setor=informatica&tema=market-share&uf=SP"
         )
 
     assert resp.status_code == 200
@@ -256,7 +256,7 @@ async def test_missing_setor_returns_400(clear_cache):
     async with AsyncClient(transport=transport, base_url="http://test") as client:
         resp = await client.get("/v1/widget/competitive-intel?tema=market-share")
 
-    assert resp.status_code == 400  # FastAPI validates required params
+    assert resp.status_code == 422  # FastAPI validates required params (Pydantic)
 
 
 @pytest.mark.asyncio
@@ -264,9 +264,9 @@ async def test_missing_tema_returns_400(clear_cache):
     """Test missing tema parameter returns 400."""
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as client:
-        resp = await client.get("/v1/widget/competitive-intel?setor=ti")
+        resp = await client.get("/v1/widget/competitive-intel?setor=informatica")
 
-    assert resp.status_code == 400
+    assert resp.status_code == 422
 
 
 @pytest.mark.asyncio
@@ -274,7 +274,7 @@ async def test_invalid_tema_returns_400(clear_cache):
     """Test invalid tema returns 400."""
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as client:
-        resp = await client.get("/v1/widget/competitive-intel?setor=ti&tema=invalid")
+        resp = await client.get("/v1/widget/competitive-intel?setor=informatica&tema=invalid")
 
     assert resp.status_code == 400
     data = resp.json()
@@ -301,7 +301,7 @@ async def test_invalid_uf_returns_400(clear_cache):
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as client:
         resp = await client.get(
-            "/v1/widget/competitive-intel?setor=ti&tema=market-share&uf=XYZ"
+            "/v1/widget/competitive-intel?setor=informatica&tema=market-share&uf=XYZ"
         )
 
     assert resp.status_code == 400
@@ -314,7 +314,7 @@ async def test_cors_headers_present(clear_cache, mock_rpc):
     """Test CORS headers are present in response."""
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as client:
-        resp = await client.get("/v1/widget/competitive-intel?setor=ti&tema=market-share")
+        resp = await client.get("/v1/widget/competitive-intel?setor=informatica&tema=market-share")
 
     assert resp.headers.get("access-control-allow-origin") == "*"
     assert resp.headers.get("access-control-allow-methods") is not None
@@ -339,7 +339,7 @@ async def test_cache_control_header(clear_cache, mock_rpc):
     """Test Cache-Control header includes public and max-age."""
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as client:
-        resp = await client.get("/v1/widget/competitive-intel?setor=ti&tema=market-share")
+        resp = await client.get("/v1/widget/competitive-intel?setor=informatica&tema=market-share")
 
     cc = resp.headers.get("cache-control", "")
     assert "public" in cc
@@ -352,7 +352,7 @@ async def test_empty_data_returns_valid(clear_cache, mock_rpc_empty):
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as client:
         resp = await client.get(
-            "/v1/widget/competitive-intel?setor=seguro&tema=market-share"
+            "/v1/widget/competitive-intel?setor=vigilancia&tema=market-share"
         )
 
     assert resp.status_code == 200
@@ -379,9 +379,11 @@ async def test_rate_limit_applied(clear_cache):
         transport = ASGITransport(app=app)
         async with AsyncClient(transport=transport, base_url="http://test") as client:
             resp = await client.get(
-                "/v1/widget/competitive-intel?setor=ti&tema=market-share"
+                "/v1/widget/competitive-intel?setor=informatica&tema=market-share"
             )
 
     assert resp.status_code == 429
     data = resp.json()
-    assert "rate_limit_exceeded" in data.get("error", "")
+    # FastAPI wraps HTTPException.detail inside {"detail": ...}
+    detail = data.get("detail", {})
+    assert "rate_limit_exceeded" in detail.get("error", "")
