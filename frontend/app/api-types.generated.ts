@@ -4196,26 +4196,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/v1/intel-concorrente/fornecedor/{cnpj}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Competitive Intelligence data for a supplier CNPJ (COMPINT-011)
-         * @description Return competitive intelligence data for *cnpj*.
-         */
-        get: operations["fornecedor_competitive_intel_v1_intel_concorrente_fornecedor__cnpj__get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/v1/intel-concorrente/landscape": {
         parameters: {
             query?: never;
@@ -7307,21 +7287,6 @@ export interface components {
             /** Valor */
             valor?: number | null;
         };
-        /**
-         * AlertaPosicionamento
-         * @description Derived positioning alert.
-         */
-        AlertaPosicionamento: {
-            /** Mensagem */
-            mensagem: string;
-            /**
-             * Severidade
-             * @default info
-             */
-            severidade: string;
-            /** Tipo */
-            tipo: string;
-        };
         /** AlertasResponse */
         AlertasResponse: {
             /** Bids */
@@ -8806,24 +8771,6 @@ export interface components {
             total_sancoes_ceis: number;
             /** Total Sancoes Cnep */
             total_sancoes_cnep: number;
-        };
-        /**
-         * ConcorrenteInfo
-         * @description High-level competitor information.
-         */
-        ConcorrenteInfo: {
-            /** Cnpj */
-            cnpj: string;
-            /** Nome */
-            nome: string;
-            /** Ticket Mediana */
-            ticket_mediana: number;
-            /** Ticket Medio */
-            ticket_medio: number;
-            /** Total Contratos */
-            total_contratos: number;
-            /** Valor Total Contratado */
-            valor_total_contratado: number;
         };
         /**
          * ConsultantClientListResponse
@@ -10453,36 +10400,6 @@ export interface components {
              * @default in_progress
              */
             status: string;
-        };
-        /**
-         * FornecedorIntelResponse
-         * @description Complete competitive intelligence response for a supplier CNPJ.
-         *
-         *     Returned by GET /v1/intel-concorrente/fornecedor/{cnpj}.
-         */
-        FornecedorIntelResponse: {
-            /**
-             * Alertas
-             * @default []
-             */
-            alertas: components["schemas"]["AlertaPosicionamento"][];
-            concorrente: components["schemas"]["ConcorrenteInfo"];
-            /**
-             * Feature Enabled
-             * @default true
-             */
-            feature_enabled: boolean;
-            /**
-             * Generated At
-             * @default
-             */
-            generated_at: string;
-            /** Orgaos Favoritos */
-            orgaos_favoritos: components["schemas"]["OrgaoFavorito"][];
-            stats: components["schemas"]["TerritorioStats"];
-            /** Territorio */
-            territorio: components["schemas"]["TerritorioEntry"][];
-            win_metrics?: components["schemas"]["WinMetrics"] | null;
         };
         /** FornecedorProfileResponse */
         FornecedorProfileResponse: {
@@ -12199,27 +12116,6 @@ export interface components {
             total_contracts: number;
             /** Total Value */
             total_value: number;
-        };
-        /**
-         * OrgaoFavorito
-         * @description Favorite (most-contracted) agencies.
-         */
-        OrgaoFavorito: {
-            /**
-             * Categorias
-             * @default []
-             */
-            categorias: string[];
-            /** Contratos */
-            contratos: number;
-            /** Frequencia Anual */
-            frequencia_anual?: number | null;
-            /** Orgao Nome */
-            orgao_nome: string;
-            /** Ultima Vitoria */
-            ultima_vitoria?: string | null;
-            /** Valor Total */
-            valor_total: number;
         };
         /**
          * OrgaoInfo
@@ -15104,45 +15000,6 @@ export interface components {
             total_won: number;
         };
         /**
-         * TerritorioEntry
-         * @description Per-UF competitive territory data.
-         */
-        TerritorioEntry: {
-            /** Contratos */
-            contratos: number;
-            /** Market Share Uf */
-            market_share_uf?: number | null;
-            /**
-             * Orgaos Principais
-             * @default []
-             */
-            orgaos_principais: string[];
-            /** Tendencia */
-            tendencia?: string | null;
-            /** Ticket Medio Uf */
-            ticket_medio_uf: number;
-            /** Uf */
-            uf: string;
-            /** Valor Total */
-            valor_total: number;
-        };
-        /**
-         * TerritorioStats
-         * @description Aggregate territorial statistics.
-         */
-        TerritorioStats: {
-            /** Anos Atuacao */
-            anos_atuacao: number;
-            /** Crescimento Anual */
-            crescimento_anual?: number | null;
-            /** Orgaos Unicos */
-            orgaos_unicos: number;
-            /** Tendencia Posicionamento */
-            tendencia_posicionamento?: string | null;
-            /** Ufs Atuacao */
-            ufs_atuacao: number;
-        };
-        /**
          * TerritoryData
          * @description Territory map data for a single competitor.
          */
@@ -16025,30 +15882,6 @@ export interface components {
             message: string;
             /** Sent */
             sent: boolean;
-        };
-        /**
-         * WinMetrics
-         * @description Win-rate and performance metrics.
-         */
-        WinMetrics: {
-            /** Dependencia Publica */
-            dependencia_publica?: number | null;
-            /** Indice Concentracao */
-            indice_concentracao?: number | null;
-            /** Taxa Vitoria Estimada */
-            taxa_vitoria_estimada?: number | null;
-            /** Tendencia */
-            tendencia?: string | null;
-            /** Ticket P25 */
-            ticket_p25?: number | null;
-            /** Ticket P50 */
-            ticket_p50?: number | null;
-            /** Ticket P75 */
-            ticket_p75?: number | null;
-            /** Ticket P90 */
-            ticket_p90?: number | null;
-            /** Velocidade Crescimento */
-            velocidade_crescimento?: number | null;
         };
         /**
          * _LivenessResponse
@@ -21608,40 +21441,6 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["DossieStatusResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    fornecedor_competitive_intel_v1_intel_concorrente_fornecedor__cnpj__get: {
-        parameters: {
-            query?: {
-                anos?: number;
-            };
-            header?: never;
-            path: {
-                /** @description Supplier CNPJ (14 digits) */
-                cnpj: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["FornecedorIntelResponse"];
                 };
             };
             /** @description Validation Error */
