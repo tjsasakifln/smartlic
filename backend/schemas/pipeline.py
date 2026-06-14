@@ -67,6 +67,7 @@ class PipelineItemResponse(BaseModel):
     created_at: str
     updated_at: str
     version: int = 1  # STORY-307 AC12: Optimistic locking version
+    is_expired: bool = Field(default=False, description="True if data_encerramento is in the past")  # ISSUE-1767
 
 
 class PipelineListResponse(BaseModel):

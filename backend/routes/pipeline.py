@@ -238,6 +238,7 @@ async def list_pipeline_items(
     stage: Optional[str] = Query(None, description="Filter by stage"),
     limit: int = Query(50, ge=1, le=200, description="Items per page"),
     offset: int = Query(0, ge=0, description="Offset for pagination"),
+    exclude_expired: bool = Query(True, description="Exclude items with data_encerramento >24h in the past"),
     user: dict = Depends(require_auth),
 ):
     """List pipeline items for the authenticated user (AC3).
@@ -280,12 +281,28 @@ async def list_pipeline_items(
         if stage:
             query = query.eq("stage", stage)
 
+        # ISSUE-1767: Exclude zombie items (data_encerramento >24h no passado)
+        if exclude_expired:
+            cutoff = (datetime.now(timezone.utc) - timedelta(hours=24)).isoformat()
+            query = query.or_(
+                f"data_encerramento.is.null,data_encerramento.gte.{cutoff}"
+            )
+
         result = await sb_execute(query.range(offset, offset + limit - 1))
 
         items = []
         for row in (result.data or []):
             try:
-                items.append(PipelineItemResponse(**row))
+                item = PipelineItemResponse(**row)
+                # ISSUE-1767: Compute is_expired from data_encerramento
+                if row.get("data_encerramento"):
+                    try:
+                        enc_date = datetime.fromisoformat(row["data_encerramento"].replace("Z", "+00:00"))
+                        if enc_date < datetime.now(timezone.utc):
+                            item.is_expired = True
+                    except Exception:
+                        pass
+                items.append(item)
             except Exception as row_err:
                 # ISSUE-038: Skip malformed rows instead of failing the entire request
                 logger.warning(
