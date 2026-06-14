@@ -411,16 +411,37 @@ def _query_trigram_fallback(
     ufs: list[str],
     limit: int,
 ) -> list[dict]:
-    """Call the search_datalake_trigram_fallback RPC. Returns raw rows."""
-    try:
-        result = sb.rpc(
-            "search_datalake_trigram_fallback",
-            {"p_query_term": query_term, "p_ufs": ufs, "p_limit": limit},
-        ).execute()
-        return result.data or []
-    except Exception as e:
-        logger.warning(f"[DatalakeQuery] Trigram fallback RPC failed: {type(e).__name__}: {e}")
-        return []
+    """Call the search_datalake_trigram_fallback RPC with retry on timeout.
+
+    CRIT-046 / P0 #1750: Trigram GIN index scans are expensive and can hit the
+    global statement_timeout under load.  Uses exponential backoff (1s → 2s)
+    for up to 2 retries when the error is a statement timeout (57014).
+    """
+    max_retries = 2
+    for attempt in range(max_retries + 1):
+        try:
+            result = sb.rpc(
+                "search_datalake_trigram_fallback",
+                {"p_query_term": query_term, "p_ufs": ufs, "p_limit": limit},
+            ).execute()
+            return result.data or []
+        except Exception as e:
+            errmsg = str(e)
+            is_timeout = "57014" in errmsg or "statement timeout" in errmsg.lower()
+            if is_timeout and attempt < max_retries:
+                delay = 2 ** attempt  # 1s, 2s
+                logger.warning(
+                    f"[DatalakeQuery] Trigram fallback RPC statement timeout "
+                    f"(attempt {attempt + 1}/{max_retries + 1}), "
+                    f"retrying in {delay}s — query={query_term!r}"
+                )
+                time.sleep(delay)
+                continue
+            logger.warning(
+                f"[DatalakeQuery] Trigram fallback RPC failed: "
+                f"{type(e).__name__}: {e}"
+            )
+            return []
 
 
 # ---------------------------------------------------------------------------
