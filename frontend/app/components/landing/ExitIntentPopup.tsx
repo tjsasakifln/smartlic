@@ -23,6 +23,22 @@ export default function ExitIntentPopup() {
   const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
   const [dismissed, setDismissed] = useState(false);
   const checkDoneRef = useRef(false);
+  // ISSUE-1761: Guard against false positive during active search
+  const searchActiveRef = useRef(false);
+
+  // ISSUE-1761: Listen for search state changes
+  useEffect(() => {
+    const onSearchStart = () => { searchActiveRef.current = true; };
+    const onSearchEnd = () => { searchActiveRef.current = false; };
+
+    window.addEventListener('smartlic:search-start', onSearchStart);
+    window.addEventListener('smartlic:search-end', onSearchEnd);
+
+    return () => {
+      window.removeEventListener('smartlic:search-start', onSearchStart);
+      window.removeEventListener('smartlic:search-end', onSearchEnd);
+    };
+  }, []);
 
   // Check localStorage on mount
   useEffect(() => {
@@ -34,7 +50,7 @@ export default function ExitIntentPopup() {
 
   // Desktop: mouse leaving the viewport (top edge)
   const handleMouseLeave = useCallback((e: MouseEvent) => {
-    if (checkDoneRef.current) return;
+    if (checkDoneRef.current || searchActiveRef.current) return;
     if (e.clientY <= 0) {
       checkDoneRef.current = true;
       setVisible(true);
@@ -43,7 +59,7 @@ export default function ExitIntentPopup() {
 
   // Mobile: scroll-up detection — user scrolls back toward top after scrolling down
   const handleScroll = useCallback(() => {
-    if (checkDoneRef.current) return;
+    if (checkDoneRef.current || searchActiveRef.current) return;
     // Only trigger on mobile-ish widths (below 768px)
     if (window.innerWidth >= 768) return;
     // If user has scrolled down at least 400px and then scrolls back up past 300px
