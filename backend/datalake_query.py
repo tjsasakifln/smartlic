@@ -121,6 +121,60 @@ def _record_sentry_truncation(uf: str) -> None:
         pass  # sentry_sdk not available (tests, local dev)
 
 
+async def _query_single_day_with_offset(
+    sb: Any,
+    sb_execute: Any,
+    uf_params: dict[str, Any],
+    uf: str,
+    date_str: str,
+) -> list[dict]:
+    """Fetch all rows for a single date using offset-based pagination.
+
+    TRUNC-002: When binary date-range splitting bottoms out at a single day
+    that still exceeds the PostgREST 1000-row cap, use p_offset to batch
+    through all rows deterministically.
+
+    Uses the search_datalake RPC with p_offset (added via migration
+    20260614022207_add_p_offset_to_search_datalake.sql).  Each call fetches
+    up to _POSTGREST_ROW_CAP rows; the loop continues until a page returns
+    fewer rows than the cap.
+    """
+    all_rows: list[dict] = []
+    offset = 0
+    max_pages = 20  # Safety cap: 20 pages × 1000 = 20k rows/day
+
+    while offset < max_pages * _POSTGREST_ROW_CAP:
+        page_params = {**uf_params, "p_offset": offset, "p_limit": _POSTGREST_ROW_CAP}
+        try:
+            result = await sb_execute(
+                sb.rpc("search_datalake", page_params), category="rpc"
+            )
+            page_rows = result.data or []
+        except Exception as e:
+            logger.warning(
+                f"[DatalakeQuery] Offset RPC failed for UF={uf} "
+                f"[{date_str}] offset={offset}: {type(e).__name__}: {e}"
+            )
+            break  # Return what we have so far (fail-open)
+
+        if not page_rows:
+            break
+
+        all_rows.extend(page_rows)
+
+        if len(page_rows) < _POSTGREST_ROW_CAP:
+            # Last page — got all rows
+            break
+
+        offset += _POSTGREST_ROW_CAP
+
+    logger.info(
+        f"[DatalakeQuery] UF={uf} [{date_str}] offset pagination complete: "
+        f"{len(all_rows)} rows in {(offset // _POSTGREST_ROW_CAP) + 1} pages"
+    )
+    return all_rows
+
+
 async def _query_uf_with_pagination(
     sb: Any,
     sb_execute: Any,
@@ -196,12 +250,21 @@ async def _query_uf_with_pagination(
 
     total_days = (d_end - d_start).days
     if total_days < 1:
-        # Single date — cannot split further; return partial
+        # TRUNC-002: Single-date still exceeds cap — use offset-based
+        # intra-day pagination instead of returning truncated data.
+        # PostgREST caps RPC results at 1000 rows; p_offset batches
+        # through all rows for a single date deterministically.
         logger.warning(
-            f"[DatalakeQuery] UF={uf} still exceeds cap at minimum granularity "
-            f"[{date_start}] — returning {len(uf_rows)} rows (possibly truncated)."
+            f"[DatalakeQuery] UF={uf} single-day overflow [{date_start}] — "
+            f"switching to offset-based intra-day pagination"
         )
-        return uf_rows
+        return await _query_single_day_with_offset(
+            sb=sb,
+            sb_execute=sb_execute,
+            uf_params=uf_params,
+            uf=uf,
+            date_str=date_start,
+        )
 
     # Compute midpoint
     mid = d_start + timedelta(days=total_days // 2)

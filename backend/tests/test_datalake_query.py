@@ -808,29 +808,56 @@ class TestQueryUfWithPagination:
         assert len(result) == 200
 
     @pytest.mark.asyncio
-    async def test_single_day_truncation_returns_partial(self):
-        """When truncation persists at minimum granularity, return partial."""
+    async def test_single_day_truncation_delegates_to_offset_pagination(self):
+        """TRUNC-002: Single-day overflow delegates to offset-based pagination."""
         from datalake_query import _query_uf_with_pagination, _POSTGREST_ROW_CAP
+        from unittest.mock import patch, AsyncMock
 
         sb = MagicMock()
         sb_execute = MagicMock()
 
+        # First call (full range) returns 1000 rows → triggers split
+        # After split, single day still returns 1000 → delegates to offset
+        delegate_result = [{"pncp_id": f"offset-row-{i}"} for i in range(2500)]
+
+        call_count = 0
+
         async def mock_execute(*args, **kwargs):
+            nonlocal call_count
+            call_count += 1
             result = MagicMock()
             result.data = [{"pncp_id": f"row-{i}"} for i in range(_POSTGREST_ROW_CAP)]
             return result
 
         sb_execute.side_effect = mock_execute
 
-        result = await _query_uf_with_pagination(
-            sb=sb, sb_execute=sb_execute,
-            rpc_params={}, uf="SP",
-            date_start="2026-03-01", date_end="2026-03-01",  # single day
-            depth=0,
-        )
+        with patch(
+            "datalake_query._query_single_day_with_offset",
+            new=AsyncMock(return_value=delegate_result),
+        ) as mock_offset:
+            result = await _query_uf_with_pagination(
+                sb=sb, sb_execute=sb_execute,
+                rpc_params={}, uf="SP",
+                date_start="2026-03-01", date_end="2026-03-01",  # single day
+                depth=0,
+            )
 
-        # Should return partial results (1000 rows) instead of crashing
-        assert len(result) == _POSTGREST_ROW_CAP
+            # Must delegate to offset pagination
+            mock_offset.assert_called_once()
+            call_kwargs = mock_offset.call_args.kwargs
+            assert call_kwargs["sb"] == sb
+            assert call_kwargs["sb_execute"] == sb_execute
+            assert call_kwargs["uf"] == "SP"
+            assert call_kwargs["date_str"] == "2026-03-01"
+            assert call_kwargs["uf_params"] == {
+                "p_ufs": ["SP"],
+                "p_date_start": "2026-03-01",
+                "p_date_end": "2026-03-01",
+            }
+
+            # Result must match the delegate return value
+            assert len(result) == 2500
+            assert result == delegate_result
 
     @pytest.mark.asyncio
     async def test_max_depth_exceeded_returns_empty(self):
@@ -867,6 +894,153 @@ class TestQueryUfWithPagination:
         )
 
         assert result == []
+
+
+class TestQuerySingleDayWithOffset:
+    """Tests for _query_single_day_with_offset() — TRUNC-002 intra-day pagination."""
+
+    @pytest.mark.asyncio
+    async def test_returns_all_rows_single_page(self):
+        """Single page (< cap rows) returns all rows, no extra calls."""
+        from datalake_query import _query_single_day_with_offset, _POSTGREST_ROW_CAP
+
+        sb = MagicMock()
+        sb.rpc.return_value = MagicMock()  # sb.rpc("search_datalake", ...)
+
+        rows = [{"pncp_id": f"row-{i}"} for i in range(500)]
+        mock_result = MagicMock()
+        mock_result.data = rows
+        sb_execute = AsyncMock(return_value=mock_result)
+
+        result = await _query_single_day_with_offset(
+            sb=sb, sb_execute=sb_execute,
+            uf_params={}, uf="SP", date_str="2026-03-01",
+        )
+
+        assert len(result) == 500
+        assert result == rows
+        # Only 1 RPC call for single page
+        assert sb_execute.call_count == 1
+        # Verify p_offset and p_limit in the params
+        # sb.rpc("search_datalake", page_params) — positional args
+        page_params = sb.rpc.call_args[0][1]
+        assert page_params["p_offset"] == 0
+        assert page_params["p_limit"] == _POSTGREST_ROW_CAP
+
+    @pytest.mark.asyncio
+    async def test_paginates_multiple_pages(self):
+        """Multiple pages of exactly _POSTGREST_ROW_CAP rows each."""
+        from datalake_query import _query_single_day_with_offset, _POSTGREST_ROW_CAP
+
+        sb = MagicMock()
+        sb_execute = AsyncMock()
+
+        # Page 1: 1000 rows, Page 2: 1000 rows, Page 3: 500 rows (< cap)
+        pages = [
+            [{"pncp_id": f"p1-{i}"} for i in range(_POSTGREST_ROW_CAP)],
+            [{"pncp_id": f"p2-{i}"} for i in range(_POSTGREST_ROW_CAP)],
+            [{"pncp_id": f"p3-{i}"} for i in range(500)],
+        ]
+        call_count = 0
+
+        async def mock_execute(*args, **kwargs):
+            nonlocal call_count
+            result = MagicMock()
+            result.data = pages[call_count]
+            call_count += 1
+            return result
+
+        sb_execute.side_effect = mock_execute
+
+        result = await _query_single_day_with_offset(
+            sb=sb, sb_execute=sb_execute,
+            uf_params={}, uf="SP", date_str="2026-03-01",
+        )
+
+        assert len(result) == 2500  # 1000 + 1000 + 500
+        assert sb_execute.call_count == 3
+
+        # Verify offset progression
+        # sb.rpc("search_datalake", page_params) — positional args (arg 0, positional 1)
+        calls = sb.rpc.call_args_list
+        assert calls[0][0][1]["p_offset"] == 0
+        assert calls[1][0][1]["p_offset"] == _POSTGREST_ROW_CAP
+        assert calls[2][0][1]["p_offset"] == 2 * _POSTGREST_ROW_CAP
+
+    @pytest.mark.asyncio
+    async def test_empty_first_page_returns_empty(self):
+        """Empty first page → return [] immediately, no retry."""
+        from datalake_query import _query_single_day_with_offset
+
+        sb = MagicMock()
+        mock_result = MagicMock()
+        mock_result.data = []
+        sb_execute = AsyncMock(return_value=mock_result)
+
+        result = await _query_single_day_with_offset(
+            sb=sb, sb_execute=sb_execute,
+            uf_params={}, uf="SP", date_str="2026-03-01",
+        )
+
+        assert result == []
+        assert sb_execute.call_count == 1
+
+    @pytest.mark.asyncio
+    async def test_rpc_failure_returns_collected_rows(self):
+        """RPC failure mid-pagination returns rows collected so far (fail-open)."""
+        from datalake_query import _query_single_day_with_offset, _POSTGREST_ROW_CAP
+
+        sb = MagicMock()
+        sb_execute = AsyncMock()
+
+        first_page_rows = [{"pncp_id": f"row-{i}"} for i in range(_POSTGREST_ROW_CAP)]
+
+        call_count = 0
+
+        async def mock_execute(*args, **kwargs):
+            nonlocal call_count
+            call_count += 1
+            if call_count == 1:
+                result = MagicMock()
+                result.data = first_page_rows
+                return result
+            raise RuntimeError("RPC gone")
+
+        sb_execute.side_effect = mock_execute
+
+        result = await _query_single_day_with_offset(
+            sb=sb, sb_execute=sb_execute,
+            uf_params={}, uf="SP", date_str="2026-03-01",
+        )
+
+        # Must return rows from first page (fail-open, don't crash)
+        assert len(result) == _POSTGREST_ROW_CAP
+        assert result == first_page_rows
+        assert sb_execute.call_count == 2
+
+    @pytest.mark.asyncio
+    async def test_respects_max_pages_safety_cap(self):
+        """Never exceed 20 pages (20 × 1000 = 20k rows)."""
+        from datalake_query import _query_single_day_with_offset, _POSTGREST_ROW_CAP
+
+        sb = MagicMock()
+        sb_execute = AsyncMock()
+
+        # Every call returns exactly _POSTGREST_ROW_CAP rows (never < cap)
+        # This would loop forever without the safety cap
+        page = [{"pncp_id": f"row-{i}"} for i in range(_POSTGREST_ROW_CAP)]
+        mock_result = MagicMock()
+        mock_result.data = page
+        sb_execute.return_value = mock_result
+
+        result = await _query_single_day_with_offset(
+            sb=sb, sb_execute=sb_execute,
+            uf_params={}, uf="SP", date_str="2026-03-01",
+        )
+
+        # max_pages = 20, so max rows = 20 × 1000 = 20000
+        assert len(result) == 20 * _POSTGREST_ROW_CAP
+        assert sb_execute.call_count == 20
 
 
 class TestRecordSentryTruncation:
