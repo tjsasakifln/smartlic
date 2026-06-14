@@ -245,10 +245,9 @@ class TestMfaStatusEndpoint:
     @patch("routes.mfa.check_user_roles", new_callable=AsyncMock, return_value=(False, False))
     @patch("routes.mfa._get_supabase")
     def test_mfa_status_no_factors(self, mock_sb, mock_roles, client):
-        mock_result = MagicMock()
-        mock_result.data = []
         mock_sb_instance = MagicMock()
-        mock_sb_instance.table.return_value.select.return_value.eq.return_value.execute.return_value = mock_result
+        # Auth Admin API — factors live in auth.mfa_factors schema, not public
+        mock_sb_instance.auth.admin.list_factors.return_value = []
         mock_sb.return_value = mock_sb_instance
 
         res = client.get("/v1/mfa/status")
@@ -262,10 +261,14 @@ class TestMfaStatusEndpoint:
     @patch("routes.mfa.check_user_roles", new_callable=AsyncMock, return_value=(True, True))
     @patch("routes.mfa._get_supabase")
     def test_mfa_status_admin_required(self, mock_sb, mock_roles, client):
-        mock_result = MagicMock()
-        mock_result.data = [{"id": "f1", "factor_type": "totp", "friendly_name": "My Auth", "status": "verified", "created_at": "2026-01-01"}]
+        factor_mock = MagicMock()
+        factor_mock.id = "f1"
+        factor_mock.factor_type = "totp"
+        factor_mock.friendly_name = "My Auth"
+        factor_mock.status = "verified"
         mock_sb_instance = MagicMock()
-        mock_sb_instance.table.return_value.select.return_value.eq.return_value.execute.return_value = mock_result
+        # Auth Admin API — factors live in auth.mfa_factors schema, not public
+        mock_sb_instance.auth.admin.list_factors.return_value = [factor_mock]
         mock_sb.return_value = mock_sb_instance
 
         res = client.get("/v1/mfa/status")
