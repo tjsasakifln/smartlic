@@ -12830,6 +12830,12 @@ export interface components {
             data_encerramento?: string | null;
             /** Id */
             id: string;
+            /**
+             * Is Expired
+             * @description True if data_encerramento is in the past
+             * @default false
+             */
+            is_expired: boolean;
             /** Link Pncp */
             link_pncp?: string | null;
             /** Notes */
@@ -23149,6 +23155,8 @@ export interface operations {
                 limit?: number;
                 /** @description Offset for pagination */
                 offset?: number;
+                /** @description Exclude items with data_encerramento >24h in the past */
+                exclude_expired?: boolean;
             };
             header?: never;
             path?: never;

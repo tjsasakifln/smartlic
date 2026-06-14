@@ -12968,6 +12968,12 @@
             "title": "Id",
             "type": "string"
           },
+          "is_expired": {
+            "default": false,
+            "description": "True if data_encerramento is in the past",
+            "title": "Is Expired",
+            "type": "boolean"
+          },
           "link_pncp": {
             "anyOf": [
               {
@@ -30967,6 +30973,18 @@
               "minimum": 0,
               "title": "Offset",
               "type": "integer"
+            }
+          },
+          {
+            "description": "Exclude items with data_encerramento >24h in the past",
+            "in": "query",
+            "name": "exclude_expired",
+            "required": false,
+            "schema": {
+              "default": true,
+              "description": "Exclude items with data_encerramento >24h in the past",
+              "title": "Exclude Expired",
+              "type": "boolean"
             }
           }
         ],

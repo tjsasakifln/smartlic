@@ -201,26 +201,24 @@ async def get_mfa_status(user: dict = Depends(require_auth)):
     # Get AAL from JWT claims (stored in user dict by auth.py)
     aal_level = user.get("aal", "aal1")
 
-    # Get enrolled factors from Supabase auth.mfa_factors table
+    # Get enrolled factors from Supabase Auth Admin API
+    # Factors live in auth.mfa_factors (internal schema), not public.mfa_factors
     factors = []
     try:
         sb = await _get_supabase()
-        result = await sb_execute(
-            sb.table("mfa_factors")
-            .select("id, factor_type, friendly_name, status, created_at")
-            .eq("user_id", user_id)
+        factors_resp = await asyncio.to_thread(
+            lambda: sb.auth.admin.list_factors(user_id)
         )
-
-        if result.data:
-            for f in result.data:
+        if factors_resp:
+            for f in factors_resp:
                 factors.append({
-                    "id": f["id"],
-                    "type": f.get("factor_type", "totp"),
-                    "friendly_name": f.get("friendly_name", ""),
-                    "verified": f.get("status") == "verified",
+                    "id": getattr(f, "id", ""),
+                    "type": getattr(f, "factor_type", "totp"),
+                    "friendly_name": getattr(f, "friendly_name", ""),
+                    "verified": getattr(f, "status", "") == "verified",
                 })
     except Exception as e:
-        # If we can't read factors, use mfa_amr_claims or default
+        # Fallback: auth admin API unavailable — log and leave factors empty
         logger.warning(f"Failed to read MFA factors for user {user_id[:8]}: {type(e).__name__}")
 
     mfa_enabled = any(f.get("verified") for f in factors)

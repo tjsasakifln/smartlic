@@ -126,6 +126,7 @@ def _mock_pipeline_sb():
     sb.lte.return_value = sb
     sb.is_.return_value = sb
     sb.order.return_value = sb
+    sb.or_.return_value = sb  # ISSUE-1767: exclude_expired filter uses .or_()
     sb.range.return_value = sb
     result = Mock(data=[], count=0)
     sb.execute.return_value = result
