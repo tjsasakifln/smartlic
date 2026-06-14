@@ -71,7 +71,7 @@ export function useSearchFormState(clearResult: () => void): UseSearchFormStateR
     return safeGetItem("smartlic-advanced-filters") === "open";
   });
 
-  // UFs — smart default: profile context → empty (user must select explicitly)
+  // UFs — smart default: profile context → all 27 UFs (user reduces if desired)
   const [ufsSelecionadas, setUfsSelecionadas] = useState<Set<string>>(() => {
     if (typeof window !== "undefined") {
       try {
@@ -85,7 +85,7 @@ export function useSearchFormState(clearResult: () => void): UseSearchFormStateR
         }
       } catch { /* fall through */ }
     }
-    return new Set();
+    return new Set(UFS);
   });
 
   const [dataInicial, setDataInicial] = useState(() => addDays(getBrtDate(), -DEFAULT_SEARCH_DAYS));

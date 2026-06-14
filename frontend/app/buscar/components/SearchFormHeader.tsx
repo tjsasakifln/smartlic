@@ -281,7 +281,7 @@ export default function SearchFormHeader({
         <div className="mb-4 p-3 rounded-lg bg-blue-50 dark:bg-blue-900/10 border border-blue-200 dark:border-blue-800 flex items-start gap-3 animate-fade-in-up" data-testid="first-use-tip">
           <Info className="w-5 h-5 text-blue-500 flex-shrink-0 mt-0.5" strokeWidth={2} aria-hidden="true" />
           <p className="text-sm text-blue-700 dark:text-blue-300 flex-1">
-            <strong>Dica:</strong> selecione seu setor e clique Buscar. Personalize depois se quiser.
+            <strong>Dica:</strong> selecione seu setor e clique Buscar. Todos os 27 estados já estão pré-selecionados — personalize os filtros depois se quiser.
           </p>
           <Button
             type="button"
