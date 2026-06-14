@@ -49,10 +49,26 @@ export function ExitIntentPopup() {
   // Track whether user has already seen the popup this session
   const [dismissed, setDismissed] = useState(false);
 
+  // ISSUE-1761: Guard against false positive during active search
+  const [searchActive, setSearchActive] = useState(false);
+
+  useEffect(() => {
+    const onSearchStart = () => setSearchActive(true);
+    const onSearchEnd = () => setSearchActive(false);
+
+    window.addEventListener('smartlic:search-start', onSearchStart);
+    window.addEventListener('smartlic:search-end', onSearchEnd);
+
+    return () => {
+      window.removeEventListener('smartlic:search-start', onSearchStart);
+      window.removeEventListener('smartlic:search-end', onSearchEnd);
+    };
+  }, []);
+
   const show = useCallback(() => {
-    if (getExitCookie() || dismissed) return;
+    if (getExitCookie() || dismissed || searchActive) return;
     setVisible(true);
-  }, [dismissed]);
+  }, [dismissed, searchActive]);
 
   const hide = useCallback(() => {
     setVisible(false);

@@ -99,6 +99,16 @@ export function useSearchOrchestration() {
     prevLoadingRef.current = search.loading;
   }, [search.loading, search.result, search.searchId, broadcastSearchComplete]);
 
+  // ISSUE-1761: Dispatch custom events so ExitIntentPopup can guard against
+  // false positives when the user is waiting for search results, not leaving.
+  useEffect(() => {
+    if (search.loading) {
+      window.dispatchEvent(new CustomEvent('smartlic:search-start'));
+    } else {
+      window.dispatchEvent(new CustomEvent('smartlic:search-end'));
+    }
+  }, [search.loading]);
+
   useEffect(() => {
     if (search.quotaError === "trial_expired") {
       billing.setShowTrialConversion(true);
