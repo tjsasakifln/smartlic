@@ -172,21 +172,24 @@ describe("useSearchFilters (isolated)", () => {
       expect(result.current.setoresLoading).toBe(false);
     });
 
-    // Default is empty (no profile context in localStorage)
-    expect(result.current.ufsSelecionadas.size).toBe(0);
+    // Default all 27 UFs (issue #1762 — no profile context in localStorage)
+    expect(result.current.ufsSelecionadas.size).toBe(27);
 
-    // Toggle RJ on
-    act(() => {
-      result.current.toggleUf("RJ");
-    });
+    // RJ is already in set; toggle removes it
     expect(result.current.ufsSelecionadas.has("RJ")).toBe(true);
-    expect(clearResult).toHaveBeenCalled();
 
     // Toggle RJ off
     act(() => {
       result.current.toggleUf("RJ");
     });
     expect(result.current.ufsSelecionadas.has("RJ")).toBe(false);
+    expect(clearResult).toHaveBeenCalled();
+
+    // Toggle RJ back on
+    act(() => {
+      result.current.toggleUf("RJ");
+    });
+    expect(result.current.ufsSelecionadas.has("RJ")).toBe(true);
   });
 
   // 5. Select all / clear UFs

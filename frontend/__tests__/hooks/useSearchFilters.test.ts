@@ -53,9 +53,10 @@ describe('useSearchFilters hook', () => {
     it('should initialize with default values', () => {
       const { result } = renderHook(() => useSearchFilters(mockClearResult));
 
-      // Default UFs: empty Set — user must explicitly select (profile context fills via
-      // smartlic-profile-context when present; absent in this test). See useSearchFormState.ts:75-89.
-      expect(result.current.ufsSelecionadas.size).toBe(0);
+      // Default UFs: all 27 states pre-selected (Todo o Brasil) — user reduces if desired.
+      // Profile context (smartlic-profile-context) overrides when present.
+      // See useSearchFormState.ts:75-89 and issue #1762.
+      expect(result.current.ufsSelecionadas.size).toBe(27);
       expect(result.current.searchMode).toBe('setor');
       expect(result.current.setorId).toBe('vestuario');
       expect(result.current.termosArray).toEqual([]);
@@ -129,22 +130,22 @@ describe('useSearchFilters hook', () => {
     it('should toggle UF', () => {
       const { result } = renderHook(() => useSearchFilters(mockClearResult));
 
-      // Default empty; toggleUf('SP') adds SP
-      expect(result.current.ufsSelecionadas.has('SP')).toBe(false);
+      // Default all 27 UFs; SP is already selected (issue #1762)
+      expect(result.current.ufsSelecionadas.has('SP')).toBe(true);
 
       act(() => {
         result.current.toggleUf('SP');
       });
 
-      // After first toggle, SP is added
-      expect(result.current.ufsSelecionadas.has('SP')).toBe(true);
+      // After first toggle, SP is removed
+      expect(result.current.ufsSelecionadas.has('SP')).toBe(false);
       expect(mockClearResult).toHaveBeenCalled();
 
-      // Second toggle removes
+      // Second toggle re-adds SP
       act(() => {
         result.current.toggleUf('SP');
       });
-      expect(result.current.ufsSelecionadas.has('SP')).toBe(false);
+      expect(result.current.ufsSelecionadas.has('SP')).toBe(true);
     });
 
     it('should select all UFs', () => {
