@@ -1,0 +1,99 @@
+name: "RLS Audit (#1792)"
+
+# Audits that every public-schema table on Supabase has Row Level Security
+# enabled with at least one policy. Complements audit-rls-coverage.yml (which
+# uses the Management API) by connecting directly via psql to the production
+# database and running the same-check from a different angle.
+#
+# Triggers:
+#   - Push to main (any path) — catch regressions immediately after deploy.
+#   - Daily 06:00 UTC — drift detection independent of deploys.
+#   - PRs touching migrations — gate new tables that forget RLS.
+#   - Manual dispatch — on-demand re-run.
+#
+# Reference: ADR-RLS-MANDATORY-001 (docs/adr/ADR-RLS-MANDATORY-001-policy.md)
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    paths:
+      - 'supabase/migrations/**'
+  schedule:
+    # 06:00 UTC = 03:00 BRT, before business hours.
+    - cron: '0 6 * * *'
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+  pull-requests: write    # for PR comment
+
+concurrency:
+  group: rls-audit-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  audit:
+    name: RLS coverage check
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Install PostgreSQL client
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq --no-install-recommends postgresql-client
+          psql --version
+
+      - name: Run RLS audit
+        id: audit
+        env:
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+        run: |
+          chmod +x scripts/audit_rls.sh
+          ./scripts/audit_rls.sh 2>&1 | tee /tmp/rls-audit-output.txt
+          exit_code=${PIPESTATUS[0]}
+          echo "exit_code=$exit_code" >> $GITHUB_OUTPUT
+          exit $exit_code
+
+      - name: Upload audit output artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: rls-audit-output
+          path: /tmp/rls-audit-output.txt
+          if-no-files-found: ignore
+          retention-days: 30
+
+      - name: Post PR comment on failure
+        if: failure() && github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const output = fs.readFileSync('/tmp/rls-audit-output.txt', 'utf8');
+            const comment = [
+              '## RLS Audit Failed',
+              '',
+              'The RLS audit detected one or more tables without Row Level Security enabled.',
+              '',
+              '```',
+              output.slice(0, 3000),
+              '```',
+              '',
+              '**Reference:** ADR-RLS-MANDATORY-001 — every `public` schema table must have RLS',
+              'enabled with at least one policy (or carry a `-- rls-exempt: <reason>` marker in',
+              'the migration file).',
+              '',
+              '**Fix:** Add `ALTER TABLE ... ENABLE ROW LEVEL SECURITY;` and at least one policy',
+              'to the migration that created the table.',
+            ].join('\n');
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: comment,
+            });
