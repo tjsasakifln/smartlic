@@ -4650,6 +4650,66 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/me/admin/{user_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Admin Delete User
+         * @description Admin força exclusão de um usuário (bypass double opt-out).
+         */
+        delete: operations["admin_delete_user_v1_me_admin__user_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/me/cancel-deletion": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Cancel Deletion
+         * @description Cancela uma solicitação de exclusão pendente.
+         */
+        post: operations["cancel_deletion_v1_me_cancel_deletion_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/me/confirm-deletion": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Confirm Deletion
+         * @description Confirma exclusão com token do email. Anonimiza perfil (soft-delete).
+         */
+        post: operations["confirm_deletion_v1_me_confirm_deletion_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/me/export": {
         parameters: {
             query?: never;
@@ -4673,6 +4733,28 @@ export interface paths {
         get: operations["export_user_data_v1_me_export_get"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/me/request-deletion": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Request Deletion
+         * @description Solicita exclusão de dados. Envia email de confirmação (double opt-out).
+         *
+         *     Idempotente: se já existe pending, retorna 200 sem criar novo token.
+         */
+        post: operations["request_deletion_v1_me_request_deletion_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -8434,6 +8516,13 @@ export interface components {
             /** Uf */
             uf: string;
         };
+        /** CancelDeletionResponse */
+        CancelDeletionResponse: {
+            /** Detail */
+            detail: string;
+            /** Status */
+            status: string;
+        };
         /**
          * CancelFeedbackRequest
          * @description Post-cancellation feedback (UX-308 AC6).
@@ -8975,6 +9064,14 @@ export interface components {
             total_contratos: number;
             /** Valor Total Contratado */
             valor_total_contratado: number;
+        };
+        /** ConfirmDeletionRequest */
+        ConfirmDeletionRequest: {
+            /**
+             * Token
+             * @description Raw token do email de confirmação
+             */
+            token: string;
         };
         /**
          * ConsultantClientListResponse
@@ -9792,6 +9889,13 @@ export interface components {
             message: string;
             /** Success */
             success: boolean;
+        };
+        /** DeletionRequestResponse */
+        DeletionRequestResponse: {
+            /** Detail */
+            detail: string;
+            /** Status */
+            status: string;
         };
         /**
          * DemandForecastItem
@@ -22661,6 +22765,90 @@ export interface operations {
             };
         };
     };
+    admin_delete_user_v1_me_admin__user_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                user_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DeletionRequestResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    cancel_deletion_v1_me_cancel_deletion_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CancelDeletionResponse"];
+                };
+            };
+        };
+    };
+    confirm_deletion_v1_me_confirm_deletion_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ConfirmDeletionRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DeletionRequestResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     export_user_data_v1_me_export_get: {
         parameters: {
             query?: never;
@@ -22677,6 +22865,26 @@ export interface operations {
                 };
                 content: {
                     "application/json": unknown;
+                };
+            };
+        };
+    };
+    request_deletion_v1_me_request_deletion_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DeletionRequestResponse"];
                 };
             };
         };
