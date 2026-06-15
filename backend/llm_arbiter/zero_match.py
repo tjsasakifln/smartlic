@@ -178,7 +178,6 @@ def classify_contract_recovery(
 
     Recovery always uses binary mode (no structured output needed).
     """
-    # DEBT-128: LLM_ARBITER_ENABLED removed — always-on.
     if not setor_name and not termos_busca:
         logger.error(
             "classify_contract_recovery called without setor_name or termos_busca"

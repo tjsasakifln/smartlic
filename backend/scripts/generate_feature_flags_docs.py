@@ -284,7 +284,6 @@ def main() -> None:
 
     # Quick verification — DATALAKE_ENABLED lives in ingestion/config.py, not
     # features.py, so we only check flags that ARE defined in features.py.
-    # DEBT-128: LLM_ARBITER_ENABLED removed — always-on
     required = {"TRIAL_DURATION_DAYS"}
     found_env_vars = {f["env_var"] for f in flags}
     missing = required - found_env_vars

@@ -373,7 +373,6 @@ async def stage_filter(pipeline, ctx: SearchContext) -> None:
             filter_stats=stats,
         )
 
-        # DEBT-128: PARTIAL_DATA_SSE_ENABLED removed — always-on (stable since Dec 2025)
         # CRIT-071: Emit partial_data with filtered results
         if ctx.licitacoes_filtradas:
             await ctx.tracker.emit_partial_data(

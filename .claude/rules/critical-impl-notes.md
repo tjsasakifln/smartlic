@@ -69,7 +69,7 @@ Metrics (Prometheus): `smartlic_pncp_max_page_size_changed_total`, `smartlic_pnc
 5. Status/date validation
 6. Viability assessment (post-filter)
 
-**Feature Flags:** `DATALAKE_ENABLED`, `DATALAKE_QUERY_ENABLED`, `LLM_ZERO_MATCH_ENABLED`, `LLM_ARBITER_ENABLED`, `VIABILITY_ASSESSMENT_ENABLED`, `SYNONYM_MATCHING_ENABLED`
+**Feature Flags (active):** `DATALAKE_ENABLED`, `DATALAKE_QUERY_ENABLED`, `FTS_SYNONYM_EXPANSION_ENABLED`, `ZERO_RESULTS_RELAXATION_ENABLED`, `ITEM_INSPECTION_ENABLED`
 
 ## LLM Integration
 - GPT-4.1-nano for classification + summaries

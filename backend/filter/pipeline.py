@@ -636,7 +636,6 @@ def aplicar_todos_filtros(
 
     # STORY-267 AC13: Disable proximity filter for custom_terms searches
     _skip_proximity = bool(custom_terms) and get_feature_flag("TERM_SEARCH_FILTER_CONTEXT")
-    # DEBT-128: PROXIMITY_CONTEXT_ENABLED removed — always-on (stable since Dec 2025)
     if setor and not _skip_proximity:
         from sectors import SECTORS as _SECTORS_PROX
 
@@ -795,7 +794,6 @@ def aplicar_todos_filtros(
     # ========================================================================
     # GTM-FIX-028: LLM Zero Match Classification
     # ========================================================================
-    # DEBT-128: LLM_ZERO_MATCH_ENABLED removed — always-on (stable since Oct 2025)
     # Instead of auto-rejecting bids with 0 keyword matches, collect them
     # and send to LLM for sector-aware classification.
     resultado_llm_zero: List[dict] = []
@@ -813,7 +811,6 @@ def aplicar_todos_filtros(
         _use_term_prompt_zm = _gff_ac2("TERM_SEARCH_LLM_AWARE")
 
     # ISSUE-017: Also run zero-match LLM when custom_terms present (no sector needed)
-    # DEBT-128: LLM_ZERO_MATCH_ENABLED removed — condition simplified
     if setor or custom_terms:
         # Collect bids that were rejected by keyword gate (in resultado_valor but not in resultado_keyword)
         keyword_approved_ids = {id(lic) for lic in resultado_keyword}
@@ -1678,7 +1675,6 @@ def aplicar_todos_filtros(
 
     # GTM-FIX-028 AC10: When LLM zero-match is enabled, skip FLUXO 2 to avoid
     # double-classification (zero-match bids already went through LLM)
-    # DEBT-128: LLM_ZERO_MATCH_ENABLED removed — zero-match is always-on
     _skip_fluxo_2 = stats.get("llm_zero_match_calls", 0) > 0
     if _skip_fluxo_2:
         logger.info(
