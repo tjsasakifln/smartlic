@@ -218,6 +218,31 @@ B2G_OPS_ENABLED: bool = str_to_bool(os.getenv("B2G_OPS_ENABLED", "true"))
 # reais do mercado com blur nos nomes de concorrentes. Default ON (true).
 # Set env var to "false" to disable globally.
 INTELLIGENCE_TASTING_ENABLED: bool = str_to_bool(os.getenv("INTELLIGENCE_TASTING_ENABLED", "true"))
+
+# ============================================
+# Issue #1861: IP Rate Limiter (Edge DDoS Protection)
+# ============================================
+# Enables the IPRateLimiter middleware that enforces per-IP sliding-window
+# rate limits on /api/* and /v1/* paths using Redis (AC1). Set to "false"
+# to disable the middleware entirely (emergency rollback).
+IP_RATE_LIMIT_ENABLED: bool = str_to_bool(os.getenv("IP_RATE_LIMIT_ENABLED", "true"))
+
+# Sliding window duration in seconds (default: 60s = 1 minute).
+IP_RATE_LIMIT_WINDOW_S: int = int(os.getenv("IP_RATE_LIMIT_WINDOW_S", "60"))
+
+# Default per-IP rate limit (requests per window).
+IP_RATE_LIMIT_DEFAULT: int = int(os.getenv("IP_RATE_LIMIT_DEFAULT", "100"))
+
+# Multiplier of the default limit that triggers auto-blocklisting.
+# An IP exceeding (DEFAULT * MULTIPLIER) requests in one window is blocked.
+IP_RATE_LIMIT_BLOCKLIST_MULTIPLIER: int = int(os.getenv("IP_RATE_LIMIT_BLOCKLIST_MULTIPLIER", "5"))
+
+# Duration in seconds for auto-blocklist entries (default: 600s = 10 minutes).
+IP_RATE_LIMIT_BLOCKLIST_DURATION_S: int = int(os.getenv("IP_RATE_LIMIT_BLOCKLIST_DURATION_S", "600"))
+
+# AC5: Comma-separated whitelist of IPs / CIDR ranges exempt from rate limiting.
+# Example: "192.168.1.1,10.0.0.0/8,203.0.113.0/24"
+RATE_LIMIT_WHITELIST_IPS: str = os.getenv("RATE_LIMIT_WHITELIST_IPS", "")
 # ============================================
 # Runtime-Reloadable Feature Flags (STORY-226 AC16)
 # ============================================
@@ -297,6 +322,7 @@ _FEATURE_FLAG_REGISTRY: dict[str, tuple[str, str]] = {
     "MONTHLY_REPORT_ENABLED": ("MONTHLY_REPORT_ENABLED", "true"),
     # --- Infra ---
     "METRICS_ENABLED": ("METRICS_ENABLED", "true"),
+    "IP_RATE_LIMIT_ENABLED": ("IP_RATE_LIMIT_ENABLED", "true"),
     "RATE_LIMITING_ENABLED": ("RATE_LIMITING_ENABLED", "true"),
     "USER_FEEDBACK_ENABLED": ("USER_FEEDBACK_ENABLED", "true"),
     "USE_REDIS_CIRCUIT_BREAKER": ("USE_REDIS_CIRCUIT_BREAKER", "true"),
@@ -483,6 +509,12 @@ def validate_feature_flags() -> None:
     _check_int("NETWORK_EVENTS_WEEKLY_RETENTION_DAYS", "730", min_val=30, max_val=1460)
     _check_int("NETWORK_EVENTS_CLEANUP_HOUR", "3", min_val=0, max_val=23)
 
+    # Issue #1861: IP rate limiter validation
+    _check_int("IP_RATE_LIMIT_WINDOW_S", "60", min_val=1, max_val=3600)
+    _check_int("IP_RATE_LIMIT_DEFAULT", "100", min_val=1, max_val=100000)
+    _check_int("IP_RATE_LIMIT_BLOCKLIST_MULTIPLIER", "5", min_val=2, max_val=100)
+    _check_int("IP_RATE_LIMIT_BLOCKLIST_DURATION_S", "600", min_val=30, max_val=86400)
+
     if errors:
         for error in errors:
             logger.critical("Invalid feature flag configuration: %s", error)
@@ -494,7 +526,7 @@ def validate_feature_flags() -> None:
     logger.info("Feature flag validation passed — all %d checked flags are valid", _VALIDATED_FLAG_COUNT)
 # Number of flags validated by validate_feature_flags() — used in log message above.
 # Update this constant whenever a new _check_* call is added.
-_VALIDATED_FLAG_COUNT = 38
+_VALIDATED_FLAG_COUNT = 42
 def log_feature_flags() -> None:
     """Log feature flag states. Call AFTER setup_logging()."""
     from config.pncp import COMPRASGOV_ENABLED as _cg_enabled
