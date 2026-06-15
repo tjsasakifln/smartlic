@@ -5,13 +5,22 @@ Extracted from main.py as part of STORY-202 monolith decomposition.
 
 STORY-291: Circuit breaker integration — when Supabase CB is open,
 check_user_roles() returns (False, False) immediately without retrying.
+
+#1778: Granular admin roles — replaces boolean is_admin with role-based
+access control. See ``roles.py`` for role definitions and env-based resolution.
 """
 
 import asyncio
 import logging
 import os
 
+from fastapi import Depends, HTTPException
 from log_sanitizer import mask_user_id
+from roles import (
+    AdminRole,
+    get_user_roles_from_env,
+    get_master_ids as _roles_get_master_ids,  # avoid shadowing
+)
 from schemas.common import validate_uuid
 
 logger = logging.getLogger(__name__)
@@ -181,11 +190,118 @@ def get_master_quota_info(is_admin: bool = False):
     )
 
 
-# ---------------------------------------------------------------------------
+# ===========================================================================
+# #1778: Granular Admin Roles — role-based access control
+# ===========================================================================
+
+
+def get_master_ids() -> set[str]:
+    """Get validated master user IDs from MASTER_USER_IDS env var.
+    Delegates to roles.get_master_ids().
+    """
+    return _roles_get_master_ids()
+
+
+async def get_user_roles(user_id: str) -> set[str]:
+    """Get all admin roles for a user.
+
+    Resolution order:
+    1. MASTER_USER_IDS env var -> all roles (highest priority)
+    2. ADMIN_ROLES env var -> explicit role mapping
+    3. ADMIN_USER_IDS env var (legacy) -> DASHBOARD only (minimum privilege)
+    4. admin_roles table in Supabase -> stored roles (DB fallback)
+
+    Returns:
+        set[str]: Set of role strings (e.g. {"dashboard", "user_manager"}).
+                  Empty set for regular (non-admin) users.
+
+    The env var resolution is fast (no DB call) and serves as the primary
+    source for hardcoded admins. The DB table is checked as fallback for
+    admins configured at runtime via the admin dashboard.
+    """
+    # Fast path: check env vars first (no DB call)
+    roles = get_user_roles_from_env(user_id)
+    if roles is not None:
+        return roles
+
+    # Fallback: check admin_roles table in Supabase
+    try:
+        from supabase_client import get_supabase, sb_execute
+        sb = get_supabase()
+        result = await sb_execute(
+            sb.table("admin_roles")
+            .select("roles")
+            .eq("user_id", user_id)
+            .single(),
+            category="read",
+        )
+        if result.data and result.data.get("roles"):
+            return set(result.data["roles"])
+    except Exception:
+        # Table may not exist yet, or other transient error
+        # Silently fall through — user has no roles
+        pass
+
+    return set()
+
+
+def require_role(*roles: str):
+    """FastAPI dependency factory: require specific admin role(s).
+
+    Usage::
+
+        @router.get("/admin/users")
+        async def list_users(user=Depends(require_role("data_access", "master"))):
+            ...
+
+    The dependency checks that the authenticated user has at least one of
+    the specified roles. If not, raises HTTP 403.
+
+    Args:
+        *roles: One or more required role strings (e.g. "data_access", "master").
+    """
+    from auth import require_auth as _require_auth
+
+    async def _checker(user: dict = Depends(_require_auth)) -> dict:
+        user_roles = await get_user_roles(user["id"])
+        if not any(r in user_roles for r in roles):
+            raise HTTPException(
+                status_code=403,
+                detail="Permissao insuficiente para esta operacao",
+            )
+        return user
+    return _checker
+
+
+# Shorthand dependencies for common role combinations.
+# Each requires either the specific role OR master (super admin).
+
+require_data_access = require_role(
+    AdminRole.DATA_ACCESS.value,
+    AdminRole.MASTER.value,
+)
+
+require_user_manager = require_role(
+    AdminRole.USER_MANAGER.value,
+    AdminRole.MASTER.value,
+)
+
+require_billing = require_role(
+    AdminRole.BILLING.value,
+    AdminRole.MASTER.value,
+)
+
+require_dashboard = require_role(
+    AdminRole.DASHBOARD.value,
+    AdminRole.MASTER.value,
+)
+
+
+# ===========================================================================
 # Backward-compatible aliases (STORY-226 AC8)
 # These allow existing code that imports the underscore-prefixed names to
 # continue working without modification.  New code should use the public names.
-# ---------------------------------------------------------------------------
+# ===========================================================================
 _get_admin_ids = get_admin_ids
 _check_user_roles = check_user_roles
 _is_admin = is_admin

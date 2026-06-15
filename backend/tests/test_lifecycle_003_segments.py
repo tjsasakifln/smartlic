@@ -33,6 +33,7 @@ class TestUserLifecycleClassification:
         """Create FastAPI app with admin router and auth override."""
         from fastapi import FastAPI
         from admin import router, require_admin
+        from authorization import require_data_access
 
         app = FastAPI()
         app.include_router(router)
@@ -41,6 +42,7 @@ class TestUserLifecycleClassification:
             return mock_admin_user
 
         app.dependency_overrides[require_admin] = mock_require_admin
+        app.dependency_overrides[require_data_access] = mock_require_admin
         return app
 
     @pytest.fixture

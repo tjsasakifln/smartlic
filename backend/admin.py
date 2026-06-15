@@ -37,6 +37,7 @@ from schemas import (
     UserSegmentsResponse,
 )
 from log_sanitizer import sanitize_dict, log_admin_action
+from authorization import require_data_access, require_user_manager
 from filter.stats import filter_stats_tracker
 
 logger = logging.getLogger(__name__)
@@ -221,22 +222,34 @@ def _is_admin_from_supabase(user_id: str) -> bool:
 
 async def require_admin(user: dict = Depends(require_auth)) -> dict:
     """
-    Require system admin role.
+    Require system admin role (minimum DASHBOARD level).
 
-    Checks multiple sources:
-    1. ADMIN_USER_IDS environment variable (fast path)
-    2. Supabase profiles.is_admin = true
+    #1778: Uses the new role-based system — checks:
+    1. MASTER_USER_IDS -> full access (all roles)
+    2. ADMIN_ROLES -> explicit role mapping
+    3. ADMIN_USER_IDS (legacy) -> DASHBOARD (minimum privilege)
+    4. admin_roles table -> any role grants access
 
-    User ID is normalized to lowercase for comparison.
+    Legacy fallbacks (for backward compat with routes that call require_admin
+    directly without importing from authorization):
+    5. ADMIN_USER_IDS environment variable (fast path)
+    6. Supabase profiles.is_admin = true
     """
+    from authorization import get_user_roles
+
     user_id = str(user.get("id", "")).strip()
 
-    # Fast path: check env var first (no DB call)
+    # 1-4: Check new role-based system (authorization.get_user_roles)
+    roles = await get_user_roles(user_id)
+    if roles:
+        return user
+
+    # 5. Legacy fast path: check env var
     admin_ids = _get_admin_ids()
     if user_id.lower() in admin_ids:
         return user
 
-    # Check Supabase for is_admin flag
+    # 6. Legacy fallback: check Supabase is_admin
     if _is_admin_from_supabase(user_id):
         return user
 
@@ -259,12 +272,12 @@ class UpdateUserRequest(BaseModel):
 
 @router.get("/users", response_model=AdminUsersListResponse)
 async def list_users(
-    admin: dict = Depends(require_admin),
+    admin: dict = Depends(require_data_access),
     limit: int = Query(default=50, ge=1, le=200),
     offset: int = Query(default=0, ge=0),
     search: Optional[str] = Query(default=None, max_length=100),
 ):
-    """List all users with profiles and subscription info."""
+    """List all users with profiles and subscription info (LGPD-sensitive)."""
     from supabase_client import get_supabase, sb_execute
     from quota import PLAN_CAPABILITIES, get_monthly_quota_used
     sb = get_supabase()
@@ -327,7 +340,7 @@ async def list_users(
 @router.post("/users", response_model=AdminCreateUserResponse)
 async def create_user(
     req: CreateUserRequest,
-    admin: dict = Depends(require_admin),
+    admin: dict = Depends(require_user_manager),
 ):
     """Create a new user with optional plan assignment."""
     # STORY-226 AC17: Validate password policy
@@ -382,7 +395,7 @@ async def create_user(
 @router.delete("/users/{user_id}", response_model=AdminDeleteUserResponse)
 async def delete_user(
     user_id: str = Path(..., description="User UUID to delete"),
-    admin: dict = Depends(require_admin),
+    admin: dict = Depends(require_user_manager),
 ):
     """Delete a user and all their data."""
     # SECURITY: Validate user_id as UUID v4 (Issue #203)
@@ -420,7 +433,7 @@ async def delete_user(
 async def update_user(
     req: UpdateUserRequest,
     user_id: str = Path(..., description="User UUID to update"),
-    admin: dict = Depends(require_admin),
+    admin: dict = Depends(require_user_manager),
 ):
     """Update user profile or plan."""
     # SECURITY: Validate user_id as UUID v4 (Issue #203)
@@ -466,7 +479,7 @@ async def update_user(
 async def reset_user_password(
     request: Request,
     user_id: str = Path(..., description="User UUID to reset password for"),
-    admin: dict = Depends(require_admin),
+    admin: dict = Depends(require_user_manager),
 ):
     """Reset a user's password (admin only)."""
     # SECURITY: Validate user_id as UUID v4 (Issue #203)
@@ -501,7 +514,7 @@ async def reset_user_password(
 async def assign_plan(
     user_id: str = Path(..., description="User UUID to assign plan to"),
     plan_id: str = Query(..., description="Plan ID to assign"),
-    admin: dict = Depends(require_admin),
+    admin: dict = Depends(require_user_manager),
 ):
     """Manually assign a plan to a user (bypasses payment)."""
     # SECURITY: Validate user_id and plan_id (Issue #203)
@@ -557,7 +570,7 @@ class UpdateCreditsRequest(BaseModel):
 async def update_user_credits(
     req: UpdateCreditsRequest,
     user_id: str = Path(..., description="User UUID to update credits for"),
-    admin: dict = Depends(require_admin),
+    admin: dict = Depends(require_user_manager),
 ):
     """
     Manually adjust a user's credits (admin only).
@@ -1076,7 +1089,7 @@ async def get_trial_metrics(
 
 @router.get("/at-risk-trials")
 async def get_at_risk_trials(
-    admin: dict = Depends(require_admin),
+    admin: dict = Depends(require_data_access),
     page: int = Query(default=0, ge=0),
     limit: int = Query(default=20, ge=1, le=100),
     risk_category: Optional[str] = Query(default=None),
@@ -1305,7 +1318,7 @@ async def _set_segments_cache(data: dict) -> None:
 
 @router.get("/users/segments", response_model=UserSegmentsResponse)
 async def get_user_segments(
-    admin: dict = Depends(require_admin),
+    admin: dict = Depends(require_data_access),
 ) -> UserSegmentsResponse:
     """LIFECYCLE-003: Return user lifecycle segment counts, transitions,
     and power user details.
