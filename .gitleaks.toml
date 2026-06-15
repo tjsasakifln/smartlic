@@ -1,0 +1,134 @@
+# =============================================================================
+# Gitleaks Configuration — SmartLic / BidIQ
+# =============================================================================
+# Pre-commit hook and CI secret scanner.
+#
+# HOW TO USE:
+#   gitleaks detect --source . --verbose          # scan working tree
+#   gitleaks detect --source . --no-git           # scan files only (no git)
+#   gitleaks detect --source . --log-opts="--all" # full history
+#
+# HOW TO ADD A FALSE POSITIVE:
+#   1. Run:  gitleaks detect --source . --report-path report.json
+#   2. Find the fingerprint in report.json
+#   3. Add it to [[allowlist.fingerprints]] below
+#   4. Commit the updated .gitleaks.toml
+# =============================================================================
+
+title = "SmartLic Gitleaks Config"
+
+# ---------------------------------------------------------------------------
+# Global Allowlist — paths, regexes, and known false positives
+# ---------------------------------------------------------------------------
+[allowlist]
+description = "global allow lists for the SmartLic project"
+
+# ---- Paths excluded from scanning ----
+paths = [
+    # Gitleaks default — binary/image/font assets
+    '''(?i)\.(?:bmp|gif|jpe?g|png|svg|tiff?)$''',
+    '''(?i)\.(?:eot|[ot]tf|woff2?)$''',
+    '''(?i)\.(?:docx?|xlsx?|pdf|bin|socket|vsidx|v2|suo|wsuo|\.dll|pdb|exe|gltf)$''',
+
+    # Gitleaks default — lock files and vendored code
+    '''go\.(?:mod|sum|work(?:\.sum)?)$''',
+    '''(?:^|/)vendor/modules\.txt$''',
+    '''(?:^|/)node_modules(?:/.*)?$''',
+    '''(?:^|/)(?:deno\.lock|npm-shrinkwrap\.json|package-lock\.json|pnpm-lock\.yaml|yarn\.lock)$''',
+    '''(?:^|/)bower_components(?:/.*)?$''',
+    '''(?:^|/)(?:angular|bootstrap|jquery(?:-?ui)?|plotly|swagger-?ui)[a-zA-Z0-9.-]*(?:\.min)?\.js(?:\.map)?$''',
+    '''(?:^|/)(?:Pipfile|poetry)\.lock$''',
+    '''(?:^|/)\.git$''',
+
+    # ============================================================ #
+    # SmartLic project-specific exclusions
+    # ============================================================ #
+
+    # --- Test directories and fixtures ---
+    '''(?:^|/)backend/tests(?:/.*)?$''',
+    '''(?:^|/)frontend/__tests__(?:/.*)?$''',
+    '''(?:^|/)frontend/__mocks__(?:/.*)?$''',
+
+    # --- Snapshot / fixture files ---
+    '''\.snap$''',
+    '''(?:^|/)__snapshots__(?:/.*)?$''',
+    '''(?:^|/)fixtures(?:/.*)?$''',
+    '''(?:^|/)test_fixtures(?:/.*)?$''',
+
+    # --- Migration files (contain SQL, not secrets) ---
+    '''(?:^|/)supabase/migrations(?:/.*)?\.sql$''',
+    '''(?:^|/)supabase/migrations(?:/.*)?\.down\.sql$''',
+
+    # --- E2E test fixtures (secrets but placed intentionally for testing) ---
+    '''(?:^|/)frontend/e2e-tests/billing/fixtures(?:/.*)?$''',
+
+    # --- Documentation examples ---
+    '''(?:^|/)docs(?:/.*)?$''',
+    '''(?:^|/)backend/docs(?:/.*)?$''',
+    '''(?:^|/)\.github(?:/.*)?$''',
+
+    # --- AIOS / AIOX framework files ---
+    '''(?:^|/)\.aios-core(?:/.*)?$''',
+    '''(?:^|/)\.aiox-core(?:/.*)?$''',
+    '''(?:^|/)\.claude(?:/.*)?$''',
+
+    # --- Generated / build output ---
+    '''(?:^|/)frontend/\.next(?:/.*)?$''',
+    '''(?:^|/)backend/outputs(?:/.*)?$''',
+]
+
+# ---- Global regex allowlist ----
+regexes = [
+    # Gitleaks defaults — common false positive patterns
+    '''(?i)^true|false|null$''',
+    '''^(?i:a+|b+|c+|d+|e+|f+|g+|h+|i+|j+|k+|l+|m+|n+|o+|p+|q+|r+|s+|t+|u+|v+|w+|x+|y+|z+|\*+|\.+)$''',
+    '''^\$(?:\d+|{\d+})$''',
+    '''^\$(?:[A-Z_]+|[a-z_]+)$''',
+    '''^\${(?:[A-Z_]+|[a-z_]+)}$''',
+    '''^\{\{[ \t]*[\w ().|]+[ \t]*}}$''',
+    '''^\$\{\{[ \t]*(?:(?:env|github|secrets|vars)(?:\.[A-Za-z]\w+)+[\w "'&./=|]*)[ \t]*}}$''',
+    '''^%(?:[A-Z_]+|[a-z_]+)%$''',
+    '''^%[+\-# 0]?[bcdeEfFgGoOpqstTUvxX]$''',
+    '''^0$''',
+    '''^[0]+[.]?[0]*$''',
+    '''^[1]$''',
+    '''^[0-9]+$''',
+    '''^[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}$''',
+    '''^(?:[0-9a-fA-F]{4}\.?)+$''',
+
+    # SmartLic-specific: Pydantic config examples, placeholder values
+    '''CHANGE_ME''',
+    '''YOUR_API_KEY''',
+    '''your-api-key''',
+    '''your-secret''',
+    '''<your-api-key>''',
+    '''sk-placeholder''',
+    '''pk-placeholder''',
+    '''token_placeholder''',
+
+    # Example/test passwords (non-production)
+    '''password123''',
+    '''testpass''',
+    '''example_password''',
+]
+
+# ---- Exact fingerprints for known false positives ----
+# Populated as false positives are identified during scans.
+# Format:  "file:row:hash"
+# fingerprints = [
+#     "backend/config.py:42:abcdef123456...",
+# ]
+
+# =============================================================================
+# Detection Rules
+# =============================================================================
+# Uses all default Gitleaks rules. To see the full list of default rules,
+# refer to: https://github.com/gitleaks/gitleaks/blob/master/config/gitleaks.toml
+#
+# Custom SmartLic rules can be added below if the defaults need tweaking.
+
+# [[rules]]
+# id = "smartlic-custom-rule"
+# description = "example of a project-specific rule"
+# regex = '''(?i)smartlic\.(?:api_key|secret)'''
+# tags = ["smartlic", "custom"]

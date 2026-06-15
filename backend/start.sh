@@ -118,10 +118,11 @@ _start_worker() {
 # ── Uvicorn launcher (foreground) ───────────────────────────────────────
 _start_uvicorn() {
   local workers="${WEB_CONCURRENCY:-2}"
-  # CRIT-083 AC6 MEM-6: 5000→10000. 5000 atingido em <1h com rajada ISR
-  # (100+ cidades × setores revalidando). 10000 dá ~2h de margem.
+  # CRIT-083 AC6 MEM-6: 5000→10000→50000. 10000 atingido em ~6h
+  # com tráfego de produção, causando shutdown e outage (F-01 #1772).
+  # 50000 dá ~24h de margem com rajada ISR.
   # Override via GUNICORN_MAX_REQUESTS env var.
-  local limit_max_requests="${GUNICORN_MAX_REQUESTS:-10000}"
+  local limit_max_requests="${GUNICORN_MAX_REQUESTS:-50000}"
   local graceful_timeout="${UVICORN_TIMEOUT_GRACEFUL_SHUTDOWN:-120}"
   local keep_alive="${GUNICORN_KEEP_ALIVE:-75}"
   local log_level="${UVICORN_LOG_LEVEL:-info}"
@@ -187,7 +188,7 @@ case "$PROCESS_TYPE" in
         --log-level "${UVICORN_LOG_LEVEL:-info}" \
         --timeout-keep-alive "${GUNICORN_KEEP_ALIVE:-75}" \
         --workers "${WEB_CONCURRENCY:-2}" \
-        --limit-max-requests "${GUNICORN_MAX_REQUESTS:-10000}" \
+        --limit-max-requests "${GUNICORN_MAX_REQUESTS:-50000}" \
         --timeout-graceful-shutdown "${UVICORN_TIMEOUT_GRACEFUL_SHUTDOWN:-120}"
     fi
     ;;

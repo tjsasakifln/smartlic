@@ -927,6 +927,33 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/admin/log-level": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Log Levels
+         * @description Return current log level overrides (admin-only).
+         */
+        get: operations["get_log_levels_v1_admin_log_level_get"];
+        put?: never;
+        /**
+         * Set Log Level
+         * @description Set a logger's level at runtime (admin-only).
+         *
+         *     Altera o log level do *module* (ou root se omitido) para *level*.
+         *     Apos *ttl_minutes*, reverte automaticamente ao nivel original.
+         */
+        post: operations["set_log_level_v1_admin_log_level_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/admin/memory-snapshot": {
         parameters: {
             query?: never;
@@ -1211,6 +1238,29 @@ export interface paths {
          *     Requires admin role.  Raises HTTP 400 if ``paths`` is empty.
          */
         post: operations["admin_revalidate_seo_v1_admin_revalidate_seo_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/admin/revoke-all-sessions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Revoke All Sessions
+         * @description Revoke ALL active sessions globally. Master-only.
+         *
+         *     Sets a global timestamp in Redis. All tokens issued before this
+         *     timestamp are invalidated in the auth middleware.
+         */
+        post: operations["revoke_all_sessions_v1_admin_revoke_all_sessions_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1713,6 +1763,29 @@ export interface paths {
          * @description Reset a user's password (admin only).
          */
         post: operations["reset_user_password_v1_admin_users__user_id__reset_password_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/admin/users/{user_id}/revoke-sessions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Revoke User Sessions
+         * @description Revoke all sessions for a specific user.
+         *
+         *     Admin-only. Sets a Redis blacklist key with 24h TTL.
+         *     Auth middleware checks this key on every request.
+         */
+        post: operations["revoke_user_sessions_v1_admin_users__user_id__revoke_sessions_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -11727,6 +11800,34 @@ export interface components {
             updated_at: string;
         };
         /**
+         * LogLevelOverrideInfo
+         * @description Single override entry returned by GET /v1/admin/log-level.
+         */
+        LogLevelOverrideInfo: {
+            /** Current Level */
+            current_level: string;
+            /** Logger */
+            logger: string;
+            /** Original Level */
+            original_level: string;
+            /** Set At */
+            set_at: string;
+            /** Set By */
+            set_by: string;
+            /** Ttl Remaining Seconds */
+            ttl_remaining_seconds?: number | null;
+        };
+        /**
+         * LogLevelStatusResponse
+         * @description Response for GET /v1/admin/log-level.
+         */
+        LogLevelStatusResponse: {
+            /** Count */
+            count: number;
+            /** Overrides */
+            overrides: components["schemas"]["LogLevelOverrideInfo"][];
+        };
+        /**
          * LoginAttemptRequest
          * @description Frontend reports the outcome of a Supabase signInWithPassword call.
          *
@@ -13997,6 +14098,31 @@ export interface components {
             /** Status */
             status: string;
         };
+        /** RevokeAllSessionsRequest */
+        RevokeAllSessionsRequest: {
+            /**
+             * Reason
+             * @description Motivo da revogacao em massa (para auditoria)
+             * @default
+             * @example Incidente de seguranca — token vazado
+             */
+            reason: string;
+        };
+        /** RevokeAllSessionsResponse */
+        RevokeAllSessionsResponse: {
+            /** Reason */
+            reason: string;
+            /**
+             * Revoked At
+             * @description ISO timestamp da revogacao global
+             */
+            revoked_at: string;
+            /**
+             * Status
+             * @description ok
+             */
+            status: string;
+        };
         /**
          * RevokeResponse
          * @description Response for revoke endpoint.
@@ -14006,6 +14132,18 @@ export interface components {
             message: string;
             /** Success */
             success: boolean;
+        };
+        /** RevokeSessionsResponse */
+        RevokeSessionsResponse: {
+            /** Detail */
+            detail: string;
+            /**
+             * Status
+             * @description ok | skipped
+             */
+            status: string;
+            /** User Id */
+            user_id: string;
         };
         /**
          * RootResponse
@@ -14657,6 +14795,50 @@ export interface components {
             }[];
             /** Total */
             total: number;
+        };
+        /**
+         * SetLogLevelRequest
+         * @description Request body for POST /v1/admin/log-level.
+         */
+        SetLogLevelRequest: {
+            /**
+             * Level
+             * @description Log level name: DEBUG, INFO, WARNING, ERROR, CRITICAL
+             * @example DEBUG
+             */
+            level: string;
+            /**
+             * Module
+             * @description Logger name (e.g. 'ingestion', 'routes.search'). Use '*' or omit for root logger.
+             * @default *
+             * @example ingestion
+             */
+            module: string;
+            /**
+             * Ttl Minutes
+             * @description Auto-revert after N minutes (1-1440). Default 15.
+             * @default 15
+             * @example 15
+             */
+            ttl_minutes: number;
+        };
+        /**
+         * SetLogLevelResponse
+         * @description Response for POST /v1/admin/log-level.
+         */
+        SetLogLevelResponse: {
+            /** Current Level */
+            current_level: string;
+            /** Detail */
+            detail: string;
+            /** Logger */
+            logger: string;
+            /** Original Level */
+            original_level: string;
+            /** Status */
+            status: string;
+            /** Ttl Minutes */
+            ttl_minutes: number;
         };
         /** SetorHighlight */
         SetorHighlight: {
@@ -17524,6 +17706,59 @@ export interface operations {
             };
         };
     };
+    get_log_levels_v1_admin_log_level_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LogLevelStatusResponse"];
+                };
+            };
+        };
+    };
+    set_log_level_v1_admin_log_level_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SetLogLevelRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SetLogLevelResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     memory_snapshot_v1_admin_memory_snapshot_get: {
         parameters: {
             query?: never;
@@ -17904,6 +18139,39 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["RevalidateSEOResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    revoke_all_sessions_v1_admin_revoke_all_sessions_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["RevokeAllSessionsRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RevokeAllSessionsResponse"];
                 };
             };
             /** @description Validation Error */
@@ -18538,6 +18806,37 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["AdminResetPasswordResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    revoke_user_sessions_v1_admin_users__user_id__revoke_sessions_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                user_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RevokeSessionsResponse"];
                 };
             };
             /** @description Validation Error */

@@ -10377,6 +10377,73 @@
         "title": "LicitacoesIndexableResponse",
         "type": "object"
       },
+      "LogLevelOverrideInfo": {
+        "description": "Single override entry returned by GET /v1/admin/log-level.",
+        "properties": {
+          "current_level": {
+            "title": "Current Level",
+            "type": "string"
+          },
+          "logger": {
+            "title": "Logger",
+            "type": "string"
+          },
+          "original_level": {
+            "title": "Original Level",
+            "type": "string"
+          },
+          "set_at": {
+            "title": "Set At",
+            "type": "string"
+          },
+          "set_by": {
+            "title": "Set By",
+            "type": "string"
+          },
+          "ttl_remaining_seconds": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ttl Remaining Seconds"
+          }
+        },
+        "required": [
+          "logger",
+          "original_level",
+          "current_level",
+          "set_by",
+          "set_at"
+        ],
+        "title": "LogLevelOverrideInfo",
+        "type": "object"
+      },
+      "LogLevelStatusResponse": {
+        "description": "Response for GET /v1/admin/log-level.",
+        "properties": {
+          "count": {
+            "title": "Count",
+            "type": "integer"
+          },
+          "overrides": {
+            "items": {
+              "$ref": "#/components/schemas/LogLevelOverrideInfo"
+            },
+            "title": "Overrides",
+            "type": "array"
+          }
+        },
+        "required": [
+          "overrides",
+          "count"
+        ],
+        "title": "LogLevelStatusResponse",
+        "type": "object"
+      },
       "LoginAttemptRequest": {
         "description": "Frontend reports the outcome of a Supabase signInWithPassword call.\n\nThe endpoint is unauthenticated by design (failures happen before a\nsession exists). To avoid leaking user existence, the endpoint always\nreturns 200; if the email is unknown we no-op silently.",
         "properties": {
@@ -15244,6 +15311,46 @@
         "title": "ReverseSyncResponse",
         "type": "object"
       },
+      "RevokeAllSessionsRequest": {
+        "properties": {
+          "reason": {
+            "default": "",
+            "description": "Motivo da revogacao em massa (para auditoria)",
+            "examples": [
+              "Incidente de seguranca \u2014 token vazado"
+            ],
+            "title": "Reason",
+            "type": "string"
+          }
+        },
+        "title": "RevokeAllSessionsRequest",
+        "type": "object"
+      },
+      "RevokeAllSessionsResponse": {
+        "properties": {
+          "reason": {
+            "title": "Reason",
+            "type": "string"
+          },
+          "revoked_at": {
+            "description": "ISO timestamp da revogacao global",
+            "title": "Revoked At",
+            "type": "string"
+          },
+          "status": {
+            "description": "ok",
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "status",
+          "revoked_at",
+          "reason"
+        ],
+        "title": "RevokeAllSessionsResponse",
+        "type": "object"
+      },
       "RevokeResponse": {
         "description": "Response for revoke endpoint.",
         "properties": {
@@ -15261,6 +15368,30 @@
           "message"
         ],
         "title": "RevokeResponse",
+        "type": "object"
+      },
+      "RevokeSessionsResponse": {
+        "properties": {
+          "detail": {
+            "title": "Detail",
+            "type": "string"
+          },
+          "status": {
+            "description": "ok | skipped",
+            "title": "Status",
+            "type": "string"
+          },
+          "user_id": {
+            "title": "User Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "status",
+          "user_id",
+          "detail"
+        ],
+        "title": "RevokeSessionsResponse",
         "type": "object"
       },
       "RootResponse": {
@@ -16538,6 +16669,83 @@
           "offset"
         ],
         "title": "SessionsListResponse",
+        "type": "object"
+      },
+      "SetLogLevelRequest": {
+        "description": "Request body for POST /v1/admin/log-level.",
+        "properties": {
+          "level": {
+            "description": "Log level name: DEBUG, INFO, WARNING, ERROR, CRITICAL",
+            "examples": [
+              "DEBUG"
+            ],
+            "title": "Level",
+            "type": "string"
+          },
+          "module": {
+            "default": "*",
+            "description": "Logger name (e.g. 'ingestion', 'routes.search'). Use '*' or omit for root logger.",
+            "examples": [
+              "ingestion"
+            ],
+            "title": "Module",
+            "type": "string"
+          },
+          "ttl_minutes": {
+            "default": 15,
+            "description": "Auto-revert after N minutes (1-1440). Default 15.",
+            "examples": [
+              15
+            ],
+            "maximum": 1440.0,
+            "minimum": 1.0,
+            "title": "Ttl Minutes",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "level"
+        ],
+        "title": "SetLogLevelRequest",
+        "type": "object"
+      },
+      "SetLogLevelResponse": {
+        "description": "Response for POST /v1/admin/log-level.",
+        "properties": {
+          "current_level": {
+            "title": "Current Level",
+            "type": "string"
+          },
+          "detail": {
+            "title": "Detail",
+            "type": "string"
+          },
+          "logger": {
+            "title": "Logger",
+            "type": "string"
+          },
+          "original_level": {
+            "title": "Original Level",
+            "type": "string"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          },
+          "ttl_minutes": {
+            "title": "Ttl Minutes",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "status",
+          "logger",
+          "original_level",
+          "current_level",
+          "ttl_minutes",
+          "detail"
+        ],
+        "title": "SetLogLevelResponse",
         "type": "object"
       },
       "SetorHighlight": {
@@ -22255,6 +22463,78 @@
         ]
       }
     },
+    "/v1/admin/log-level": {
+      "get": {
+        "description": "Return current log level overrides (admin-only).",
+        "operationId": "get_log_levels_v1_admin_log_level_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LogLevelStatusResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Get Log Levels",
+        "tags": [
+          "admin"
+        ]
+      },
+      "post": {
+        "description": "Set a logger's level at runtime (admin-only).\n\nAltera o log level do *module* (ou root se omitido) para *level*.\nApos *ttl_minutes*, reverte automaticamente ao nivel original.",
+        "operationId": "set_log_level_v1_admin_log_level_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SetLogLevelRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SetLogLevelResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Set Log Level",
+        "tags": [
+          "admin"
+        ]
+      }
+    },
     "/v1/admin/memory-snapshot": {
       "get": {
         "description": "Return current process memory snapshot for leak investigation.\n\nMaster/admin only. Snapshots are NOT persisted (PII risk + size).\nCaller is responsible for capturing 10\u00d7 over 24h to build baseline.",
@@ -22862,6 +23142,55 @@
         "summary": "Admin Revalidate Seo",
         "tags": [
           "seo_admin"
+        ]
+      }
+    },
+    "/v1/admin/revoke-all-sessions": {
+      "post": {
+        "description": "Revoke ALL active sessions globally. Master-only.\n\nSets a global timestamp in Redis. All tokens issued before this\ntimestamp are invalidated in the auth middleware.",
+        "operationId": "revoke_all_sessions_v1_admin_revoke_all_sessions_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RevokeAllSessionsRequest",
+                "default": {
+                  "reason": ""
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RevokeAllSessionsResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Revoke All Sessions",
+        "tags": [
+          "admin"
         ]
       }
     },
@@ -23819,6 +24148,54 @@
           }
         ],
         "summary": "Reset User Password",
+        "tags": [
+          "admin"
+        ]
+      }
+    },
+    "/v1/admin/users/{user_id}/revoke-sessions": {
+      "post": {
+        "description": "Revoke all sessions for a specific user.\n\nAdmin-only. Sets a Redis blacklist key with 24h TTL.\nAuth middleware checks this key on every request.",
+        "operationId": "revoke_user_sessions_v1_admin_users__user_id__revoke_sessions_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "user_id",
+            "required": true,
+            "schema": {
+              "title": "User Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RevokeSessionsResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Revoke User Sessions",
         "tags": [
           "admin"
         ]

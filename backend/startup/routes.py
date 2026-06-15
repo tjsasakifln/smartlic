@@ -35,6 +35,7 @@ from routes.survey import router as survey_router
 from routes.admin_billing_sync import router as admin_billing_sync_router
 from routes.admin_founding import router as admin_founding_router
 from routes.admin_metrics import router as admin_metrics_router
+from routes.admin_sessions import router as admin_sessions_router
 from routes.auth_check import router as auth_check_router
 from routes.bid_analysis import router as bid_analysis_router
 from routes.slo import router as slo_router
@@ -96,6 +97,7 @@ from routes.email_tracking import router as email_tracking_router
 from routes.admin_digest_metrics import router as admin_digest_metrics_router
 from routes.admin_command import router as admin_command_router
 from routes.admin_dlq import router as admin_dlq_router
+from routes.admin_log_level import router as admin_log_level_router
 from routes.intel_tasting import router as intel_tasting_router
 from routes.predint import router as predint_router
 from routes.monthly_report import router as monthly_report_router
@@ -190,6 +192,7 @@ def register_routes(app: FastAPI) -> None:
     app.include_router(admin_founding_router)
     app.include_router(admin_metrics_router)
     app.include_router(admin_dlq_router)
+    app.include_router(admin_sessions_router)
     app.include_router(slo_router)
     # Issue #1002: founders availability — self-prefixed at /api/founders/*
     # (NOT under /v1/ — public landing-page consumers + SEO programmatic).
@@ -208,6 +211,8 @@ def register_routes(app: FastAPI) -> None:
     app.include_router(admin_digest_metrics_router)
     # GAP-002 (#1579): Command plan provisioning — self-prefixed at /v1/admin/subscriptions/*
     app.include_router(admin_command_router)
+    # #1814: Runtime log level toggle — self-prefixed at /v1/admin/log-level
+    app.include_router(admin_log_level_router)
     # Stripe webhook at root — DEBT-324: single registration only.
     # Removed from _v1_routers above to prevent duplicate at /v1/webhooks/stripe.
     # Stripe Dashboard must be configured with: POST /webhooks/stripe

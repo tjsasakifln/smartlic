@@ -338,7 +338,6 @@ async def stage_execute(pipeline, ctx: SearchContext) -> None:
     enriquecer_com_status_inferido(ctx.licitacoes_raw)
     logger.debug(f"Status inference complete for {len(ctx.licitacoes_raw)} bids")
 
-    # DEBT-128: PARTIAL_DATA_SSE_ENABLED removed — always-on (stable since Dec 2025)
     # CRIT-071: Emit partial_data SSE event with raw results before filtering
     if ctx.tracker and ctx.licitacoes_raw:
         await ctx.tracker.emit_partial_data(

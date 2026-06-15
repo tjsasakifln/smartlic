@@ -639,6 +639,24 @@ SUPABASE_POOL_ACTIVE = _create_gauge(
     "Number of currently active Supabase connections (via sb_execute)",
 )
 
+# #1817: Connection pool idle estimate (max - active)
+SUPABASE_POOL_IDLE = _create_gauge(
+    "smartlic_supabase_pool_idle_connections",
+    "#1817: Estimated idle Supabase connections (max_pool - active)",
+)
+
+# #1817: Maximum pool connections configured (env SUPABASE_POOL_MAX_CONNECTIONS)
+SUPABASE_POOL_MAX = _create_gauge(
+    "smartlic_supabase_pool_max_connections",
+    "#1817: Maximum Supabase pool connections configured",
+)
+
+# #1817: Pool timeout counter (httpx PoolTimeout exceptions)
+SUPABASE_POOL_TIMEOUTS = _create_counter(
+    "smartlic_supabase_pool_timeouts_total",
+    "#1817: httpx PoolTimeout exceptions (pool exhaustion signal)",
+)
+
 # CRIT-046 AC5: ConnectionError retries in sb_execute
 SUPABASE_RETRY_TOTAL = _create_counter(
     "smartlic_supabase_retry_total",
