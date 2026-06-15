@@ -107,6 +107,34 @@ async def _redis_cache_set(token_hash: str, user_data: dict) -> None:
         pass
 
 # ---------------------------------------------------------------------------
+# #1811: Session revocation check
+# ---------------------------------------------------------------------------
+async def _check_session_revoked(user_id: str) -> bool:
+    """Check if a user session has been revoked (individual revocation only).
+
+    Returns True if the session should be rejected.
+    Fail-open: returns False if Redis is unavailable.
+
+    For global revocation, the admin_sessions route clears all auth caches
+    in Redis (L2) so every user hits the slow path where global_ts is checked.
+    """
+    try:
+        from redis_pool import get_redis_pool
+
+        redis = await get_redis_pool()
+        if not redis:
+            return False  # Fail-open
+
+        if await redis.exists(f"session_revoke:{user_id}"):
+            logger.warning(f"Session revoked: user={user_id[:8]}***")
+            return True
+
+        return False
+    except Exception:
+        return False  # Fail-open: Redis error → allow
+
+
+# ---------------------------------------------------------------------------
 # JWKS client — lazily initialized on first use to avoid startup failures
 # when SUPABASE_URL is not yet configured or network is unavailable.
 # ---------------------------------------------------------------------------
@@ -257,6 +285,10 @@ async def get_current_user(
         user_data, cached_at = _token_cache[token_hash]
         age = time.time() - cached_at
         if age < CACHE_TTL:
+            # #1811: Check individual session revocation before returning cached user
+            if await _check_session_revoked(user_data["id"]):
+                del _token_cache[token_hash]
+                raise HTTPException(status_code=401, detail="Sessao revogada")
             _token_cache.move_to_end(token_hash)  # LRU refresh
             logger.debug(f"Auth cache L1 HIT (age={age:.1f}s, user={user_data['id'][:8]})")
             try:
@@ -272,6 +304,9 @@ async def get_current_user(
     # FAST PATH 2: Check L2 Redis cache (shared between workers)
     redis_data = await _redis_cache_get(token_hash)
     if redis_data:
+        # #1811: Check individual session revocation before returning cached user
+        if await _check_session_revoked(redis_data["id"]):
+            raise HTTPException(status_code=401, detail="Sessao revogada")
         logger.debug(f"Auth cache L2 HIT (redis, user={redis_data.get('id', '?')[:8]})")
         _cache_store_memory(token_hash, redis_data)  # Promote to L1
         try:
@@ -313,9 +348,32 @@ async def get_current_user(
         user_id = payload.get("sub")
         email = payload.get("email")
         role = payload.get("role", "authenticated")
+        iat = payload.get("iat", 0)
 
         if not user_id:
             raise HTTPException(status_code=401, detail="Token sem user ID")
+
+        # #1811: Check session revocation after successful JWT decode.
+        # Individual: Redis EXISTS session_revoke:{user_id}
+        # Global: compares iat against global_revoke_ts in Redis
+        if await _check_session_revoked(user_id):
+            raise HTTPException(status_code=401, detail="Sessao revogada")
+        if iat > 0:
+            try:
+                from redis_pool import get_redis_pool
+                redis = await get_redis_pool()
+                if redis:
+                    global_ts_raw = await redis.get("global_revoke_ts")
+                    if global_ts_raw and iat < int(global_ts_raw):
+                        logger.warning(
+                            f"Session revoked (global): user={user_id[:8]}*** "
+                            f"iat={iat} < global_ts={int(global_ts_raw)}"
+                        )
+                        raise HTTPException(status_code=401, detail="Sessao revogada")
+            except HTTPException:
+                raise
+            except Exception:
+                pass  # Fail-open
 
         # STORY-317: Extract AAL (Authenticator Assurance Level) from JWT
         # aal1 = password only, aal2 = password + TOTP verified

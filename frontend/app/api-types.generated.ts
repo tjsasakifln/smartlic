@@ -1244,6 +1244,29 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/admin/revoke-all-sessions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Revoke All Sessions
+         * @description Revoke ALL active sessions globally. Master-only.
+         *
+         *     Sets a global timestamp in Redis. All tokens issued before this
+         *     timestamp are invalidated in the auth middleware.
+         */
+        post: operations["revoke_all_sessions_v1_admin_revoke_all_sessions_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/admin/schema-contract-status": {
         parameters: {
             query?: never;
@@ -1740,6 +1763,29 @@ export interface paths {
          * @description Reset a user's password (admin only).
          */
         post: operations["reset_user_password_v1_admin_users__user_id__reset_password_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/admin/users/{user_id}/revoke-sessions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Revoke User Sessions
+         * @description Revoke all sessions for a specific user.
+         *
+         *     Admin-only. Sets a Redis blacklist key with 24h TTL.
+         *     Auth middleware checks this key on every request.
+         */
+        post: operations["revoke_user_sessions_v1_admin_users__user_id__revoke_sessions_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -14052,6 +14098,31 @@ export interface components {
             /** Status */
             status: string;
         };
+        /** RevokeAllSessionsRequest */
+        RevokeAllSessionsRequest: {
+            /**
+             * Reason
+             * @description Motivo da revogacao em massa (para auditoria)
+             * @default
+             * @example Incidente de seguranca — token vazado
+             */
+            reason: string;
+        };
+        /** RevokeAllSessionsResponse */
+        RevokeAllSessionsResponse: {
+            /** Reason */
+            reason: string;
+            /**
+             * Revoked At
+             * @description ISO timestamp da revogacao global
+             */
+            revoked_at: string;
+            /**
+             * Status
+             * @description ok
+             */
+            status: string;
+        };
         /**
          * RevokeResponse
          * @description Response for revoke endpoint.
@@ -14061,6 +14132,18 @@ export interface components {
             message: string;
             /** Success */
             success: boolean;
+        };
+        /** RevokeSessionsResponse */
+        RevokeSessionsResponse: {
+            /** Detail */
+            detail: string;
+            /**
+             * Status
+             * @description ok | skipped
+             */
+            status: string;
+            /** User Id */
+            user_id: string;
         };
         /**
          * RootResponse
@@ -18069,6 +18152,39 @@ export interface operations {
             };
         };
     };
+    revoke_all_sessions_v1_admin_revoke_all_sessions_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["RevokeAllSessionsRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RevokeAllSessionsResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     get_schema_contract_status_v1_admin_schema_contract_status_get: {
         parameters: {
             query?: never;
@@ -18690,6 +18806,37 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["AdminResetPasswordResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    revoke_user_sessions_v1_admin_users__user_id__revoke_sessions_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                user_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RevokeSessionsResponse"];
                 };
             };
             /** @description Validation Error */
