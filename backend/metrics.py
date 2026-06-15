@@ -708,6 +708,13 @@ SUPABASE_CB_INTERNAL_ERRORS = _create_counter(
     labelnames=["cb_name"],
 )
 
+# #1800: Global circuit breaker trip counter (all CB types)
+CIRCUIT_BREAKER_TRIPS_TOTAL = _create_counter(
+    "smartlic_circuit_breaker_trips_total",
+    "Total circuit breaker trip events across all CB types",
+    labelnames=["cb_type", "cb_name"],
+)
+
 # STORY-418: Trial email DLQ observability
 TRIAL_EMAIL_DLQ_ENQUEUED = _create_counter(
     "smartlic_trial_email_dlq_enqueued_total",
