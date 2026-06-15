@@ -3105,6 +3105,24 @@
         "title": "CalculadoraDadosResponse",
         "type": "object"
       },
+      "CancelDeletionResponse": {
+        "properties": {
+          "detail": {
+            "title": "Detail",
+            "type": "string"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "status",
+          "detail"
+        ],
+        "title": "CancelDeletionResponse",
+        "type": "object"
+      },
       "CancelFeedbackRequest": {
         "description": "Post-cancellation feedback (UX-308 AC6).",
         "properties": {
@@ -4216,6 +4234,20 @@
           "valor_total_contratado"
         ],
         "title": "ConcorrenteInfo",
+        "type": "object"
+      },
+      "ConfirmDeletionRequest": {
+        "properties": {
+          "token": {
+            "description": "Raw token do email de confirma\u00e7\u00e3o",
+            "title": "Token",
+            "type": "string"
+          }
+        },
+        "required": [
+          "token"
+        ],
+        "title": "ConfirmDeletionRequest",
         "type": "object"
       },
       "ConsultantClientListResponse": {
@@ -6128,6 +6160,24 @@
           "message"
         ],
         "title": "DeleteAccountResponse",
+        "type": "object"
+      },
+      "DeletionRequestResponse": {
+        "properties": {
+          "detail": {
+            "title": "Detail",
+            "type": "string"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "status",
+          "detail"
+        ],
+        "title": "DeletionRequestResponse",
         "type": "object"
       },
       "DemandForecastItem": {
@@ -22071,6 +22121,143 @@
         ]
       }
     },
+    "/v1/admin/dlq": {
+      "delete": {
+        "description": "Delete **all** entries from the ARQ Dead Letter Queue.\n\nReturns ``{\"status\": \"ok\", \"keys_deleted\": N}`` on success.\nReturns ``{\"status\": \"error\", \"detail\": \"...\"}`` on failure.",
+        "operationId": "purge_dlq_v1_admin_dlq_delete",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Purge Dlq V1 Admin Dlq Delete",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Purge Dlq",
+        "tags": [
+          "admin",
+          "dlq"
+        ]
+      },
+      "get": {
+        "description": "List entries in the ARQ Dead Letter Queue.\n\nReturns entries sorted by ``enqueued_at`` descending (most recent first).\nEach entry carries::\n\n    {\n        \"uuid\": \"...\",\n        \"job_name\": \"...\",\n        \"payload\": {...},\n        \"error\": \"...\",\n        \"traceback\": \"...\",\n        \"enqueued_at\": \"2026-06-15T12:00:00+00:00\"\n    }\n\nWhen Redis is unreachable the response carries ``status=\"redis_unavailable\"``\nand an empty ``entries`` list.",
+        "operationId": "get_dlq_v1_admin_dlq_get",
+        "parameters": [
+          {
+            "description": "Max entries to return",
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 50,
+              "description": "Max entries to return",
+              "maximum": 500,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Get Dlq V1 Admin Dlq Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Get Dlq",
+        "tags": [
+          "admin",
+          "dlq"
+        ]
+      }
+    },
+    "/v1/admin/dlq/{uuid}/retry": {
+      "post": {
+        "description": "Re-enqueue a single DLQ entry back into the ARQ job queue.\n\nReturns ``{\"status\": \"ok\", \"uuid\": \"...\"}`` on success.\nReturns ``{\"status\": \"not_found\", \"uuid\": \"...\"}`` if the entry no longer\nexists (may have been purged or already retried).\nReturns ``{\"status\": \"error\", \"detail\": \"...\"}`` on Redis or ARQ failure.",
+        "operationId": "retry_dlq_entry_v1_admin_dlq__uuid__retry_post",
+        "parameters": [
+          {
+            "description": "UUID of the DLQ entry to retry",
+            "in": "path",
+            "name": "uuid",
+            "required": true,
+            "schema": {
+              "description": "UUID of the DLQ entry to retry",
+              "title": "Uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Retry Dlq Entry V1 Admin Dlq  Uuid  Retry Post",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Retry Dlq Entry",
+        "tags": [
+          "admin",
+          "dlq"
+        ]
+      }
+    },
     "/v1/admin/feature-flags": {
       "get": {
         "description": "List all registered feature flags with current values and sources.\n\nReturns each flag's effective value, where it comes from (redis override,\nenv var, or default), its description, and registry metadata.\n\nAdmin only.",
@@ -30129,6 +30316,128 @@
         ]
       }
     },
+    "/v1/me/admin/{user_id}": {
+      "delete": {
+        "description": "Admin for\u00e7a exclus\u00e3o de um usu\u00e1rio (bypass double opt-out).",
+        "operationId": "admin_delete_user_v1_me_admin__user_id__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "user_id",
+            "required": true,
+            "schema": {
+              "title": "User Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeletionRequestResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Admin Delete User",
+        "tags": [
+          "data-deletion"
+        ]
+      }
+    },
+    "/v1/me/cancel-deletion": {
+      "post": {
+        "description": "Cancela uma solicita\u00e7\u00e3o de exclus\u00e3o pendente.",
+        "operationId": "cancel_deletion_v1_me_cancel_deletion_post",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CancelDeletionResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Cancel Deletion",
+        "tags": [
+          "data-deletion"
+        ]
+      }
+    },
+    "/v1/me/confirm-deletion": {
+      "post": {
+        "description": "Confirma exclus\u00e3o com token do email. Anonimiza perfil (soft-delete).",
+        "operationId": "confirm_deletion_v1_me_confirm_deletion_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ConfirmDeletionRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeletionRequestResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Confirm Deletion",
+        "tags": [
+          "data-deletion"
+        ]
+      }
+    },
     "/v1/me/export": {
       "get": {
         "description": "Export all user data as JSON file (LGPD Art. 18 V \u2014 data portability).\n\nUses admin client (get_db) because it queries across multiple tables\nand needs unrestricted access to gather all user data for export.\n\nReturns a downloadable JSON file containing:\n- Profile information\n- Search history (sessions)\n- Subscription history\n- Messages",
@@ -30151,6 +30460,33 @@
         "summary": "Export User Data",
         "tags": [
           "user"
+        ]
+      }
+    },
+    "/v1/me/request-deletion": {
+      "post": {
+        "description": "Solicita exclus\u00e3o de dados. Envia email de confirma\u00e7\u00e3o (double opt-out).\n\nIdempotente: se j\u00e1 existe pending, retorna 200 sem criar novo token.",
+        "operationId": "request_deletion_v1_me_request_deletion_post",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeletionRequestResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Request Deletion",
+        "tags": [
+          "data-deletion"
         ]
       }
     },
