@@ -1454,6 +1454,32 @@ NETWORK_EVENTS_COLLECTED_TOTAL = _create_counter(
 
 
 # ============================================================================
+# Issue #1813: ARQ Dead Letter Queue metrics
+# ============================================================================
+
+DLQ_ENQUEUED_TOTAL = _create_counter(
+    "smartlic_arq_dlq_enqueued_total",
+    "Issue #1813: ARQ jobs enqueued to the Dead Letter Queue after retry exhaustion",
+)
+
+DLQ_RETRIED_TOTAL = _create_counter(
+    "smartlic_arq_dlq_retried_total",
+    "Issue #1813: ARQ jobs retried (re-enqueued) from the Dead Letter Queue",
+)
+
+DLQ_SIZE = _create_gauge(
+    "smartlic_arq_dlq_size",
+    "Issue #1813: Current number of Redis keys in the Dead Letter Queue",
+)
+
+DLQ_SIZE_DEPTH = _create_histogram(
+    "smartlic_arq_dlq_entry_depth",
+    "Issue #1813: Number of entries per DLQ key (list length)",
+    buckets=[1, 5, 10, 25, 50, 100, 250, 500, 1000],
+)
+
+
+# ============================================================================
 # ASGI app factory for /metrics endpoint
 # ============================================================================
 
