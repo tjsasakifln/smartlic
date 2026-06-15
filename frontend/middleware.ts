@@ -212,10 +212,12 @@ function isPublicContentRoute(pathname: string): boolean {
   return CACHEABLE_CONTENT_PREFIXES.some(prefix => pathname.startsWith(prefix));
 }
 
-// SEO-CWV: s-maxage=3600 (Cloudflare caches 1h), stale-while-revalidate=86400
-// (serve stale for 24h while revalidating in background). max-age=0 forces
+// SEO-CWV: s-maxage=3600 (Cloudflare caches 1h), stale-while-revalidate=3600
+// (serve stale for 1h while revalidating in background). max-age=0 forces
 // browsers to always revalidate but allows CDN to cache.
-const PUBLIC_CACHE_CONTROL = "public, max-age=0, s-maxage=3600, stale-while-revalidate=86400";
+// ISSUE-1868 AC2: HTML pages com stale-while-revalidate=3600 (1h) para
+// Googlebot nunca ver 5xx mas nao acumular stale por mais de 1 hora.
+const PUBLIC_CACHE_CONTROL = "public, max-age=0, s-maxage=3600, stale-while-revalidate=3600";
 
 export async function middleware(request: NextRequest) {
   const { pathname, search } = request.nextUrl;
