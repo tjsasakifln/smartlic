@@ -30316,6 +30316,128 @@
         ]
       }
     },
+    "/v1/me/admin/{user_id}": {
+      "delete": {
+        "description": "Admin for\u00e7a exclus\u00e3o de um usu\u00e1rio (bypass double opt-out).",
+        "operationId": "admin_delete_user_v1_me_admin__user_id__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "user_id",
+            "required": true,
+            "schema": {
+              "title": "User Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeletionRequestResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Admin Delete User",
+        "tags": [
+          "data-deletion"
+        ]
+      }
+    },
+    "/v1/me/cancel-deletion": {
+      "post": {
+        "description": "Cancela uma solicita\u00e7\u00e3o de exclus\u00e3o pendente.",
+        "operationId": "cancel_deletion_v1_me_cancel_deletion_post",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CancelDeletionResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Cancel Deletion",
+        "tags": [
+          "data-deletion"
+        ]
+      }
+    },
+    "/v1/me/confirm-deletion": {
+      "post": {
+        "description": "Confirma exclus\u00e3o com token do email. Anonimiza perfil (soft-delete).",
+        "operationId": "confirm_deletion_v1_me_confirm_deletion_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ConfirmDeletionRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeletionRequestResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Confirm Deletion",
+        "tags": [
+          "data-deletion"
+        ]
+      }
+    },
     "/v1/me/export": {
       "get": {
         "description": "Export all user data as JSON file (LGPD Art. 18 V \u2014 data portability).\n\nUses admin client (get_db) because it queries across multiple tables\nand needs unrestricted access to gather all user data for export.\n\nReturns a downloadable JSON file containing:\n- Profile information\n- Search history (sessions)\n- Subscription history\n- Messages",
@@ -30338,6 +30460,33 @@
         "summary": "Export User Data",
         "tags": [
           "user"
+        ]
+      }
+    },
+    "/v1/me/request-deletion": {
+      "post": {
+        "description": "Solicita exclus\u00e3o de dados. Envia email de confirma\u00e7\u00e3o (double opt-out).\n\nIdempotente: se j\u00e1 existe pending, retorna 200 sem criar novo token.",
+        "operationId": "request_deletion_v1_me_request_deletion_post",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeletionRequestResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Request Deletion",
+        "tags": [
+          "data-deletion"
         ]
       }
     },
@@ -34755,155 +34904,6 @@
         "summary": "Get Recommended Plan",
         "tags": [
           "user"
-        ]
-      }
-    },
-    "/v1/v1/me/admin/{user_id}": {
-      "delete": {
-        "description": "Admin for\u00e7a exclus\u00e3o de um usu\u00e1rio (bypass double opt-out).",
-        "operationId": "admin_delete_user_v1_v1_me_admin__user_id__delete",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "user_id",
-            "required": true,
-            "schema": {
-              "title": "User Id",
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/DeletionRequestResponse"
-                }
-              }
-            },
-            "description": "Successful Response"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            },
-            "description": "Validation Error"
-          }
-        },
-        "security": [
-          {
-            "HTTPBearer": []
-          }
-        ],
-        "summary": "Admin Delete User",
-        "tags": [
-          "data-deletion"
-        ]
-      }
-    },
-    "/v1/v1/me/cancel-deletion": {
-      "post": {
-        "description": "Cancela uma solicita\u00e7\u00e3o de exclus\u00e3o pendente.",
-        "operationId": "cancel_deletion_v1_v1_me_cancel_deletion_post",
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/CancelDeletionResponse"
-                }
-              }
-            },
-            "description": "Successful Response"
-          }
-        },
-        "security": [
-          {
-            "HTTPBearer": []
-          }
-        ],
-        "summary": "Cancel Deletion",
-        "tags": [
-          "data-deletion"
-        ]
-      }
-    },
-    "/v1/v1/me/confirm-deletion": {
-      "post": {
-        "description": "Confirma exclus\u00e3o com token do email. Anonimiza perfil (soft-delete).",
-        "operationId": "confirm_deletion_v1_v1_me_confirm_deletion_post",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/ConfirmDeletionRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/DeletionRequestResponse"
-                }
-              }
-            },
-            "description": "Successful Response"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            },
-            "description": "Validation Error"
-          }
-        },
-        "security": [
-          {
-            "HTTPBearer": []
-          }
-        ],
-        "summary": "Confirm Deletion",
-        "tags": [
-          "data-deletion"
-        ]
-      }
-    },
-    "/v1/v1/me/request-deletion": {
-      "post": {
-        "description": "Solicita exclus\u00e3o de dados. Envia email de confirma\u00e7\u00e3o (double opt-out).\n\nIdempotente: se j\u00e1 existe pending, retorna 200 sem criar novo token.",
-        "operationId": "request_deletion_v1_v1_me_request_deletion_post",
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/DeletionRequestResponse"
-                }
-              }
-            },
-            "description": "Successful Response"
-          }
-        },
-        "security": [
-          {
-            "HTTPBearer": []
-          }
-        ],
-        "summary": "Request Deletion",
-        "tags": [
-          "data-deletion"
         ]
       }
     },
