@@ -1,8 +1,8 @@
 # ADR-RUNNER-001: Uvicorn vs Gunicorn — Application Server Runner
 
-## Status
-
-**ACEITO** — ativo desde CRIT-084 (2026-04).
+**Status:** Accepted (2026-04-27)
+**Date:** 2026-04-27
+**Owners:** @architect, @dev
 
 ## Context
 
@@ -30,7 +30,7 @@ Gunicorn foi configurado com `timeout=180` (env `GUNICORN_TIMEOUT`) e
 `keep-alive=75` (env `GUNICORN_KEEP_ALIVE`), mas a estabilidade do worker
 ficou comprometida independentemente destes parametros.
 
-### Alternativas consideradas
+## Alternatives Considered
 
 1. **Gunicorn + `cryptography` downgrade** — reverter `cryptography` para
    versao pre-46 que nao usava OpenSSL lock. Rejeitado: dependencia nao pode
