@@ -102,13 +102,24 @@ jobs:
       # with UPDATE_SNAPSHOTS=1 env var set on the pytest run above)
 
       # DEBT-123 AC1: Vulnerability scanning — BLOCKING (security-critical)
-      # PYSEC-2026-161: starlette<1.0.1 — pre-existing, not fixable without
+      # PYSEC-2026-161: starlette<1.0.1 Host header — pre-existing, not fixable without
       # FastAPI major upgrade (starlette is a FastAPI dep). Tracked separately.
+      # CVE-2026-48818, CVE-2026-48817, CVE-2026-54283, CVE-2026-54282: starlette<1.1.0
+      # — same constraint, fix versions (1.1.0/1.3.0/1.3.1) unreachable without FastAPI
+      # major upgrade. Tracked in docs/security/dependency-scanning.md.
+      # GHSA-537c-gmf6-5ccf: cryptography<48.0.1 — fix version 48.0.1 unreachable
+      # due to SIGSEGV constraint (cryptography<47.0.0 pinned). Tracked separately.
       - name: Vulnerability scan (pip-audit)
         run: |
           cd backend
-          pip-audit -r requirements.txt --ignore-vuln PYSEC-2026-161
-          echo "✅ pip-audit: no known vulnerabilities (PYSEC-2026-161 ignored — tracked separately)"
+          pip-audit -r requirements.txt \
+            --ignore-vuln PYSEC-2026-161 \
+            --ignore-vuln CVE-2026-48818 \
+            --ignore-vuln CVE-2026-48817 \
+            --ignore-vuln CVE-2026-54283 \
+            --ignore-vuln CVE-2026-54282 \
+            --ignore-vuln GHSA-537c-gmf6-5ccf
+          echo "✅ pip-audit: no known vulnerabilities (6 ignored — tracked separately)"
 
       # DEBT-123 AC9: Linting — intentionally non-blocking (advisory, not security)
       - name: Lint (ruff check)
