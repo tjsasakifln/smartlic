@@ -14,24 +14,34 @@ and https://github.com/redis/redis-py/issues/3454 — redis-py async applies
 socket_timeout to the ENTIRE response parse, not per-read. 5s was incompatible
 with any operation > 5s (XREAD BLOCK, large SCAN, slow XADD under load).
 
+#1801: Redis resilience — ``get_redis_pool()`` wraps the live connection in
+``ResilientRedis`` (from ``redis_resilience``) which applies per-operation
+timeouts (0.5s reads, 1s writes) via ``safe_redis_call``, preventing hangs
+when Redis is slow. When Redis is unavailable, returns None — existing
+``if redis:`` and ``if redis is None:`` checks continue to work unchanged.
+
 Usage:
     from redis_pool import get_redis_pool, get_fallback_cache, is_redis_available
 
     # In async context:
     redis = await get_redis_pool()
     if redis:
-        await redis.get("key")
+        await redis.get("key")    # protected by 500ms timeout (#1801)
     else:
         cache = get_fallback_cache()
         cache.get("key")
 """
 
+import asyncio
 import logging
 import os
 import time
 from collections import OrderedDict
 from datetime import datetime, timedelta, timezone
 from typing import Any, Optional
+
+# #1801: Redis resilience — per-operation timeouts and graceful fallback
+from redis_resilience import ResilientRedis
 
 logger = logging.getLogger(__name__)
 
@@ -60,6 +70,8 @@ INMEMORY_MAX_ENTRIES = 5_000
 # Singleton state
 _redis_pool = None
 _pool_initialized = False
+# #1801: Cache the resilient wrapper (separate from raw pool for shutdown/pool_stats)
+_resilient_pool = None
 
 
 class InMemoryCache:
@@ -184,14 +196,22 @@ async def get_redis_pool():
     Lazy initialization — creates pool on first call.
     Thread-safe within a single event loop.
 
+    #1801: Returns a ``ResilientRedis`` proxy when Redis is alive (adds per-operation
+    timeouts of 0.5-3s). Returns ``None`` when Redis is unavailable — existing
+    ``if redis:`` and ``if redis is None:`` checks continue to work unchanged.
+
     Returns:
-        redis.asyncio.Redis instance if available, None otherwise.
+        ResilientRedis instance if available, None otherwise.
         When None, callers should use get_fallback_cache().
     """
-    global _redis_pool, _pool_initialized
+    global _redis_pool, _pool_initialized, _resilient_pool
 
     if _pool_initialized:
-        return _redis_pool
+        # #1801: Return the cached resilient wrapper if pool exists,
+        # None if pool was never initialized (keeps backward compat).
+        if _redis_pool is None:
+            return None
+        return _resilient_pool
 
     redis_url = os.getenv("REDIS_URL")
     if not redis_url:
@@ -213,8 +233,9 @@ async def get_redis_pool():
             socket_connect_timeout=POOL_SOCKET_CONNECT_TIMEOUT,
         )
 
-        # Async ping — safe inside running event loop (no asyncio.run!)
-        await _redis_pool.ping()
+        # #1801: Add timeout to init ping (2s) so a dead Redis on startup
+        # doesn't hang the entire lifespan.
+        await asyncio.wait_for(_redis_pool.ping(), timeout=2.0)
         logger.info(
             "Redis pool connected: %s (max_connections=%d)",
             redis_url.split("@")[-1],
@@ -222,13 +243,16 @@ async def get_redis_pool():
         )
         _pool_initialized = True
         _mark_redis_connected()
-        return _redis_pool
+        # #1801: Wrap in ResilientRedis for per-operation timeout protection
+        _resilient_pool = ResilientRedis(_redis_pool)
+        return _resilient_pool
 
     except Exception as e:
         logger.warning(
             "Redis connection failed: %s — using InMemoryCache fallback", e
         )
         _redis_pool = None
+        _resilient_pool = None
         _pool_initialized = True
         _mark_fallback_started()
         return None
@@ -357,6 +381,10 @@ async def is_redis_available() -> bool:
     """Check if Redis pool is available and healthy (AC10, AC11).
 
     STORY-332: Also updates Prometheus metrics and emits periodic warnings.
+
+    #1801: ``pool.ping()`` goes through ``safe_redis_call`` with 500ms timeout
+    and returns ``False`` on failure (rather than raising). We check the return
+    value instead of catching exceptions.
     """
     pool = await get_redis_pool()
     if pool is None:
@@ -364,9 +392,13 @@ async def is_redis_available() -> bool:
         _emit_fallback_warning_if_needed()
         return False
     try:
-        await pool.ping()
-        _update_redis_metrics(available=True)
-        return True
+        ok = await pool.ping()
+        if ok:
+            _update_redis_metrics(available=True)
+            return True
+        _update_redis_metrics(available=False)
+        _emit_fallback_warning_if_needed()
+        return False
     except Exception:
         _update_redis_metrics(available=False)
         _emit_fallback_warning_if_needed()
@@ -389,6 +421,10 @@ async def shutdown_redis() -> None:
     """
     global _redis_pool, _pool_initialized, _sse_redis_pool, _sse_pool_initialized
     global _sync_redis, _sync_redis_initialized
+    global _resilient_pool
+
+    # #1801: Clear resilient wrapper
+    _resilient_pool = None
 
     # Close SSE pool first (depends on main pool as fallback)
     if _sse_redis_pool and _sse_redis_pool is not _redis_pool:

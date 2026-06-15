@@ -522,17 +522,17 @@ async def get_api_usage(
     # 4. Get daily usage from Redis (faster than DB for daily granularity)
     try:
         from redis_pool import get_redis_pool
-        redis = get_redis_pool()
+        redis = await get_redis_pool()
         if redis:
             # Scan Redis keys for daily usage: api_key_daily:{key_id}:{YYYY-MM-DD}
             for key_id in key_ids:
                 cursor = 0
                 pattern = f"api_key_daily:{key_id}:{current_month}-*"
                 while True:
-                    cursor, keys = redis.scan(cursor, match=pattern, count=100)
+                    cursor, keys = await redis.scan(cursor, match=pattern, count=100)
                     for k in keys:
                         day_str = k.decode().rsplit(":", 1)[-1]  # YYYY-MM-DD
-                        count = int(redis.get(k) or 0)
+                        count = int(await redis.get(k) or 0)
                         daily_usage_map[day_str] = daily_usage_map.get(day_str, 0) + count
                     if cursor == 0:
                         break
