@@ -1,204 +1,120 @@
-# API Versioning Strategy
+# Política de Versionamento de API — SmartLic
 
-## Politica Atual
+**Issue:** [#1808](https://github.com/tjsasakifln/SmartLic/issues/1808)
+**Prioridade:** P2
+**Versão Atual:** v1
+**Data:** 2026-06-15
 
-Todas as rotas da API sao prefixadas com `/v1/` atraves do registro centralizado
-em `backend/startup/routes.py`. O padrao e:
+## 1. Esquema de Versionamento
 
-```python
-# startup/routes.py::register_routes()
-for r in _v1_routers:
-    app.include_router(r, prefix="/v1")
+### 1.1 URL-Based Versioning
+
+```
+/api/v1/buscar
+/api/v2/buscar
 ```
 
-### Excecoes ao Prefixo `/v1/`
+Versão é prefixo da URL. Clientes sempre especificam a versão explicitamente.
 
-| Rota | Prefixo | Justificativa |
-|------|---------|---------------|
-| `/health/live`, `/health/ready` | Raiz (`/`) | Probes de container (Railway) -- nao mudam |
-| `/webhooks/stripe` | Raiz (`/`) | DEBT-324: configuracao fixa no Stripe Dashboard |
-| `/api/founders/*` | `/api/` | Issue #1002: landing page + SEO, fora do ciclo API |
-| `/api/founders/hall/*` | `/api/` | Issue #1008: listing publico + consentimento LGPD |
-| `/api/checkout/*` | `/api/` | CONV-005b-2: caminho generico para frontend |
-| `/api/email/*` | `/api/` | DIGEST-005: sem auth, acessiveis de email clients |
-| `/v1/admin/*` (auto-prefixados) | `/v1/admin/` | 5 routers admin que se prefixam internamente |
+### 1.2 Regra de Ouro
 
-### Contagem de Endpoints
+> **Nova versão da API só é criada quando há breaking change.** Mudanças compatíveis são feitas na versão atual.
 
-- **65 routers registrados**, sendo 60 em `_v1_routers`
-- **187 endpoints** no total
-- **~69 routers em `routes/`**, 65 registrados ativamente
+## 2. Definição de Breaking Change
 
----
+### 2.1 NÃO é Breaking Change ✅
 
-## Compromisso de Backward Compatibility
-
-### Regras
-
-1. **Campos novos em responses:** Adicionar campos opcionais `?` em schemas
-   Pydantic existentes e nunca remover campos existentes.
-2. **Parametros de query:** Novos parametros devem ter valores default que
-   mantem o comportamento existente.
-3. **Metodo HTTP:** Nunca mudar o metodo de um endpoint existente
-   (ex: `GET /v1/search/:id` nao se torna `POST /v1/search/:id`).
-4. **Path params:** Nunca renomear ou remover path params existentes.
-5. **Headers:** Headers de request existentes nunca sao exigidos como
-   obrigatorios se antes eram opcionais.
-6. **Erros:** Estrutura de erro (`detail`, `status_code`) e estavel. Novos
-   campos de erro devem ser adicionados como opcionais.
-
-### O que NÃO e breaking change
-
+- Adicionar novo campo na resposta
 - Adicionar novo endpoint
-- Adicionar campo opcional em response (clientes ignoram campos desconhecidos)
-- Adicionar query parameter opcional com default seguro
-- Alterar mensagens de erro (desde que o formato permaneca)
-- Corrigir bug que fazia endpoint retornar dados incorretos
-- Melhorar performance (nao afeta contrato)
+- Adicionar novo parâmetro de query opcional
+- Adicionar novo valor em enum
+- Mudar mensagem de erro (texto)
+- Mudar ordem de campos (clientes devem ser tolerantes)
+- Adicionar novo header de resposta
 
-### O que E breaking change
+### 2.2 É Breaking Change ❌
 
-- Remover ou renomear endpoint
-- Remover campo de response
-- Tornar campo opcional em obrigatorio
-- Mudar tipo de campo (ex: `string` -> `integer`)
-- Mudar codigo de status HTTP
-- Alterar estrutura de request body
-- Mudar fluxo de autenticacao
+- Remover campo da resposta
+- Mudar tipo de campo (ex: `string` → `number`)
+- Mudar nome de campo
+- Remover endpoint
+- Mudar URL do endpoint
+- Tornar obrigatório um parâmetro que era opcional
+- Mudar formato de data/hora
+- Remover valor de enum
+- Mudar código de status HTTP de sucesso (ex: 200 → 201)
+- Mudar semântica de parâmetro existente
 
----
+### 2.3 Zona Cinzenta ⚠️ (avaliar caso a caso)
 
-## Quando Criar `/v2/`
+- Mudar comportamento de validação (mais restritivo)
+- Mudar rate limit
+- Adicionar autenticação a endpoint público
+- Mudar paginação default
 
-### Gatilhos para `/v2/`
+## 3. Depreciação (Deprecation)
 
-Uma nova versao `/v2/` deve ser criada quando **pelo menos um** dos seguintes
-cenarios ocorrer:
+### 3.1 Headers HTTP
 
-1. **Mudanca no schema de dados:** O formato de um recurso central (ex: busca,
-   licitacao, usuario) precisa ser alterado de forma incompativel.
-2. **Mudanca no fluxo de autenticacao:** Novo mecanismo de auth incompativel
-   com o atual (ex: migrar de JWT para OAuth 2.1 com不同 scopes).
-3. **Remocao de funcionalidade:** Um endpoint precisa ser removido por razao
-   legal, de seguranca ou arquitetural.
-4. **Reestruturacao de recursos:** URL paths precisam ser reestruturados
-   (ex: `GET /v1/licitacoes/:id` -> `GET /v2/tenders/:id`).
+Quando um endpoint ou campo é depreciado, adicionar headers:
 
-### Nao sao gatilhos para `/v2/`
+```http
+HTTP/1.1 200 OK
+Deprecation: true
+Sunset: Sat, 31 Dec 2026 23:59:59 GMT
+```
 
-- Adicao de novos endpoints (use `/v1/` normalmente)
-- Campos opcionais em responses existentes
-- Correcoes de bug
-- Melhorias de performance ou confiabilidade
-- Mudancas internas de implementacao sem reflexo no contrato
+### 3.2 Sunset Policy
 
-### Estrategia de Migracao para `/v2/`
+| Marco | Prazo | Ação |
+|-------|:---:|-------|
+| **Anúncio** | D-180 | Headers Deprecation/Sunset adicionados |
+| **Aviso 1** | D-90 | Email para usuários da API |
+| **Aviso 2** | D-30 | Email de urgência |
+| **Sunset** | D-Day | Versão antiga retornará `410 Gone` |
 
-1. Criar `_v2_routers` em paralelo a `_v1_routers` em `startup/routes.py`
-2. Manter `/v1/` ativo por no minimo 6 meses apos o lancamento de `/v2/`
-3. Clientes `/v1/` recebem header `Warning: 299 - "This API version will be
-   deprecated. Migrate to /v2/ by YYYY-MM-DD"`
-4. `/v2/` deve ser uma copia limpa, sem dependencia interna de routers `/v1/`
-5. Schemas Pydantic do `/v2/` vivem em `backend/schemas/v2/` separados
+**Política:** v(N-1) mantida por **6 meses** após lançamento de vN.
 
----
+## 4. Comunicação com Clientes
 
-## Deprecation Policy
+| Canal | Público | Quando |
+|-------|---------|--------|
+| **Headers HTTP** | Clientes da API | Imediato (automático) |
+| **Changelog** | Desenvolvedores | `/api/docs/changelog` |
+| **Email** | Admins de conta | 90 dias antes do sunset |
+| **In-app banner** | Usuários logados | 60 dias antes do sunset |
 
-### Timeline
+## 5. CI Gate — Breaking Change Detection
 
-| Fase | Acao | Duracao |
-|------|------|---------|
-| **Announcement** | Header de warning + changelog entry | Dia 0 |
-| **Migration period** | `/v1/` e `/v2/` convivem, clientes migram | 3-6 meses |
-| **Soft deprecation** | `/v1/` retorna `410 Gone` com link para `/v2/` | 1 mes |
-| **Hard removal** | Codigo do `/v1/` removido do codebase | Apos soft deprecation |
-
-### Comunicacao
-
-1. **Changelog:** `CHANGELOG.md` deve listar todas as breaking changes planejadas
-2. **OpenAPI schema:** O schema `/v1/` deve conter `deprecated: true` no JSON
-   gerado
-3. **Email:** Clientes integrados via API recebem email 30 dias antes da
-   deprecation
-4. **Header de resposta:** Respostas de `/v1/` incluem:
-   ```http
-   Warning: 299 - "v1 is deprecated. Migrate to v2 by 2026-12-31"
-   ```
-
-### Excecoes
-
-- Endpoints de health check (`/health/*`) nunca sao versionados
-- Stripe webhooks (`/webhooks/stripe`) nunca sao versionados
-- SEO programmatic (`/api/founders/*`, `/api/checkout/*`) seguem ciclo proprio
-- Endpoints admin (`/v1/admin/*`) seguem deprecation acelerada (aviso 30 dias)
-
----
-
-## OpenAPI Schema como Contrato
-
-### Geracao
-
-O schema OpenAPI e gerado automaticamente a partir dos decoradores FastAPI
-(`response_model=`) e schemas Pydantic.
+### 5.1 OpenAPI Schema Comparison
 
 ```bash
-# Gerar schema localmente
-curl http://localhost:8000/openapi.json > openapi.json
+./scripts/check-api-breaking.sh main feature/nova-versao
 ```
 
-### Snapshot e CI
+Script compara campos removidos, tipos alterados, endpoints removidos.
 
-O arquivo `backend/tests/snapshots/openapi_schema.diff.json` rastreia mudancas
-no schema OpenAPI entre versoes. O CI valida que o schema gerado corresponde
-ao commitado em `frontend/app/api-types.generated.ts`.
+### 5.2 GitHub Actions
 
-### Tipoas TypeScript
+Incluir no CI para PRs que tocam `backend/schemas/` ou `backend/routes/`.
 
-O schema OpenAPI alimenta a geracao de tipos TypeScript:
+## 6. Versionamento de Tipos Frontend
+
+Tipos TypeScript são gerados automaticamente:
 
 ```bash
 npm --prefix frontend run generate:api-types
 ```
 
-**Regras:**
-- Todo endpoint exposto ao frontend DEVE declarar `response_model=` no decorator
-  da rota
-- Tipos gerados sao salvos em `frontend/app/api-types.generated.ts` (NAO editar
-  manualmente)
-- `frontend/app/types.ts` re-exporta tipos gerados com nomes amigaveis
-- CI falha se o arquivo gerado divergir do que o backend produziria
+Arquivo gerado: `frontend/app/api-types.generated.ts` (NÃO editar manualmente)
 
-### Canario de Schema (PNCP)
+## 7. Referências
 
-O arquivo `backend/contracts/schemas/pncp_search_response.schema.json` serve
-como JSON Schema canario para respostas da API PNCP. Se o payload divergir
-do schema, o canario (STORY-4.5) dispara alerta no Sentry.
+- [Stripe API Versioning](https://stripe.com/docs/api/versioning)
+- [FastAPI Bigger Applications](https://fastapi.tiangolo.com/tutorial/bigger-applications/)
+- [Check API Breaking Script](../../scripts/check-api-breaking.sh)
 
 ---
 
-## Registro de Rotas
-
-Todas as rotas sao registradas em `backend/startup/routes.py`:
-
-```python
-def register_routes(app: FastAPI) -> None:
-    # Health core em / (fora de versao)
-    app.include_router(health_core_router)
-    # API routers em /v1/
-    for r in _v1_routers:
-        app.include_router(r, prefix="/v1")
-    # Routers auto-prefixados
-    app.include_router(admin_trace_router)
-    app.include_router(admin_cron_router)
-    # ...
-    # Webhooks em / (configuracao fixa Stripe)
-    app.include_router(stripe_webhook_router)
-```
-
-Para adicionar uma nova rota:
-1. Criar arquivo em `backend/routes/`
-2. Adicionar a `_v1_routers` em `startup/routes.py`
-3. Declarar `response_model=` no decorator
-4. Registrar schemas Pydantic em `backend/schemas/`
-5. Executar `npm run generate:api-types` para atualizar tipos do frontend
+🤖 Generated with [Claude Code](https://claude.com/claude-code)
+Co-Authored-By: Claude Opus 4.8 <noreply@anthropic.com>
