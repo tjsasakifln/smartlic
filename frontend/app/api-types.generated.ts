@@ -710,6 +710,73 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/admin/dlq": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Dlq
+         * @description List entries in the ARQ Dead Letter Queue.
+         *
+         *     Returns entries sorted by ``enqueued_at`` descending (most recent first).
+         *     Each entry carries::
+         *
+         *         {
+         *             "uuid": "...",
+         *             "job_name": "...",
+         *             "payload": {...},
+         *             "error": "...",
+         *             "traceback": "...",
+         *             "enqueued_at": "2026-06-15T12:00:00+00:00"
+         *         }
+         *
+         *     When Redis is unreachable the response carries ``status="redis_unavailable"``
+         *     and an empty ``entries`` list.
+         */
+        get: operations["get_dlq_v1_admin_dlq_get"];
+        put?: never;
+        post?: never;
+        /**
+         * Purge Dlq
+         * @description Delete **all** entries from the ARQ Dead Letter Queue.
+         *
+         *     Returns ``{"status": "ok", "keys_deleted": N}`` on success.
+         *     Returns ``{"status": "error", "detail": "..."}`` on failure.
+         */
+        delete: operations["purge_dlq_v1_admin_dlq_delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/admin/dlq/{uuid}/retry": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Retry Dlq Entry
+         * @description Re-enqueue a single DLQ entry back into the ARQ job queue.
+         *
+         *     Returns ``{"status": "ok", "uuid": "..."}`` on success.
+         *     Returns ``{"status": "not_found", "uuid": "..."}`` if the entry no longer
+         *     exists (may have been purged or already retried).
+         *     Returns ``{"status": "error", "detail": "..."}`` on Redis or ARQ failure.
+         */
+        post: operations["retry_dlq_entry_v1_admin_dlq__uuid__retry_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/admin/feature-flags": {
         parameters: {
             query?: never;
@@ -17571,6 +17638,96 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["AdminCronStatusResponse"];
+                };
+            };
+        };
+    };
+    get_dlq_v1_admin_dlq_get: {
+        parameters: {
+            query?: {
+                /** @description Max entries to return */
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    purge_dlq_v1_admin_dlq_delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+        };
+    };
+    retry_dlq_entry_v1_admin_dlq__uuid__retry_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description UUID of the DLQ entry to retry */
+                uuid: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };

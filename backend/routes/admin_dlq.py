@@ -29,7 +29,7 @@ router = APIRouter(prefix="/v1/admin", tags=["admin", "dlq"])
 # ---------------------------------------------------------------------------
 
 
-@router.get("/dlq")
+@router.get("/dlq", response_model=dict)
 async def get_dlq(
     limit: int = Query(50, ge=1, le=500, description="Max entries to return"),
     user=Depends(require_admin),
@@ -85,7 +85,7 @@ async def get_dlq(
 # ---------------------------------------------------------------------------
 
 
-@router.post("/dlq/{uuid}/retry")
+@router.post("/dlq/{uuid}/retry", response_model=dict)
 async def retry_dlq_entry(
     uuid: str = Path(..., description="UUID of the DLQ entry to retry"),
     user=Depends(require_admin),
@@ -130,7 +130,7 @@ async def retry_dlq_entry(
 # ---------------------------------------------------------------------------
 
 
-@router.delete("/dlq")
+@router.delete("/dlq", response_model=dict)
 async def purge_dlq(
     user=Depends(require_admin),
 ) -> dict[str, Any]:
