@@ -118,12 +118,21 @@ jobs:
           echo "ℹ️ Ruff lint complete (non-blocking)"
         continue-on-error: true  # DEBT-123 AC9: intentional — linting is advisory, not security-critical
 
-      # DEBT-123 AC9: Type checking — intentionally non-blocking (advisory, not security)
-      - name: Type check (mypy)
+      # DEBT-123 AC9: Type checking — BLOCKING for strict modules (Issue #1870), advisory for rest
+      - name: Type check (mypy — strict modules)
+        id: mypy-strict
+        run: |
+          cd backend
+          mypy auth.py authorization.py quota/ filter/pipeline.py pipeline/stages/ --config-file=pyproject.toml 2>&1 | tail -30
+          echo "ℹ️ Mypy strict check complete"
+        continue-on-error: false  # Issue #1870 AC6: strict modules must pass
+
+      - name: Type check (mypy — advisory, full scan)
+        if: always()
         run: |
           cd backend
           mypy . --ignore-missing-imports --check-untyped-defs 2>&1 | tail -20
-          echo "ℹ️ Mypy type check complete (non-blocking)"
+          echo "ℹ️ Mypy full scan complete (non-blocking)"
         continue-on-error: true  # DEBT-123 AC9: intentional — type checking is advisory, not security-critical
 
       # Auto-commit regenerated OpenAPI snapshot (PR only).
