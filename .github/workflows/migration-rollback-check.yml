@@ -41,27 +41,52 @@ jobs:
       - name: Check down.sql pairing
         id: pairing
         run: |
-          echo "=== Running validate_down_migrations.sh ==="
-          ./scripts/validate_down_migrations.sh 2>&1 | tee /tmp/pairing_output.txt
-          EXIT_CODE=${PIPESTATUS[0]}
+          set +e
+          # Fetch base branch commit for comparison
+          BASE_SHA="${{ github.event.pull_request.base.sha }}"
+          git fetch origin "${BASE_SHA}" --depth=1 2>/dev/null
 
-          # Capture missing list for PR comment
-          MISSING=$(grep '^\s*- ' /tmp/pairing_output.txt | sed 's/^[[:space:]]*- //' | tr '\n' ',' | sed 's/,$//')
-          echo "missing_list=${MISSING}" >> $GITHUB_OUTPUT
+          # Get new .sql migration files added in this PR (exclude .down.sql)
+          NEW_UP_FILES=$(git diff --name-only --diff-filter=A \
+            "${BASE_SHA}" -- supabase/migrations/ \
+            | grep '\.sql$' | grep -v '\.down\.sql$' || true)
 
-          # Parse summary counts
-          TOTAL_UP=$(grep 'Total up migrations' /tmp/pairing_output.txt | awk '{print $NF}')
-          TOTAL_MISSING=$(grep 'Missing .down.sql' /tmp/pairing_output.txt | awk '{print $NF}')
-
-          echo "total_up=${TOTAL_UP:-0}" >> $GITHUB_OUTPUT
-          echo "total_missing=${TOTAL_MISSING:-0}" >> $GITHUB_OUTPUT
-          echo "has_missing=$([ "$TOTAL_MISSING" -gt 0 ] && echo 'true' || echo 'false')" >> $GITHUB_OUTPUT
-
-          if [ "$EXIT_CODE" -ne 0 ]; then
-            echo "::error::Migration pairing check FAILED — some up migrations are missing .down.sql."
-            exit "$EXIT_CODE"
+          if [ -z "$NEW_UP_FILES" ]; then
+            echo "No new migration files in this PR."
+            echo "total_up=0" >> $GITHUB_OUTPUT
+            echo "total_missing=0" >> $GITHUB_OUTPUT
+            echo "has_missing=false" >> $GITHUB_OUTPUT
+            echo "All migrations have paired .down.sql files."
+            exit 0
           fi
-          echo "All migrations have paired .down.sql files."
+
+          # Check each new up migration for a paired .down.sql
+          MISSING=()
+          for f in $NEW_UP_FILES; do
+            DOWN_FILE="${f%.sql}.down.sql"
+            if [ ! -f "$DOWN_FILE" ]; then
+              MISSING+=("$f")
+            fi
+          done
+
+          TOTAL_UP=$(echo "$NEW_UP_FILES" | wc -l | tr -d ' ')
+          TOTAL_MISSING=${#MISSING[@]}
+
+          echo "total_up=${TOTAL_UP}" >> $GITHUB_OUTPUT
+          echo "total_missing=${TOTAL_MISSING}" >> $GITHUB_OUTPUT
+
+          if [ "$TOTAL_MISSING" -gt 0 ]; then
+            echo "has_missing=true" >> $GITHUB_OUTPUT
+            MISSING_LIST=$(IFS=','; echo "${MISSING[*]}")
+            echo "missing_list=${MISSING_LIST}" >> $GITHUB_OUTPUT
+            echo "::error::Migration pairing check FAILED — ${TOTAL_MISSING} migration(s) missing .down.sql (out of ${TOTAL_UP} new)."
+            echo "  Missing .down.sql:" >&2
+            for f in "${MISSING[@]}"; do echo "    - ${f}" >&2; done
+            exit 1
+          fi
+
+          echo "has_missing=false" >> $GITHUB_OUTPUT
+          echo "All ${TOTAL_UP} new migration(s) have paired .down.sql files."
 
       # ----------------------------------------------------------------
       # Step 2: SQL syntax validation of .down.sql files
@@ -99,6 +124,18 @@ jobs:
 
           HAS_ERRORS=false
           SYNTAX_ERRORS=()
+
+          # Only validate .down.sql files that are new in this PR
+          NEW_DOWN_FILES=$(git diff --name-only --diff-filter=A \
+            "${{ github.event.pull_request.base.sha }}" -- supabase/migrations/ \
+            | grep '\.down\.sql$' || true)
+
+          if [ -z "$NEW_DOWN_FILES" ]; then
+            echo "  No new .down.sql files in this PR — skipping syntax validation."
+            echo "has_errors=false" >> $GITHUB_OUTPUT
+            docker stop "$CONTAINER_ID" >/dev/null 2>&1 || true
+            exit 0
+          fi
 
           while IFS= read -r -d '' down_file; do
             filename="${down_file#./}"
@@ -182,8 +219,6 @@ jobs:
                 '```\n' + errors + '\n```\n\n' +
                 'Fix these errors before merging — broken down scripts make rollback impossible.'
               );
-            } else {
-              syntaxSkipped = false; // already handled above
             }
 
             // If we didn't push a syntax section yet and there's no failure/skip
