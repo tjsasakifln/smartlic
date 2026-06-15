@@ -263,7 +263,7 @@ class TestJobQueueCorrelation:
             mock_pool.set = AsyncMock()
             mock_redis.return_value = mock_pool
 
-            from job_queue import llm_summary_job
+            from jobs.queue.jobs import llm_summary_job
 
             ctx = {"search_id": "job-test-001"}
             result = await llm_summary_job(
@@ -279,7 +279,7 @@ class TestJobQueueCorrelation:
     @pytest.mark.asyncio
     async def test_excel_job_accepts_kwargs(self):
         """AC17-AC18: excel_generation_job accepts **kwargs including _trace_id."""
-        from job_queue import excel_generation_job
+        from jobs.queue.jobs import excel_generation_job
 
         # Test with allow_excel=False — skips actual Excel generation
         with patch("redis_pool.get_redis_pool", new_callable=AsyncMock) as mock_redis, \
@@ -333,7 +333,7 @@ class TestAdminTraceEndpoint:
         app.dependency_overrides.pop(require_admin, None)
 
     @patch("redis_pool.get_redis_pool", new_callable=AsyncMock, return_value=None)
-    @patch("job_queue.get_job_result", new_callable=AsyncMock, return_value=None)
+    @patch("jobs.queue.result_store.get_job_result", new_callable=AsyncMock, return_value=None)
     @patch("progress.get_tracker", new_callable=AsyncMock, return_value=None)
     def test_trace_endpoint_returns_structure(self, mock_tracker, mock_job, mock_redis):
         resp = self.client.get("/v1/admin/search-trace/test-search-123")
@@ -346,7 +346,7 @@ class TestAdminTraceEndpoint:
         assert "jobs" in data
 
     @patch("redis_pool.get_redis_pool", new_callable=AsyncMock, return_value=None)
-    @patch("job_queue.get_job_result", new_callable=AsyncMock, return_value=None)
+    @patch("jobs.queue.result_store.get_job_result", new_callable=AsyncMock, return_value=None)
     @patch("progress.get_tracker", new_callable=AsyncMock)
     def test_trace_endpoint_with_active_tracker(self, mock_tracker, mock_job, mock_redis):
         tracker = MagicMock()
@@ -365,7 +365,7 @@ class TestAdminTraceEndpoint:
         assert data["progress"]["is_complete"] is False
 
     @patch("redis_pool.get_redis_pool", new_callable=AsyncMock, return_value=None)
-    @patch("job_queue.get_job_result", new_callable=AsyncMock)
+    @patch("jobs.queue.result_store.get_job_result", new_callable=AsyncMock)
     @patch("progress.get_tracker", new_callable=AsyncMock, return_value=None)
     def test_trace_endpoint_with_completed_jobs(self, mock_tracker, mock_job, mock_redis):
         # First call (resumo) returns data, second call (excel) returns None

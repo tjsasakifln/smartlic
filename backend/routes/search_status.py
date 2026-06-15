@@ -205,7 +205,7 @@ async def search_status_endpoint(
     # STORY-364 AC1: Include Excel status from job result (slow path)
     excel_url_db = None
     excel_status_db = None
-    from job_queue import get_job_result as _get_job_result
+    from jobs.queue.result_store import get_job_result as _get_job_result
     excel_result_db = await _get_job_result(search_id, "excel_result")
     if excel_result_db:
         excel_url_db = excel_result_db.get("download_url")

@@ -19,5 +19,9 @@ from jobs.cron.billing import (  # noqa: F401
     _plan_reconciliation_loop, _stripe_events_purge_loop,
 )
 from jobs.cron.trial_risk_detection import *  # noqa: F401,F403
+from jobs.cron.indice_municipal import *  # noqa: F401,F403
+from jobs.cron.cron_monitor import *  # noqa: F401,F403
+from jobs.cron.new_bids_notifier import *  # noqa: F401,F403
+from jobs.cron.send_lead_magnet import *  # noqa: F401,F403
 from jobs.cron.competitive_alert_job import *  # noqa: F401,F403
 from jobs.cron.scheduler import register_all_cron_tasks  # noqa: F401

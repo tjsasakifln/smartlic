@@ -1,9 +1,11 @@
 """jobs.llm_jobs — LLM-related async jobs.
 
-Re-exports LLM job functions from job_queue.
+Re-exports LLM job functions from jobs.queue (TD-1875).
 """
-from job_queue import (  # noqa: F401
+from jobs.queue.jobs import (  # noqa: F401
     llm_summary_job,
-    store_pending_review_bids,
     reclassify_pending_bids_job,
+)
+from jobs.queue.result_store import (  # noqa: F401
+    store_pending_review_bids,
 )

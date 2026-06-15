@@ -10,3 +10,4 @@ from cache.enums import (  # noqa: F401
     CacheLevel, CacheStatus, CachePriority, compute_search_hash,
 )
 from redis_pool import InMemoryCache, get_fallback_cache  # noqa: F401
+from cache_module import redis_cache  # noqa: F401

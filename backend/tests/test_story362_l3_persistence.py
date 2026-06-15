@@ -224,7 +224,7 @@ class TestAC6L3Fallback:
 
         with patch("routes.search_state.get_redis_pool", new_callable=AsyncMock, return_value=mock_redis), \
              patch("routes.search_state.get_background_results", return_value=None), \
-             patch("job_queue.get_job_result", new_callable=AsyncMock, return_value=None), \
+             patch("jobs.queue.result_store.get_job_result", new_callable=AsyncMock, return_value=None), \
              patch("routes.search_state._get_results_from_supabase", new_callable=AsyncMock, return_value=l3_data):
             result = await get_background_results_async("search-l3-fallback")
 
@@ -260,7 +260,7 @@ class TestAC6L3Fallback:
 
         with patch("routes.search_state.get_redis_pool", new_callable=AsyncMock, return_value=mock_redis), \
              patch("routes.search_state.get_background_results", return_value=None), \
-             patch("job_queue.get_job_result", new_callable=AsyncMock, return_value=None), \
+             patch("jobs.queue.result_store.get_job_result", new_callable=AsyncMock, return_value=None), \
              patch("routes.search_state._get_results_from_supabase", new_callable=AsyncMock, return_value=None):
             result = await get_background_results_async("search-all-miss")
             assert result is None
@@ -403,7 +403,7 @@ class TestAC8AC9AC10Integration:
 
         with patch("routes.search_state.get_redis_pool", new_callable=AsyncMock, return_value=mock_redis), \
              patch("routes.search_state.get_background_results", return_value=None), \
-             patch("job_queue.get_job_result", new_callable=AsyncMock, return_value=None), \
+             patch("jobs.queue.result_store.get_job_result", new_callable=AsyncMock, return_value=None), \
              patch("routes.search_state._get_results_from_supabase", new_callable=AsyncMock, return_value=l3_data):
             result = await get_background_results_async("ac9-6h")
             assert result is not None
