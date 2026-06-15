@@ -1,127 +1,95 @@
-# SmartLic Load Tests (k6)
+# Testes de Carga — SmartLic
 
-STORY-3.3 (EPIC-TD-2026Q2) — k6 baseline scripts for the production
-backend hot paths. The legacy Locust suite (`backend/locustfile.py` +
-`.github/workflows/load-test.yml`) remains in place; k6 runs alongside
-it for finer-grained latency thresholds and CI baseline comparisons.
+**Ferramenta:** [k6](https://k6.io) (Grafana) — gratuito, open source, JavaScript
 
-## Scripts
-
-| Script              | Endpoint                              | Profile                  | p95 SLO  | Error SLO |
-|---------------------|---------------------------------------|--------------------------|----------|-----------|
-| `buscar.k6.js`      | `POST /buscar`                        | 50 RPS for 5 min         | < 3000ms | < 2%      |
-| `dashboard.k6.js`   | `GET /analytics?endpoint=summary`     | 100 RPS for 5 min        | < 500ms  | < 1%      |
-| `sse.k6.js`         | `GET /buscar-progress/{search_id}`    | 50 concurrent x ~60s     | connect < 2s | disconnect < 5% |
-
-## Install k6
+## 1. Instalação
 
 ```bash
+# Linux (Debian/Ubuntu)
+sudo apt-get install k6
+
 # macOS
 brew install k6
-
-# Ubuntu / Debian
-sudo gpg -k && \
-  sudo gpg --no-default-keyring --keyring /usr/share/keyrings/k6-archive-keyring.gpg \
-    --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys C5AD17C747E3415A3642D57D77C6C491D6AC1D69 && \
-  echo "deb [signed-by=/usr/share/keyrings/k6-archive-keyring.gpg] https://dl.k6.io/deb stable main" \
-    | sudo tee /etc/apt/sources.list.d/k6.list && \
-  sudo apt update && sudo apt install -y k6
 
 # Windows (Chocolatey)
 choco install k6
 
-# Verify
-k6 version
+# Ou via Docker
+docker pull grafana/k6
 ```
 
-## Generate JWT fixtures
+## 2. Scripts Disponíveis
 
-The scripts authenticate via `Authorization: Bearer <jwt>`. Pre-mint a
-small pool of JWTs for test users and write them to
-`tests/load/fixtures/jwts.json` (gitignored).
+| Script | Objetivo | Duração | VUs Máx |
+|--------|----------|:---:|:---:|
+| `k6-search-load.js` | Load test progressivo | ~17 min | 500 |
+| `k6-stress-test.js` | Stress test + breaking point | ~36 min | 500 |
+
+## 3. Como Executar
+
+### 3.1 Load Test (Staging)
 
 ```bash
-# Option A: Supabase admin CLI (recommended)
-supabase auth admin generate-link \
-  --project-ref fqqyovlzdzimiwfofdjk \
-  --type magiclink \
-  --email loadtest1@smartlic.tech
-# then exchange the magic link for a session token via the SDK.
-
-# Option B: gotrue REST (service-role key required)
-curl -X POST "https://fqqyovlzdzimiwfofdjk.supabase.co/auth/v1/token?grant_type=password" \
-  -H "apikey: $SUPABASE_SERVICE_ROLE_KEY" \
-  -H "Content-Type: application/json" \
-  -d '{"email":"loadtest1@smartlic.tech","password":"<test-password>"}' \
-  | jq -r '.access_token'
-
-# Then assemble the fixture:
-cp tests/load/fixtures/jwts.json.example tests/load/fixtures/jwts.json
-$EDITOR tests/load/fixtures/jwts.json   # paste 3-5 access tokens
+k6 run tests/load/k6-search-load.js
+BASE_URL=https://localhost:8000 k6 run tests/load/k6-search-load.js
 ```
 
-WARNING: `jwts.json` is gitignored. Never commit real tokens.
-
-## Run locally
+### 3.2 Stress Test (Staging)
 
 ```bash
-# Smoke test (1 VU, 10s) — sanity-check script syntax and connectivity
-k6 run tests/load/buscar.k6.js \
-  --env SMOKE=1 \
-  --env BACKEND_URL=http://localhost:8000
-
-# Full baseline against staging
-k6 run tests/load/buscar.k6.js \
-  --env BACKEND_URL=https://smartlic-backend-staging.up.railway.app
-
-k6 run tests/load/dashboard.k6.js \
-  --env BACKEND_URL=https://smartlic-backend-staging.up.railway.app
-
-k6 run tests/load/sse.k6.js \
-  --env BACKEND_URL=https://smartlic-backend-staging.up.railway.app
-
-# Custom JWT fixture path
-k6 run tests/load/buscar.k6.js --env JWTS_PATH=/secure/jwts.json
+k6 run tests/load/k6-stress-test.js
 ```
 
-## Export results
+### 3.3 Modo CI (Leve)
 
 ```bash
-# JSON summary (machine-readable, used by CI baseline comparison)
-k6 run tests/load/buscar.k6.js \
-  --summary-export=baseline-buscar-$(date +%F).json
-
-# Streaming JSON (one event per line, full granularity)
-k6 run tests/load/buscar.k6.js --out json=buscar-stream.json
+k6 run --duration 2m --vus 10 tests/load/k6-search-load.js
 ```
 
-## k6 Cloud (optional)
+## 4. Métricas Coletadas
 
-```bash
-# Login (one-time)
-k6 cloud login --token "$K6_CLOUD_TOKEN"
+| Métrica | Descrição | Target |
+|---------|-----------|:---:|
+| **p50 latency** | Mediana da latência | < 500ms |
+| **p95 latency** | 95º percentil | < 2s (busca com 100 VUs) |
+| **p99 latency** | 99º percentil | < 5s |
+| **Throughput** | Requisições/segundo | > 50 req/s |
+| **Error Rate** | % de respostas não-200 | < 5% |
 
-# Run in cloud (50 VU free tier)
-k6 cloud tests/load/buscar.k6.js \
-  --env BACKEND_URL=https://smartlic-backend-staging.up.railway.app
-```
+## 5. Sinais de Problema
 
-## Targeting
+| Sintoma | Possível Causa |
+|---------|---------------|
+| p95 > 2s com 100 VUs | Bottleneck no banco ou Redis |
+| Erro rate > 5% com < 200 VUs | Rate limit ou timeout |
+| p95 cresce ao longo do teste | Memory leak |
+| Erro 502/503 | Worker saturado |
+| Erro 504 | Timeout upstream (OpenAI, PNCP) |
 
-- **DO NOT** run full load against production during business hours.
-- Default target: `https://smartlic-backend-staging.up.railway.app`
-- Production: only after coordination + during low-traffic windows.
+## 6. Capacity Planning
 
-## CI
+| VUs | Usuários Simultâneos | Interpretação |
+|:---:|:---:|---|
+| 50 | ~500 ativos | Carga leve |
+| 100 | ~1,000 ativos | Carga moderada |
+| 250 | ~2,500 ativos | Carga alta |
+| 500 | ~5,000 ativos | Pico de uso |
 
-Automated weekly runs against staging are wired in
-`.github/workflows/k6-load-test.yml` (Mon 03:00 UTC + manual dispatch).
-The workflow publishes the summary JSON as an artifact and compares
-p95 against `docs/performance/baseline-2026-04-14.json`; >20% degradation
-fails the build.
+*Estimativa: 1 VU ≈ 10 usuários reais (com think time)*
 
-## Related
+## 7. CI Semanal
 
-- `docs/performance/load-test-baseline.md` — methodology + interpretation
-- `docs/performance/baseline-2026-04-14.json` — current baseline snapshot
-- `.github/workflows/load-test.yml` — legacy Locust suite (kept)
+Workflow `.github/workflows/load-test-weekly.yml`:
+- Domingo 03:00 UTC
+- 10 VUs, 2 minutos
+- Target: staging
+- Falha se p95 > 3s ou error rate > 10%
+
+## 8. Referências
+
+- [k6 Docs](https://k6.io/docs/)
+- [Load Testing Plan](../docs/performance/load-testing-plan.md)
+
+---
+🤖 Generated with [Claude Code](https://claude.com/claude-code)
+Co-Authored-By: Claude Opus 4.8 <noreply@anthropic.com>
