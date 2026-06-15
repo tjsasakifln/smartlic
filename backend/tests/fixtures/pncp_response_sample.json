@@ -1,0 +1,74 @@
+[
+  {
+    "numeroControlePNCP": "12345678000199-1-000001/2026",
+    "objetoCompra": "Aquisição de uniformes escolares para rede municipal de ensino fundamental",
+    "orgaoEntidade": {
+      "cnpj": "12345678000199",
+      "razaoSocial": "Prefeitura Municipal de São Paulo",
+      "esferaId": 3
+    },
+    "unidadeOrgao": {
+      "codigoUnidade": 12345,
+      "nomeUnidade": "Secretaria Municipal de Educação",
+      "ufSigla": "SP",
+      "municipioNome": "São Paulo",
+      "codigoMunicipioIbge": "3550308"
+    },
+    "valorTotalEstimado": 150000.00,
+    "modalidadeId": 6,
+    "modalidadeNome": "Pregão Eletrônico",
+    "situacaoCompraNome": "Aberta",
+    "dataPublicacaoPncp": "2026-06-01T10:00:00Z",
+    "dataAberturaProposta": "2026-06-15T09:00:00Z",
+    "dataEncerramentoProposta": "2026-07-15T09:00:00Z",
+    "linkSistemaOrigem": "https://www.pregao.sp.gov.br/editais/001"
+  },
+  {
+    "numeroControlePNCP": "98765432000188-1-000005/2026",
+    "objetoCompra": "Contratação de serviços de limpeza e conservação predial",
+    "orgaoEntidade": {
+      "cnpj": "98765432000188",
+      "razaoSocial": "Governo do Estado do Rio de Janeiro",
+      "esferaId": 2
+    },
+    "unidadeOrgao": {
+      "codigoUnidade": 67890,
+      "nomeUnidade": "Secretaria de Administração",
+      "ufSigla": "RJ",
+      "municipioNome": "Rio de Janeiro",
+      "codigoMunicipioIbge": "3304557"
+    },
+    "valorTotalEstimado": 2800000.00,
+    "modalidadeId": 5,
+    "modalidadeNome": "Pregão Eletrônico",
+    "situacaoCompraNome": "Aberta",
+    "dataPublicacaoPncp": "2026-06-03T08:30:00Z",
+    "dataAberturaProposta": "2026-06-20T09:00:00Z",
+    "dataEncerramentoProposta": "2026-07-20T09:00:00Z",
+    "linkSistemaOrigem": "https://www.compras.rj.gov.br/editais/005"
+  },
+  {
+    "numeroControlePNCP": "55667788000177-1-000012/2026",
+    "objetoCompra": "Fornecimento de medicamentos e insumos hospitalares",
+    "orgaoEntidade": {
+      "cnpj": "55667788000177",
+      "razaoSocial": "Prefeitura Municipal de Belo Horizonte",
+      "esferaId": 3
+    },
+    "unidadeOrgao": {
+      "codigoUnidade": 24680,
+      "nomeUnidade": "Secretaria Municipal de Saúde",
+      "ufSigla": "MG",
+      "municipioNome": "Belo Horizonte",
+      "codigoMunicipioIbge": "3106200"
+    },
+    "valorTotalEstimado": 950000.00,
+    "modalidadeId": 6,
+    "modalidadeNome": "Pregão Eletrônico",
+    "situacaoCompraNome": "Aberta",
+    "dataPublicacaoPncp": "2026-06-05T14:00:00Z",
+    "dataAberturaProposta": "2026-06-22T09:00:00Z",
+    "dataEncerramentoProposta": "2026-07-22T09:00:00Z",
+    "linkSistemaOrigem": "https://www.pbh.gov.br/licitacoes/012"
+  }
+]
