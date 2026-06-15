@@ -23924,7 +23924,7 @@
     },
     "/v1/admin/users": {
       "get": {
-        "description": "List all users with profiles and subscription info.",
+        "description": "List all users with profiles and subscription info (LGPD-sensitive).",
         "operationId": "list_users_v1_admin_users_get",
         "parameters": [
           {
