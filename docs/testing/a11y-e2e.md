@@ -15,16 +15,19 @@ and how to triage violations the automated audit reports.
 | Spec | What it covers |
 |------|----------------|
 | `frontend/e2e-tests/accessibility-audit.spec.ts` | 10 high-traffic pages: `/`, `/login`, `/signup`, `/buscar`, `/dashboard`, `/pipeline`, `/planos`, `/historico`, `/conta`, `/ajuda` |
+| `frontend/e2e-tests/a11y/critical-pages.spec.ts` | **CI Gate (#1871)** — 10 critical pages: home, login, signup, planos, observatorio, buscar, pipeline, conta, checkout, onboarding |
 | `frontend/e2e-tests/dialog-accessibility.spec.ts` | Modal / dialog focus management |
 | `frontend/e2e-tests/tour-a11y.spec.ts` | Shepherd.js onboarding tour |
 | `frontend/e2e-tests/pipeline-keyboard.spec.ts` (AC6) | Pipeline keyboard nav + axe |
 
-All four import the shared fixture at
+All five import the shared fixture at
 `frontend/e2e-tests/fixtures/axe.ts` (or use `AxeBuilder` directly with the
 same WCAG 2.1 AA tag set).
 
-CI runs them in `.github/workflows/e2e.yml` and `.github/workflows/tests.yml`
-on every PR touching `frontend/**`.
+CI runs them in:
+- `.github/workflows/e2e.yml` (full E2E suite)
+- `.github/workflows/tests.yml` (on push to main)
+- **`.github/workflows/a11y-gate.yml`** (#1871 — dedicated a11y CI gate triggered by component changes)
 
 ## Severity policy
 
@@ -112,12 +115,18 @@ embed produces unactionable noise across multiple pages.
 ## Running locally
 
 ```bash
-# All a11y specs
+# CI gate scan (10 critical pages — same as CI)
 cd frontend
+npm run test:a11y
+
+# All a11y specs
 npx playwright test accessibility-audit dialog-accessibility tour-a11y
 
 # Single page
 npx playwright test accessibility-audit -g "Login"
+
+# Single page (CI gate spec)
+npx playwright test e2e-tests/a11y/critical-pages.spec.ts -g "Home"
 
 # Headed (see what axe is auditing)
 npx playwright test accessibility-audit --headed
@@ -128,7 +137,7 @@ axe JSON per failing test for offline triage.
 
 ## When the audit fails on a PR
 
-1. Open the Playwright report artifact uploaded by CI.
+1. Open the **a11y-report** artifact from the `a11y-gate.yml` workflow run (or the Playwright report from `e2e.yml`).
 2. Find the failing page test, expand the attachment `axe-<context>.json`.
 3. Filter to `impact: "critical"` or `"serious"` — those are blockers.
 4. For each:
@@ -144,10 +153,14 @@ axe JSON per failing test for offline triage.
 ## Adding new pages to the audit
 
 1. Pick a high-traffic public or authenticated page (top 20 by analytics).
-2. Add a new test block to `accessibility-audit.spec.ts` following the
+2. Add a new test block to `accessibility-audit.spec.ts` or
+   `frontend/e2e-tests/a11y/critical-pages.spec.ts` following the
    existing template (mock auth/data → goto → wait for hydration → audit).
 3. Set up any required mocks via `helpers/test-utils.ts`.
-4. Run locally to confirm zero serious violations before opening a PR.
+4. Run locally to confirm zero serious violations before opening a PR:
+   ```bash
+   npm run test:a11y
+   ```
 
 ## References
 
@@ -156,3 +169,5 @@ axe JSON per failing test for offline triage.
 - axe-core/playwright README: <https://github.com/dequelabs/axe-core-npm/tree/develop/packages/playwright>
 - Existing component a11y units: `frontend/__tests__/a11y/`,
   `frontend/__tests__/viability-badge-a11y.test.tsx`
+- CI gate docs: `docs/accessibility/ci-gate.md`
+- CI workflow: `.github/workflows/a11y-gate.yml`

@@ -8,7 +8,8 @@ export default defineConfig({
   testDir: './e2e-tests',
 
   /* Ignora specs de crawl de produção + compra real — não devem rodar em PRs comuns */
-  testIgnore: ['**/seo/**', '**/real-purchase-flow.spec.ts'],
+  /* A11y/ diretório tem seu próprio pipeline CI (npm run test:a11y) — #1871 */
+  testIgnore: ['**/seo/**', '**/a11y/**', '**/real-purchase-flow.spec.ts'],
 
   /* Maximum time one test can run */
   timeout: 60 * 1000, // 60s per test (AC7)
