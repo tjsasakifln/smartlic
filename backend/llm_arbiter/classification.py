@@ -396,7 +396,6 @@ def classify_contract_primary_match(
 
     D-02: Returns structured dict with confidence, evidence, and rejection reason.
     """
-    # DEBT-128: LLM_ARBITER_ENABLED removed — always-on. Lazy import via facade kept for test backward compat.
 
     if not setor_name and not termos_busca:
         logger.error(
