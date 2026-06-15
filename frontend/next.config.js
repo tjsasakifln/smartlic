@@ -111,6 +111,18 @@ const nextConfig = {
     ];
   },
 
+  // Issue #1806: Rewrite /api/openapi.json to backend FastAPI OpenAPI schema.
+  // Next.js catches /api/* paths and looks for route handlers, but there is
+  // no app/api/openapi.json/ route — the backend serves it at /openapi.json.
+  async rewrites() {
+    return [
+      {
+        source: '/api/openapi.json',
+        destination: `${process.env.BACKEND_URL || 'http://localhost:8000'}/openapi.json`,
+      },
+    ];
+  },
+
   // SYS-019: Cache headers for static assets (CDN-ready)
   async headers() {
     return [
