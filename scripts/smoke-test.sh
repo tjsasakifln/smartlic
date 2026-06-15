@@ -64,7 +64,7 @@ check_endpoint() {
     status="FAIL"
     color="${RED}"
     echo -e "  ${color}Connection failed (timeout or DNS error)${NC}"
-    ((FAIL_COUNT++))
+    ((FAIL_COUNT+=1))
     $FAIL_FAST && exit 1
     return
   fi
@@ -72,22 +72,23 @@ check_endpoint() {
   if [ "${http_code}" -ge 200 ] && [ "${http_code}" -lt 300 ]; then
     status="PASS"
     color="${GREEN}"
-    ((PASS_COUNT++))
+    ((PASS_COUNT+=1))
   elif [ "${http_code}" -ge 500 ]; then
-    # POST /buscar may return 4xx (auth/validation) — that's OK.
-    # Only 5xx is a regression.
-    if [ "${path}" = "/v1/buscar" ]; then
-      echo -e "  ${YELLOW}INFO${NC}: HTTP ${http_code} (expected 202/200/4xx, not 5xx)"
-      ((PASS_COUNT++))
-    else
-      status="FAIL"
-      color="${RED}"
-      ((FAIL_COUNT++))
-      $FAIL_FAST && exit 1
-    fi
+    # 5xx is always a deploy regression.
+    status="FAIL"
+    color="${RED}"
+    ((FAIL_COUNT+=1))
+    $FAIL_FAST && exit 1
+  elif [ "${path}" = "/v1/buscar" ]; then
+    # /v1/buscar: 4xx expected (auth/validation missing in smoke test).
+    echo -e "  ${YELLOW}INFO${NC}: HTTP ${http_code} (expected 202/200/4xx)"
+    ((PASS_COUNT+=1))
   else
-    echo -e "  ${GREEN}OK${NC}: HTTP ${http_code}"
-    ((PASS_COUNT++))
+    # Other endpoints: non-2xx/non-5xx is a failure.
+    status="FAIL"
+    color="${RED}"
+    ((FAIL_COUNT+=1))
+    $FAIL_FAST && exit 1
   fi
 
   echo -e "  ${color}${status}${NC}: HTTP ${http_code} ${expected_text}"
