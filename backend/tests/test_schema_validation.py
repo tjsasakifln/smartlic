@@ -278,8 +278,8 @@ class TestStartupSchemaValidation:
                 with patch("config.validate_env_vars"), \
                      patch("redis_pool.startup_redis", new_callable=lambda: lambda: asyncio.sleep(0)), \
                      patch("job_queue.get_arq_pool", new_callable=lambda: lambda: asyncio.sleep(0)), \
-                     patch("cron_jobs.start_cache_cleanup_task", return_value=asyncio.create_task(asyncio.sleep(0))), \
-                     patch("cron_jobs.start_session_cleanup_task", return_value=asyncio.create_task(asyncio.sleep(0))), \
+                     patch("jobs.cron.start_cache_cleanup_task", return_value=asyncio.create_task(asyncio.sleep(0))), \
+                     patch("jobs.cron.start_session_cleanup_task", return_value=asyncio.create_task(asyncio.sleep(0))), \
                      patch("startup.lifespan._check_cache_schema", new_callable=lambda: lambda: asyncio.sleep(0)), \
                      patch("search_state_manager.recover_stale_searches", new_callable=lambda: lambda max_age_minutes: asyncio.sleep(0)), \
                      patch("startup.lifespan._log_registered_routes"), \

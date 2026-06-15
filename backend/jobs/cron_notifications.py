@@ -1,8 +1,8 @@
 """jobs.cron_notifications — Alert, trial sequence, and support SLA cron tasks.
 
-Re-exports notification cron functions from cron_jobs.
+Re-exports notification cron functions from jobs.cron (TD-1875).
 """
-from cron_jobs import (  # noqa: F401
+from jobs.cron import (  # noqa: F401
     start_alerts_task,
     run_search_alerts,
     _alerts_loop,

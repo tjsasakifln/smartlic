@@ -478,7 +478,7 @@ class TestHealthCanary:
         _circuit_breaker.reset()
 
     @pytest.mark.asyncio
-    @patch("cron_jobs.get_pncp_cron_status", return_value={"status": "healthy", "latency_ms": 100, "updated_at": 1000})
+    @patch("jobs.cron.get_pncp_cron_status", return_value={"status": "healthy", "latency_ms": 100, "updated_at": 1000})
     @patch("config.PNCP_CANARY_TIMEOUT_S", 5.0)
     @patch("config.PNCP_CANARY_TIMEOUT_EXTENDED_S", 15.0)
     async def test_health_canary_success(self, _mock_cron):
@@ -498,7 +498,7 @@ class TestHealthCanary:
         assert _circuit_breaker.is_degraded is False
 
     @pytest.mark.asyncio
-    @patch("cron_jobs.get_pncp_cron_status", return_value={"status": "healthy", "latency_ms": 100, "updated_at": 1000})
+    @patch("jobs.cron.get_pncp_cron_status", return_value={"status": "healthy", "latency_ms": 100, "updated_at": 1000})
     @patch("config.PNCP_CANARY_TIMEOUT_S", 5.0)
     @patch("config.PNCP_CANARY_TIMEOUT_EXTENDED_S", 15.0)
     async def test_health_canary_success_204(self, _mock_cron):
@@ -518,7 +518,7 @@ class TestHealthCanary:
         assert _circuit_breaker.is_degraded is False
 
     @pytest.mark.asyncio
-    @patch("cron_jobs.get_pncp_cron_status", return_value={"status": "healthy", "latency_ms": 100, "updated_at": 1000})
+    @patch("jobs.cron.get_pncp_cron_status", return_value={"status": "healthy", "latency_ms": 100, "updated_at": 1000})
     @patch("config.PNCP_CANARY_TIMEOUT_S", 5.0)
     @patch("config.PNCP_CANARY_TIMEOUT_EXTENDED_S", 15.0)
     async def test_health_canary_failure_timeout_sets_degraded(self, _mock_cron):
@@ -536,7 +536,7 @@ class TestHealthCanary:
         assert _circuit_breaker.consecutive_failures > 0
 
     @pytest.mark.asyncio
-    @patch("cron_jobs.get_pncp_cron_status", return_value={"status": "healthy", "latency_ms": 100, "updated_at": 1000})
+    @patch("jobs.cron.get_pncp_cron_status", return_value={"status": "healthy", "latency_ms": 100, "updated_at": 1000})
     @patch("config.PNCP_CANARY_TIMEOUT_S", 5.0)
     @patch("config.PNCP_CANARY_TIMEOUT_EXTENDED_S", 15.0)
     async def test_health_canary_failure_http_error_sets_degraded(self, _mock_cron):
@@ -556,7 +556,7 @@ class TestHealthCanary:
         assert _circuit_breaker.consecutive_failures > 0
 
     @pytest.mark.asyncio
-    @patch("cron_jobs.get_pncp_cron_status", return_value={"status": "healthy", "latency_ms": 100, "updated_at": 1000})
+    @patch("jobs.cron.get_pncp_cron_status", return_value={"status": "healthy", "latency_ms": 100, "updated_at": 1000})
     @patch("config.PNCP_CANARY_TIMEOUT_S", 5.0)
     @patch("config.PNCP_CANARY_TIMEOUT_EXTENDED_S", 15.0)
     async def test_health_canary_failure_500_sets_degraded(self, _mock_cron):
@@ -577,7 +577,7 @@ class TestHealthCanary:
         assert _circuit_breaker.consecutive_failures > 0
 
     @pytest.mark.asyncio
-    @patch("cron_jobs.get_pncp_cron_status", return_value={"status": "healthy", "latency_ms": 100, "updated_at": 1000})
+    @patch("jobs.cron.get_pncp_cron_status", return_value={"status": "healthy", "latency_ms": 100, "updated_at": 1000})
     @patch("config.PNCP_CANARY_TIMEOUT_S", 5.0)
     @patch("config.PNCP_CANARY_TIMEOUT_EXTENDED_S", 15.0)
     async def test_health_canary_failure_logs_warning(self, _mock_cron, caplog):
@@ -604,7 +604,7 @@ class TestHealthCanary:
         )
 
     @pytest.mark.asyncio
-    @patch("cron_jobs.get_pncp_cron_status", return_value={"status": "healthy", "latency_ms": 100, "updated_at": 1000})
+    @patch("jobs.cron.get_pncp_cron_status", return_value={"status": "healthy", "latency_ms": 100, "updated_at": 1000})
     @patch("config.PNCP_CANARY_TIMEOUT_S", 5.0)
     @patch("config.PNCP_CANARY_TIMEOUT_EXTENDED_S", 15.0)
     async def test_health_canary_not_initialized_raises(self, _mock_cron):

@@ -528,7 +528,7 @@ class TestRevenueShareCronJob:
                 SimpleNamespace(data=[]),
             ]
 
-            from cron_jobs import run_revenue_share_report
+            from jobs.cron import run_revenue_share_report
             result = await run_revenue_share_report()
 
         assert "partner_reports" in result

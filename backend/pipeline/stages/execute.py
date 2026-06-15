@@ -389,7 +389,7 @@ async def stage_execute(pipeline, ctx: SearchContext) -> None:
         logger.info("CRIT-056: Cache SKIP — sources degraded and zero results")
         CACHE_QUALITY_WRITE_TOTAL.labels(quality_bucket="empty").inc()
     elif ctx.licitacoes_raw and len(ctx.licitacoes_raw) > 0:
-        from cron_jobs import get_pncp_recovery_epoch
+        from jobs.cron import get_pncp_recovery_epoch
         cache_data = {
             "licitacoes": ctx.licitacoes_raw,
             "total": len(ctx.licitacoes_raw),

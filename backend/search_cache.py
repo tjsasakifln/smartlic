@@ -1,4 +1,7 @@
-"""search_cache — Backward-compatible facade for cache package.
+"""search_cache — Backward-compatible facade for cache package (DEPRECATED).
+
+DEPRECATION NOTICE: Import directly from ``cache.`` submodules instead.
+This facade will be removed in a future release (TD-1875).
 
 All implementations now live in cache/ submodules:
   - cache.enums      — Enums, constants, hash utilities
@@ -9,13 +12,15 @@ All implementations now live in cache/ submodules:
   - cache.local_file — Local file cache L3 layer
   - cache.redis      — Redis L2 layer
   - cache.supabase   — Supabase L1 layer
-  - cache.memory     — InMemoryCache re-export
 
 Import paths like ``from search_cache import save_to_cache`` continue to work.
 
 NOTE: _active_revalidations and _revalidation_lock live in cache.swr.
 Tests that set these must use: import cache.swr; cache.swr._active_revalidations = 0
 """
+
+import warnings
+
 # Enums and constants
 from cache.enums import (
     CacheLevel, CacheStatus, CachePriority,
@@ -75,8 +80,19 @@ from cache.supabase import (
 )
 from cache.redis import _save_to_redis, _get_from_redis
 
+# InMemoryCache (moved to redis_pool in TD-1875 — cache.memory removed)
+from redis_pool import InMemoryCache, get_fallback_cache  # noqa: F401
+
 # Keep asyncio in namespace for backward-compat test patches
 import asyncio  # noqa: F401
+
+warnings.warn(
+    "search_cache is deprecated. Import from 'cache' submodules directly (e.g., "
+    "from cache.manager import save_to_cache). This facade will be removed in a "
+    "future release.",
+    DeprecationWarning,
+    stacklevel=2,
+)
 
 __all__ = [
     # Enums/constants
@@ -111,6 +127,8 @@ __all__ = [
     # Supabase/Redis internal (backward compat)
     "_save_to_supabase", "_get_from_supabase", "_get_global_fallback_from_supabase",
     "_save_to_redis", "_get_from_redis",
+    # InMemoryCache (backward compat — from redis_pool directly)
+    "InMemoryCache", "get_fallback_cache",
     # asyncio for patch compat
     "asyncio",
 ]

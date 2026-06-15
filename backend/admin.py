@@ -873,7 +873,7 @@ async def trigger_reconciliation(
 
     Executes immediately (bypasses cron schedule) but respects Redis lock.
     """
-    from cron_jobs import run_reconciliation
+    from jobs.cron import run_reconciliation
 
     log_admin_action(
         logger,

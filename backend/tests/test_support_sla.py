@@ -176,7 +176,7 @@ class TestCheckUnansweredMessages:
 
         mock_sb_execute.return_value = Mock(data=[])
 
-        from cron_jobs import check_unanswered_messages
+        from jobs.cron import check_unanswered_messages
         result = await check_unanswered_messages()
 
         assert result["checked"] == 0
@@ -211,7 +211,7 @@ class TestCheckUnansweredMessages:
             }
         ])
 
-        from cron_jobs import check_unanswered_messages
+        from jobs.cron import check_unanswered_messages
         result = await check_unanswered_messages()
 
         assert result["checked"] == 1
@@ -249,7 +249,7 @@ class TestCheckUnansweredMessages:
             }
         ])
 
-        from cron_jobs import check_unanswered_messages
+        from jobs.cron import check_unanswered_messages
         result = await check_unanswered_messages()
 
         assert result["checked"] == 1

@@ -75,7 +75,7 @@ class TestPlanReconciliation:
              patch("redis_pool.get_redis_pool", return_value=mock_redis_acquired), \
              patch("metrics.PLAN_RECONCILIATION_RUNS", mock_runs), \
              patch("metrics.PLAN_RECONCILIATION_DRIFT", mock_drift):
-            from cron_jobs import run_plan_reconciliation
+            from jobs.cron import run_plan_reconciliation
             result = await run_plan_reconciliation()
 
         assert result["status"] == "completed"
@@ -111,7 +111,7 @@ class TestPlanReconciliation:
              patch("redis_pool.get_redis_pool", return_value=mock_redis_acquired), \
              patch("metrics.PLAN_RECONCILIATION_RUNS", mock_runs), \
              patch("metrics.PLAN_RECONCILIATION_DRIFT", mock_drift):
-            from cron_jobs import run_plan_reconciliation
+            from jobs.cron import run_plan_reconciliation
             result = await run_plan_reconciliation()
 
         assert result["status"] == "completed"
@@ -147,7 +147,7 @@ class TestPlanReconciliation:
              patch("redis_pool.get_redis_pool", return_value=mock_redis_acquired), \
              patch("metrics.PLAN_RECONCILIATION_RUNS", mock_runs), \
              patch("metrics.PLAN_RECONCILIATION_DRIFT", mock_drift):
-            from cron_jobs import run_plan_reconciliation
+            from jobs.cron import run_plan_reconciliation
             result = await run_plan_reconciliation()
 
         assert result["status"] == "completed"
@@ -183,7 +183,7 @@ class TestPlanReconciliation:
              patch("redis_pool.get_redis_pool", return_value=mock_redis_acquired), \
              patch("metrics.PLAN_RECONCILIATION_RUNS", mock_runs), \
              patch("metrics.PLAN_RECONCILIATION_DRIFT", mock_drift):
-            from cron_jobs import run_plan_reconciliation
+            from jobs.cron import run_plan_reconciliation
             result = await run_plan_reconciliation()
 
         assert result["status"] == "completed"
@@ -216,7 +216,7 @@ class TestPlanReconciliation:
              patch("redis_pool.get_redis_pool", return_value=mock_redis_acquired), \
              patch("metrics.PLAN_RECONCILIATION_RUNS", mock_runs), \
              patch("metrics.PLAN_RECONCILIATION_DRIFT", mock_drift):
-            from cron_jobs import run_plan_reconciliation
+            from jobs.cron import run_plan_reconciliation
             result = await run_plan_reconciliation()
 
         assert result["status"] == "completed"
@@ -252,7 +252,7 @@ class TestPlanReconciliation:
              patch("redis_pool.get_redis_pool", return_value=mock_redis_acquired), \
              patch("metrics.PLAN_RECONCILIATION_RUNS", mock_runs), \
              patch("metrics.PLAN_RECONCILIATION_DRIFT", mock_drift):
-            from cron_jobs import run_plan_reconciliation
+            from jobs.cron import run_plan_reconciliation
             result = await run_plan_reconciliation()
 
         assert result["status"] == "completed"
@@ -271,7 +271,7 @@ class TestPlanReconciliation:
         with patch("redis_pool.get_redis_pool", return_value=mock_redis_held), \
              patch("metrics.PLAN_RECONCILIATION_RUNS", mock_runs), \
              patch("metrics.PLAN_RECONCILIATION_DRIFT", mock_drift):
-            from cron_jobs import run_plan_reconciliation
+            from jobs.cron import run_plan_reconciliation
             result = await run_plan_reconciliation()
 
         assert result["status"] == "skipped"
@@ -311,7 +311,7 @@ class TestPlanReconciliation:
              patch("redis_pool.get_redis_pool", return_value=None), \
              patch("metrics.PLAN_RECONCILIATION_RUNS", mock_runs), \
              patch("metrics.PLAN_RECONCILIATION_DRIFT", mock_drift):
-            from cron_jobs import run_plan_reconciliation
+            from jobs.cron import run_plan_reconciliation
             result = await run_plan_reconciliation()
 
         # Should complete (lock_acquired=False but lock check passed since redis is None)
@@ -344,7 +344,7 @@ class TestPlanReconciliation:
              patch("redis_pool.get_redis_pool", side_effect=raise_redis_error), \
              patch("metrics.PLAN_RECONCILIATION_RUNS", mock_runs), \
              patch("metrics.PLAN_RECONCILIATION_DRIFT", mock_drift):
-            from cron_jobs import run_plan_reconciliation
+            from jobs.cron import run_plan_reconciliation
             result = await run_plan_reconciliation()
 
         # Should still complete — Redis failure sets lock_acquired=True and proceeds
@@ -364,7 +364,7 @@ class TestPlanReconciliation:
              patch("redis_pool.get_redis_pool", return_value=mock_redis_acquired), \
              patch("metrics.PLAN_RECONCILIATION_RUNS", mock_runs), \
              patch("metrics.PLAN_RECONCILIATION_DRIFT", mock_drift):
-            from cron_jobs import run_plan_reconciliation
+            from jobs.cron import run_plan_reconciliation
             result = await run_plan_reconciliation()
 
         assert result["status"] == "error"
@@ -390,7 +390,7 @@ class TestPlanReconciliation:
              patch("redis_pool.get_redis_pool", return_value=mock_redis_acquired), \
              patch("metrics.PLAN_RECONCILIATION_RUNS", MagicMock()), \
              patch("metrics.PLAN_RECONCILIATION_DRIFT", MagicMock()):
-            from cron_jobs import run_plan_reconciliation
+            from jobs.cron import run_plan_reconciliation
             result = await run_plan_reconciliation()
 
         assert result["status"] == "completed"
@@ -424,7 +424,7 @@ class TestPlanReconciliation:
              patch("redis_pool.get_redis_pool", return_value=mock_redis_acquired), \
              patch("metrics.PLAN_RECONCILIATION_RUNS", MagicMock()), \
              patch("metrics.PLAN_RECONCILIATION_DRIFT", mock_drift):
-            from cron_jobs import run_plan_reconciliation
+            from jobs.cron import run_plan_reconciliation
             result = await run_plan_reconciliation()
 
         assert result["status"] == "completed"
@@ -456,7 +456,7 @@ class TestPlanReconciliation:
              patch("redis_pool.get_redis_pool", return_value=mock_redis_acquired), \
              patch("metrics.PLAN_RECONCILIATION_RUNS", MagicMock()), \
              patch("metrics.PLAN_RECONCILIATION_DRIFT", MagicMock()):
-            from cron_jobs import run_plan_reconciliation
+            from jobs.cron import run_plan_reconciliation
             result = await run_plan_reconciliation()
 
         assert result["drift_count"] == 1
@@ -484,7 +484,7 @@ class TestTableSizeMetrics:
         with patch("supabase_client.get_supabase", return_value=mock_supabase), \
              patch("supabase_client.sb_execute_direct", side_effect=mock_sb_execute_direct), \
              patch("metrics.DB_TABLE_SIZE_BYTES", mock_gauge):
-            from cron_jobs import update_table_size_metrics
+            from jobs.cron import update_table_size_metrics
             from jobs.cron.billing import _MONITORED_TABLES
             result = await update_table_size_metrics()
 
@@ -507,7 +507,7 @@ class TestTableSizeMetrics:
         with patch("supabase_client.get_supabase", return_value=mock_supabase), \
              patch("supabase_client.sb_execute_direct", side_effect=mock_sb_execute_direct), \
              patch("metrics.DB_TABLE_SIZE_BYTES", mock_gauge):
-            from cron_jobs import update_table_size_metrics
+            from jobs.cron import update_table_size_metrics
             from jobs.cron.billing import _MONITORED_TABLES
             result = await update_table_size_metrics()
 
@@ -544,7 +544,7 @@ class TestTableSizeMetrics:
         with patch("supabase_client.get_supabase", return_value=mock_supabase), \
              patch("supabase_client.sb_execute_direct", side_effect=mock_sb_execute_direct), \
              patch("metrics.DB_TABLE_SIZE_BYTES", mock_gauge):
-            from cron_jobs import update_table_size_metrics
+            from jobs.cron import update_table_size_metrics
             result = await update_table_size_metrics()
 
         assert result["status"] == "ok"
@@ -567,7 +567,7 @@ class TestTableSizeMetrics:
         with patch("supabase_client.get_supabase", return_value=mock_supabase), \
              patch("supabase_client.sb_execute_direct", side_effect=mock_sb_execute_direct), \
              patch("metrics.DB_TABLE_SIZE_BYTES", mock_gauge):
-            from cron_jobs import update_table_size_metrics
+            from jobs.cron import update_table_size_metrics
             result = await update_table_size_metrics()
 
         assert result["status"] == "ok"
@@ -585,7 +585,7 @@ class TestTableSizeMetrics:
         with patch("supabase_client.get_supabase", return_value=mock_supabase), \
              patch("supabase_client.sb_execute_direct", side_effect=mock_sb_execute_direct), \
              patch("metrics.DB_TABLE_SIZE_BYTES", mock_gauge):
-            from cron_jobs import update_table_size_metrics
+            from jobs.cron import update_table_size_metrics
             result = await update_table_size_metrics()
 
         # When result.data is None, the gauge is NOT set (condition: `if result and result.data is not None`)
@@ -617,7 +617,7 @@ class TestTableSizeMetrics:
 
         with patch("supabase_client.get_supabase", side_effect=raise_on_get), \
              patch("metrics.DB_TABLE_SIZE_BYTES", MagicMock()):
-            from cron_jobs import update_table_size_metrics
+            from jobs.cron import update_table_size_metrics
             result = await update_table_size_metrics()
 
         assert result["status"] == "error"

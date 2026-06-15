@@ -676,19 +676,19 @@ class TestLegacyCronRemoved:
     """CRIT-044 AC11: Verify legacy STORY-266 trial reminder system is fully removed."""
 
     def test_check_trial_reminders_removed(self):
-        import cron_jobs
+        import jobs.cron as cron_jobs
         assert not hasattr(cron_jobs, "check_trial_reminders")
 
     def test_trial_email_milestones_removed(self):
-        import cron_jobs
+        import jobs.cron as cron_jobs
         assert not hasattr(cron_jobs, "TRIAL_EMAIL_MILESTONES")
 
     def test_start_trial_reminder_task_removed(self):
-        import cron_jobs
+        import jobs.cron as cron_jobs
         assert not hasattr(cron_jobs, "start_trial_reminder_task")
 
     def test_new_system_still_exists(self):
-        import cron_jobs
+        import jobs.cron as cron_jobs
         assert hasattr(cron_jobs, "start_trial_sequence_task")
 
     def test_new_system_respects_feature_flag(self):

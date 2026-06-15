@@ -496,7 +496,7 @@ async def stage_generate(pipeline, ctx: SearchContext) -> None:
                 if lic.get("_pending_review")
             ]
             if _pending_bids:
-                from job_queue import store_pending_review_bids, is_queue_available as _is_q, enqueue_job as _enq
+                from jobs.queue.result_store import store_pending_review_bids; from job_queue import is_queue_available as _is_q, enqueue_job as _enq
                 _sector_name = ""
                 _sector_id = ""
                 if ctx.request.setor:

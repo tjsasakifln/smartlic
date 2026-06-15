@@ -24,7 +24,7 @@ from datetime import datetime, timezone
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
-from cron_jobs import (
+from jobs.cron import (
     get_pncp_cron_status,
     get_pncp_recovery_epoch,
     _update_pncp_cron_status,
@@ -39,7 +39,7 @@ from cron_jobs import (
 @pytest.fixture(autouse=True)
 def _reset_pncp_status():
     """Reset PNCP cron status between tests."""
-    import cron_jobs
+    import jobs.cron.canary as cron_jobs
     with cron_jobs._pncp_cron_status_lock:
         cron_jobs._pncp_cron_status.update(
             {"status": "unknown", "latency_ms": None, "updated_at": None}
@@ -470,11 +470,10 @@ class TestScheduleConstants:
 class TestCronModuleImports:
     """Verify every cron module can be imported without ImportError.
 
-    Covers all modules in jobs/cron/*.py, cron/*.py, and cron_jobs.py.
+    Covers all modules in jobs/cron/*.py, cron/*.py (cron_jobs.py removed in TD-1875).
     """
 
     MODULES = [
-        "cron_jobs",
         "jobs.cron.canary",
         "jobs.cron.session_cleanup",
         "jobs.cron.notifications",
@@ -1200,7 +1199,7 @@ class TestCanaryHelpers:
     @pytest.mark.timeout(10)
     def test_get_pncp_cron_status_returns_copy(self):
         """Status getter returns a copy, not the internal dict."""
-        import cron_jobs
+        import jobs.cron.canary as cron_jobs
         status = get_pncp_cron_status()
         status["custom"] = "injected"
         with cron_jobs._pncp_cron_status_lock:
@@ -1238,6 +1237,6 @@ class TestCronLoopHelpers:
     @pytest.mark.timeout(10)
     def test_is_cb_or_connection_error_from_cron_jobs(self):
         """The re-exported version in cron_jobs should match."""
-        from cron_jobs import _is_cb_or_connection_error as cj_check
+        from jobs.cron import _is_cb_or_connection_error as cj_check
         assert cj_check(ConnectionError("timeout")) is True
         assert cj_check(RuntimeError("bug")) is False

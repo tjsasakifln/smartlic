@@ -584,7 +584,7 @@ class TestRunSearchAlerts:
 
     @pytest.mark.asyncio
     async def test_disabled_when_flag_off(self):
-        from cron_jobs import run_search_alerts
+        from jobs.cron import run_search_alerts
 
         with patch("jobs.cron.notifications.ALERTS_ENABLED", False):
             result = await run_search_alerts()
@@ -593,7 +593,7 @@ class TestRunSearchAlerts:
 
     @pytest.mark.asyncio
     async def test_skipped_when_lock_held(self):
-        from cron_jobs import run_search_alerts
+        from jobs.cron import run_search_alerts
 
         mock_redis = AsyncMock()
         mock_redis.set = AsyncMock(return_value=False)  # Lock not acquired
@@ -607,7 +607,7 @@ class TestRunSearchAlerts:
     @pytest.mark.asyncio
     async def test_proceeds_without_redis(self):
         """When Redis is unavailable, should proceed without lock."""
-        from cron_jobs import run_search_alerts
+        from jobs.cron import run_search_alerts
 
         mock_match = AsyncMock(return_value={
             "total_alerts": 0, "matched": 0, "skipped": 0, "errors": 0, "payloads": [],
@@ -628,7 +628,7 @@ class TestRunSearchAlerts:
     @pytest.mark.asyncio
     async def test_sends_email_for_matched_alerts(self):
         """AC8: Should send emails for matched payloads."""
-        from cron_jobs import run_search_alerts
+        from jobs.cron import run_search_alerts
 
         match_result = {
             "total_alerts": 1,
@@ -673,7 +673,7 @@ class TestRunSearchAlerts:
     @pytest.mark.asyncio
     async def test_email_failure_does_not_crash(self):
         """AC22: Email send failure should not crash the cron job."""
-        from cron_jobs import run_search_alerts
+        from jobs.cron import run_search_alerts
 
         match_result = {
             "total_alerts": 1, "matched": 1, "skipped": 0, "errors": 0,

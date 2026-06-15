@@ -20,7 +20,7 @@ class TestT1CanaryTamanhoPagina50:
     """GTM-INFRA-002 T1: Health canary must use tamanhoPagina=50 (production value)."""
 
     @pytest.mark.asyncio
-    @patch("cron_jobs.get_pncp_cron_status", return_value={"status": "healthy", "latency_ms": 100, "updated_at": 1000})
+    @patch("jobs.cron.get_pncp_cron_status", return_value={"status": "healthy", "latency_ms": 100, "updated_at": 1000})
     async def test_health_canary_sends_tamanho_pagina_50(self, _mock_cron):
         """health_canary() must send tamanhoPagina=50 in request params.
 
@@ -59,7 +59,7 @@ class TestT1CanaryTamanhoPagina50:
         )
 
     @pytest.mark.asyncio
-    @patch("cron_jobs.get_pncp_cron_status", return_value={"status": "healthy", "latency_ms": 100, "updated_at": 1000})
+    @patch("jobs.cron.get_pncp_cron_status", return_value={"status": "healthy", "latency_ms": 100, "updated_at": 1000})
     async def test_health_canary_not_using_10(self, _mock_cron):
         """Regression: tamanhoPagina must NOT be 10 (old value that missed real limits)."""
         from pncp_client import AsyncPNCPClient

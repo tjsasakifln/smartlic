@@ -326,7 +326,7 @@ class TestAC7CronCleanup:
     @pytest.mark.asyncio
     async def test_cleanup_expired_results(self):
         """AC7: cleanup_expired_results deletes expired rows."""
-        from cron_jobs import cleanup_expired_results
+        from jobs.cron import cleanup_expired_results
 
         mock_db = MagicMock()
         mock_table = MagicMock()
@@ -347,7 +347,7 @@ class TestAC7CronCleanup:
     @pytest.mark.asyncio
     async def test_cleanup_no_crash_on_error(self):
         """AC7: Cleanup handles errors gracefully."""
-        from cron_jobs import cleanup_expired_results
+        from jobs.cron import cleanup_expired_results
 
         with patch("supabase_client.get_supabase", side_effect=Exception("DB error")):
             result = await cleanup_expired_results()
@@ -356,7 +356,7 @@ class TestAC7CronCleanup:
 
     def test_cleanup_interval_is_6h(self):
         """AC7: Cleanup interval is 6 hours."""
-        from cron_jobs import RESULTS_CLEANUP_INTERVAL_SECONDS
+        from jobs.cron import RESULTS_CLEANUP_INTERVAL_SECONDS
         assert RESULTS_CLEANUP_INTERVAL_SECONDS == 6 * 60 * 60
 
 
