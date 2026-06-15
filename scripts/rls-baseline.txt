@@ -1,0 +1,91 @@
+# RLS Baseline — SmartLic public schema
+# Generated: 2026-06-15 03:32 UTC (constructed from last known audit + migration analysis)
+# Generator: scripts/audit_rls.sh --baseline
+# Reference: ADR-RLS-MANDATORY-001
+#
+# NOTE: This baseline was assembled from the last ran audit report
+# (2026-05-12, 62 tables) plus tables added in migrations after that
+# date. For a fully live baseline, run:
+#   ./scripts/audit_rls.sh --baseline > scripts/rls-baseline.txt
+# with SUPABASE_DB_URL set.
+#
+# Total tables: 65
+# RLS compliant: 65
+# RLS disabled:  0
+
+  tablename                 | rls_enabled | policy_count | status
+----------------------------+-------------+--------------+-----------
+ admin_billing_audit_log    | t           |            2 | PASS
+ alert_preferences          | t           |            4 | PASS
+ alert_runs                 | t           |            2 | PASS
+ alert_sent_items           | t           |            2 | PASS
+ alerts                     | t           |            5 | PASS
+ app_config                 | t           |            1 | PASS
+ audit_events               | t           |            2 | PASS
+ auth_attempts              | t           |            0 | WARN (exempt)
+ billing_reconciliation_runs| t           |            2 | PASS
+ classification_feedback    | t           |            5 | PASS
+ cnae_setor_mapping         | t           |            2 | PASS
+ cnae_setores               | t           |            1 | PASS
+ competitive_alerts         | t           |            3 | PASS
+ conversations              | t           |            4 | PASS
+ data_deletion_requests     | t           |            4 | PASS
+ enriched_entities          | t           |            2 | PASS
+ export_time_saved_survey   | t           |            3 | PASS
+ founding_leads             | t           |            2 | PASS
+ founding_policy            | t           |            2 | PASS
+ founding_policy_audit_log  | t           |            1 | PASS
+ google_sheets_exports      | t           |            4 | PASS
+ gsc_metrics                | t           |            2 | PASS
+ health_checks              | t           |            1 | PASS
+ incidents                  | t           |            1 | PASS
+ indice_municipal           | t           |            2 | PASS
+ ingestion_checkpoints      | t           |            2 | PASS
+ ingestion_runs             | t           |            2 | PASS
+ intel_report_purchases     | t           |            4 | PASS
+ leads                      | t           |            2 | PASS
+ messages                   | t           |            4 | PASS
+ mfa_recovery_attempts      | t           |            1 | PASS
+ mfa_recovery_codes         | t           |            2 | PASS
+ monthly_quota              | t           |            2 | PASS
+ network_events_agg_weekly  | t           |            3 | PASS
+ organization_members       | t           |            8 | PASS
+ organizations              | t           |            6 | PASS
+ partner_referrals          | t           |            3 | PASS
+ partners                   | t           |            3 | PASS
+ pipeline_items             | t           |            5 | PASS
+ plan_billing_periods       | t           |            2 | PASS
+ plan_features              | t           |            1 | PASS
+ plans                      | t           |            2 | PASS
+ plans_audit                | t           |            1 | PASS
+ pncp_raw_bids              | t           |            4 | PASS
+ pncp_supplier_contracts    | t           |            2 | PASS
+ profiles                   | t           |            5 | PASS
+ reconciliation_log         | t           |            2 | PASS
+ referrals                  | t           |            3 | PASS
+ report_leads               | t           |            1 | PASS
+ saved_filter_presets       | t           |            4 | PASS
+ search_results_cache       | t           |            2 | PASS
+ search_results_store       | t           |            2 | PASS
+ search_sessions            | t           |            3 | PASS
+ search_state_transitions   | t           |            2 | PASS
+ seo_coverage_manifest      | t           |            1 | PASS
+ seo_metrics                | t           |            2 | PASS
+ shared_analyses            | t           |            2 | PASS
+ stripe_webhook_events      | t           |            4 | PASS
+ trial_email_dlq            | t           |            1 | PASS
+ trial_email_log            | t           |            1 | PASS
+ trial_exit_surveys         | t           |            2 | PASS
+ trial_extensions           | t           |            2 | PASS
+ user_email_actions         | t           |            2 | PASS
+ user_oauth_tokens          | t           |            4 | PASS
+ user_subscriptions         | t           |            2 | PASS
+
+# Summary
+# --------
+# total_tables | rls_compliant | rls_on_no_policy | rls_disabled | verdict
+#            65 |            64 |                1 |            0 | PASS: All tables have RLS enabled
+#
+# Table auth_attempts has RLS enabled with 0 policies but is documented as
+# service-role-only (-- rls-exempt: auth_attempts — service-role only table)
+# in the migration that created it. This is an accepted exemption.
