@@ -8,6 +8,7 @@ import asyncio
 import logging
 import os
 import time
+from datetime import datetime, timezone
 
 from fastapi import APIRouter, Response
 
@@ -28,9 +29,16 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter(tags=["health-core"])
 
-# HARDEN-016 AC3: Individual dependency timeouts
-_READINESS_REDIS_TIMEOUT_S = 2.0
-_READINESS_SUPABASE_TIMEOUT_S = 5.0  # increased from 3s to reduce false-503 under bot-driven pool saturation
+# #1790: Per-check timeouts (shorter than previous values — Railway probes
+# have tight timeouts and fail-open design means partial data is acceptable).
+_READINESS_REDIS_TIMEOUT_S = 0.5       # 500ms — Redis is local, should be ~1ms
+_READINESS_SUPABASE_TIMEOUT_S = 2.0     # 2s for a SELECT 1
+_READINESS_POOL_TIMEOUT_S = 0.5
+_READINESS_CACHE_TIMEOUT_S = 0.5
+
+# #1790: Cache hit rate thresholds
+_CACHE_HIT_RATE_HEALTHY_PCT = 90.0
+_CACHE_HIT_RATE_DEGRADED_PCT = 50.0
 
 
 def _inc_health_failure(check: str) -> None:
@@ -44,7 +52,7 @@ def _inc_health_failure(check: str) -> None:
 
 @router.get("/health/live", response_model=_LivenessResponse)
 async def health_live():
-    """HARDEN-016 AC1: Pure liveness probe — ALWAYS returns 200."""
+    """HARDEN-016 AC1: Pure liveness probe — ALWAYS returns 200 (<10ms)."""
     is_ready = _state.startup_time is not None
     uptime = round(time.monotonic() - _state.startup_time, 3) if is_ready else 0.0
     process_uptime = round(time.monotonic() - _state.process_start_time, 3)
@@ -58,72 +66,150 @@ async def health_live():
 
 @router.get("/health/ready", response_model=ReadinessResponse)
 async def health_ready(response: Response):
-    """HARDEN-016 AC2: Readiness probe — checks Redis + Supabase.
+    """HARDEN-016 AC2 / #1790: Readiness probe — checks dependencies concurrently.
+
+    Runs all dependency checks in parallel, each with an independent timeout.
+    If a single check times out the others still complete — partial results
+    are reported rather than failing the entire probe.
+
+    Status logic:
+        unhealthy  — Supabase is down (critical dependency; can't serve requests)
+        degraded   — Redis down / pool >85% used / cache hit rate <50%
+        healthy    — everything nominal
 
     DEBT-124 AC6: Returns 503 during graceful shutdown drain phase.
     """
     # DEBT-124 AC6: Health returns 503 during drain so LB stops sending new requests
     if _state.shutting_down:
         response.status_code = 503
-        return {"ready": False, "checks": {}, "uptime_seconds": 0.0, "shutting_down": True}
+        return {
+            "status": "unhealthy",
+            "ready": False,
+            "checks": {},
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "uptime_seconds": 0.0,
+            "shutting_down": True,
+        }
 
-    checks: dict[str, dict] = {}
-    all_ok = True
+    # ------------------------------------------------------------------
+    # Per-check coroutines (each has its own try/except + timeout)
+    # ------------------------------------------------------------------
+    async def _check_supabase() -> dict:
+        """Check Supabase connectivity with a lightweight ``SELECT 1`` probe."""
+        start = time.monotonic()
+        try:
+            from supabase_client import get_supabase, sb_execute_direct
+            sb = get_supabase()
+            await asyncio.wait_for(
+                sb_execute_direct(sb.table("profiles").select("id").limit(1)),
+                timeout=_READINESS_SUPABASE_TIMEOUT_S,
+            )
+            return {"status": "ok", "latency_ms": round((time.monotonic() - start) * 1000)}
+        except asyncio.TimeoutError:
+            _inc_health_failure("supabase")
+            return {"status": "error", "error": "timeout", "latency_ms": round((time.monotonic() - start) * 1000)}
+        except Exception as e:
+            _inc_health_failure("supabase")
+            return {"status": "error", "error": str(e)[:100], "latency_ms": round((time.monotonic() - start) * 1000)}
 
-    # Redis check
-    redis_start = time.monotonic()
-    try:
-        from redis_pool import get_redis_pool
-        redis = await asyncio.wait_for(get_redis_pool(), timeout=_READINESS_REDIS_TIMEOUT_S)
-        if redis:
-            await asyncio.wait_for(redis.ping(), timeout=_READINESS_REDIS_TIMEOUT_S)
-            checks["redis"] = {"status": "up", "latency_ms": round((time.monotonic() - redis_start) * 1000)}
-        else:
-            checks["redis"] = {"status": "down", "error": "pool unavailable"}
-            all_ok = False
+    async def _check_redis() -> dict:
+        """Check Redis connectivity (fail-open: returns ``degraded``, never breaks readiness)."""
+        start = time.monotonic()
+        try:
+            from redis_pool import get_redis_pool
+            redis = await asyncio.wait_for(get_redis_pool(), timeout=_READINESS_REDIS_TIMEOUT_S)
+            if redis:
+                await asyncio.wait_for(redis.ping(), timeout=_READINESS_REDIS_TIMEOUT_S)
+                return {"status": "ok", "latency_ms": round((time.monotonic() - start) * 1000)}
             _inc_health_failure("redis")
-    except asyncio.TimeoutError:
-        checks["redis"] = {"status": "down", "error": "timeout", "latency_ms": round((time.monotonic() - redis_start) * 1000)}
-        all_ok = False
-        _inc_health_failure("redis")
-    except Exception as e:
-        checks["redis"] = {"status": "down", "error": str(e)[:100], "latency_ms": round((time.monotonic() - redis_start) * 1000)}
-        all_ok = False
-        _inc_health_failure("redis")
+            return {"status": "degraded", "error": "pool unavailable", "latency_ms": round((time.monotonic() - start) * 1000)}
+        except asyncio.TimeoutError:
+            _inc_health_failure("redis")
+            return {"status": "degraded", "error": "timeout", "latency_ms": round((time.monotonic() - start) * 1000)}
+        except Exception as e:
+            _inc_health_failure("redis")
+            return {"status": "degraded", "error": str(e)[:100], "latency_ms": round((time.monotonic() - start) * 1000)}
 
-    # Supabase check
-    sb_start = time.monotonic()
-    try:
-        from supabase_client import get_supabase, sb_execute_direct
-        sb = get_supabase()
-        await asyncio.wait_for(sb_execute_direct(sb.table("profiles").select("id").limit(1)), timeout=_READINESS_SUPABASE_TIMEOUT_S)
-        checks["supabase"] = {"status": "up", "latency_ms": round((time.monotonic() - sb_start) * 1000)}
-    except asyncio.TimeoutError:
-        checks["supabase"] = {"status": "down", "error": "timeout", "latency_ms": round((time.monotonic() - sb_start) * 1000)}
-        all_ok = False
-        _inc_health_failure("supabase")
-    except Exception as e:
-        checks["supabase"] = {"status": "down", "error": str(e)[:100], "latency_ms": round((time.monotonic() - sb_start) * 1000)}
-        all_ok = False
-        _inc_health_failure("supabase")
+    async def _check_pool() -> dict:
+        """#1790: Supabase connection pool utilization check (>85% → degraded)."""
+        try:
+            from supabase_client import _pool_active_count, _POOL_MAX_CONNECTIONS
+            pct = (_pool_active_count / _POOL_MAX_CONNECTIONS) * 100 if _POOL_MAX_CONNECTIONS > 0 else 0.0
+            status = "degraded" if pct > 85 else "ok"
+            if pct > 85:
+                logger.warning(
+                    "#1790: Supabase pool utilization > 85%%: %d/%d active (%.1f%%)",
+                    _pool_active_count, _POOL_MAX_CONNECTIONS, pct,
+                )
+            return {"status": status, "utilization_pct": round(pct, 1)}
+        except Exception as e:
+            return {"status": "unknown", "error": str(e)[:100]}
 
-    # Mixpanel check (AC3 MON-FN-005)
-    try:
-        from analytics_events import _get_mixpanel
-        mp = _get_mixpanel()
-        if mp is not None:
-            checks["mixpanel"] = {"status": "configured"}
-        else:
-            checks["mixpanel"] = {"status": "not_configured"}
-            if os.getenv("ENVIRONMENT", "").lower() == "production":
-                all_ok = False
-                _inc_health_failure("mixpanel")
-    except Exception as exc:
-        checks["mixpanel"] = {"status": "check_failed", "error": str(exc)[:100]}
-        all_ok = False
-        _inc_health_failure("mixpanel")
+    async def _check_cache_hit_rate() -> dict:
+        """#1790: Aggregate cache hit rate from Prometheus counters."""
+        try:
+            from metrics import CACHE_HITS, CACHE_MISSES
+            hits = sum(
+                sample.value
+                for family in CACHE_HITS.collect()
+                for sample in family.samples
+            )
+            misses = sum(
+                sample.value
+                for family in CACHE_MISSES.collect()
+                for sample in family.samples
+            )
+            total = hits + misses
+            if total == 0:
+                return {"status": "ok", "hit_rate_pct": None, "note": "no_data"}
+            rate = (hits / total) * 100.0
+            status = "ok" if rate >= _CACHE_HIT_RATE_HEALTHY_PCT else "degraded"
+            return {"status": status, "hit_rate_pct": round(rate, 1)}
+        except Exception as e:
+            return {"status": "unknown", "error": str(e)[:100]}
 
-    is_ready = _state.startup_time is not None and all_ok
+    # ------------------------------------------------------------------
+    # Run all checks concurrently
+    # ------------------------------------------------------------------
+    results = await asyncio.gather(
+        _check_supabase(),
+        _check_redis(),
+        _check_pool(),
+        _check_cache_hit_rate(),
+        return_exceptions=True,
+    )
+
+    def _unpack(idx: int, label: str) -> dict:
+        val = results[idx]
+        if isinstance(val, dict):
+            return val
+        logger.error("#1790: %s check raised unexpected exception: %s", label, val)
+        return {"status": "error", "error": f"unexpected: {type(val).__name__}: {str(val)[:80]}"}
+
+    checks: dict[str, dict] = {
+        "supabase": _unpack(0, "supabase"),
+        "redis": _unpack(1, "redis"),
+        "pool": _unpack(2, "pool"),
+        "cache": _unpack(3, "cache"),
+    }
+
+    # ------------------------------------------------------------------
+    # Determine overall status
+    # ------------------------------------------------------------------
+    supabase_ok = checks["supabase"].get("status") == "ok"
+    redis_ok = checks["redis"].get("status") == "ok"
+    pool_ok = checks["pool"].get("status") == "ok"
+    cache_ok = checks["cache"].get("status") == "ok"
+
+    if not supabase_ok:
+        status = "unhealthy"
+    elif not redis_ok or not pool_ok or not cache_ok:
+        status = "degraded"
+    else:
+        status = "healthy"
+
+    # ready = startup complete AND not unhealthy
+    is_ready = _state.startup_time is not None and status != "unhealthy"
     uptime = round(time.monotonic() - _state.startup_time, 3) if _state.startup_time else 0.0
 
     if not is_ready:
@@ -133,7 +219,14 @@ async def health_ready(response: Response):
     from health import calculate_wedge_risk
     wedge_risk = calculate_wedge_risk()
 
-    return {"ready": is_ready, "checks": checks, "uptime_seconds": uptime, "wedge_risk": wedge_risk}
+    return ReadinessResponse(
+        status=status,
+        ready=is_ready,
+        checks=checks,
+        timestamp=datetime.now(timezone.utc).isoformat(),
+        uptime_seconds=uptime,
+        wedge_risk=wedge_risk,
+    )
 
 
 @router.get("/health", response_model=SystemHealthResponse)

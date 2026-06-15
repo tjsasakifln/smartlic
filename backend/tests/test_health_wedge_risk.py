@@ -2,7 +2,6 @@
 import time
 from unittest.mock import patch, MagicMock, AsyncMock
 
-import pytest
 
 
 # ---------------------------------------------------------------------------
@@ -134,12 +133,14 @@ class TestCalculateWedgeRisk:
 class TestHealthReadyWedgeRiskField:
     """Integration tests: /health/ready response includes wedge_risk."""
 
-    def _mock_redis_ok(self):
+    @staticmethod
+    def _mock_redis_ok():
         mock_redis = AsyncMock()
         mock_redis.ping = AsyncMock(return_value=True)
         return patch("redis_pool.get_redis_pool", new_callable=AsyncMock, return_value=mock_redis)
 
-    def _mock_supabase_ok(self):
+    @staticmethod
+    def _mock_supabase_ok():
         mock_sb = MagicMock()
         mock_sb.table.return_value.select.return_value.limit.return_value = MagicMock()
         mock_response = MagicMock()
@@ -149,7 +150,34 @@ class TestHealthReadyWedgeRiskField:
             patch("supabase_client.get_supabase", return_value=mock_sb),
         )
 
-    def _mock_wedge_risk(self, value: str):
+    @staticmethod
+    def _mock_pool_ok():
+        return (
+            patch("supabase_client._pool_active_count", 5),
+            patch("supabase_client._POOL_MAX_CONNECTIONS", 25),
+        )
+
+    @staticmethod
+    def _mock_cache_ok():
+        mock_hits = MagicMock()
+        mock_hits_sample = MagicMock()
+        mock_hits_sample.value = 95
+        mock_hits_family = MagicMock()
+        mock_hits_family.samples = [mock_hits_sample]
+        mock_hits.collect.return_value = [mock_hits_family]
+        mock_misses = MagicMock()
+        mock_misses_sample = MagicMock()
+        mock_misses_sample.value = 5
+        mock_misses_family = MagicMock()
+        mock_misses_family.samples = [mock_misses_sample]
+        mock_misses.collect.return_value = [mock_misses_family]
+        return (
+            patch("metrics.CACHE_HITS", mock_hits),
+            patch("metrics.CACHE_MISSES", mock_misses),
+        )
+
+    @staticmethod
+    def _mock_wedge_risk(value: str):
         return patch("health.calculate_wedge_risk", return_value=value)
 
     def test_ready_response_contains_wedge_risk(self):
@@ -157,11 +185,17 @@ class TestHealthReadyWedgeRiskField:
         from fastapi.testclient import TestClient
 
         sb_exec_patch, sb_get_patch = self._mock_supabase_ok()
+        pool_active, pool_max = self._mock_pool_ok()
+        cache_hits, cache_misses = self._mock_cache_ok()
         with (
             patch("startup.state.startup_time", time.monotonic()),
             self._mock_redis_ok(),
             sb_exec_patch,
             sb_get_patch,
+            pool_active,
+            pool_max,
+            cache_hits,
+            cache_misses,
             self._mock_wedge_risk("low"),
         ):
             from main import app
@@ -176,11 +210,17 @@ class TestHealthReadyWedgeRiskField:
         from fastapi.testclient import TestClient
 
         sb_exec_patch, sb_get_patch = self._mock_supabase_ok()
+        pool_active, pool_max = self._mock_pool_ok()
+        cache_hits, cache_misses = self._mock_cache_ok()
         with (
             patch("startup.state.startup_time", time.monotonic()),
             self._mock_redis_ok(),
             sb_exec_patch,
             sb_get_patch,
+            pool_active,
+            pool_max,
+            cache_hits,
+            cache_misses,
             self._mock_wedge_risk("low"),
         ):
             from main import app
@@ -194,11 +234,17 @@ class TestHealthReadyWedgeRiskField:
         from fastapi.testclient import TestClient
 
         sb_exec_patch, sb_get_patch = self._mock_supabase_ok()
+        pool_active, pool_max = self._mock_pool_ok()
+        cache_hits, cache_misses = self._mock_cache_ok()
         with (
             patch("startup.state.startup_time", time.monotonic()),
             self._mock_redis_ok(),
             sb_exec_patch,
             sb_get_patch,
+            pool_active,
+            pool_max,
+            cache_hits,
+            cache_misses,
             self._mock_wedge_risk("high"),
         ):
             from main import app
@@ -215,17 +261,23 @@ class TestHealthReadyWedgeRiskField:
         from fastapi.testclient import TestClient
 
         sb_exec_patch, sb_get_patch = self._mock_supabase_ok()
+        pool_active, pool_max = self._mock_pool_ok()
+        cache_hits, cache_misses = self._mock_cache_ok()
         with (
             patch("startup.state.startup_time", time.monotonic()),
             self._mock_redis_ok(),
             sb_exec_patch,
             sb_get_patch,
+            pool_active,
+            pool_max,
+            cache_hits,
+            cache_misses,
             self._mock_wedge_risk("high"),
         ):
             from main import app
             client = TestClient(app, raise_server_exceptions=False)
-            response = client.get("/health/ready")
             # High wedge_risk must NOT trigger 503 — only dep failures do
+            response = client.get("/health/ready")
             assert response.status_code == 200
             data = response.json()
             assert data["ready"] is True
@@ -236,11 +288,17 @@ class TestHealthReadyWedgeRiskField:
         from fastapi.testclient import TestClient
 
         sb_exec_patch, sb_get_patch = self._mock_supabase_ok()
+        pool_active, pool_max = self._mock_pool_ok()
+        cache_hits, cache_misses = self._mock_cache_ok()
         with (
             patch("startup.state.startup_time", time.monotonic()),
             self._mock_redis_ok(),
             sb_exec_patch,
             sb_get_patch,
+            pool_active,
+            pool_max,
+            cache_hits,
+            cache_misses,
             self._mock_wedge_risk("unknown"),
         ):
             from main import app
