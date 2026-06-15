@@ -65,6 +65,60 @@ _pool_active_count = 0
 _pool_health_log_counter = 0
 _POOL_HEALTH_LOG_INTERVAL = 50
 
+# #1817: Connection leak detection — track when pool was last fully idle
+# If the pool stays non-idle (active > 0) for more than 5 minutes,
+# log a warning indicating possible connection leak (stuck connections).
+_last_full_idle_time = time.monotonic()
+_pool_leak_warning_logged = False
+_POOL_LEAK_THRESHOLD_S = 300  # 5 minutes
+
+
+def _check_connection_leak() -> None:
+    """#1817: Detect possible connection leaks (pool non-idle >5min).
+
+    If the pool has active connections and hasn't returned to fully idle
+    for over ``_POOL_LEAK_THRESHOLD_S`` seconds, log a warning. The
+    warning is rate-limited to one occurrence per non-idle period so
+    it does not spam the log on every sb_execute call.
+
+    Call this from sb_execute after incrementing the active counter.
+    """
+    global _last_full_idle_time, _pool_leak_warning_logged
+
+    try:
+        with _pool_active_lock:
+            if _pool_active_count == 0:
+                _last_full_idle_time = time.monotonic()
+                _pool_leak_warning_logged = False
+                return
+
+            idle_duration = time.monotonic() - _last_full_idle_time
+            if idle_duration > _POOL_LEAK_THRESHOLD_S and not _pool_leak_warning_logged:
+                logger.warning(
+                    "#1817: Possible connection leak — pool has %d active "
+                    "connections for >%ds without returning to idle",
+                    _pool_active_count, _POOL_LEAK_THRESHOLD_S,
+                )
+                _pool_leak_warning_logged = True
+    except Exception:
+        pass  # Best-effort
+
+
+def _update_pool_idle_metric() -> None:
+    """#1817: Update SUPABASE_POOL_IDLE gauge (max - current active).
+
+    Called after every active count change to keep the Prometheus
+    gauge current. Idle is estimated as ``max_pool - active`` because
+    httpx does not expose its internal idle connection count directly.
+    """
+    try:
+        from metrics import SUPABASE_POOL_IDLE
+        with _pool_active_lock:
+            idle = max(0, _POOL_MAX_CONNECTIONS - _pool_active_count)
+        SUPABASE_POOL_IDLE.set(idle)
+    except Exception:
+        pass  # Metrics are best-effort
+
 
 def _get_config():
     """Get Supabase configuration from environment."""
@@ -182,6 +236,13 @@ def _configure_httpx_pool(client):
             _POOL_MAX_CONNECTIONS, _POOL_MAX_KEEPALIVE,
             _POOL_TIMEOUT, _POOL_CONNECT_TIMEOUT,
         )
+
+        # #1817: Initialize pool max gauge
+        try:
+            from metrics import SUPABASE_POOL_MAX
+            SUPABASE_POOL_MAX.set(_POOL_MAX_CONNECTIONS)
+        except Exception:
+            pass  # Metrics are best-effort
     except Exception as e:
         logger.warning("CRIT-046: Failed to configure httpx pool: %s", e)
 
@@ -725,6 +786,7 @@ async def sb_execute(query, *, category: str = "read"):
     from metrics import (
         SUPABASE_EXECUTE_DURATION, SUPABASE_POOL_ACTIVE, SUPABASE_RETRY_TOTAL,
         SUPABASE_CONNECTION_RESET_TOTAL, SUPABASE_CB_INTERNAL_ERRORS,
+        SUPABASE_POOL_TIMEOUTS,
     )
     start = time.monotonic()
 
@@ -765,6 +827,11 @@ async def sb_execute(query, *, category: str = "read"):
     with _pool_active_lock:
         _pool_active_count += 1
         current_active = _pool_active_count
+
+    # #1817: Update pool idle metric after increment
+    _update_pool_idle_metric()
+    # #1817: Check for connection leaks (pool non-idle >5min)
+    _check_connection_leak()
 
     # AC2: Log when pool > 80% utilization
     high_water = int(_POOL_MAX_CONNECTIONS * _POOL_HIGH_WATER_RATIO)
@@ -890,6 +957,19 @@ async def sb_execute(query, *, category: str = "read"):
                 raise CircuitBreakerOpenError(
                     f"Circuit breaker internal error ({category}): {e}"
                 ) from e
+            except httpx.PoolTimeout as e:
+                # #1817: Pool exhaustion — no connections available (httpx PoolTimeout).
+                # Do NOT retry — pool is saturated, retrying immediately would fail again.
+                # Increment the timeout counter and surface the error immediately.
+                SUPABASE_EXECUTE_DURATION.observe(time.monotonic() - start)
+                logger.error(
+                    "#1817: httpx PoolTimeout in sb_execute — pool exhausted "
+                    "(active=%d/%d, category=%s): %s",
+                    current_active, _POOL_MAX_CONNECTIONS, category, e,
+                )
+                SUPABASE_POOL_TIMEOUTS.inc()
+                _record_failure_all(e)
+                raise
             except Exception as e:
                 # SEN-BE-001b AC4: distinguish SQLSTATE 57014 (statement_timeout) so
                 # the caller surfaces 504 (gateway timeout) instead of a generic 500.
@@ -902,6 +982,8 @@ async def sb_execute(query, *, category: str = "read"):
         SUPABASE_POOL_ACTIVE.dec()
         with _pool_active_lock:
             _pool_active_count -= 1
+        # #1817: Update pool idle metric after decrement
+        _update_pool_idle_metric()
 
 
 async def sb_execute_direct(query):
@@ -924,6 +1006,11 @@ async def sb_execute_direct(query):
     with _pool_active_lock:
         _pool_active_count += 1
 
+    # #1817: Update pool idle metric after increment
+    _update_pool_idle_metric()
+    # #1817: Check for connection leaks (pool non-idle >5min)
+    _check_connection_leak()
+
     try:
         result = await asyncio.to_thread(query.execute)
         SUPABASE_EXECUTE_DURATION.observe(time.monotonic() - start)
@@ -935,3 +1022,5 @@ async def sb_execute_direct(query):
         SUPABASE_POOL_ACTIVE.dec()
         with _pool_active_lock:
             _pool_active_count -= 1
+        # #1817: Update pool idle metric after decrement
+        _update_pool_idle_metric()
