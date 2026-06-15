@@ -1,0 +1,47 @@
+name: "Audit Data Retention (GAP-005 / #1877)"
+
+# Weekly check that all data retention purges are running correctly.
+# Alerts if any temporal table exceeds 2x the retention period without purge.
+#
+# Also runs on push to main when retention-related files change, and
+# supports manual dispatch for ad-hoc debugging.
+
+on:
+  schedule:
+    - cron: '0 9 * * 0'   # Sunday 09:00 UTC
+  push:
+    branches:
+      - main
+    paths:
+      - 'backend/jobs/cron/data_retention.py'
+      - 'scripts/audit-data-retention.sh'
+      - '.github/workflows/audit-data-retention.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: audit-data-retention-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  audit:
+    name: Audit data retention policies
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Run retention audit
+        id: audit
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: |
+          bash scripts/audit-data-retention.sh --verbose 2>&1 | tee /tmp/audit-output.txt
+
+      - name: Send failure notification (optional)
+        if: failure()
+        run: |
+          echo "::warning::Data retention audit FAILED. Check logs for details."

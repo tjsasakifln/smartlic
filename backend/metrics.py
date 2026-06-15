@@ -1530,6 +1530,27 @@ WEB_REQUESTS_TOTAL = _create_counter(
     labelnames=["worker_pid"],
 )
 
+# GAP-005 (#1877): Data retention purge metrics
+# ============================================================================
+
+DATA_PURGE_ROWS_TOTAL = _create_counter(
+    "data_purge_rows_total",
+    "GAP-005: Rows purged by data retention cron per table",
+    labelnames=["table"],
+)
+
+DATA_PURGE_BYTES_FREED = _create_gauge(
+    "data_purge_bytes_freed",
+    "GAP-005: Estimated total bytes freed by data retention cron",
+)
+
+DATA_PURGE_DURATION = _create_histogram(
+    "data_purge_duration_seconds",
+    "GAP-005: Duration of data retention purge cycle",
+    buckets=[1, 5, 10, 30, 60, 120, 300],
+)
+)
+
 
 # ============================================================================
 # ASGI app factory for /metrics endpoint
