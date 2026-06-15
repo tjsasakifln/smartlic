@@ -98,6 +98,7 @@ from routes.admin_digest_metrics import router as admin_digest_metrics_router
 from routes.admin_command import router as admin_command_router
 from routes.admin_dlq import router as admin_dlq_router
 from routes.admin_log_level import router as admin_log_level_router
+from routes.admin_synthetic import router as admin_synthetic_router
 from routes.intel_tasting import router as intel_tasting_router
 from routes.predint import router as predint_router
 from routes.monthly_report import router as monthly_report_router
@@ -215,6 +216,8 @@ def register_routes(app: FastAPI) -> None:
     app.include_router(admin_command_router)
     # #1814: Runtime log level toggle — self-prefixed at /v1/admin/log-level
     app.include_router(admin_log_level_router)
+    # Issue #1869: Synthetic monitoring last-run — self-prefixed at /v1/admin/synthetic/last-run
+    app.include_router(admin_synthetic_router)
     # Stripe webhook at root — DEBT-324: single registration only.
     # Removed from _v1_routers above to prevent duplicate at /v1/webhooks/stripe.
     # Stripe Dashboard must be configured with: POST /webhooks/stripe

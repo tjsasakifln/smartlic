@@ -1525,3 +1525,21 @@ def get_metrics_app():
 def is_available() -> bool:
     """Return True if Prometheus metrics are operational."""
     return _PROMETHEUS_AVAILABLE and METRICS_ENABLED
+
+
+# ============================================================================
+# Issue #1869: Synthetic monitor metrics
+# ============================================================================
+
+SYNTHETIC_MONITOR_SUCCESS = _create_counter(
+    "synthetic_monitor_success_total",
+    "Synthetic monitor run count by status (success/degraded/failure)",
+    labelnames=["status"],
+)
+
+SYNTHETIC_MONITOR_DURATION = _create_histogram(
+    "synthetic_monitor_duration_ms",
+    "Synthetic monitor per-stage duration in ms",
+    labelnames=["stage"],
+    buckets=[100, 500, 1000, 2000, 5000, 10000, 20000, 30000, 60000],
+)
