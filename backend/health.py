@@ -522,6 +522,25 @@ async def get_system_health() -> Dict[str, Any]:
     except Exception as e:
         components["supabase"] = {"status": "down", "error": str(e)[:100]}
 
+    # #1817: Supabase connection pool utilization check
+    try:
+        from supabase_client import _pool_active_count, _POOL_MAX_CONNECTIONS
+        pool_pct = (_pool_active_count / _POOL_MAX_CONNECTIONS) * 100 if _POOL_MAX_CONNECTIONS > 0 else 0
+        pool_status = "degraded" if pool_pct > 85 else "healthy"
+        if pool_pct > 85:
+            logger.warning(
+                "#1817: Supabase pool utilization > 85%%: %d/%d active (%.1f%%)",
+                _pool_active_count, _POOL_MAX_CONNECTIONS, pool_pct,
+            )
+        components["supabase_pool"] = {
+            "status": pool_status,
+            "active": _pool_active_count,
+            "max": _POOL_MAX_CONNECTIONS,
+            "utilization_pct": round(pool_pct, 1),
+        }
+    except Exception as e:
+        components["supabase_pool"] = {"status": "unknown", "error": str(e)[:100]}
+
     # ARQ Worker check
     try:
         from job_queue import is_queue_available
@@ -561,10 +580,12 @@ async def get_system_health() -> Dict[str, Any]:
     )
     # TD-BE-025: OpenAI degraded → system degraded (not unhealthy — graceful degradation)
     openai_degraded = components.get("openai", {}).get("status") == "degraded"
+    # #1817: Supabase pool high utilization → system degraded
+    pool_degraded = components.get("supabase_pool", {}).get("status") == "degraded"
 
     if redis_down or supabase_down:
         overall = "unhealthy"
-    elif any_source_degraded or openai_degraded:
+    elif any_source_degraded or openai_degraded or pool_degraded:
         overall = "degraded"
     else:
         overall = "healthy"
