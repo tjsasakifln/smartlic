@@ -8,9 +8,23 @@
  * Referência: docs/ux/accessibility-audit.md
  */
 
-import type { AxeConfig } from '@axe-core/playwright';
+/**
+ * Tipo de configuração compatível com @axe-core/playwright.
+ * Usa estrutura compatível com axe-core RunOptions + configuração do wrapper Playwright.
+ */
+interface A11yConfig {
+  runOnly?: {
+    type: 'tag' | 'rule';
+    values: string[];
+  };
+  rules?: Record<string, { enabled: boolean; [key: string]: unknown }>;
+  locale?: string;
+  exclude?: string[];
+  resultTypes?: string[];
+  impactThreshold?: string[];
+}
 
-const config: AxeConfig = {
+const config: A11yConfig = {
   // Standard WCAG 2.1 Nível AA (inclui critérios Nível A)
   runOnly: {
     type: 'tag',
