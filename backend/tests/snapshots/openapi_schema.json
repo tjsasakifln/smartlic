@@ -22121,6 +22121,143 @@
         ]
       }
     },
+    "/v1/admin/dlq": {
+      "delete": {
+        "description": "Delete **all** entries from the ARQ Dead Letter Queue.\n\nReturns ``{\"status\": \"ok\", \"keys_deleted\": N}`` on success.\nReturns ``{\"status\": \"error\", \"detail\": \"...\"}`` on failure.",
+        "operationId": "purge_dlq_v1_admin_dlq_delete",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Purge Dlq V1 Admin Dlq Delete",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Purge Dlq",
+        "tags": [
+          "admin",
+          "dlq"
+        ]
+      },
+      "get": {
+        "description": "List entries in the ARQ Dead Letter Queue.\n\nReturns entries sorted by ``enqueued_at`` descending (most recent first).\nEach entry carries::\n\n    {\n        \"uuid\": \"...\",\n        \"job_name\": \"...\",\n        \"payload\": {...},\n        \"error\": \"...\",\n        \"traceback\": \"...\",\n        \"enqueued_at\": \"2026-06-15T12:00:00+00:00\"\n    }\n\nWhen Redis is unreachable the response carries ``status=\"redis_unavailable\"``\nand an empty ``entries`` list.",
+        "operationId": "get_dlq_v1_admin_dlq_get",
+        "parameters": [
+          {
+            "description": "Max entries to return",
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 50,
+              "description": "Max entries to return",
+              "maximum": 500,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Get Dlq V1 Admin Dlq Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Get Dlq",
+        "tags": [
+          "admin",
+          "dlq"
+        ]
+      }
+    },
+    "/v1/admin/dlq/{uuid}/retry": {
+      "post": {
+        "description": "Re-enqueue a single DLQ entry back into the ARQ job queue.\n\nReturns ``{\"status\": \"ok\", \"uuid\": \"...\"}`` on success.\nReturns ``{\"status\": \"not_found\", \"uuid\": \"...\"}`` if the entry no longer\nexists (may have been purged or already retried).\nReturns ``{\"status\": \"error\", \"detail\": \"...\"}`` on Redis or ARQ failure.",
+        "operationId": "retry_dlq_entry_v1_admin_dlq__uuid__retry_post",
+        "parameters": [
+          {
+            "description": "UUID of the DLQ entry to retry",
+            "in": "path",
+            "name": "uuid",
+            "required": true,
+            "schema": {
+              "description": "UUID of the DLQ entry to retry",
+              "title": "Uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Retry Dlq Entry V1 Admin Dlq  Uuid  Retry Post",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Retry Dlq Entry",
+        "tags": [
+          "admin",
+          "dlq"
+        ]
+      }
+    },
     "/v1/admin/feature-flags": {
       "get": {
         "description": "List all registered feature flags with current values and sources.\n\nReturns each flag's effective value, where it comes from (redis override,\nenv var, or default), its description, and registry metadata.\n\nAdmin only.",
