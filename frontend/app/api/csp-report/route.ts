@@ -1,10 +1,13 @@
 /**
  * STORY-311 AC3: CSP violation report collection endpoint.
+ * ISSUE-1798: Also receives report-only violation data from CSP-Report-Only header.
  *
  * Receives Content-Security-Policy violation reports from browsers.
  * Supports both legacy report-uri format and Reporting API v1 (report-to).
+ * Handles both "enforce" and "report" dispositions — the disposition field
+ * in the log output distinguishes which CSP header triggered the report.
  *
- * Rate limited to 100 reports/min to prevent flood.
+ * Rate limited to 100 reports/min per IP to prevent flood.
  */
 
 import { NextRequest, NextResponse } from "next/server";
