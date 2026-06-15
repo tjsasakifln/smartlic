@@ -341,14 +341,27 @@ class TestAdminEndpointValidation:
         """Create FastAPI app with admin router and dependency overrides."""
         from fastapi import FastAPI
         from admin import router, require_admin
+        from authorization import (
+            require_data_access,
+            require_user_manager,
+            require_billing,
+            require_dashboard,
+        )
 
         app = FastAPI()
         app.include_router(router)
 
-        async def mock_require_admin():
+        async def mock_admin():
             return mock_admin_user
 
-        app.dependency_overrides[require_admin] = mock_require_admin
+        # #1778: Routes now use granular role dependencies (require_data_access,
+        # require_user_manager) instead of require_admin. Override all role
+        # shorthands so the test can exercise input validation without real auth.
+        app.dependency_overrides[require_data_access] = mock_admin
+        app.dependency_overrides[require_user_manager] = mock_admin
+        app.dependency_overrides[require_billing] = mock_admin
+        app.dependency_overrides[require_dashboard] = mock_admin
+        app.dependency_overrides[require_admin] = mock_admin
         return app
 
     @pytest.fixture

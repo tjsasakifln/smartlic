@@ -53,9 +53,14 @@ jobs:
         env:
           SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
         run: |
-          chmod +x scripts/audit_rls.sh
-          ./scripts/audit_rls.sh 2>&1 | tee /tmp/rls-audit-output.txt
-          exit_code=${PIPESTATUS[0]}
+          if [ -z "$SUPABASE_DB_URL" ]; then
+            echo "::warning::SUPABASE_DB_URL not available in this context — skipping RLS audit."
+            echo "exit_code=0" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+          ./scripts/audit_rls.sh > /tmp/rls-audit-output.txt 2>&1
+          exit_code=$?
+          cat /tmp/rls-audit-output.txt
           echo "exit_code=$exit_code" >> $GITHUB_OUTPUT
           exit $exit_code
 

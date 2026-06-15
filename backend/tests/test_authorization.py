@@ -554,3 +554,206 @@ class TestRequireAdmin:
 
         detail = exc_info.value.detail.lower()
         assert "admin" in detail or "forbidden" in detail or "acesso negado" in detail or "restrito" in detail
+
+
+class TestGetUserRoles:
+    """Test get_user_roles() with env-based and DB-based resolution."""
+
+    @pytest.mark.asyncio
+    async def test_master_gets_all_roles_from_env(self, monkeypatch):
+        """MASTER_USER_IDS returns all roles (no DB call)."""
+        from authorization import get_user_roles
+
+        monkeypatch.setenv("MASTER_USER_IDS", UUID_A)
+
+        with patch("supabase_client.get_supabase") as mock_sb:
+            roles = await get_user_roles(UUID_A)
+
+        assert len(roles) == 5  # All five roles
+        assert "dashboard" in roles
+        assert "user_manager" in roles
+        assert "billing" in roles
+        assert "data_access" in roles
+        assert "master" in roles
+        mock_sb.assert_not_called()
+
+    @pytest.mark.asyncio
+    async def test_admin_roles_from_env(self, monkeypatch):
+        """ADMIN_ROLES returns explicit roles."""
+        from authorization import get_user_roles
+
+        monkeypatch.setenv("ADMIN_ROLES", f"{UUID_A}:dashboard,user_manager")
+        monkeypatch.setenv("ADMIN_USER_IDS", "")
+
+        with patch("supabase_client.get_supabase") as mock_sb:
+            roles = await get_user_roles(UUID_A)
+
+        assert roles == {"dashboard", "user_manager"}
+        mock_sb.assert_not_called()
+
+    @pytest.mark.asyncio
+    async def test_legacy_admin_gets_dashboard(self, monkeypatch):
+        """ADMIN_USER_IDS (legacy) returns DASHBOARD only."""
+        from authorization import get_user_roles
+
+        monkeypatch.setenv("ADMIN_USER_IDS", UUID_A)
+        monkeypatch.setenv("MASTER_USER_IDS", "")
+        monkeypatch.setenv("ADMIN_ROLES", "")
+
+        with patch("supabase_client.get_supabase") as mock_sb:
+            roles = await get_user_roles(UUID_A)
+
+        assert roles == {"dashboard"}
+        mock_sb.assert_not_called()
+
+    @pytest.mark.asyncio
+    async def test_fallback_to_db(self, monkeypatch):
+        """When env vars are empty, falls back to admin_roles table."""
+        from authorization import get_user_roles
+
+        monkeypatch.setenv("ADMIN_USER_IDS", "")
+        monkeypatch.setenv("MASTER_USER_IDS", "")
+        monkeypatch.setenv("ADMIN_ROLES", "")
+
+        mock_response = Mock()
+        mock_response.data = {"roles": ["user_manager", "billing"]}
+
+        mock_execute = Mock(return_value=mock_response)
+        mock_single = Mock(return_value=Mock(execute=mock_execute))
+        mock_eq = Mock(return_value=Mock(single=mock_single))
+        mock_select = Mock(return_value=Mock(eq=mock_eq))
+        mock_table = Mock(return_value=Mock(select=mock_select))
+        mock_sb = Mock(table=mock_table)
+
+        with patch("supabase_client.get_supabase", return_value=mock_sb):
+            roles = await get_user_roles(UUID_B)
+
+        assert roles == {"user_manager", "billing"}
+
+    @pytest.mark.asyncio
+    async def test_regular_user_returns_empty(self, monkeypatch):
+        """Regular user (no roles anywhere) returns empty set."""
+        from authorization import get_user_roles
+
+        monkeypatch.setenv("ADMIN_USER_IDS", "")
+        monkeypatch.setenv("MASTER_USER_IDS", "")
+        monkeypatch.setenv("ADMIN_ROLES", "")
+
+        mock_response = Mock()
+        mock_response.data = None
+
+        mock_execute = Mock(return_value=mock_response)
+        mock_single = Mock(return_value=Mock(execute=mock_execute))
+        mock_eq = Mock(return_value=Mock(single=mock_single))
+        mock_select = Mock(return_value=Mock(eq=mock_eq))
+        mock_table = Mock(return_value=Mock(select=mock_select))
+        mock_sb = Mock(table=mock_table)
+
+        with patch("supabase_client.get_supabase", return_value=mock_sb):
+            roles = await get_user_roles("regular-user")
+
+        assert roles == set()
+
+    @pytest.mark.asyncio
+    async def test_db_error_returns_empty(self, monkeypatch):
+        """DB error during admin_roles lookup returns empty set (graceful)."""
+        from authorization import get_user_roles
+
+        monkeypatch.setenv("ADMIN_USER_IDS", "")
+        monkeypatch.setenv("MASTER_USER_IDS", "")
+        monkeypatch.setenv("ADMIN_ROLES", "")
+
+        with patch("supabase_client.get_supabase", side_effect=Exception("DB down")):
+            roles = await get_user_roles("any-user")
+
+        assert roles == set()
+
+
+class TestRequireRole:
+    """Test require_role() dependency factory."""
+
+    @pytest.mark.asyncio
+    async def test_allows_user_with_required_role(self, monkeypatch):
+        """User with required role passes the check."""
+        from authorization import require_role
+
+        monkeypatch.setenv("ADMIN_ROLES", f"{UUID_A}:data_access")
+
+        checker = require_role("data_access", "master")
+        mock_user = {"id": UUID_A}
+
+        result = await checker(user=mock_user)
+        assert result == mock_user
+
+    @pytest.mark.asyncio
+    async def test_allows_master_any_role(self, monkeypatch):
+        """Master user passes any role check."""
+        from authorization import require_role
+
+        monkeypatch.setenv("MASTER_USER_IDS", UUID_A)
+
+        checker = require_role("user_manager")  # User only has MASTER, not USER_MANAGER
+        mock_user = {"id": UUID_A}
+
+        result = await checker(user=mock_user)
+        assert result == mock_user
+
+    @pytest.mark.asyncio
+    async def test_rejects_user_without_role(self, monkeypatch):
+        """User without any roles gets 403."""
+        from authorization import require_role
+
+        monkeypatch.setenv("ADMIN_USER_IDS", "")
+
+        checker = require_role("data_access")
+        mock_user = {"id": "regular-user"}
+
+        with patch("authorization.get_user_roles", return_value=set()):
+            with pytest.raises(HTTPException) as exc_info:
+                await checker(user=mock_user)
+
+        assert exc_info.value.status_code == 403
+
+    @pytest.mark.asyncio
+    async def test_rejects_wrong_role(self, monkeypatch):
+        """User with wrong role gets 403."""
+        from authorization import require_role
+
+        checker = require_role("billing")
+        mock_user = {"id": UUID_A}
+
+        with patch("authorization.get_user_roles", return_value={"dashboard"}):
+            with pytest.raises(HTTPException) as exc_info:
+                await checker(user=mock_user)
+
+        assert exc_info.value.status_code == 403
+
+    @pytest.mark.asyncio
+    async def test_shorthand_require_data_access(self, monkeypatch):
+        """require_data_access works correctly."""
+        from authorization import require_data_access
+
+        mock_user = {"id": UUID_A}
+
+        with patch("authorization.get_user_roles", return_value={"data_access"}):
+            result = await require_data_access(user=mock_user)
+            assert result == mock_user
+
+        with patch("authorization.get_user_roles", return_value={"dashboard"}):
+            with pytest.raises(HTTPException):
+                await require_data_access(user=mock_user)
+
+    @pytest.mark.asyncio
+    async def test_shorthand_require_user_manager(self, monkeypatch):
+        """require_user_manager works correctly."""
+        from authorization import require_user_manager
+
+        mock_user = {"id": UUID_A}
+
+        with patch("authorization.get_user_roles", return_value={"user_manager"}):
+            result = await require_user_manager(user=mock_user)
+            assert result == mock_user
+
+        with patch("authorization.get_user_roles", return_value={"dashboard"}):
+            with pytest.raises(HTTPException):
+                await require_user_manager(user=mock_user)

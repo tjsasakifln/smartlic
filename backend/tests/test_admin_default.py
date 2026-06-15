@@ -33,15 +33,18 @@ class TestAdminUserCreationDefaultPlan:
         """Create FastAPI app with admin router and dependency overrides."""
         from fastapi import FastAPI
         from admin import router, require_admin
+        from authorization import require_data_access, require_user_manager
 
         app = FastAPI()
         app.include_router(router)
 
-        # Override the require_admin dependency
+        # Override all role dependencies (#1778)
         async def mock_require_admin():
             return mock_admin_user
 
         app.dependency_overrides[require_admin] = mock_require_admin
+        app.dependency_overrides[require_data_access] = mock_require_admin
+        app.dependency_overrides[require_user_manager] = mock_require_admin
 
         return app
 
