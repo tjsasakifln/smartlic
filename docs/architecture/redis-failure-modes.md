@@ -1,13 +1,38 @@
-# Redis Failure Modes — Graceful Degradation (#1801)
+# Redis Failure Modes — Graceful Degradation (#1801 / #1881)
 
 ## Overview
 
 Redis is used across multiple critical paths: cache, rate limiter, SSE state
-tracking, ARQ job queue, distributed locks, and circuit breaker state. If Redis
-goes offline, the system must degrade gracefully rather than crash.
+tracking, ARQ job queue, distributed locks, circuit breaker state, and feature
+flag overrides. If Redis goes offline, the system must degrade gracefully
+rather than crash.
 
 This document describes the behavior of each subsystem when Redis is
-unavailable.
+unavailable, and the resilience layer (`safe_redis_call` / `ResilientRedis`)
+that wraps every Redis operation.
+
+## Resilience Layer (#1881)
+
+Every Redis operation in the codebase now goes through one of two wrappers:
+
+1. **`safe_redis_call(coro, fallback, timeout_s, method_name, module)`** —
+   async wrapper with per-command timeouts and inferred fallback values.
+   Never raises. Returns the fallback value on any failure.
+
+2. **`ResilientRedis(redis)`** — proxy class that wraps every method of a Redis
+   client through ``safe_redis_call``. When the underlying client is ``None``,
+   all methods return safe defaults without any network call.
+
+### Prometheus Metrics
+
+The following metric is incremented on every fallback:
+
+- ``smartlic_redis_fallback_total{module, method, reason}`` — Counter
+  - ``module``: identifies the caller (e.g. ``sse``, ``rate_limiter``,
+    ``feature_flags``, ``swr_cache``)
+  - ``method``: the Redis command name (e.g. ``xread``, ``get``, ``set``,
+    ``incr``, ``eval``)
+  - ``reason``: ``timeout`` | ``connection_error`` | ``unexpected_error``
 
 ## Failure Mode: Redis DOWN
 
@@ -26,14 +51,14 @@ per-operation timeouts:
 | Scan (keys, scan) | 3s | ([], 0) |
 | Complex (eval, pipeline) | 3s | None |
 
-### Affected Functionalities
+### Affected Functionalities (#1881 — All use safe_redis_call)
 
 | Feature | Redis DOWN Behavior | Impact |
 |---------|-------------------|--------|
-| Rate limiter | Fail-open: all requests allowed. In-memory fallback in `RateLimiter._check_memory()`. | No rate limiting during outage. Bot protection degraded. |
+| Rate limiter (`rate_limiter.py`) | Fail-open via `safe_redis_call` + in-memory fallback in `RateLimiter._check_memory()`. All Redis calls (incr, expire, ttl, eval, hmget) wrapped. | No rate limiting during outage. Bot protection degraded. |
 | Auth cache (L2) | L1 memory cache continues. L2 Redis skip = cache miss, re-fetch from Supabase. | Slightly slower auth (every request hits Supabase). |
-| Search results cache | L1 InMemoryCache continues (4h TTL). SWR revalidation via Supabase L3. | No impact if data in L1. Cache misses fall through to DataLake (<100ms). |
-| SSE progress tracking | Events tracked in-memory only. Late subscribers lose history. | SSE still works for active sessions. Replay via Last-Event-ID degraded. |
+| Search results cache | L1 InMemoryCache continues (4h TTL). Sync Redis calls already wrapped in try/except. | No impact if data in L1. Cache misses fall through to DataLake (<100ms). |
+| SSE progress tracking (`search_sse.py`) | Redis `xread` wrapped with `safe_redis_call`. On fallback returns `[]` = no new data, loop continues polling. | SSE still works for active sessions. Redis Streams fallback uses Supabase polling. |
 | ARQ job queue (distributed locks) | `_acquire_lock` returns True (proceed). Risk of duplicate job execution. | Acceptable — jobs are idempotent (upsert semantics). |
 | ARQ queue itself | ARQ uses its own Redis connection. If same Redis: queue unavailable. | Background jobs (summaries, Excel) deferred until Redis recovers. |
 | Circuit breaker (PNCP, PCP) | Falls back to local in-memory state. | CB still functions within a single process, but state is not shared across workers. |
@@ -41,15 +66,15 @@ per-operation timeouts:
 | LLM batch API | Batch meta not persisted. Pending batch detection falls back to empty list. | Batch jobs not tracked across restarts. |
 | Login activity tracking | Falls back to in-memory buffer. | Login data not persisted to DB. Recovered when Redis is back. |
 | PNCP canary | Failure counting disabled. Alerting disabled. | No auto-detection of PNCP API breaking changes. |
-| Feature flags | Redis overrides unavailable. Falls back to env-var + in-memory defaults. | Flag overrides not applied until Redis recovers. |
-| Negative cache (blog_stats) | Falls back to InMemoryCache. | Slightly more DB queries under bot crawl storms. |
+| Feature flags (`routes/feature_flags.py`) | All Redis get/set/delete wrapped with `safe_redis_call`. Falls back to env-var + in-memory defaults. | Flag overrides not applied until Redis recovers. |
+| SWR Cache (`cache/swr.py`) | Redis exists/set/delete wrapped with `safe_redis_call`. Falls back to InMemoryCache. | Slightly more DB queries under bot crawl storms. |
 | Products / Founders / Orgao cache | Falls back to InMemoryCache or direct DB query. | Slightly slower on cache miss. |
 | Metrics cache | Computes metrics directly instead of reading from Redis. | More DB/API calls on each metrics request. |
 | Stripe webhook dedup | Dedup window lost. Risk of double-processing webhook events. | Stripe events may be processed twice (idempotency keys protect). |
 | Admin session revoke | Revoke not propagated across workers. | Revoke takes effect only on next auth cache refresh (5 min). |
 | Reports/Contracts crawler checkpoint | Checkpoint not saved. Progress may regress on worker restart. | Acceptable — crawler resumes from last DB checkpoint on next cycle. |
 | Billing cron (distributed locks) | Lock acquisition succeeds. Multiple workers may process billing. | Acceptable — billing is idempotent (upsert + dedup). |
-| Quota tracking (lead magnet) | Fail-open: quota check passes. | More lead magnets sent than the daily limit. |
+| Quota fallback (`quota/quota_fallback.py`) | Sync Redis eval wrapped in try/except (async `safe_redis_call` not applicable). Layer 3 fail-open returns True. | More fallback allowances granted than the daily limit. |
 
 ### Behavior per Component Type
 
@@ -104,6 +129,7 @@ degraded but does NOT remove the instance from the load balancer.
 3. **Monitor** Prometheus gauges:
    - `smartlic_redis_available` (0/1)
    - `smartlic_redis_fallback_duration_seconds` (seconds since fallback)
+   - `smartlic_redis_fallback_total{module,method,reason}` (per-operation fallback counter)
    - `smartlic_redis_pool_connections_used` / `max`
 
 4. **After recovery**: verify:

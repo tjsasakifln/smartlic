@@ -11,6 +11,7 @@ from datetime import datetime, timezone
 from typing import Optional
 
 from cache.enums import compute_search_hash
+from redis_resilience import safe_redis_call
 
 logger = logging.getLogger(__name__)
 
@@ -35,10 +36,12 @@ async def _is_revalidating(params_hash: str) -> bool:
 
     redis = await get_redis_pool()
     if redis:
-        try:
-            return bool(await redis.exists(redis_key))
-        except Exception:
-            pass
+        return bool(await safe_redis_call(
+            redis.exists(redis_key),
+            fallback=False,
+            method_name="exists",
+            module="swr_cache",
+        ))
 
     cache = get_fallback_cache()
     return cache.get(redis_key) is not None
@@ -52,11 +55,14 @@ async def _mark_revalidating(params_hash: str, ttl_seconds: int) -> bool:
 
     redis = await get_redis_pool()
     if redis:
-        try:
-            acquired = await redis.set(redis_key, "1", ex=ttl_seconds, nx=True)
+        acquired = await safe_redis_call(
+            redis.set(redis_key, "1", ex=ttl_seconds, nx=True),
+            fallback=None,
+            method_name="set",
+            module="swr_cache",
+        )
+        if acquired is not None:
             return bool(acquired)
-        except Exception:
-            pass
 
     cache = get_fallback_cache()
     if cache.get(redis_key) is not None:
@@ -73,11 +79,13 @@ async def _clear_revalidating(params_hash: str) -> None:
 
     redis = await get_redis_pool()
     if redis:
-        try:
-            await redis.delete(redis_key)
-            return
-        except Exception:
-            pass
+        await safe_redis_call(
+            redis.delete(redis_key),
+            fallback=0,
+            method_name="delete",
+            module="swr_cache",
+        )
+        return
 
     cache = get_fallback_cache()
     cache.delete(redis_key)

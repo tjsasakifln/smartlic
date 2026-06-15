@@ -9,6 +9,11 @@ Timeout defaults (per operation category):
     - Scan (keys, scan, mget): 3s
     - Complex (eval, pipeline): 3s
     - Health (ping): 500ms
+
+Metrics:
+    - ``smartlic_redis_fallback_total{module,method,reason}`` — Counter
+      incremented each time ``safe_redis_call`` returns a fallback value.
+      ``reason`` is one of ``timeout``, ``connection_error``, ``unexpected_error``.
 """
 
 import asyncio
@@ -16,6 +21,18 @@ import logging
 from typing import Any, Coroutine, Optional
 
 logger = logging.getLogger(__name__)
+
+# Lazy-loaded Prometheus counter — resolved at call time so metrics module
+# can be unavailable without breaking Redis resilience.
+def _increment_fallback_counter(module: str, method: str, reason: str) -> None:
+    """Increment the Redis fallback counter (best-effort, never raises)."""
+    try:
+        from metrics import REDIS_FALLBACK_TOTAL
+        REDIS_FALLBACK_TOTAL.labels(
+            module=module, method=method, reason=reason,
+        ).inc()
+    except Exception:
+        pass  # Metrics not configured — graceful degradation
 
 # Timeout defaults (seconds) — conservative for shared Railway Redis
 TIMEOUT_READ_S: float = 0.5
@@ -176,6 +193,7 @@ async def safe_redis_call(
     timeout_s: Optional[float] = None,
     method_name: str = "redis_operation",
     logger_warning: bool = True,
+    module: str = "unknown",
 ) -> Any:
     """Execute a Redis coroutine with timeout and fallback.
 
@@ -189,6 +207,7 @@ async def safe_redis_call(
         timeout_s: Timeout in seconds. If None, inferred from method_name.
         method_name: Human-readable name for logging (default: "redis_operation").
         logger_warning: Whether to log a warning on failure (default: True).
+        module: Module name for Prometheus label (default: "unknown").
 
     Returns:
         The Redis result on success, or ``fallback`` on failure.
@@ -216,6 +235,7 @@ async def safe_redis_call(
     try:
         return await asyncio.wait_for(coro, timeout=timeout_s)
     except asyncio.TimeoutError:
+        _increment_fallback_counter(module, method_name, "timeout")
         if logger_warning:
             logger.warning(
                 "Redis %s timed out after %.1fs - using fallback",
@@ -225,6 +245,7 @@ async def safe_redis_call(
     except (ConnectionError, OSError) as exc:
         # ConnectionError: Redis connection refused/reset
         # OSError: socket errors
+        _increment_fallback_counter(module, method_name, "connection_error")
         if logger_warning:
             logger.warning(
                 "Redis %s failed (%s: %s) - using fallback",
@@ -233,6 +254,7 @@ async def safe_redis_call(
         return fallback
     except Exception as exc:
         # Catch-all: any other Redis error (data errors, type errors, etc.)
+        _increment_fallback_counter(module, method_name, "unexpected_error")
         if logger_warning:
             logger.warning(
                 "Redis %s unexpected error (%s: %s) - using fallback",
