@@ -4,6 +4,8 @@ Endpoints that live directly on the app (not inside a router):
   GET /             — API root / navigation
   GET /v1/setores   — Sector list for frontend dropdown
   GET /debug/pncp-test — Admin diagnostic for PNCP API connectivity (admin only)
+  GET /api/openapi.json — Public OpenAPI schema (#1872)
+  GET /api/v1/openapi.json — Versioned public OpenAPI schema (#1872)
 """
 
 import os
@@ -18,6 +20,10 @@ APP_VERSION = os.getenv("APP_VERSION", "dev")
 
 def register_endpoints(app: FastAPI) -> None:
     """Attach root endpoints to *app* (excluding /debug/pncp-test, see module docstring)."""
+
+    # Issue #1872: Public OpenAPI schema endpoint (filtered, no admin routes)
+    from routes.openapi_public import router as openapi_public_router
+    app.include_router(openapi_public_router)
 
     @app.get("/", response_model=RootResponse)
     async def root():

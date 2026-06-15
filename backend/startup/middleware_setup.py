@@ -29,6 +29,8 @@ _ALLOWED_ROOT_PATHS = frozenset({
     "/", "/health", "/health/live", "/health/ready", "/sources/health",
     "/docs", "/redoc", "/openapi.json", "/metrics",
     "/debug/pncp-test", "/v1/setores",
+    # Issue #1872: Public OpenAPI endpoints (no auth, filtered schema)
+    "/api/openapi.json", "/api/v1/openapi.json",
 })
 
 DOCS_ACCESS_TOKEN = os.getenv("DOCS_ACCESS_TOKEN", "")
