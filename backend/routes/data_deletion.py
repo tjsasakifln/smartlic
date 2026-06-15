@@ -1,9 +1,9 @@
 """#1804: LGPD data deletion flow (Art. 18 — direito à exclusão).
 
-POST /v1/me/request-deletion  — solicita exclusão (envia email de confirmação)
-POST /v1/me/confirm-deletion   — confirma com token do email (double opt-out)
-POST /v1/me/cancel-deletion    — cancela solicitação pendente
-DELETE /v1/me/admin/{user_id}  — admin força exclusão direta (bypass double opt-out)
+POST /me/request-deletion  — solicita exclusão (envia email de confirmação)
+POST /me/confirm-deletion   — confirma com token do email (double opt-out)
+POST /me/cancel-deletion    — cancela solicitação pendente
+DELETE /me/admin/{user_id}  — admin força exclusão direta (bypass double opt-out)
 
 Soft-delete via profiles.deleted_at + anonimização de PII.
 """
@@ -13,6 +13,7 @@ from __future__ import annotations
 import hashlib
 import hmac
 import logging
+import os
 import secrets
 from datetime import datetime, timezone
 
@@ -24,13 +25,13 @@ from authorization import is_admin
 
 logger = logging.getLogger(__name__)
 
-router = APIRouter(prefix="/v1/me", tags=["data-deletion"])
+router = APIRouter(prefix="/me", tags=["data-deletion"])
 
 # ---------------------------------------------------------------------------
 # Constants
 # ---------------------------------------------------------------------------
 _DELETION_TOKEN_TTL = 86400  # 24h para confirmar
-_DELETION_SECRET = "smartlic-lgpd-deletion-v1"  # pepper for HMAC
+_DELETION_SECRET = os.getenv("LGPD_DELETION_SECRET", "smartlic-lgpd-deletion-v1")  # pepper for HMAC
 
 
 def _make_deletion_hash(raw_token: str) -> str:
