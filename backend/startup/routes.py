@@ -95,6 +95,7 @@ from routes.api_search import router as api_search_router
 from routes.email_tracking import router as email_tracking_router
 from routes.admin_digest_metrics import router as admin_digest_metrics_router
 from routes.admin_command import router as admin_command_router
+from routes.admin_log_level import router as admin_log_level_router
 from routes.intel_tasting import router as intel_tasting_router
 from routes.predint import router as predint_router
 from routes.monthly_report import router as monthly_report_router
@@ -206,6 +207,8 @@ def register_routes(app: FastAPI) -> None:
     app.include_router(admin_digest_metrics_router)
     # GAP-002 (#1579): Command plan provisioning — self-prefixed at /v1/admin/subscriptions/*
     app.include_router(admin_command_router)
+    # #1814: Runtime log level toggle — self-prefixed at /v1/admin/log-level
+    app.include_router(admin_log_level_router)
     # Stripe webhook at root — DEBT-324: single registration only.
     # Removed from _v1_routers above to prevent duplicate at /v1/webhooks/stripe.
     # Stripe Dashboard must be configured with: POST /webhooks/stripe
