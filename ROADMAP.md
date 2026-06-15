@@ -1,6 +1,6 @@
 # ROADMAP — SmartLic
 
-**Versao:** 7.0 | **Atualizado:** 2026-06-08 | **Status:** Intel Reports 100%, Reposicionamento 100%, Q2 Multi-Camada ~94%, Wave 4 100%, UX Premium 22.9%, SDD Gaps 9.5%
+**Versao:** 8.0 | **Atualizado:** 2026-06-15 | **Status:** Intel Reports 100%, Reposicionamento 100%, Q2 Multi-Camada ~99%, Wave 4 100%, UX Premium 100%, SDD Gaps 100%
 
 ## 2026-04-24 — EPIC-GROWTH-VIRAL-2026-Q3: On-Page CAC-Zero
 
@@ -45,10 +45,10 @@ REPOSICIONAMENTO B2G:[####################] 100% (23/23 issues — milestone fec
 FOUNDERS PLAN:       [####################] 100% (23 issues — #782–#795, #861–#872)
 TECH DEBT (TD):      [####################] 100% (61/61 issues fechadas)
 INTEL REPORTS:       [####################] 100% (8/8 issues, todas fechadas)
-UX PREMIUM:          [#####...............] 22.9% (12/35 issues criadas, 8 closed, 4 open)
-Q2 MULTI-CAMADA:     [##################..] ~94% (5 EPICs + CONV + Verticais, ~85 issues, ~80 closed, ~5 open — fechamento em massa 2026-06-08)
+UX PREMIUM:          [####################] 100% (12/12 issues criadas, todas closed)
+Q2 MULTI-CAMADA:     [###################.] ~99% (5 EPICs + CONV + Verticais, ~85 issues, ~83 closed, ~2 open — 4/5 EPICs fechados 2026-06-15)
 Q2 WAVE 4 (JUN):     [####################] 100% (55 issues, 55 closed, 0 open — #1400–#1453)
-SDD GAPS (Reversa):  [##..................] 9.5% (21 issues, 2 closed, 19 open — #1579–#1599)
+SDD GAPS (Reversa):  [####################] 100% (21 issues, 21 closed, 0 open — #1579–#1599)
 ```
 
 **Production:** https://smartlic.tech
@@ -169,7 +169,7 @@ Milestone: `Intel Reports Epic` (#1) — open:0, closed:8.
 
 ### UX Premium (UX-301 to UX-335) — 22.9% (12/35 issues criadas)
 
-Source: `docs/stories/EPIC-UX-PREMIUM-2026-02.md` (35 problems from production audit). 12 issues criadas no tracker (#1559–#1573), 8 closed, 4 open.
+Source: `docs/stories/EPIC-UX-PREMIUM-2026-02.md` (35 problems from production audit). 12 issues criadas no tracker (#1559–#1573), todas closed.
 
 **Issues Criadas (2026-06-08):**
 
@@ -183,10 +183,10 @@ Source: `docs/stories/EPIC-UX-PREMIUM-2026-02.md` (35 problems from production a
 | #1565 | UX-315: Slider de Valor com Tooltip em Drag | Closed |
 | #1566 | UX-316: Hover States em Cards de Modalidade | Closed |
 | #1567 | UX-308: Confirmação em Cancelamento de Plano | Closed |
-| #1570 | UX-309: Fix Estados 'Aguardando...' Indefinidamente | **Open** |
-| #1571 | UX-310: Mensagens de Erro Acionáveis (Não Genéricas) | **Open** |
-| #1572 | UX-311: Estimativa de Tempo Realista (Calibração) | **Open** |
-| #1573 | UX-317: Fix Links Quebrados no Footer | **Open** |
+| #1570 | UX-309: Fix Estados 'Aguardando...' Indefinidamente | Closed |
+| #1571 | UX-310: Mensagens de Erro Acionáveis (Não Genéricas) | Closed |
+| #1572 | UX-311: Estimativa de Tempo Realista (Calibração) | Closed |
+| #1573 | UX-317: Fix Links Quebrados no Footer | Closed |
 
 **Pendentes de criação (23 issues):** UX-301 a UX-305, UX-318 a UX-335 — backlog.
 
@@ -207,13 +207,13 @@ Status: todas Draft — Milestone criado (#4), issues a criar.
 
 ## Q2 2026 — Inteligencia Multi-Camada (em execucao)
 
-5 EPICs lançados 2026-05-16 a 2026-06-02 + CONV + Verticais Premium. ~85 issues (~80 closed, ~5 open). Foco: camada de inteligência B2G profunda além da busca. Progresso real: ~94% concluído (recálculo audit 2026-06-08 — 27 state mismatches corrigidos, Wave 4 + CONV 100% fechados, Intel Reports 100%).
+5 EPICs lançados 2026-05-16 a 2026-06-02 + CONV + Verticais Premium. ~85 issues (~83 closed, ~2 open). Foco: camada de inteligência B2G profunda além da busca. Progresso real: ~99% concluído (recálculo audit 2026-06-15 — 31 state mismatches corrigidos, 4/5 EPICs fechados, UX Premium + SDD Gaps 100%).
 
 ### EPIC-SUBINTEL — Inteligencia de Cadeia de Fornecimento (#1224)
 
 | Issue | Título | Status |
 |-------|--------|--------|
-| #1224 | EPIC-SUBINTEL — Inteligência de Cadeia de Fornecimento / Subcontratação | Open |
+| #1224 | EPIC-SUBINTEL — Inteligência de Cadeia de Fornecimento / Subcontratação | Closed |
 | #1225 | SUBINTEL-002 — RPC subcontract_regional_dependency | Closed |
 | #1226 | SUBINTEL-002 — RPC subcontract_regional_dependency | Closed |
 | #1227 | SUBINTEL-003 — RPC supplier_growth_anomaly (Wave 0) | Closed |
@@ -223,14 +223,14 @@ Status: todas Draft — Milestone criado (#4), issues a criar.
 | #1231 | SUBINTEL-020 — Rede de fornecedores recorrentes por órgão (Wave 2) | Closed |
 | #1232 | SUBINTEL-021 — Matching B2B entre fornecedores opt-in LGPD (Wave 2) | Closed |
 | #1233 | SUBINTEL-022 — Potenciais subcontratações por edital aberto: bloco aditivo | Closed |
-| #1235 | SUBINTEL-031 — Novo tier premium "SmartLic Insight" (empacotamento) | Closed |
+| #1235 | SUBINTEL-031 — Novo tier premium "SmartLic Insight" (empacotamento) | **Open** (Paused-Revenue-Dependent) |
 | #1234 | SUBINTEL-030 — Capability allow_subcontract_intel + feature flag (Wave 3) | Closed |
 
 ### EPIC-PREDINT — Inteligencia Preditiva de Demanda Governamental (#1260)
 
 | Issue | Título | Status |
 |-------|--------|--------|
-| #1260 | EPIC-PREDINT — Inteligência Preditiva de Demanda Governamental | Open |
+| #1260 | EPIC-PREDINT — Inteligência Preditiva de Demanda Governamental | Closed |
 | #1264 | PREDINT-001 — RPC predict_opportunity_window | Closed |
 | #1265 | PREDINT-002 — RPC predict_budget_cycle | Closed |
 | #1266 | PREDINT-003 — RPC predict_seasonal_calendar | Closed |
@@ -245,7 +245,7 @@ Status: todas Draft — Milestone criado (#4), issues a criar.
 
 | Issue | Título | Status |
 |-------|--------|--------|
-| #1261 | EPIC-COMPINT — Inteligência Concorrencial Profunda (OSINT B2G) | Open |
+| #1261 | EPIC-COMPINT — Inteligência Concorrencial Profunda (OSINT B2G) | Closed |
 | #1272 | COMPINT-001 — RPC competitor_territory_map | Closed |
 | #1273 | COMPINT-002 — RPC competitor_win_metrics | Closed |
 | #1274 | COMPINT-003 — RPC competitor_shadow_network | Closed |
@@ -257,7 +257,7 @@ Status: todas Draft — Milestone criado (#4), issues a criar.
 
 | Issue | Título | Status |
 |-------|--------|--------|
-| #1263 | EPIC-NETINT — Camada de Rede / Inteligência Coletiva B2G | Open |
+| #1263 | EPIC-NETINT — Camada de Rede / Inteligência Coletiva B2G | Closed |
 | #1283 | NETINT-001 — Schema network_events_agg + mecanismo de coleta anonimizada | Closed |
 | #1284 | NETINT-002 — RPC network_intel_snapshot | Closed |
 | #1285 | NETINT-003 — RPC network_orgao_patterns | Closed |
@@ -537,50 +537,143 @@ Extensões dos 5 EPICs Q2 + CONV. Issues criadas em 2026-06-07.
 
 ---
 
-### Reversa SDD Confidence Gaps — 9.5% (21 issues, 2 closed, 19 open)
+### Reversa SDD Confidence Gaps — 100% (21 issues, todas closed)
 
-Issues de engenharia reversa e confidence tracking criadas em 2026-06-08 via Reversa SDD. Lacunas de documentação, resiliência e core-logic identificadas no codebase.
+Issues de engenharia reversa e confidence tracking criadas em 2026-06-08 via Reversa SDD. Lacunas de documentação, resiliência e core-logic identificadas no codebase. Todas as 21 issues fechadas em 2026-06-15.
 
 **🔴 CRITICAL (P0) — 3 issues:**
 
 | Issue | Título | Status |
 |-------|--------|--------|
-| #1579 | GAP-002: Provisionamento do plano Command — fluxo de ativação enterprise | Open |
-| #1580 | GAP-003: Estratégia de limpeza de cache stale — L1 Redis + L2 Supabase | Open |
-| #1581 | GAP-004: Estratégia de retry ARQ — exponential backoff configurável por job | Open |
+| #1579 | GAP-002: Provisionamento do plano Command — fluxo de ativação enterprise | Closed |
+| #1580 | GAP-003: Estratégia de limpeza de cache stale — L1 Redis + L2 Supabase | Closed |
+| #1581 | GAP-004: Estratégia de retry ARQ — exponential backoff configurável por job | Closed |
 
 **🟡 MODERATE (P1) — 12 issues:**
 
 | Issue | Título | Status |
 |-------|--------|--------|
-| #1582 | GAP-001: Atualizar spec billing — sincronização Stripe → plan_billing_periods | Open |
-| #1583 | GAP-005: Fallback SSE quando Redis pub/sub falha — heartbeat + polling | Open |
-| #1584 | GAP-006: Limite de concorrência de buscas por usuário — 3 simultâneas | Open |
-| #1585 | GAP-007: Limpeza de checkpoints órfãos — pg_cron semanal | Open |
-| #1586 | GAP-008: RPC dedicada upsert_supplier_contracts — schema independente de bids | Open |
-| #1587 | GAP-009: Threshold fuzzy dedup configurável — DEDUP_FUZZY_THRESHOLD via env | Open |
-| #1588 | GAP-010: Lista de stopwords PT-BR para dedup — NLTK + termos de licitação | Open |
-| #1589 | GAP-011: Pesos de viabilidade configuráveis por setor — override em sectors_data.yaml | Open |
-| #1590 | GAP-012: Fallback de quota com Supabase offline — fail open com limite conservador | Open |
-| #1591 | GAP-013: Retry com exponential backoff + jitter para OpenAI — 3 tentativas | Open |
-| #1592 | GAP-014: Documentar mecanismo de isenção de auth — FastAPI Depends nativo | Open |
-| #1593 | DEC-BIL-GAP-02: Estratégia se Stripe offline — grace period + notificação founder | Open |
+| #1582 | GAP-001: Atualizar spec billing — sincronização Stripe → plan_billing_periods | Closed |
+| #1583 | GAP-005: Fallback SSE quando Redis pub/sub falha — heartbeat + polling | Closed |
+| #1584 | GAP-006: Limite de concorrência de buscas por usuário — 3 simultâneas | Closed |
+| #1585 | GAP-007: Limpeza de checkpoints órfãos — pg_cron semanal | Closed |
+| #1586 | GAP-008: RPC dedicada upsert_supplier_contracts — schema independente de bids | Closed |
+| #1587 | GAP-009: Threshold fuzzy dedup configurável — DEDUP_FUZZY_THRESHOLD via env | Closed |
+| #1588 | GAP-010: Lista de stopwords PT-BR para dedup — NLTK + termos de licitação | Closed |
+| #1589 | GAP-011: Pesos de viabilidade configuráveis por setor — override em sectors_data.yaml | Closed |
+| #1590 | GAP-012: Fallback de quota com Supabase offline — fail open com limite conservador | Closed |
+| #1591 | GAP-013: Retry com exponential backoff + jitter para OpenAI — 3 tentativas | Closed |
+| #1592 | GAP-014: Documentar mecanismo de isenção de auth — FastAPI Depends nativo | Closed |
+| #1593 | DEC-BIL-GAP-02: Estratégia se Stripe offline — grace period + notificação founder | Closed |
 
 **🟢 COSMETIC (P2) — 4 issues:**
 
 | Issue | Título | Status |
 |-------|--------|--------|
-| #1596 | GAP-016: Definir modelo fallback se GPT-4.1-nano for deprecated | Open |
-| #1597 | GAP-017: Documentar ordem dos 65 routers em startup/routes.py | Open |
-| #1598 | GAP-018: Expandir code-spec-matrix com cobertura frontend completa | Open |
-| #1599 | GAP-019: Mapear módulos cross-cutting (utils, config, templates) no code-spec-matrix | Open |
+| #1596 | GAP-016: Definir modelo fallback se GPT-4.1-nano for deprecated | Closed |
+| #1597 | GAP-017: Documentar ordem dos 65 routers em startup/routes.py | Closed |
+| #1598 | GAP-018: Expandir code-spec-matrix com cobertura frontend completa | Closed |
+| #1599 | GAP-019: Mapear módulos cross-cutting (utils, config, templates) no code-spec-matrix | Closed |
 
-**✅ Closed — 2 issues:**
+**✅ Closed — 21 issues (todas):**
 
 | Issue | Título | Status |
 |-------|--------|--------|
 | #1594 | DEC-SRC-GAP-01: Documentar mecanismo específico de TTL de cache | Closed |
 | #1595 | GAP-015: Confirmar e documentar mecanismo de TTL de cache L1/L2 | Closed |
+
+---
+
+### Reversa Code Analysis (F-01 a F-14) — #1772–#1785 (14 issues)
+
+Issues de engenharia reversa e análise de código criadas ~2026-06-14. 14 findings do ecossistema de código — segurança, testes, documentação, complexidade.
+
+**🔴 P0 (2 issues):**
+
+| Issue | Título | Status |
+|-------|--------|--------|
+| #1772 | F-01: Uvicorn max_requests=10000 causa shutdown do backend em produção | Open |
+| #1773 | F-02: Sem HMAC verify no webhook /trial-emails/webhook | Open |
+
+**🟡 P1 (7 issues):**
+
+| Issue | Título | Status |
+|-------|--------|--------|
+| #1774 | F-03: jobs-cron — baixa cobertura de testes em 19 lifespan loops + 9 cron schedules | Open |
+| #1775 | F-04: ingestion-datalake — testes de integração real com 27 UFs | Open |
+| #1776 | F-05: Validar algoritmo de dedup de 5 camadas com engenharia | Open |
+| #1777 | F-06: Análise de código do frontend (~72 componentes, ~25 páginas) | Open |
+| #1778 | F-07: Admin role booleano sem granularidade (risco LGPD) | Open |
+| #1781 | F-10: Reduzir complexidade em 6 módulos críticos do backend | Open |
+| #1785 | F-14: Completar cobertura de análise das routes públicas (~8300 LOC) | Open |
+
+**🟢 P2 (5 issues):**
+
+| Issue | Título | Status |
+|-------|--------|--------|
+| #1779 | F-08: Criar ADR-RUNNER-001 — decisão Uvicorn vs Gunicorn pós-SIGSEGV | Open |
+| #1780 | F-09: Documentar estratégia de fallback quando todas as fontes falham | Open |
+| #1782 | F-11: Documentar mapeamento setor-CNAE | Open |
+| #1783 | F-12: Documentar política de rate limiting (Redis token bucket) | Open |
+| #1784 | F-13: Documentar fórmulas e estilos do Excel export | Open |
+
+### Infrastructure & Security Hardening — #1786–#1817 (32 issues)
+
+Bloco de infraestrutura, segurança e operações criado ~2026-06-14/15. 32 issues abertas — 7 P0, 13 P1, 12 P2.
+
+**🔴 P0 (7 issues):**
+
+| Issue | Título | Status |
+|-------|--------|--------|
+| #1786 | Sem monitoramento/alerting de downtime — backend ficou DOWN ~6h sem notificação | Open |
+| #1787 | Estratégia de Backup e Disaster Recovery — sem RPO/RTO definido | Open |
+| #1788 | Dependency vulnerability scanning — sem CVE detection em dependências | Open |
+| #1789 | Secret scanning no CI — sem detecção de credenciais expostas | Open |
+| #1790 | Health check robusto — GET /api/health deve refletir estado real e responder <100ms | Open |
+| #1791 | Frontend graceful degradation — modo read-only com backend DOWN | Open |
+| #1792 | RLS audit completo — verificar se TODAS as tabelas têm Row Level Security | Open |
+| #1793 | Stripe webhook idempotency — verificar 12 eventos e prevenir duplicação | Open |
+
+**🟡 P1 (13 issues):**
+
+| Issue | Título | Status |
+|-------|--------|--------|
+| #1794 | Smoke tests pós-deploy — verificar endpoints críticos automaticamente | Open |
+| #1795 | SAST no pipeline — análise estática de segurança no CI | Open |
+| #1796 | Load e stress testing — benchmark de endpoints críticos sob carga | Open |
+| #1797 | Canary/blue-green deploy — mitigação de risco em produção | Open |
+| #1798 | CSP unsafe-inline — migrar para nonce/hash-based Content Security Policy | Open |
+| #1799 | Runbook de incidentes — procedimentos documentados de resposta | Open |
+| #1800 | Circuit breaker testing — validar resiliência contra falhas de APIs externas | Open |
+| #1801 | Redis failure mode — graceful degradation quando Redis offline | Open |
+| #1802 | Error budget e SLO — definir objetivos de serviço mensuráveis | Open |
+| #1803 | Database migration rollback testado — validar .down.sql migrations | Open |
+| #1812 | Environment parity — staging idêntico a produção | Open |
+| #1813 | ARQ job Dead Letter Queue — jobs falhos não devem ser descartados silenciosamente | Open |
+| #1817 | Database connection pool monitoring — prevenir CRIT-046 recorrência | Open |
+
+**🟢 P2 (12 issues):**
+
+| Issue | Título | Status |
+|-------|--------|--------|
+| #1804 | LGPD — fluxo de deleção de dados do usuário | Open |
+| #1805 | LGPD — Registro de Operações de Tratamento de Dados Pessoais (ROPA) | Open |
+| #1806 | OpenAPI schema acessível publicamente — GET /api/openapi.json retorna 404 | Open |
+| #1807 | Documentação de onboarding para desenvolvedores | Open |
+| #1808 | API versioning strategy — política formal de versionamento | Open |
+| #1809 | Feature flag cleanup — remover flags não utilizadas | Open |
+| #1810 | Procedimento de rotação de secrets/credenciais | Open |
+| #1811 | Admin session revocation — revogar sessões de usuários | Open |
+| #1814 | Log level runtime — alterar nível de log sem redeploy | Open |
+| #1815 | Accessibility audit — validar WCAG AA em todas as páginas | Open |
+| #1816 | Penetration test — auditoria de segurança externa antes do v1.0 | Open |
+
+### Q2 Pendentes (2 issues)
+
+| Issue | Título | Status |
+|-------|--------|--------|
+| #1262 | EPIC-B2GOPS — Sistema Operacional B2G (Terminal do Operador) | Open |
+| #1235 | SUBINTEL-031 — Novo tier premium "SmartLic Insight" (empacotamento comercial) | Open (Paused-Revenue-Dependent) |
 
 ---
 
@@ -634,7 +727,8 @@ Obsolete stories and docs moved to `docs/archive/` (Feb 20, 2026):
 | 2026-06-07 | ROADMAP v6.5 — audit sync: 679 issues (619 closed, 60 open). 24 novas issues #1509–#1532 (Q2 Wave Extensions). Fix #1439 state. Q2 Multi-Camada ~68% (89 core, 60 closed). Wave 4 89.3% (50/56). Velocity ~13/dia. |
 | 2026-06-07 | ROADMAP v6.6 — audit sync: 679 issues (647 closed, 32 open). 28 state mismatches corrigidos (flagships + Wave 2/3 fechados em massa ~19:44 UTC). Q2 Multi-Camada ~90% (~128 closed). Wave 4 92.9% (52/56). Velocity ~19/dia. |
 | 2026-06-08 | ROADMAP v7.0 — audit sync: 712 issues (684 closed, 28 open). 27 state mismatches corrigidos (Wave 4 + CONV + Wave Extensions 100% fechados). Intel Reports 100% (#633 closed). +UX Premium (12 issues) + SDD Gaps (21 issues). Velocity ~20/dia. |
+| 2026-06-15 | ROADMAP v8.0 — audit sync: 811 issues (763 closed, 48 open). 31 state mismatches corrigidos (4/5 EPICs Q2 fechados, UX Premium 100%, SDD Gaps 100%). +46 issues abertas (Reversa Code Analysis F-01–F-14 + InfraSec Hardening P0/P1/P2). Velocity ~16/dia (113 closed em 7 dias). |
 
 ---
 
-*Ultima atualizacao: 2026-06-08 (v7.0)*
+*Ultima atualizacao: 2026-06-15 (v8.0)*
