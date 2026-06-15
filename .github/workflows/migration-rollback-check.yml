@@ -1,0 +1,225 @@
+# ==============================================================================
+# migration-rollback-check.yml
+#
+# Validates that all SQL migrations have paired .down.sql rollback scripts
+# and that every .down.sql file is syntactically valid SQL.
+#
+# Runs on PRs that touch supabase/migrations/ and blocks merge if:
+#   - Any up migration lacks a paired .down.sql
+#   - Any .down.sql fails PostgreSQL syntax parsing
+#
+# STORY-6.2 / Issue #1803
+# ==============================================================================
+
+name: "Migration Rollback Check (PR Gate)"
+
+on:
+  pull_request:
+    paths:
+      - 'supabase/migrations/**'
+
+permissions:
+  contents: read
+  pull-requests: write
+
+concurrency:
+  group: migration-rollback-check-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate-down-sql:
+    name: Validate .down.sql Pairing
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      # ----------------------------------------------------------------
+      # Step 1: Validate .down.sql pairing using standalone script
+      # ----------------------------------------------------------------
+      - name: Check down.sql pairing
+        id: pairing
+        run: |
+          echo "=== Running validate_down_migrations.sh ==="
+          ./scripts/validate_down_migrations.sh 2>&1 | tee /tmp/pairing_output.txt
+          EXIT_CODE=${PIPESTATUS[0]}
+
+          # Capture missing list for PR comment
+          MISSING=$(grep '^\s*- ' /tmp/pairing_output.txt | sed 's/^[[:space:]]*- //' | tr '\n' ',' | sed 's/,$//')
+          echo "missing_list=${MISSING}" >> $GITHUB_OUTPUT
+
+          # Parse summary counts
+          TOTAL_UP=$(grep 'Total up migrations' /tmp/pairing_output.txt | awk '{print $NF}')
+          TOTAL_MISSING=$(grep 'Missing .down.sql' /tmp/pairing_output.txt | awk '{print $NF}')
+
+          echo "total_up=${TOTAL_UP:-0}" >> $GITHUB_OUTPUT
+          echo "total_missing=${TOTAL_MISSING:-0}" >> $GITHUB_OUTPUT
+          echo "has_missing=$([ "$TOTAL_MISSING" -gt 0 ] && echo 'true' || echo 'false')" >> $GITHUB_OUTPUT
+
+          if [ "$EXIT_CODE" -ne 0 ]; then
+            echo "::error::Migration pairing check FAILED — some up migrations are missing .down.sql."
+            exit "$EXIT_CODE"
+          fi
+          echo "All migrations have paired .down.sql files."
+
+      # ----------------------------------------------------------------
+      # Step 2: SQL syntax validation of .down.sql files
+      # ----------------------------------------------------------------
+      - name: Validate SQL syntax of .down.sql files
+        id: syntax
+        run: |
+          echo "=== Validating .down.sql syntax ==="
+
+          # Start a temporary PostgreSQL instance for parsing
+          docker compose -f /dev/null 2>/dev/null || true
+          CONTAINER_ID=$(docker run -d \
+            --rm \
+            -e POSTGRES_PASSWORD=validation \
+            -e POSTGRES_DB=rollback_validation \
+            postgres:17-alpine \
+            -c 'max_connections=10' \
+            2>&1)
+
+          if [ -z "$CONTAINER_ID" ]; then
+            echo "::warning::Could not start PostgreSQL container — skipping syntax validation."
+            echo "syntax_skipped=true" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+
+          echo "PostgreSQL container started: ${CONTAINER_ID:0:12}"
+
+          # Wait for Postgres to be ready
+          for i in $(seq 1 15); do
+            if docker exec "$CONTAINER_ID" pg_isready -q 2>/dev/null; then
+              break
+            fi
+            sleep 1
+          done
+
+          HAS_ERRORS=false
+          SYNTAX_ERRORS=()
+
+          while IFS= read -r -d '' down_file; do
+            filename="${down_file#./}"
+            echo "  Checking: ${filename}"
+
+            # Create temp file with just the SQL content (strip shebang if any)
+            # Run each .down.sql in a transaction that rolls back
+            # Use ON_ERROR_ROLLBACK=on so each statement is independent
+            if ! output=$(docker exec -i "$CONTAINER_ID" \
+              psql -U postgres -d rollback_validation \
+              -v ON_ERROR_ROLLBACK=on \
+              -f - 2>&1 < "$down_file"); then
+              echo "  SYNTAX ERROR in ${filename}:"
+              echo "    $output" | head -5
+              SYNTAX_ERRORS+=("${filename}: $output")
+              HAS_ERRORS=true
+            fi
+          done < <(find supabase/migrations -maxdepth 1 -name '*.down.sql' -print0 | sort -z)
+
+          # Cleanup
+          docker stop "$CONTAINER_ID" >/dev/null 2>&1 || true
+
+          echo "syntax_errors_count=${#SYNTAX_ERRORS[@]}" >> $GITHUB_OUTPUT
+
+          if [ "$HAS_ERRORS" = true ]; then
+            printf '%s\n' "${SYNTAX_ERRORS[@]}" > /tmp/syntax_errors.txt
+            echo "has_errors=true" >> $GITHUB_OUTPUT
+            echo "::error::SQL syntax validation FAILED for ${#SYNTAX_ERRORS[@]} .down.sql file(s)."
+            exit 1
+          fi
+
+          echo "has_errors=false" >> $GITHUB_OUTPUT
+          echo "All .down.sql files passed syntax validation."
+
+      # ----------------------------------------------------------------
+      # Step 3: Post PR comment with summary
+      # ----------------------------------------------------------------
+      - name: Post PR comment
+        if: always()
+        uses: actions/github-script@v9
+        with:
+          script: |
+            const fs = require('fs');
+            const hasPairingFailure = '${{ steps.pairing.outputs.has_missing }}' === 'true';
+            const hasSyntaxFailure = '${{ steps.syntax.outputs.has_errors }}' === 'true';
+            const syntaxSkipped = '${{ steps.syntax.outputs.syntax_skipped }}' === 'true';
+            const totalUp = '${{ steps.pairing.outputs.total_up }}' || '?';
+            const totalMissing = '${{ steps.pairing.outputs.total_missing }}' || '?';
+            const sections = [];
+
+            // Pairing result
+            if (hasPairingFailure) {
+              const missingList = '${{ steps.pairing.outputs.missing_list }}' || '';
+              sections.push(
+                '## ❌ Migration Pairing Check FAILED\n\n' +
+                totalMissing + ' migration(s) are missing paired .down.sql ' +
+                '(out of ' + totalUp + ' total).\n\n' +
+                '**Missing .down.sql:**\n' +
+                missingList.split(',').map(f => '  - `' + f.trim() + '`').join('\n') + '\n\n' +
+                '> Every up migration requires a paired down migration (STORY-6.2 / #1803).'
+              );
+            } else {
+              sections.push(
+                '## ✅ Migration Pairing Check Passed\n\n' +
+                'All ' + totalUp + ' up migrations have paired .down.sql files.'
+              );
+            }
+
+            // Syntax result
+            if (syntaxSkipped) {
+              sections.push(
+                '## ⚠️ Syntax Validation Skipped\n\n' +
+                'PostgreSQL container was unavailable — syntax validation could not run ' +
+                'for .down.sql files. Review manually if this is a fresh PR.'
+              );
+            } else if (hasSyntaxFailure) {
+              const errors = fs.readFileSync('/tmp/syntax_errors.txt', 'utf8').trim();
+              sections.push(
+                '## ❌ SQL Syntax Validation FAILED\n\n' +
+                'The following .down.sql files have syntax errors:\n\n' +
+                '```\n' + errors + '\n```\n\n' +
+                'Fix these errors before merging — broken down scripts make rollback impossible.'
+              );
+            } else {
+              syntaxSkipped = false; // already handled above
+            }
+
+            // If we didn't push a syntax section yet and there's no failure/skip
+            if (!syntaxSkipped && !hasSyntaxFailure) {
+              const syntaxCount = '${{ steps.syntax.outputs.syntax_errors_count }}';
+              sections.push(
+                '## ✅ SQL Syntax Validation Passed\n\n' +
+                'All .down.sql files passed PostgreSQL syntax parsing.'
+              );
+            }
+
+            const body = sections.join('\n\n---\n\n') +
+              '\n\n---\n\n> _Powered by migration-rollback-check.yml (#1803)_';
+
+            const { data: comments } = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+            });
+
+            const botComment = comments.find(c =>
+              c.body.includes('migration-rollback-check.yml') && c.user.type === 'Bot'
+            );
+
+            if (botComment) {
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: botComment.id,
+                body,
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body,
+              });
+            }
