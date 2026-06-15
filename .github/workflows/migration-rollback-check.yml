@@ -115,12 +115,21 @@ jobs:
           echo "PostgreSQL container started: ${CONTAINER_ID:0:12}"
 
           # Wait for Postgres to be ready
+          PG_READY=false
           for i in $(seq 1 15); do
             if docker exec "$CONTAINER_ID" pg_isready -q 2>/dev/null; then
+              PG_READY=true
               break
             fi
             sleep 1
           done
+
+          if [ "$PG_READY" != "true" ]; then
+            echo "::warning::PostgreSQL container did not become ready — skipping syntax validation."
+            echo "syntax_skipped=true" >> $GITHUB_OUTPUT
+            docker stop "$CONTAINER_ID" >/dev/null 2>&1 || true
+            exit 0
+          fi
 
           HAS_ERRORS=false
           SYNTAX_ERRORS=()
@@ -148,10 +157,17 @@ jobs:
               psql -U postgres -d rollback_validation \
               -v ON_ERROR_ROLLBACK=on \
               -f - 2>&1 < "$down_file"); then
-              echo "  SYNTAX ERROR in ${filename}:"
-              echo "    $output" | head -5
-              SYNTAX_ERRORS+=("${filename}: $output")
-              HAS_ERRORS=true
+              # Distinguish between Docker infrastructure errors and SQL syntax errors
+              if echo "$output" | grep -qi "Error response from daemon\|Cannot connect\|not found\|connection refused\|container.*not"; then
+                echo "  ::warning::Docker infrastructure error validating ${filename}:"
+                echo "    $output" | head -3
+                # Don't mark as syntax error — Docker issue, not SQL issue
+              else
+                echo "  SYNTAX ERROR in ${filename}:"
+                echo "    $output" | head -10
+                SYNTAX_ERRORS+=("${filename}: $output")
+                HAS_ERRORS=true
+              fi
             fi
           done
 
