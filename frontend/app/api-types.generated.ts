@@ -1709,7 +1709,7 @@ export interface paths {
         };
         /**
          * List Users
-         * @description List all users with profiles and subscription info.
+         * @description List all users with profiles and subscription info (LGPD-sensitive).
          */
         get: operations["list_users_v1_admin_users_get"];
         put?: never;
