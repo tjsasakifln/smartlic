@@ -36,8 +36,12 @@ describe("STORY-311: Security Headers Configuration", () => {
       );
     });
 
-    it("should NOT use Report-Only CSP anymore", () => {
-      expect(middlewareSource).not.toContain(
+    it("should ALSO set CSP-Report-Only with nonce-based policy (ISSUE-1798 Phase 1)", () => {
+      // ISSUE-1798 Phase 1: Report-Only header added alongside enforcing CSP.
+      // The report-only policy removes 'unsafe-inline' from script-src and uses
+      // a per-request nonce + SHA-256 hash for the theme-init script.
+      // Phase 2: after 0 violations, replace enforcing CSP with nonce-based policy.
+      expect(middlewareSource).toContain(
         "Content-Security-Policy-Report-Only"
       );
     });

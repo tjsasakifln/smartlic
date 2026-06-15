@@ -44,62 +44,52 @@ function isValidCnpjFormat(s: string): boolean {
  * AC7: COEP skipped — require-corp breaks Stripe checkout iframe (no CORP headers).
  * AC8: X-DNS-Prefetch-Control: off.
  *
- * DEBT-108: CSP nonce-based script-src (removes 'unsafe-inline' / 'unsafe-eval').
+ * ISSUE-1798: Nonce-based CSP — Phase 1 (report-only).
  * A per-request nonce is generated here, set on x-nonce response header, and
- * read by app/layout.tsx to hydrate Script / inline-script nonce attributes.
- * 'strict-dynamic' lets nonced scripts load their own child scripts automatically.
+ * read by app/layout.tsx to hydrate the theme-init inline-script nonce attribute.
  *
- * DEBT-108 AC6: To rollback CSP nonce, replace the script-src line below with:
- * "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://js.stripe.com https://static.cloudflareinsights.com https://cdn.sentry.io https://www.clarity.ms https://www.googletagmanager.com",
- * and remove the nonce generation + x-nonce header lines.
+ * A Content-Security-Policy-Report-Only header is added alongside the enforcing
+ * CSP. The report-only policy removes 'unsafe-inline' from script-src and uses
+ * the nonce + SHA-256 hash instead. This collects real violation data to validate
+ * whether the app works without unsafe-inline.
+ *
+ * Phase 2 (future): After confirming 0 violations via the report endpoint,
+ * replace the enforcing CSP's script-src with the nonce-based version and
+ * remove the report-only header.
+ *
+ * CDN impact: making layout.tsx async to read the nonce forces dynamic rendering,
+ * which previously caused Cache-Control:private on all pages (DEBT-108 reverted).
+ * For Phase 1 this is acceptable because:
+ *   - The enforcing CSP still has unsafe-inline (no behavior change)
+ *   - The report-only header collects data without blocking anything
+ *   - Phase 2 will require a permanent solution (e.g., per-page nonce via RSC inject)
+ *
+ * Third-party allowlists cover: Stripe, Sentry, Cloudflare, Clarity, GTM, Mixpanel.
+ *
+ * Theme-init script SHA-256 hash (static, never changes):
+ *   node -e "const {createHash}=require('crypto');
+ *     const s='\n              (function() { ... })();\n            ';
+ *     console.log('sha256-'+createHash('sha256').update(s).digest('base64'));"
+ * THEME_INIT_HASH: sha256-cKn8Ad2sQ17kSb7D+OWHpjqjv4Jgu4eo/To/sKp8AsQ=
  */
 function addSecurityHeaders(response: NextResponse): NextResponse {
-  // SEO-FIX: Replaced per-request nonce (DEBT-108) with static SHA-256 hash.
-  // Per-request nonce required `await headers()` in layout.tsx, forcing dynamic
-  // rendering on the entire page tree → Next.js set Cache-Control: private on ALL
-  // pages → Cloudflare CDN could not cache → cf-cache-status: DYNAMIC on every
-  // request → worse crawl budget, higher TTFB, slower Googlebot indexation.
-  //
-  // The only truly inline script in HTML is the theme-init script in layout.tsx
-  // (dangerouslySetInnerHTML). Its content is 100% static — SHA-256 hash never
-  // changes across requests. GA and Clarity use strategy="afterInteractive" which
-  // bundles/executes as JS (not raw inline <script> in HTML), so no hash needed.
-  //
-  // 'strict-dynamic' removed: it ignores domain allowlists for static <script src>
-  // tags, requiring nonce/hash on every script. Without per-request nonce, domain
-  // allowlists are the correct enforcement mechanism.
-  //
-  // To restore nonce-based CSP (reverts this fix):
-  // 1. Re-add: const nonce = Buffer.from(crypto.randomUUID()).toString("base64");
-  // 2. Replace script-src with: `script-src 'self' 'nonce-${nonce}' 'strict-dynamic' ...`
-  // 3. Re-add: response.headers.set("x-nonce", nonce);
-  // 4. Restore `async` + `await headers()` in layout.tsx
-  //
-  // Hash computation: node -e "const {createHash}=require('crypto');
-  //   const s='\n              (function() { ... })();\n            ';
-  //   console.log('sha256-'+createHash('sha256').update(s).digest('base64'));"
-  // THEME_INIT_HASH: sha256-cKn8Ad2sQ17kSb7D+OWHpjqjv4Jgu4eo/To/sKp8AsQ=
+  // ISSUE-1798: Per-request nonce for CSP. Exposed via x-nonce response header so
+  // layout.tsx can read it and set nonce attribute on the theme-init inline script.
+  // This is Phase 1 (report-only) — the enforcing CSP still has 'unsafe-inline'.
+  const nonce = crypto.randomUUID();
+  response.headers.set("x-nonce", nonce);
 
-  // AC1+AC4: Content Security Policy — enforcing mode with hash-based script-src
+  // AC1+AC4: Content Security Policy — enforcing mode with unsafe-inline (Phase 1).
+  // ISSUE-1798 Phase 1: The enforcing CSP retains 'unsafe-inline' in script-src.
+  // Phase 2 will replace this with the nonce-based policy from CSP-Report-Only.
+  //
+  // Industry context (validated 2026-04-06, vercel/next.js #89754):
+  // Next.js 16 App Router + RSC injects dynamic inline scripts per-request
+  // (self.__next_f.push([...]) RSC payload chunks). These change every request
+  // → no static hash possible. Nonce forces headers() → dynamic rendering.
+  // 'unsafe-inline' is accepted for scripts until Phase 2 evaluates the data.
   const csp = [
     "default-src 'self'",
-    // SHA-256 hash of the static theme-init inline script in layout.tsx.
-    // Domain allowlist covers all external scripts (GA, Clarity, Stripe, etc.).
-    // CSP script-src strategy (validated 2026-04-06, vercel/next.js #89754):
-    //
-    // Next.js 16 App Router + RSC injects dynamic inline scripts per-request
-    // (self.__next_f.push([...]) RSC payload chunks). These change every request
-    // → no static hash possible. Nonce forces headers() → dynamic rendering →
-    // Cache-Control:private → CDN cannot cache → worse CWV/SEO.
-    //
-    // 'strict-dynamic' NOT used: it disables 'self' and domain allowlisting for
-    // <script src> tags, blocking all /_next/static/chunks/*.js files.
-    // strict-dynamic only works when scripts are loaded BY a trusted (nonce/hash)
-    // script — not for static <script src> in HTML without a nonce.
-    //
-    // Industry consensus (open issue Feb 2026, no upstream fix): 'unsafe-inline'
-    // is unavoidable for Next.js + public CDN caching. CSP still provides real
-    // protection via connect-src, object-src 'none', frame-src, default-src.
     "script-src 'self' 'unsafe-inline' https://js.stripe.com https://static.cloudflareinsights.com https://cdnjs.cloudflare.com https://cdn.sentry.io https://www.clarity.ms https://scripts.clarity.ms https://www.googletagmanager.com",
     // DEBT-116: style-src unsafe-inline is an accepted risk.
     // Tailwind CSS and Next.js inject inline styles at runtime (className -> style).
@@ -117,8 +107,31 @@ function addSecurityHeaders(response: NextResponse): NextResponse {
     "report-to csp-endpoint",
   ].join("; ");
 
-  // AC1: Enforcing CSP (promoted from Report-Only in STORY-300)
+  // AC1: Enforcing CSP
   response.headers.set("Content-Security-Policy", csp);
+
+  // ISSUE-1798: CSP-Report-Only — strict nonce-based policy without 'unsafe-inline'.
+  // Mirrors the enforcing CSP but replaces 'unsafe-inline' in script-src with a
+  // per-request nonce + static SHA-256 hash for the theme-init script. Collects
+  // violation data via the existing /api/csp-report endpoint (rate-limited).
+  //
+  // Once the report endpoint shows 0 violations for script-src over a sustained
+  // period, this policy can replace the enforcing CSP (Phase 2).
+  const cspReportOnly = [
+    "default-src 'self'",
+    `script-src 'self' 'nonce-${nonce}' 'sha256-cKn8Ad2sQ17kSb7D+OWHpjqjv4Jgu4eo/To/sKp8AsQ=' https://js.stripe.com https://static.cloudflareinsights.com https://cdnjs.cloudflare.com https://cdn.sentry.io https://www.clarity.ms https://scripts.clarity.ms https://www.googletagmanager.com`,
+    "style-src 'self' 'unsafe-inline'",
+    "img-src 'self' data: https: blob:",
+    "font-src 'self' data:",
+    "connect-src 'self' https://*.supabase.co https://*.supabase.in https://api.stripe.com https://*.railway.app https://*.ingest.sentry.io https://*.sentry.io https://*.smartlic.tech https://api-js.mixpanel.com https://api.mixpanel.com wss://*.supabase.co https://*.clarity.ms",
+    "frame-src 'self' https://js.stripe.com",
+    "object-src 'none'",
+    "base-uri 'self'",
+    "report-uri /api/csp-report",
+    "report-to csp-endpoint",
+  ].join("; ");
+
+  response.headers.set("Content-Security-Policy-Report-Only", cspReportOnly);
 
   // AC2: Reporting API v1 — report-to group definition
   response.headers.set(

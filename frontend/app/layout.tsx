@@ -15,6 +15,7 @@ import { BackendStatusProvider } from "./components/BackendStatusIndicator";
 import { SWRProvider } from "../components/SWRProvider";
 import { UserProvider } from "../contexts/UserContext";
 import { FoundersTopBanner } from "../components/banners/FoundersTopBanner";
+import { headers } from "next/headers";
 import { StructuredData } from "./components/StructuredData";
 import { GoogleAnalytics } from "./components/GoogleAnalytics";
 import { ClarityAnalytics } from "./components/ClarityAnalytics";
@@ -132,14 +133,19 @@ export const metadata: Metadata = {
   },
 };
 
-// SEO-FIX: Layout is now synchronous — no headers() call, no dynamic rendering.
-// Cache-Control is set by middleware for public routes (s-maxage=3600).
-// Nonce replaced by SHA-256 hash in middleware.ts CSP (see comment there).
-export default function RootLayout({
+// ISSUE-1798: Layout is now async to read x-nonce header for CSP nonce.
+// This makes the page tree render dynamically (Cache-Control: private by Next.js),
+// but the middleware overrides Cache-Control for public routes (s-maxage=3600).
+// Phase 1 (report-only): the enforcing CSP still has 'unsafe-inline', so there
+// is no behavior change — only the CSP-Report-Only header uses the nonce.
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  // ISSUE-1798: Read per-request nonce from middleware for CSP report-only mode.
+  const h = await headers();
+  const nonce = h.get("x-nonce") || "";
   return (
     <html lang="pt-BR" suppressHydrationWarning className={`${dmSans.variable} ${fahkwang.variable} ${dmMono.variable}`}>
       <head>
@@ -168,8 +174,9 @@ export default function RootLayout({
         {/* Issue #994: Preconnect to backend API to shave LCP on first data fetch */}
         <link rel="preconnect" href="https://api.smartlic.tech" />
         <link rel="dns-prefetch" href="https://api.smartlic.tech" />
-        {/* SEO-FIX: nonce removed — CSP allows this via SHA-256 hash (see middleware.ts) */}
+        {/* ISSUE-1798: nonce attribute for CSP report-only mode — read from x-nonce middleware header */}
         <script
+          nonce={nonce}
           dangerouslySetInnerHTML={{
             __html: `
               (function() {
