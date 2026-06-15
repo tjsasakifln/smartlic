@@ -433,7 +433,8 @@ function SignupPageContent() {
     const partnerSlug = params.get("partner");
     if (partnerSlug) {
       safeSetItem("smartlic_partner", partnerSlug);
-      document.cookie = `smartlic_partner=${partnerSlug};path=/;max-age=${7 * 24 * 60 * 60}`;
+      const secureFlag = window.location.protocol === 'https:' ? '; Secure' : '';
+      document.cookie = `smartlic_partner=${partnerSlug};path=/;max-age=${7 * 24 * 60 * 60};SameSite=Lax${secureFlag}`;
       setPartnerInfo({ name: partnerSlug.replace(/-/g, " ").replace(/\b\w/g, (c) => c.toUpperCase()), slug: partnerSlug });
     } else {
       const stored = safeGetItem("smartlic_partner");

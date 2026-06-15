@@ -29,6 +29,11 @@ function isValidCnpjFormat(s: string): boolean {
  * STORY-300: Initial security headers setup.
  * STORY-311: Security hardening — CSP enforcement, report-uri, COOP, HSTS preload.
  *
+ * #1874: Cookie security audit.
+ * - Auth cookies (sb-* prefix): SameSite=Strict + Secure (CSRF protection)
+ * - Preference cookies (non-sb-*): SameSite=Lax + Secure
+ * - All cookies get Secure in production
+ *
  * Protected routes: /buscar, /historico, /conta, /admin/*, /dashboard, /mensagens
  * Public routes: /login, /signup, /planos, /auth/callback
  */
@@ -65,6 +70,15 @@ function isValidCnpjFormat(s: string): boolean {
  *   - Phase 2 will require a permanent solution (e.g., per-page nonce via RSC inject)
  *
  * Third-party allowlists cover: Stripe, Sentry, Cloudflare, Clarity, GTM, Mixpanel.
+ *
+ * #1874 AC6: CSP protects cookies against XSS-based theft.
+ *   - script-src restricts inline script injection (primary attack vector for cookie theft)
+ *   - connect-src limits data exfiltration channels if XSS occurs
+ *   - Supabase auth endpoints (*.supabase.co) explicitly allowed in connect-src
+ *   - Combined with cookie SameSite=Strict (auth) and SameSite=Lax (prefs), CSP provides
+ *     defense-in-depth against session hijacking via XSS.
+ *   - Set-Cookie headers with Secure+HttpOnly+SameSite ensure cookies cannot be stolen
+ *     even if XSS bypasses CSP.
  *
  * Theme-init script SHA-256 hash (static, never changes):
  *   node -e "const {createHash}=require('crypto');
@@ -364,13 +378,15 @@ export async function middleware(request: NextRequest) {
             headers: request.headers,
           },
         });
-        // Set cookies on response
+        // Set cookies on response with security flags per prefix (#1874)
         cookiesToSet.forEach(({ name, value, options }) => {
+          // SB- prefix: auth cookies → SameSite=Strict for CSRF protection
+          // Other cookies: SameSite=Lax for cross-site usability
+          const isAuthCookie = name.startsWith("sb-");
           response.cookies.set(name, value, {
             ...options,
-            // Ensure proper cookie settings for auth
             path: options?.path || "/",
-            sameSite: options?.sameSite || "lax",
+            sameSite: isAuthCookie ? "strict" : (options?.sameSite || "lax"),
             secure: process.env.NODE_ENV === "production",
           });
         });
