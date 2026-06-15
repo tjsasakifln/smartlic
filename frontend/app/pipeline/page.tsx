@@ -20,6 +20,7 @@ import { safeGetItem, safeSetItem } from "../../lib/storage";
 import { useAnalytics } from "../../hooks/useAnalytics";
 import { useTrialPhase } from "../../hooks/useTrialPhase";
 import { PageErrorBoundary } from "../../components/PageErrorBoundary";
+import { useBackendStatusContext } from "../components/BackendStatusIndicator";
 
 // @dnd-kit is code-split into PipelineKanban to reduce initial bundle size
 const _KanbanSkeleton = (
@@ -74,6 +75,7 @@ const PIPELINE_TOUR_STEPS: TourStepDef[] = [
 
 export default function PipelinePage() {
   const { session, loading: authLoading } = useAuth();
+  const { status: backendStatus } = useBackendStatusContext();
   const { planInfo } = usePlan();
   const { trackEvent } = useAnalytics();
   const { phase: trialPhase } = useTrialPhase();
@@ -234,7 +236,11 @@ export default function PipelinePage() {
         {/* AC8+AC14: Error state with retry when initial load fails (no data at all) */}
         {initialLoadFailed && !loading && items.length === 0 ? (
           <ErrorStateWithRetry
-            message="Não foi possível carregar seu pipeline."
+            message={
+              backendStatus === "offline"
+                ? "Backend indisponível. Tente novamente mais tarde."
+                : "Não foi possível carregar seu pipeline."
+            }
             onRetry={wrappedFetchItems}
           />
         ) : loading && items.length === 0 ? (
@@ -299,11 +305,14 @@ export default function PipelinePage() {
         ) : isReadOnlyError ? (
           /* AC9: Read-only mode when error occurs but stale data exists.
              ReadOnlyKanban uses DndContext with no sensors — disables drag-and-drop
-             while still providing context for useDroppable inside PipelineColumn. */
+             while still providing context for useDroppable inside PipelineColumn.
+             ISSUE-1791: backend status detection for specific messaging. */
           <>
             <div className="mb-4 p-3 bg-[var(--error-subtle)] border border-[var(--error)]/20 rounded-card flex items-center justify-between" role="alert">
               <p className="text-sm text-[var(--error)]">
-                Pipeline em modo leitura. Arraste desabilitado temporariamente.
+                {backendStatus === "offline"
+                  ? "Backend indisponível. Pipeline em modo leitura com dados em cache."
+                  : "Pipeline em modo leitura. Arraste desabilitado temporariamente."}
               </p>
               <button
                 onClick={wrappedFetchItems}
