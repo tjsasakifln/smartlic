@@ -12,6 +12,7 @@ import { PaymentFailedBanner } from "../components/billing/PaymentFailedBanner";
 import { NavigationShell } from "../components/NavigationShell";
 import { TrialProgressBar } from "../components/TrialProgressBar";
 import { BackendStatusProvider } from "./components/BackendStatusIndicator";
+import { DegradationBanner } from "./components/DegradationBanner";
 import { SWRProvider } from "../components/SWRProvider";
 import { UserProvider } from "../contexts/UserContext";
 import { FoundersTopBanner } from "../components/banners/FoundersTopBanner";
@@ -216,6 +217,7 @@ export default async function RootLayout({
             <ThemeProvider>
               <NProgressProvider>
                 <BackendStatusProvider>
+                  <DegradationBanner />
                   <SessionExpiredBanner />
                   <PaymentFailedBanner />
                   <FoundersTopBanner />
