@@ -95,6 +95,7 @@ from routes.api_search import router as api_search_router
 from routes.email_tracking import router as email_tracking_router
 from routes.admin_digest_metrics import router as admin_digest_metrics_router
 from routes.admin_command import router as admin_command_router
+from routes.admin_dlq import router as admin_dlq_router
 from routes.intel_tasting import router as intel_tasting_router
 from routes.predint import router as predint_router
 from routes.monthly_report import router as monthly_report_router
@@ -188,6 +189,7 @@ def register_routes(app: FastAPI) -> None:
     app.include_router(admin_billing_sync_router)
     app.include_router(admin_founding_router)
     app.include_router(admin_metrics_router)
+    app.include_router(admin_dlq_router)
     app.include_router(slo_router)
     # Issue #1002: founders availability — self-prefixed at /api/founders/*
     # (NOT under /v1/ — public landing-page consumers + SEO programmatic).

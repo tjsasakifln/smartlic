@@ -290,3 +290,11 @@ class WorkerSettings:
     job_timeout = 300
     max_tries = 1  # GAP-004 (#1581): per-job override via arq.func() for crawl jobs
     health_check_interval = 30
+
+    # Issue #1813: ARQ Dead Letter Queue — capture failed jobs after max_tries
+    # exhausted. Graceful degradation: enqueue failure is logged but never raised.
+    try:
+        from jobs.dlq import arq_on_job_failure as _arq_on_job_failure
+        on_job_failure = _arq_on_job_failure
+    except ImportError:
+        on_job_failure = None
