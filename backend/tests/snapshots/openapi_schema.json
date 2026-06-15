@@ -10377,6 +10377,73 @@
         "title": "LicitacoesIndexableResponse",
         "type": "object"
       },
+      "LogLevelOverrideInfo": {
+        "description": "Single override entry returned by GET /v1/admin/log-level.",
+        "properties": {
+          "current_level": {
+            "title": "Current Level",
+            "type": "string"
+          },
+          "logger": {
+            "title": "Logger",
+            "type": "string"
+          },
+          "original_level": {
+            "title": "Original Level",
+            "type": "string"
+          },
+          "set_at": {
+            "title": "Set At",
+            "type": "string"
+          },
+          "set_by": {
+            "title": "Set By",
+            "type": "string"
+          },
+          "ttl_remaining_seconds": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ttl Remaining Seconds"
+          }
+        },
+        "required": [
+          "logger",
+          "original_level",
+          "current_level",
+          "set_by",
+          "set_at"
+        ],
+        "title": "LogLevelOverrideInfo",
+        "type": "object"
+      },
+      "LogLevelStatusResponse": {
+        "description": "Response for GET /v1/admin/log-level.",
+        "properties": {
+          "count": {
+            "title": "Count",
+            "type": "integer"
+          },
+          "overrides": {
+            "items": {
+              "$ref": "#/components/schemas/LogLevelOverrideInfo"
+            },
+            "title": "Overrides",
+            "type": "array"
+          }
+        },
+        "required": [
+          "overrides",
+          "count"
+        ],
+        "title": "LogLevelStatusResponse",
+        "type": "object"
+      },
       "LoginAttemptRequest": {
         "description": "Frontend reports the outcome of a Supabase signInWithPassword call.\n\nThe endpoint is unauthenticated by design (failures happen before a\nsession exists). To avoid leaking user existence, the endpoint always\nreturns 200; if the email is unknown we no-op silently.",
         "properties": {
@@ -16540,6 +16607,83 @@
         "title": "SessionsListResponse",
         "type": "object"
       },
+      "SetLogLevelRequest": {
+        "description": "Request body for POST /v1/admin/log-level.",
+        "properties": {
+          "level": {
+            "description": "Log level name: DEBUG, INFO, WARNING, ERROR, CRITICAL",
+            "examples": [
+              "DEBUG"
+            ],
+            "title": "Level",
+            "type": "string"
+          },
+          "module": {
+            "default": "*",
+            "description": "Logger name (e.g. 'ingestion', 'routes.search'). Use '*' or omit for root logger.",
+            "examples": [
+              "ingestion"
+            ],
+            "title": "Module",
+            "type": "string"
+          },
+          "ttl_minutes": {
+            "default": 15,
+            "description": "Auto-revert after N minutes (1-1440). Default 15.",
+            "examples": [
+              15
+            ],
+            "maximum": 1440.0,
+            "minimum": 1.0,
+            "title": "Ttl Minutes",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "level"
+        ],
+        "title": "SetLogLevelRequest",
+        "type": "object"
+      },
+      "SetLogLevelResponse": {
+        "description": "Response for POST /v1/admin/log-level.",
+        "properties": {
+          "current_level": {
+            "title": "Current Level",
+            "type": "string"
+          },
+          "detail": {
+            "title": "Detail",
+            "type": "string"
+          },
+          "logger": {
+            "title": "Logger",
+            "type": "string"
+          },
+          "original_level": {
+            "title": "Original Level",
+            "type": "string"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          },
+          "ttl_minutes": {
+            "title": "Ttl Minutes",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "status",
+          "logger",
+          "original_level",
+          "current_level",
+          "ttl_minutes",
+          "detail"
+        ],
+        "title": "SetLogLevelResponse",
+        "type": "object"
+      },
       "SetorHighlight": {
         "properties": {
           "setor_id": {
@@ -22250,6 +22394,78 @@
           }
         ],
         "summary": "Admin Llm Cost",
+        "tags": [
+          "admin"
+        ]
+      }
+    },
+    "/v1/admin/log-level": {
+      "get": {
+        "description": "Return current log level overrides (admin-only).",
+        "operationId": "get_log_levels_v1_admin_log_level_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LogLevelStatusResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Get Log Levels",
+        "tags": [
+          "admin"
+        ]
+      },
+      "post": {
+        "description": "Set a logger's level at runtime (admin-only).\n\nAltera o log level do *module* (ou root se omitido) para *level*.\nApos *ttl_minutes*, reverte automaticamente ao nivel original.",
+        "operationId": "set_log_level_v1_admin_log_level_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SetLogLevelRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SetLogLevelResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Set Log Level",
         "tags": [
           "admin"
         ]

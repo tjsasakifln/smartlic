@@ -399,6 +399,9 @@ async def lifespan(app_instance: FastAPI):
     task_registry.register("login_flush", periodic_flush, is_coroutine=True)
     task_registry.register("lead_magnet_batch", start_lead_magnet_batch_task)  # LEAD-MAGNET-001
     task_registry.register("api_metered_billing", start_api_metered_billing_task)  # API-SELF-004
+    # #1814: Runtime log level TTL checker — reverts expired overrides every 30s
+    from routes.admin_log_level import _periodic_log_level_ttl_checker
+    task_registry.register("log_level_ttl", _periodic_log_level_ttl_checker, is_coroutine=True)
 
     await task_registry.start_all()
 
