@@ -710,6 +710,73 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/admin/dlq": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Dlq
+         * @description List entries in the ARQ Dead Letter Queue.
+         *
+         *     Returns entries sorted by ``enqueued_at`` descending (most recent first).
+         *     Each entry carries::
+         *
+         *         {
+         *             "uuid": "...",
+         *             "job_name": "...",
+         *             "payload": {...},
+         *             "error": "...",
+         *             "traceback": "...",
+         *             "enqueued_at": "2026-06-15T12:00:00+00:00"
+         *         }
+         *
+         *     When Redis is unreachable the response carries ``status="redis_unavailable"``
+         *     and an empty ``entries`` list.
+         */
+        get: operations["get_dlq_v1_admin_dlq_get"];
+        put?: never;
+        post?: never;
+        /**
+         * Purge Dlq
+         * @description Delete **all** entries from the ARQ Dead Letter Queue.
+         *
+         *     Returns ``{"status": "ok", "keys_deleted": N}`` on success.
+         *     Returns ``{"status": "error", "detail": "..."}`` on failure.
+         */
+        delete: operations["purge_dlq_v1_admin_dlq_delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/admin/dlq/{uuid}/retry": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Retry Dlq Entry
+         * @description Re-enqueue a single DLQ entry back into the ARQ job queue.
+         *
+         *     Returns ``{"status": "ok", "uuid": "..."}`` on success.
+         *     Returns ``{"status": "not_found", "uuid": "..."}`` if the entry no longer
+         *     exists (may have been purged or already retried).
+         *     Returns ``{"status": "error", "detail": "..."}`` on Redis or ARQ failure.
+         */
+        post: operations["retry_dlq_entry_v1_admin_dlq__uuid__retry_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/admin/feature-flags": {
         parameters: {
             query?: never;
@@ -6916,88 +6983,6 @@ export interface paths {
         get: operations["get_recommended_plan_v1_user_recommended_plan_get"];
         put?: never;
         post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/v1/me/admin/{user_id}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post?: never;
-        /**
-         * Admin Delete User
-         * @description Admin força exclusão de um usuário (bypass double opt-out).
-         */
-        delete: operations["admin_delete_user_v1_v1_me_admin__user_id__delete"];
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/v1/me/cancel-deletion": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Cancel Deletion
-         * @description Cancela uma solicitação de exclusão pendente.
-         */
-        post: operations["cancel_deletion_v1_v1_me_cancel_deletion_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/v1/me/confirm-deletion": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Confirm Deletion
-         * @description Confirma exclusão com token do email. Anonimiza perfil (soft-delete).
-         */
-        post: operations["confirm_deletion_v1_v1_me_confirm_deletion_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/v1/me/request-deletion": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Request Deletion
-         * @description Solicita exclusão de dados. Envia email de confirmação (double opt-out).
-         *
-         *     Idempotente: se já existe pending, retorna 200 sem criar novo token.
-         */
-        post: operations["request_deletion_v1_v1_me_request_deletion_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -17657,6 +17642,96 @@ export interface operations {
             };
         };
     };
+    get_dlq_v1_admin_dlq_get: {
+        parameters: {
+            query?: {
+                /** @description Max entries to return */
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    purge_dlq_v1_admin_dlq_delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+        };
+    };
+    retry_dlq_entry_v1_admin_dlq__uuid__retry_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description UUID of the DLQ entry to retry */
+                uuid: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     list_feature_flags_v1_admin_feature_flags_get: {
         parameters: {
             query?: never;
@@ -25873,110 +25948,6 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["RecommendedPlanResponse"];
-                };
-            };
-        };
-    };
-    admin_delete_user_v1_v1_me_admin__user_id__delete: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                user_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["DeletionRequestResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    cancel_deletion_v1_v1_me_cancel_deletion_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["CancelDeletionResponse"];
-                };
-            };
-        };
-    };
-    confirm_deletion_v1_v1_me_confirm_deletion_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["ConfirmDeletionRequest"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["DeletionRequestResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    request_deletion_v1_v1_me_request_deletion_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["DeletionRequestResponse"];
                 };
             };
         };
