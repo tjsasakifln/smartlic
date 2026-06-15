@@ -331,7 +331,7 @@ export interface paths {
         };
         /**
          * Health Live
-         * @description HARDEN-016 AC1: Pure liveness probe — ALWAYS returns 200.
+         * @description HARDEN-016 AC1: Pure liveness probe — ALWAYS returns 200 (<10ms).
          */
         get: operations["health_live_health_live_get"];
         put?: never;
@@ -351,7 +351,16 @@ export interface paths {
         };
         /**
          * Health Ready
-         * @description HARDEN-016 AC2: Readiness probe — checks Redis + Supabase.
+         * @description HARDEN-016 AC2 / #1790: Readiness probe — checks dependencies concurrently.
+         *
+         *     Runs all dependency checks in parallel, each with an independent timeout.
+         *     If a single check times out the others still complete — partial results
+         *     are reported rather than failing the entire probe.
+         *
+         *     Status logic:
+         *         unhealthy  — Supabase is down (critical dependency; can't serve requests)
+         *         degraded   — Redis down / pool >85% used / cache hit rate <50%
+         *         healthy    — everything nominal
          *
          *     DEBT-124 AC6: Returns 503 during graceful shutdown drain phase.
          */
@@ -704,6 +713,73 @@ export interface paths {
         get: operations["get_cron_status_v1_admin_cron_status_get"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/admin/dlq": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Dlq
+         * @description List entries in the ARQ Dead Letter Queue.
+         *
+         *     Returns entries sorted by ``enqueued_at`` descending (most recent first).
+         *     Each entry carries::
+         *
+         *         {
+         *             "uuid": "...",
+         *             "job_name": "...",
+         *             "payload": {...},
+         *             "error": "...",
+         *             "traceback": "...",
+         *             "enqueued_at": "2026-06-15T12:00:00+00:00"
+         *         }
+         *
+         *     When Redis is unreachable the response carries ``status="redis_unavailable"``
+         *     and an empty ``entries`` list.
+         */
+        get: operations["get_dlq_v1_admin_dlq_get"];
+        put?: never;
+        post?: never;
+        /**
+         * Purge Dlq
+         * @description Delete **all** entries from the ARQ Dead Letter Queue.
+         *
+         *     Returns ``{"status": "ok", "keys_deleted": N}`` on success.
+         *     Returns ``{"status": "error", "detail": "..."}`` on failure.
+         */
+        delete: operations["purge_dlq_v1_admin_dlq_delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/admin/dlq/{uuid}/retry": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Retry Dlq Entry
+         * @description Re-enqueue a single DLQ entry back into the ARQ job queue.
+         *
+         *     Returns ``{"status": "ok", "uuid": "..."}`` on success.
+         *     Returns ``{"status": "not_found", "uuid": "..."}`` if the entry no longer
+         *     exists (may have been purged or already retried).
+         *     Returns ``{"status": "error", "detail": "..."}`` on Redis or ARQ failure.
+         */
+        post: operations["retry_dlq_entry_v1_admin_dlq__uuid__retry_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -13232,7 +13308,10 @@ export interface components {
         };
         /**
          * ReadinessResponse
-         * @description Response for GET /health/ready endpoint (Issue #640).
+         * @description Response for GET /health/ready endpoint (#1790 + Issue #640).
+         *
+         *     Standardized format with overall status, per-check details, and
+         *     backward-compatible fields (``ready``, ``wedge_risk``, ``shutting_down``).
          */
         ReadinessResponse: {
             /** Checks */
@@ -13243,6 +13322,16 @@ export interface components {
             ready: boolean;
             /** Shutting Down */
             shutting_down?: boolean | null;
+            /**
+             * Status
+             * @description Overall health: healthy | degraded | unhealthy
+             */
+            status: string;
+            /**
+             * Timestamp
+             * @description ISO8601 check timestamp
+             */
+            timestamp: string;
             /** Uptime Seconds */
             uptime_seconds: number;
             /**
@@ -17467,6 +17556,96 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["AdminCronStatusResponse"];
+                };
+            };
+        };
+    };
+    get_dlq_v1_admin_dlq_get: {
+        parameters: {
+            query?: {
+                /** @description Max entries to return */
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    purge_dlq_v1_admin_dlq_delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+        };
+    };
+    retry_dlq_entry_v1_admin_dlq__uuid__retry_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description UUID of the DLQ entry to retry */
+                uuid: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };
