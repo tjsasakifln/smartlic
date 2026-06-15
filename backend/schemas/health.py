@@ -53,9 +53,18 @@ class HealthResponse(BaseModel):
 
 
 class ReadinessResponse(BaseModel):
-    """Response for GET /health/ready endpoint (Issue #640)."""
+    """Response for GET /health/ready endpoint (#1790 + Issue #640).
+
+    Standardized format with overall status, per-check details, and
+    backward-compatible fields (``ready``, ``wedge_risk``, ``shutting_down``).
+    """
+
+    status: str = Field(
+        description="Overall health: healthy | degraded | unhealthy",
+    )
     ready: bool
     checks: Dict[str, Any]
+    timestamp: str = Field(description="ISO8601 check timestamp")
     uptime_seconds: float
     wedge_risk: str = Field(
         default="unknown",

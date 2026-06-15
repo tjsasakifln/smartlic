@@ -331,7 +331,7 @@ export interface paths {
         };
         /**
          * Health Live
-         * @description HARDEN-016 AC1: Pure liveness probe — ALWAYS returns 200.
+         * @description HARDEN-016 AC1: Pure liveness probe — ALWAYS returns 200 (<10ms).
          */
         get: operations["health_live_health_live_get"];
         put?: never;
@@ -351,7 +351,16 @@ export interface paths {
         };
         /**
          * Health Ready
-         * @description HARDEN-016 AC2: Readiness probe — checks Redis + Supabase.
+         * @description HARDEN-016 AC2 / #1790: Readiness probe — checks dependencies concurrently.
+         *
+         *     Runs all dependency checks in parallel, each with an independent timeout.
+         *     If a single check times out the others still complete — partial results
+         *     are reported rather than failing the entire probe.
+         *
+         *     Status logic:
+         *         unhealthy  — Supabase is down (critical dependency; can't serve requests)
+         *         degraded   — Redis down / pool >85% used / cache hit rate <50%
+         *         healthy    — everything nominal
          *
          *     DEBT-124 AC6: Returns 503 during graceful shutdown drain phase.
          */
@@ -13403,7 +13412,10 @@ export interface components {
         };
         /**
          * ReadinessResponse
-         * @description Response for GET /health/ready endpoint (Issue #640).
+         * @description Response for GET /health/ready endpoint (#1790 + Issue #640).
+         *
+         *     Standardized format with overall status, per-check details, and
+         *     backward-compatible fields (``ready``, ``wedge_risk``, ``shutting_down``).
          */
         ReadinessResponse: {
             /** Checks */
@@ -13414,6 +13426,16 @@ export interface components {
             ready: boolean;
             /** Shutting Down */
             shutting_down?: boolean | null;
+            /**
+             * Status
+             * @description Overall health: healthy | degraded | unhealthy
+             */
+            status: string;
+            /**
+             * Timestamp
+             * @description ISO8601 check timestamp
+             */
+            timestamp: string;
             /** Uptime Seconds */
             uptime_seconds: number;
             /**

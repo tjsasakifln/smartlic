@@ -13815,7 +13815,7 @@
         "type": "object"
       },
       "ReadinessResponse": {
-        "description": "Response for GET /health/ready endpoint (Issue #640).",
+        "description": "Response for GET /health/ready endpoint (#1790 + Issue #640).\n\nStandardized format with overall status, per-check details, and\nbackward-compatible fields (``ready``, ``wedge_risk``, ``shutting_down``).",
         "properties": {
           "checks": {
             "additionalProperties": true,
@@ -13837,6 +13837,16 @@
             ],
             "title": "Shutting Down"
           },
+          "status": {
+            "description": "Overall health: healthy | degraded | unhealthy",
+            "title": "Status",
+            "type": "string"
+          },
+          "timestamp": {
+            "description": "ISO8601 check timestamp",
+            "title": "Timestamp",
+            "type": "string"
+          },
           "uptime_seconds": {
             "title": "Uptime Seconds",
             "type": "number"
@@ -13849,8 +13859,10 @@
           }
         },
         "required": [
+          "status",
           "ready",
           "checks",
+          "timestamp",
           "uptime_seconds"
         ],
         "title": "ReadinessResponse",
@@ -21385,7 +21397,7 @@
     },
     "/health/live": {
       "get": {
-        "description": "HARDEN-016 AC1: Pure liveness probe \u2014 ALWAYS returns 200.",
+        "description": "HARDEN-016 AC1: Pure liveness probe \u2014 ALWAYS returns 200 (<10ms).",
         "operationId": "health_live_health_live_get",
         "responses": {
           "200": {
@@ -21407,7 +21419,7 @@
     },
     "/health/ready": {
       "get": {
-        "description": "HARDEN-016 AC2: Readiness probe \u2014 checks Redis + Supabase.\n\nDEBT-124 AC6: Returns 503 during graceful shutdown drain phase.",
+        "description": "HARDEN-016 AC2 / #1790: Readiness probe \u2014 checks dependencies concurrently.\n\nRuns all dependency checks in parallel, each with an independent timeout.\nIf a single check times out the others still complete \u2014 partial results\nare reported rather than failing the entire probe.\n\nStatus logic:\n    unhealthy  \u2014 Supabase is down (critical dependency; can't serve requests)\n    degraded   \u2014 Redis down / pool >85% used / cache hit rate <50%\n    healthy    \u2014 everything nominal\n\nDEBT-124 AC6: Returns 503 during graceful shutdown drain phase.",
         "operationId": "health_ready_health_ready_get",
         "responses": {
           "200": {
