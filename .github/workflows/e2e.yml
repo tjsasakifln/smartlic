@@ -28,6 +28,7 @@ on:
       - 'frontend/app/planos/**'
       - 'frontend/components/billing/**'
       - 'frontend/e2e-tests/*.spec.ts'
+      - 'frontend/e2e-tests/a11y/**'
       - 'frontend/e2e-tests/billing/**'
       - 'frontend/e2e-tests/helpers/**'
       - 'frontend/e2e-tests/fixtures/**'

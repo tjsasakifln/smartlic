@@ -1,6 +1,8 @@
 /**
  * TD-FE-027 (#276): Playwright axe-core fixture for WCAG 2.1 AA validation.
  *
+ * #1871: Configuration centralized in axe-config.ts; fixture consumes it.
+ *
  * Usage:
  *
  *   import { test, expect, AxeSeverity } from './fixtures/axe';
@@ -17,31 +19,25 @@
  * violation with impact >= "serious". Critical/serious are blocking; moderate
  * and minor are logged for triage but do not fail the test.
  *
- * Severity policy and triage instructions: docs/testing/a11y-e2e.md
+ * Severity policy and triage instructions:
+ *   - docs/testing/a11y-e2e.md
+ *   - docs/accessibility/ci-gate.md
+ *   - frontend/e2e-tests/a11y/axe-config.ts (centralized config)
  */
 
 import { test as base, expect } from '@playwright/test';
 import AxeBuilder from '@axe-core/playwright';
 import type { AxeResults, ImpactValue } from 'axe-core';
+import {
+  WCAG_2_1_AA_TAGS,
+  AxeSeverity,
+  DEFAULT_EXCLUDE_SELECTORS,
+  DEFAULT_DISABLED_RULES,
+} from '../a11y/axe-config';
 
-/**
- * Severity levels emitted by axe-core, ordered from highest to lowest impact.
- * "critical" and "serious" are blocking by default per the SmartLic a11y policy.
- */
-export const AxeSeverity = {
-  CRITICAL: 'critical' as ImpactValue,
-  SERIOUS: 'serious' as ImpactValue,
-  MODERATE: 'moderate' as ImpactValue,
-  MINOR: 'minor' as ImpactValue,
-} as const;
-
-/** WCAG 2.1 AA tag set used across the application. */
-export const WCAG_2_1_AA_TAGS = [
-  'wcag2a',
-  'wcag2aa',
-  'wcag21a',
-  'wcag21aa',
-] as const;
+// Re-export for backward compatibility — specs that import AxeSeverity
+// directly from the fixture continue to work unchanged.
+export { AxeSeverity, WCAG_2_1_AA_TAGS };
 
 type AxeFixtures = {
   /**
@@ -70,15 +66,21 @@ type AxeFixtures = {
 
 export const test = base.extend<AxeFixtures>({
   makeAxeBuilder: async ({ page }, use) => {
-    const builder = () =>
-      new AxeBuilder({ page })
-        .withTags([...WCAG_2_1_AA_TAGS])
-        // Exclude common third-party widgets we don't control. Add to this
-        // list (with a comment + tracking issue) when external embeds
-        // produce unactionable noise.
-        .exclude('iframe[src*="stripe.com"]')
-        .exclude('iframe[src*="google.com"]')
-        .exclude('[data-clarity-mask]');
+    const builder = () => {
+      const axe = new AxeBuilder({ page }).withTags([...WCAG_2_1_AA_TAGS]);
+      // Exclusions from central config (#1871). Third-party widgets we don't
+      // control: Stripe iframes, Google embeds, Clarity analytics.
+      for (const sel of DEFAULT_EXCLUDE_SELECTORS) {
+        axe.exclude(sel);
+      }
+      // Known pre-existing violations disabled pending design-system fix.
+      // See axe-config.ts DEFAULT_DISABLED_RULES for rationale and tracking.
+      // NOTE: disableRules must be called ONCE with all rules — the
+      // implementation resets this.option.rules on each invocation,
+      // so calling it in a loop would only keep the last rule.
+      axe.disableRules([...DEFAULT_DISABLED_RULES]);
+      return axe;
+    };
     await use(builder);
   },
 

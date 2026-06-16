@@ -1,0 +1,137 @@
+# Accessibility CI Gate — axe-core Playwright Scan
+#
+# #1871 AC3: Runs `npm run test:a11y` on PRs that touch frontend components.
+# This workflow scans 10 critical pages for WCAG 2.1 AA violations and blocks
+# the PR if any critical or serious violations are detected.
+#
+# #1871 AC4: Threshold — zero "critical" or "serious" violations.
+#            "moderate" violations are allowed with PR comment.
+# #1871 AC5: HTML report generated and uploaded as CI artifact.
+#
+# This gate is independent from the full E2E suite (e2e.yml) — it runs
+# faster (~5min vs ~15min) and focuses exclusively on accessibility regressions.
+#
+# Cost: free-tier GitHub Actions minutes (Ubuntu runners)
+
+name: "Accessibility CI Gate (axe-core)"
+
+on:
+  pull_request:
+    branches: [main]
+    # #1871 AC3: Trigger when PR touches frontend components or a11y tests
+    paths:
+      - 'frontend/app/components/**'
+      - 'frontend/e2e-tests/a11y/**'
+      - 'frontend/e2e-tests/fixtures/axe.ts'
+      - 'frontend/package.json'
+      - '.github/workflows/a11y-gate.yml'
+  workflow_dispatch: # Allow manual trigger for debugging
+
+# Cancel stale PR runs when new commits are pushed
+concurrency:
+  group: a11y-gate-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  pull-requests: write  # For PR comment with violation summary
+
+jobs:
+  a11y-scan:
+    name: axe-core WCAG 2.1 AA Scan
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    env:
+      FRONTEND_URL: http://localhost:3000
+      NEXT_PUBLIC_SUPABASE_URL: https://placeholder.supabase.co
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: placeholder-key
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Set up Node.js 20
+        uses: actions/setup-node@v6
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install dependencies
+        working-directory: frontend
+        run: npm ci
+
+      - name: Install Playwright Chromium
+        working-directory: frontend
+        run: npx playwright install --with-deps chromium
+
+      - name: Build frontend for production
+        working-directory: frontend
+        run: npm run build
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: https://placeholder.supabase.co
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: placeholder-key
+          SENTRY_AUTH_TOKEN: ''
+
+      - name: Start frontend server
+        working-directory: frontend
+        run: |
+          # Use standalone server.js if available, otherwise next start
+          if [ -f .next/standalone/server.js ]; then
+            node .next/standalone/server.js &
+          else
+            npx next start &
+          fi
+          SERVER_PID=$!
+          echo "SERVER_PID=$SERVER_PID" >> $GITHUB_ENV
+
+          # Wait for frontend to be ready (max 60 seconds)
+          for i in {1..60}; do
+            if curl -f http://localhost:3000 > /dev/null 2>&1; then
+              echo "Frontend is ready"
+              exit 0
+            fi
+            echo "Waiting for frontend... ($i/60)"
+            sleep 1
+          done
+
+          echo "Frontend failed to start"
+          exit 1
+
+      - name: Run a11y scan
+        id: a11y
+        working-directory: frontend
+        run: npm run test:a11y
+        env:
+          CI: true
+
+      - name: Stop server
+        if: always()
+        run: |
+          [ -n "$SERVER_PID" ] && kill $SERVER_PID || true
+
+      - name: Upload axe HTML report
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: a11y-report
+          path: frontend/playwright-report/
+          retention-days: 30
+
+      - name: Upload axe test results (JUnit)
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: a11y-test-results
+          path: frontend/test-results/
+          retention-days: 30
+
+      # #1871 AC5: Archive raw axe JSON attachments for offline triage
+      - name: Upload axe raw violations
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: a11y-violation-details
+          path: frontend/playwright-report/**/*.json
+          retention-days: 90
