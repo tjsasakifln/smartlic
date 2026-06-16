@@ -1,5 +1,7 @@
 """Admin response schemas."""
 
+from __future__ import annotations
+
 from pydantic import BaseModel
 from typing import Any, Dict, List, Optional
 
@@ -315,3 +317,40 @@ class AdminDigestMetricsResponse(BaseModel):
     total_unsubscribed_30d: int = 0
     breakdown_by_frequency: dict[str, DigestFrequencyBreakdown] = {}
     queried_at: str
+
+
+# --- admin_synthetic.py (Issue #1869) ----------------------------------------
+
+
+class SyntheticStageResult(BaseModel):
+    """Result of a single synthetic monitor stage."""
+    elapsed_ms: int = 0
+    success: bool = False
+    error: Optional[str] = None
+    total_bids: Optional[int] = None
+    has_viability: Optional[bool] = None
+    has_excel: Optional[bool] = None
+    search_id: Optional[str] = None
+    state: Optional[str] = None
+    http_status: Optional[int] = None
+
+
+class AdminSyntheticResponse(BaseModel):
+    """Response for GET /v1/admin/synthetic/last-run.
+
+    Returns the last synthetic monitor execution result, stored in Redis
+    by the ARQ cron job.  ``status`` reflects the overall health:
+
+    - ``success`` — all stages passed
+    - ``degraded`` — search completed but results/viability/excel checks failed
+    - ``failure`` — critical stage (auth or search) failed
+    - ``no_data`` — no run has completed yet (Redis empty)
+    - ``error`` — Redis read failed
+    """
+    status: str
+    queried_at: Optional[float] = None
+    overall_elapsed_ms: Optional[int] = None
+    stages: dict[str, SyntheticStageResult] = {}
+    timings: dict[str, int] = {}
+    consecutive_failures: int = 0
+    detail: Optional[str] = None

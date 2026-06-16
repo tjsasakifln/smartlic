@@ -594,6 +594,74 @@
         "title": "AdminSearchTraceResponse",
         "type": "object"
       },
+      "AdminSyntheticResponse": {
+        "description": "Response for GET /v1/admin/synthetic/last-run.\n\nReturns the last synthetic monitor execution result, stored in Redis\nby the ARQ cron job.  ``status`` reflects the overall health:\n\n- ``success`` \u2014 all stages passed\n- ``degraded`` \u2014 search completed but results/viability/excel checks failed\n- ``failure`` \u2014 critical stage (auth or search) failed\n- ``no_data`` \u2014 no run has completed yet (Redis empty)\n- ``error`` \u2014 Redis read failed",
+        "properties": {
+          "consecutive_failures": {
+            "default": 0,
+            "title": "Consecutive Failures",
+            "type": "integer"
+          },
+          "detail": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Detail"
+          },
+          "overall_elapsed_ms": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Overall Elapsed Ms"
+          },
+          "queried_at": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Queried At"
+          },
+          "stages": {
+            "additionalProperties": {
+              "$ref": "#/components/schemas/SyntheticStageResult"
+            },
+            "default": {},
+            "title": "Stages",
+            "type": "object"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          },
+          "timings": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "default": {},
+            "title": "Timings",
+            "type": "object"
+          }
+        },
+        "required": [
+          "status"
+        ],
+        "title": "AdminSyntheticResponse",
+        "type": "object"
+      },
       "AdminUpdateCreditsResponse": {
         "description": "Response for PUT /admin/users/{user_id}/credits.",
         "properties": {
@@ -18324,6 +18392,100 @@
         "title": "SurveyAggregateResponse",
         "type": "object"
       },
+      "SyntheticStageResult": {
+        "description": "Result of a single synthetic monitor stage.",
+        "properties": {
+          "elapsed_ms": {
+            "default": 0,
+            "title": "Elapsed Ms",
+            "type": "integer"
+          },
+          "error": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error"
+          },
+          "has_excel": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Has Excel"
+          },
+          "has_viability": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Has Viability"
+          },
+          "http_status": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Http Status"
+          },
+          "search_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Search Id"
+          },
+          "state": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "State"
+          },
+          "success": {
+            "default": false,
+            "title": "Success",
+            "type": "boolean"
+          },
+          "total_bids": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Total Bids"
+          }
+        },
+        "title": "SyntheticStageResult",
+        "type": "object"
+      },
       "SystemHealthResponse": {
         "additionalProperties": true,
         "description": "GTM-STAB-008 AC3: Component-level health (overall + components).\n\nPermissive \u2014 `health.get_system_health()` can grow new components\nover time (Redis metrics, queue, sources) and existing callers\njust see additional keys.",
@@ -23813,6 +23975,33 @@
         "tags": [
           "admin",
           "calibration"
+        ]
+      }
+    },
+    "/v1/admin/synthetic/last-run": {
+      "get": {
+        "description": "Return the last synthetic monitor run result and consecutive failure count.\n\nData is fetched from Redis (stored by the ARQ cron job in\n``backend/jobs/cron/synthetic_monitor.py``).  If Redis is unavailable\nor no runs have completed, returns a \"no_data\" status.",
+        "operationId": "get_synthetic_last_run_v1_admin_synthetic_last_run_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminSyntheticResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Get Synthetic Last Run",
+        "tags": [
+          "admin"
         ]
       }
     },
