@@ -111,6 +111,7 @@ from routes.subcontract import router as subcontract_router, health_router as su
 from routes.score import router as score_router
 from routes.subcontract_intel import router as subcontract_intel_router
 from routes.data_deletion import router as data_deletion_router
+from routes.admin_alerts import router as admin_alerts_router
 _v1_routers = [
     admin_router, subscriptions_router, upgrade_to_lifetime_router,
     features_router, messages_router,
@@ -218,6 +219,8 @@ def register_routes(app: FastAPI) -> None:
     app.include_router(admin_log_level_router)
     # Issue #1869: Synthetic monitoring last-run — self-prefixed at /v1/admin/synthetic/last-run
     app.include_router(admin_synthetic_router)
+    # #1865: Alert routing — self-prefixed at /v1/admin/test-alert
+    app.include_router(admin_alerts_router)
     # Stripe webhook at root — DEBT-324: single registration only.
     # Removed from _v1_routers above to prevent duplicate at /v1/webhooks/stripe.
     # Stripe Dashboard must be configured with: POST /webhooks/stripe

@@ -156,7 +156,7 @@ def _process_cache_hit(data: dict, params_hash: str, level: CacheLevel) -> Optio
         total_req = coverage.get("total_requested", 0)
         if failed_ufs and total_req > 0:
             try:
-                from jobs.cron import get_pncp_cron_status
+                from cron_jobs import get_pncp_cron_status
                 pncp_status = get_pncp_cron_status().get("status")
                 if pncp_status == "healthy" and not is_stale:
                     result["is_stale"] = True

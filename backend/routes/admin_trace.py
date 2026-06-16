@@ -167,7 +167,7 @@ async def get_search_trace(
 
     # 2. Check job results in Redis
     try:
-        from jobs.queue.result_store import get_job_result
+        from job_queue import get_job_result
         resumo = await get_job_result(search_id, "resumo_json")
         excel = await get_job_result(search_id, "excel_result")
         jobs = AdminJobTraceState(

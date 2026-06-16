@@ -162,8 +162,7 @@ export default function PlanosPage() {
     const partnerSlug = params.get("partner") || safeGetItem("smartlic_partner");
     if (partnerSlug) {
       safeSetItem("smartlic_partner", partnerSlug);
-      const secureFlag = window.location.protocol === 'https:' ? '; Secure' : '';
-      document.cookie = `smartlic_partner=${partnerSlug};path=/;max-age=${7 * 24 * 60 * 60};SameSite=Lax${secureFlag}`;
+      document.cookie = `smartlic_partner=${partnerSlug};path=/;max-age=${7 * 24 * 60 * 60}`;
       setPartnerName(partnerSlug.replace(/-/g, " ").replace(/\b\w/g, (c: string) => c.toUpperCase()));
     }
   }, []);

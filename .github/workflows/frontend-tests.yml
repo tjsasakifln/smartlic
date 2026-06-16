@@ -55,7 +55,6 @@ jobs:
         continue-on-error: true  # CI-002: intentional — advisory only, blocking critical scan follows
 
       - name: TypeScript type check
-        continue-on-error: true  # #1870: baseline tracking — 184 errors from noUncheckedIndexedAccess, fix gradually
         run: |
           cd frontend
           npx tsc --noEmit --pretty

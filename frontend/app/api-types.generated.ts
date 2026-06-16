@@ -1642,6 +1642,33 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/admin/test-alert": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Trigger Test Alert
+         * @description Fire a real alert through the full dispatch pipeline.
+         *
+         *     This endpoint exists for verification purposes (AC7). It dispatches
+         *     an alert with the given severity and title, exercising PagerDuty/
+         *     Opsgenie integration (SEV1), Slack webhook (SEV1/SEV2), and Sentry
+         *     capture (all tiers).
+         *
+         *     The caller must be authenticated as an admin user.
+         */
+        post: operations["trigger_test_alert_v1_admin_test_alert_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/admin/trial-emails/preview": {
         parameters: {
             query?: never;
@@ -15186,6 +15213,12 @@ export interface components {
             publishable_key: string;
         };
         /**
+         * Severity
+         * @description Three-tier severity classification matching AC1 thresholds.
+         * @enum {string}
+         */
+        Severity: "SEV1" | "SEV2" | "SEV3";
+        /**
          * ShareAnaliseRequest
          * @description Request to create a shareable analysis link.
          */
@@ -15954,6 +15987,39 @@ export interface components {
              * @description Sigla da UF
              */
             uf: string;
+        };
+        /**
+         * TestAlertRequest
+         * @description Request payload for the test-alert endpoint.
+         */
+        TestAlertRequest: {
+            /**
+             * @description Severity tier to test (SEV1, SEV2, or SEV3).
+             * @default SEV2
+             */
+            severity: components["schemas"]["Severity"];
+            /**
+             * Title
+             * @description Short alert title.
+             * @default Test alert from admin
+             */
+            title: string;
+        };
+        /**
+         * TestAlertResponse
+         * @description Response returned after dispatching a test alert.
+         */
+        TestAlertResponse: {
+            /** Alert Id */
+            alert_id: string;
+            /** Dispatched At */
+            dispatched_at: number;
+            /** Message */
+            message: string;
+            /** Severity */
+            severity: string;
+            /** Title */
+            title: string;
         };
         /** TimeSeriesDataPoint */
         TimeSeriesDataPoint: {
@@ -18925,6 +18991,39 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["AdminSyntheticResponse"];
+                };
+            };
+        };
+    };
+    trigger_test_alert_v1_admin_test_alert_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TestAlertRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TestAlertResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };

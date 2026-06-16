@@ -170,26 +170,25 @@ class TestWorkerSettings:
     """AC5: ARQ worker configuration."""
 
     def test_functions_registered(self):
-        from jobs.queue.config import WorkerSettings
-        from jobs.queue.jobs import llm_summary_job, excel_generation_job
+        from job_queue import WorkerSettings, llm_summary_job, excel_generation_job
         assert llm_summary_job in WorkerSettings.functions
         assert excel_generation_job in WorkerSettings.functions
 
     def test_max_tries(self):
-        from jobs.queue.config import WorkerSettings
+        from job_queue import WorkerSettings
         assert WorkerSettings.max_tries == 1  # GAP-004 (#1581): lowered from 3 to 1 -- per-job override via arq.func()
 
     def test_job_timeout(self):
         # GTM-ARCH-001: Increased from 60 to 300 to support search_job (multi-UF up to 300s)
-        from jobs.queue.config import WorkerSettings
+        from job_queue import WorkerSettings
         assert WorkerSettings.job_timeout == 300
 
     def test_max_jobs(self):
-        from jobs.queue.config import WorkerSettings
+        from job_queue import WorkerSettings
         assert WorkerSettings.max_jobs == 10
 
     def test_retry_delay_not_present(self): # GAP-004 (#1581): retry_delay was removed (not in ARQ 0.28)
-        from jobs.queue.config import WorkerSettings
+        from job_queue import WorkerSettings
         assert not hasattr(WorkerSettings, "retry_delay")  # GAP-004: removed as dead code
 
 
@@ -367,7 +366,7 @@ class TestResultPersistence:
         mock_redis.set = AsyncMock()
 
         with patch("redis_pool.get_redis_pool", new_callable=lambda: AsyncMock(return_value=mock_redis)):
-            from jobs.queue.result_store import persist_job_result
+            from job_queue import persist_job_result
             await persist_job_result("search-1", "resumo_json", {"key": "value"})
 
         mock_redis.set.assert_awaited_once()
@@ -382,7 +381,7 @@ class TestResultPersistence:
         mock_redis.get = AsyncMock(return_value=json.dumps({"key": "value"}))
 
         with patch("redis_pool.get_redis_pool", new_callable=lambda: AsyncMock(return_value=mock_redis)):
-            from jobs.queue.result_store import get_job_result
+            from job_queue import get_job_result
             result = await get_job_result("search-1", "resumo_json")
             assert result == {"key": "value"}
 
@@ -392,20 +391,20 @@ class TestResultPersistence:
         mock_redis.get = AsyncMock(return_value=None)
 
         with patch("redis_pool.get_redis_pool", new_callable=lambda: AsyncMock(return_value=mock_redis)):
-            from jobs.queue.result_store import get_job_result
+            from job_queue import get_job_result
             result = await get_job_result("search-1", "nonexistent")
             assert result is None
 
     @pytest.mark.asyncio
     async def test_persist_noop_without_redis(self):
         with patch("redis_pool.get_redis_pool", new_callable=lambda: AsyncMock(return_value=None)):
-            from jobs.queue.result_store import persist_job_result
+            from job_queue import persist_job_result
             await persist_job_result("s1", "field", "value")  # should not raise
 
     @pytest.mark.asyncio
     async def test_get_noop_without_redis(self):
         with patch("redis_pool.get_redis_pool", new_callable=lambda: AsyncMock(return_value=None)):
-            from jobs.queue.result_store import get_job_result
+            from job_queue import get_job_result
             result = await get_job_result("s1", "field")
             assert result is None
 
@@ -420,7 +419,7 @@ class TestLlmSummaryJob:
     @pytest.mark.asyncio
     async def test_generates_summary_successfully(self):
         """AC8: Calls gerar_resumo and persists result."""
-        from jobs.queue.jobs import llm_summary_job
+        from job_queue import llm_summary_job
 
         mock_resumo = MagicMock()
         mock_resumo.resumo_executivo = "Test summary R$ 50.000,00"
@@ -450,7 +449,7 @@ class TestLlmSummaryJob:
     @pytest.mark.asyncio
     async def test_falls_back_on_llm_failure(self):
         """AC8: Falls back to gerar_resumo_fallback on LLM error."""
-        from jobs.queue.jobs import llm_summary_job
+        from job_queue import llm_summary_job
 
         mock_fallback = MagicMock()
         mock_fallback.resumo_executivo = "Fallback summary"
@@ -469,7 +468,7 @@ class TestLlmSummaryJob:
     @pytest.mark.asyncio
     async def test_emits_sse_event(self):
         """AC19: Emits llm_ready SSE event after completion."""
-        from jobs.queue.jobs import llm_summary_job
+        from job_queue import llm_summary_job
 
         mock_resumo = MagicMock()
         mock_resumo.resumo_executivo = "Test summary"
@@ -492,7 +491,7 @@ class TestLlmSummaryJob:
     @pytest.mark.asyncio
     async def test_overrides_counts_with_actuals(self):
         """AC8: Overrides LLM-generated counts with actual values."""
-        from jobs.queue.jobs import llm_summary_job
+        from job_queue import llm_summary_job
 
         mock_resumo = MagicMock()
         mock_resumo.resumo_executivo = "LLM-generated text"
@@ -524,7 +523,7 @@ class TestExcelGenerationJob:
     @pytest.mark.asyncio
     async def test_generates_and_uploads(self):
         """AC13: Calls create_excel + upload_excel."""
-        from jobs.queue.jobs import excel_generation_job
+        from job_queue import excel_generation_job
 
         mock_buffer = BytesIO(b"fake excel data")
         mock_storage = {"signed_url": "https://example.com/file.xlsx", "file_path": "test.xlsx"}
@@ -541,7 +540,7 @@ class TestExcelGenerationJob:
     @pytest.mark.asyncio
     async def test_skips_when_not_allowed(self):
         """AC13: Skips Excel when allow_excel=False."""
-        from jobs.queue.jobs import excel_generation_job
+        from job_queue import excel_generation_job
 
         with patch("redis_pool.get_redis_pool", new_callable=lambda: AsyncMock(return_value=AsyncMock(set=AsyncMock()))):
             with patch("progress.get_tracker", new_callable=lambda: AsyncMock(return_value=None)):
@@ -553,7 +552,7 @@ class TestExcelGenerationJob:
     @pytest.mark.asyncio
     async def test_handles_upload_failure(self):
         """AC15: Returns failed status on upload error."""
-        from jobs.queue.jobs import excel_generation_job
+        from job_queue import excel_generation_job
 
         mock_buffer = BytesIO(b"data")
 
@@ -569,7 +568,7 @@ class TestExcelGenerationJob:
     @pytest.mark.asyncio
     async def test_emits_sse_ready_event(self):
         """AC20: Emits excel_ready SSE event with download_url."""
-        from jobs.queue.jobs import excel_generation_job
+        from job_queue import excel_generation_job
 
         mock_buffer = BytesIO(b"data")
         mock_storage = {"signed_url": "https://dl.example.com/file.xlsx", "file_path": "f.xlsx"}
@@ -589,7 +588,7 @@ class TestExcelGenerationJob:
     @pytest.mark.asyncio
     async def test_emits_sse_failed_event(self):
         """AC20: Emits excel_ready with failed status on error."""
-        from jobs.queue.jobs import excel_generation_job
+        from job_queue import excel_generation_job
 
         mock_buffer = BytesIO(b"data")
         mock_tracker = AsyncMock()
@@ -608,7 +607,7 @@ class TestExcelGenerationJob:
     @pytest.mark.asyncio
     async def test_handles_create_excel_failure(self):
         """AC15: Handles create_excel() throwing."""
-        from jobs.queue.jobs import excel_generation_job
+        from job_queue import excel_generation_job
 
         with patch("excel.create_excel", side_effect=RuntimeError("openpyxl error")):
             with patch("redis_pool.get_redis_pool", new_callable=lambda: AsyncMock(return_value=AsyncMock(set=AsyncMock()))):

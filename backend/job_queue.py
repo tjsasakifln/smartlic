@@ -1,19 +1,15 @@
-"""job_queue.py — ARQ pool + enqueue core (TD-1875: re-exports removed).
+"""job_queue.py — ARQ pool + enqueue (state lives here for test compat).
 
-This module contains the real ARQ connection management and job enqueue
-functions. All re-exported names have been moved to ``jobs/queue/`` submodules.
-Import job functions directly from ``jobs.queue.jobs``, result store from
-``jobs.queue.result_store``, and worker config from ``jobs.queue.config``.
+Job function implementations moved to jobs/queue/ sub-package (DEBT-v3-S3 Phase 2.3).
+Import from this module continues to work unchanged.
 """
 from __future__ import annotations
 
 import asyncio
 import logging
-import os
 import threading
 import time
 from typing import Any, Optional
-from urllib.parse import urlparse
 
 logger = logging.getLogger(__name__)
 
@@ -36,22 +32,6 @@ _pool_lock = asyncio.Lock()
 _pool_thread_lock = threading.Lock()
 _worker_alive_cache: tuple[float, bool] = (0.0, False)
 _WORKER_CHECK_INTERVAL = 15
-
-
-def _get_redis_settings():
-    from arq.connections import RedisSettings
-    redis_url = os.getenv("REDIS_URL", "")
-    if not redis_url:
-        raise ValueError("REDIS_URL not set — ARQ worker cannot start without Redis")
-    parsed = urlparse(redis_url)
-    ssl = parsed.scheme == "rediss"
-    return RedisSettings(
-        host=parsed.hostname or "localhost", port=parsed.port or 6379,
-        password=parsed.password, database=int(parsed.path.lstrip("/") or 0),
-        conn_timeout=10, conn_retries=5, conn_retry_delay=2.0, ssl=ssl,
-        retry_on_timeout=True, retry_on_error=[TimeoutError, ConnectionError, OSError],
-        max_connections=50,
-    )
 
 
 async def get_arq_pool():
@@ -166,3 +146,40 @@ async def enqueue_job(function_name: str, *args: Any, _job_id: Optional[str] = N
     except Exception as e:
         logger.warning(f"Failed to enqueue {function_name}: {e}")
         return None
+
+
+# --- Result store / cancel flags / concurrent slots ---
+from jobs.queue.result_store import (  # noqa: F401
+    _CANCEL_KEY_PREFIX, _CANCEL_TTL,
+    _CONCURRENT_SEARCH_KEY_PREFIX, _CONCURRENT_SEARCH_TTL,
+    _PENDING_REVIEW_KEY_PREFIX, _ZERO_MATCH_KEY_PREFIX,
+    set_cancel_flag, check_cancel_flag, clear_cancel_flag,
+    persist_job_result, get_job_result, _update_results_excel_url,
+    acquire_search_slot, release_search_slot,
+    store_pending_review_bids, store_zero_match_results, get_zero_match_results,
+)
+
+# --- Job functions ---
+# Note: cache_refresh_job + cache_warming_job deprecated 2026-04-18
+# (STORY-CIG-BE-cache-warming-deprecate).
+from jobs.queue.jobs import (  # noqa: F401
+    llm_summary_job, excel_generation_job, bid_analysis_job,
+    daily_digest_job, email_alerts_job,
+    reclassify_pending_bids_job, classify_zero_match_job,
+    generate_intel_report,
+)
+from jobs.cron.send_lead_magnet import (  # noqa: F401
+    send_lead_magnet_job,
+    send_lead_magnet_batch_job,
+)
+
+# --- Search job ---
+from jobs.queue.search import (  # noqa: F401
+    search_job, _persist_search_results_to_redis,
+    _persist_search_results_to_supabase, _update_search_session,
+)
+
+# --- Worker config ---
+from jobs.queue.config import (  # noqa: F401
+    _get_redis_settings, _worker_redis_settings, _worker_cron_jobs, _worker_on_startup, WorkerSettings,
+)
