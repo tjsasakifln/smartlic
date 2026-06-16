@@ -26,6 +26,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import os
 from datetime import datetime, timezone, timedelta
 
 from jobs.cron.canary import _is_cb_or_connection_error
@@ -40,9 +41,18 @@ RETENTION_INGESTION_CHECKPOINTS = 30  # AC5: purge > 30 days
 # Purge interval: run daily
 PURGE_INTERVAL_SECONDS = 24 * 60 * 60
 
+# #1877 AC1: Dry-run mode — when True, only log what WOULD be deleted
+DATA_RETENTION_DRY_RUN = os.getenv("DATA_RETENTION_DRY_RUN", "").lower() in ("true", "1", "yes")
+
+# #1877 AC3: Redis key for consecutive failure counter
+_CONCLUSIVE_FAILURES_KEY = "data_retention:consecutive_failures"
+
 
 async def purge_trial_email_log() -> dict:
     """Purge trial_email_log rows older than RETENTION_TRIAL_EMAIL_LOG days.
+
+    When DATA_RETENTION_DRY_RUN is True, only logs what WOULD be deleted
+    without executing the DELETE query (#1877 AC1).
 
     Returns dict with count of deleted rows and any error message.
     """
@@ -50,6 +60,15 @@ async def purge_trial_email_log() -> dict:
         from supabase_client import get_supabase, sb_execute
         sb = get_supabase()
         cutoff = (datetime.now(timezone.utc) - timedelta(days=RETENTION_TRIAL_EMAIL_LOG)).isoformat()
+
+        if DATA_RETENTION_DRY_RUN:
+            logger.info(
+                "GAP-005 [DRY-RUN]: Would purge trial_email_log rows older than "
+                "%d days (cutoff=%s) — skipping DELETE",
+                RETENTION_TRIAL_EMAIL_LOG, cutoff,
+            )
+            return {"deleted": 0, "table": "trial_email_log", "cutoff": cutoff, "dry_run": True}
+
         result = await sb_execute(
             sb.table("trial_email_log").delete().lt("sent_at", cutoff)
         )
@@ -73,6 +92,9 @@ async def purge_messages() -> dict:
     Also purges conversations whose last_message_at is older than the cutoff.
     Conversations that still have recent messages are preserved.
 
+    When DATA_RETENTION_DRY_RUN is True, only logs what WOULD be deleted
+    without executing the DELETE query (#1877 AC1).
+
     Uses a two-step approach:
       1. Delete old messages (created_at < cutoff)
       2. Delete conversations with last_message_at < cutoff
@@ -84,6 +106,21 @@ async def purge_messages() -> dict:
         from supabase_client import get_supabase, sb_execute
         sb = get_supabase()
         cutoff = (datetime.now(timezone.utc) - timedelta(days=RETENTION_MESSAGES)).isoformat()
+
+        if DATA_RETENTION_DRY_RUN:
+            logger.info(
+                "GAP-005 [DRY-RUN]: Would purge messages + conversations older than "
+                "%d days (cutoff=%s) — skipping DELETE",
+                RETENTION_MESSAGES, cutoff,
+            )
+            return {
+                "table": "messages",
+                "messages_deleted": 0,
+                "conversations_deleted": 0,
+                "deleted": 0,
+                "cutoff": cutoff,
+                "dry_run": True,
+            }
 
         # Step 1: Delete old messages
         result = await sb_execute(
@@ -125,12 +162,30 @@ async def purge_ingestion_checkpoints() -> dict:
     Only deletes checkpoints with terminal status (completed, failed).
     Active/pending checkpoints are never purged.
 
+    When DATA_RETENTION_DRY_RUN is True, only logs what WOULD be deleted
+    without executing the DELETE query (#1877 AC1).
+
     Returns dict with count of deleted rows and any error message.
     """
     try:
         from supabase_client import get_supabase, sb_execute
         sb = get_supabase()
         cutoff = (datetime.now(timezone.utc) - timedelta(days=RETENTION_INGESTION_CHECKPOINTS)).isoformat()
+
+        if DATA_RETENTION_DRY_RUN:
+            logger.info(
+                "GAP-005 [DRY-RUN]: Would purge ingestion_checkpoints rows older than "
+                "%d days (cutoff=%s) — skipping DELETE",
+                RETENTION_INGESTION_CHECKPOINTS, cutoff,
+            )
+            return {
+                "table": "ingestion_checkpoints",
+                "deleted_completed_at": 0,
+                "deleted_started_at_fallback": 0,
+                "deleted": 0,
+                "cutoff": cutoff,
+                "dry_run": True,
+            }
 
         # Purge completed/failed checkpoints older than cutoff
         # completed_at is set when a checkpoint finishes; use it as the age metric.
@@ -174,11 +229,104 @@ async def purge_ingestion_checkpoints() -> dict:
         return {"deleted": 0, "table": "ingestion_checkpoints", "error": str(e)}
 
 
+async def _track_consecutive_failures(results: list[dict]) -> None:
+    """Track consecutive purge failures via Redis key (#1877 AC3).
+
+    Increments a Redis counter if ANY purge result has an ``error`` key.
+    Resets the counter to 0 if all results are error-free.
+
+    When consecutive failures >= 2, emits a Sentry ``capture_message``
+    with level="error" so on-call is alerted.
+
+    Graceful degradation: if Redis is unreachable, logs a warning and
+    continues without alerting (prevents alert-storm on transient Redis
+    downtime).
+    """
+    has_errors = any(r.get("error") for r in results)
+
+    try:
+        from redis_pool import get_redis_pool
+        redis = await get_redis_pool()
+
+        if has_errors:
+            count = await redis.incr(_CONCLUSIVE_FAILURES_KEY)
+            # Set a 24h TTL on every increment so the key auto-cleans
+            await redis.expire(_CONCLUSIVE_FAILURES_KEY, 86400)
+        else:
+            count = 0
+            await redis.set(_CONCLUSIVE_FAILURES_KEY, 0)
+            # TTL still useful: keep at 0 for 24h in case of transient blip
+            await redis.expire(_CONCLUSIVE_FAILURES_KEY, 86400)
+
+        if count >= 2:
+            import sentry_sdk
+            with sentry_sdk.push_scope() as scope:
+                scope.set_tag("data_retention", "consecutive_failures")
+                scope.set_extra("consecutive_failures", count)
+                sentry_sdk.capture_message(
+                    f"GAP-005: data retention purge failed {count}x consecutively (#1877)",
+                    level="error",
+                )
+    except Exception:
+        logger.warning(
+            "GAP-005: Could not track consecutive failures (Redis unavailable) — "
+            "consecutive-failure alert skipped",
+        )
+
+
+async def _persist_purge_results(
+    summary: dict,
+    trial_result: dict,
+    messages_result: dict,
+    checkpoints_result: dict,
+) -> None:
+    """Persist purge cycle results to Redis for the admin dashboard (#1877 AC2).
+
+    Writes per-table keys (last_run, last_rows, last_error) and a
+    global duration key. All keys have a 7-day TTL.
+
+    Graceful degradation: if Redis is unavailable, logs a warning and
+    continues — the admin dashboard will report ``redis_unavailable``.
+    """
+    try:
+        from redis_pool import get_redis_pool
+        redis = await get_redis_pool()
+        ttl = 7 * 86400  # 7 days
+
+        for tbl_result in (trial_result, messages_result, checkpoints_result):
+            tbl = tbl_result.get("table", "unknown")
+
+            await redis.setex(f"data_retention:last_run:{tbl}", ttl, summary.get("completed_at", ""))
+            await redis.setex(f"data_retention:last_rows:{tbl}", ttl, str(tbl_result.get("deleted", 0)))
+
+            error = tbl_result.get("error")
+            if error:
+                await redis.setex(f"data_retention:last_error:{tbl}", ttl, str(error))
+            else:
+                # Clear any stale error
+                await redis.delete(f"data_retention:last_error:{tbl}")
+
+        await redis.setex(
+            "data_retention:last_duration", ttl,
+            str(summary.get("duration_seconds", 0)),
+        )
+    except Exception:
+        logger.warning(
+            "GAP-005: Could not persist purge results to Redis — "
+            "admin dashboard will show redis_unavailable",
+        )
+
+
 async def run_data_retention_purge() -> dict:
     """Run all data retention purge steps and aggregate results.
 
     Each table is purged in its own try/except block so a failure in one
     table does not prevent the others from being cleaned.
+
+    Tracks consecutive failures via Redis and alerts Sentry at >=2
+    consecutive failures (#1877 AC3).
+
+    Persists per-table results to Redis for the admin dashboard (#1877 AC2).
 
     Returns a dict with per-table results and aggregated totals.
     """
@@ -228,6 +376,13 @@ async def run_data_retention_purge() -> dict:
         "GAP-005: Purge cycle complete — %d total rows purged in %.2fs",
         grand_total, duration,
     )
+
+    # #1877 AC3: Track consecutive failures for Sentry alert
+    await _track_consecutive_failures([trial_result, messages_result, checkpoints_result])
+
+    # #1877 AC2: Persist purge results to Redis for admin dashboard
+    await _persist_purge_results(summary, trial_result, messages_result, checkpoints_result)
+
     return summary
 
 
