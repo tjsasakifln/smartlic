@@ -1570,6 +1570,30 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/admin/synthetic/last-run": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Synthetic Last Run
+         * @description Return the last synthetic monitor run result and consecutive failure count.
+         *
+         *     Data is fetched from Redis (stored by the ARQ cron job in
+         *     ``backend/jobs/cron/synthetic_monitor.py``).  If Redis is unavailable
+         *     or no runs have completed, returns a "no_data" status.
+         */
+        get: operations["get_synthetic_last_run_v1_admin_synthetic_last_run_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/admin/trial-emails/preview": {
         parameters: {
             query?: never;
@@ -7369,6 +7393,48 @@ export interface components {
             queried_at: string;
             /** Search Id */
             search_id: string;
+        };
+        /**
+         * AdminSyntheticResponse
+         * @description Response for GET /v1/admin/synthetic/last-run.
+         *
+         *     Returns the last synthetic monitor execution result, stored in Redis
+         *     by the ARQ cron job.  ``status`` reflects the overall health:
+         *
+         *     - ``success`` — all stages passed
+         *     - ``degraded`` — search completed but results/viability/excel checks failed
+         *     - ``failure`` — critical stage (auth or search) failed
+         *     - ``no_data`` — no run has completed yet (Redis empty)
+         *     - ``error`` — Redis read failed
+         */
+        AdminSyntheticResponse: {
+            /**
+             * Consecutive Failures
+             * @default 0
+             */
+            consecutive_failures: number;
+            /** Detail */
+            detail?: string | null;
+            /** Overall Elapsed Ms */
+            overall_elapsed_ms?: number | null;
+            /** Queried At */
+            queried_at?: number | null;
+            /**
+             * Stages
+             * @default {}
+             */
+            stages: {
+                [key: string]: components["schemas"]["SyntheticStageResult"];
+            };
+            /** Status */
+            status: string;
+            /**
+             * Timings
+             * @default {}
+             */
+            timings: {
+                [key: string]: number;
+            };
         };
         /**
          * AdminUpdateCreditsResponse
@@ -15670,6 +15736,36 @@ export interface components {
             sample_size: number;
         };
         /**
+         * SyntheticStageResult
+         * @description Result of a single synthetic monitor stage.
+         */
+        SyntheticStageResult: {
+            /**
+             * Elapsed Ms
+             * @default 0
+             */
+            elapsed_ms: number;
+            /** Error */
+            error?: string | null;
+            /** Has Excel */
+            has_excel?: boolean | null;
+            /** Has Viability */
+            has_viability?: boolean | null;
+            /** Http Status */
+            http_status?: number | null;
+            /** Search Id */
+            search_id?: string | null;
+            /** State */
+            state?: string | null;
+            /**
+             * Success
+             * @default false
+             */
+            success: boolean;
+            /** Total Bids */
+            total_bids?: number | null;
+        };
+        /**
          * SystemHealthResponse
          * @description GTM-STAB-008 AC3: Component-level health (overall + components).
          *
@@ -18721,6 +18817,26 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_synthetic_last_run_v1_admin_synthetic_last_run_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminSyntheticResponse"];
                 };
             };
         };
