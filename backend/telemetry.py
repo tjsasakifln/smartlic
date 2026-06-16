@@ -21,10 +21,11 @@ Usage:
         ...
 """
 
+import functools
 import logging
 import os
 from contextlib import contextmanager
-from typing import Any, Optional
+from typing import Any, Callable, Optional
 
 logger = logging.getLogger(__name__)
 
@@ -265,6 +266,117 @@ def optional_span(tracer: Any, name: str, attributes: Optional[dict] = None):
 
     with tracer.start_as_current_span(name, attributes=attributes or {}) as span:
         yield span
+
+
+# ============================================================================
+# Decorators for ARQ jobs, cron loops, and webhooks (#1862)
+# ============================================================================
+
+
+def traced_job(func: Optional[Callable] = None, *, job_name: Optional[str] = None):
+    """Decorator for ARQ job functions. Creates span with job attributes.
+
+    Usage::
+
+        @traced_job
+        async def my_job(ctx, ...): ...
+
+        @traced_job(job_name="custom_name")
+        async def my_job(ctx, ...): ...
+
+    Span attributes:
+        - ``job.name``: name of the job (function name or custom)
+        - ``job.id``: ARQ job ID (from ctx, if available)
+
+    NO-OP safe: when tracing is disabled, the decorated function runs
+    without any overhead (no span created, no attributes set).
+    """
+    def decorator(f: Callable) -> Callable:
+        span_name = job_name or f.__name__
+
+        @functools.wraps(f)
+        async def wrapper(ctx, *args, **kwargs):
+            if _noop:
+                return await f(ctx, *args, **kwargs)
+
+            tracer = get_tracer(__name__)
+            attrs = {"job.name": span_name}
+            if isinstance(ctx, dict):
+                job_id = ctx.get("job_id")
+                if job_id:
+                    attrs["job.id"] = str(job_id)
+
+            with tracer.start_as_current_span(span_name, attributes=attrs):
+                return await f(ctx, *args, **kwargs)
+
+        return wrapper
+
+    if func is not None:
+        return decorator(func)
+    return decorator
+
+
+def traced_loop(loop_name: str):
+    """Decorator for cron/lifespan loop functions. Creates span with loop attributes.
+
+    Usage::
+
+        @traced_loop("health_canary")
+        async def run_health_check(): ...
+
+    Span attributes:
+        - ``loop.name``: name of the loop
+        - ``loop.status``: set on completion or error
+
+    NO-OP safe: when tracing is disabled, the decorated function runs
+    without any overhead.
+    """
+    def decorator(f: Callable) -> Callable:
+        @functools.wraps(f)
+        async def wrapper(*args, **kwargs):
+            if _noop:
+                return await f(*args, **kwargs)
+
+            tracer = get_tracer(__name__)
+            attrs = {"loop.name": loop_name}
+
+            with tracer.start_as_current_span(loop_name, attributes=attrs):
+                return await f(*args, **kwargs)
+
+        return wrapper
+    return decorator
+
+
+def traced_webhook(handler_name: str):
+    """Decorator for Stripe webhook handlers. Creates span with webhook attributes.
+
+    Usage::
+
+        @traced_webhook("checkout.session.completed")
+        async def handle(event): ...
+
+    Span attributes:
+        - ``webhook.handler``: name of the handler
+        - ``webhook.event_type``: Stripe event type (set manually if not in decorator)
+        - ``webhook.event_id``: Stripe event ID (set manually if not in decorator)
+
+    NO-OP safe: when tracing is disabled, the decorated function runs
+    without any overhead.
+    """
+    def decorator(f: Callable) -> Callable:
+        @functools.wraps(f)
+        async def wrapper(*args, **kwargs):
+            if _noop:
+                return await f(*args, **kwargs)
+
+            tracer = get_tracer(__name__)
+            attrs = {"webhook.handler": handler_name}
+
+            with tracer.start_as_current_span(handler_name, attributes=attrs):
+                return await f(*args, **kwargs)
+
+        return wrapper
+    return decorator
 
 
 # ============================================================================

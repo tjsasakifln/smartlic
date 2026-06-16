@@ -5,6 +5,8 @@ import json
 import logging
 import time
 
+from telemetry import traced_job
+
 logger = logging.getLogger(__name__)
 
 
@@ -55,6 +57,7 @@ async def _update_search_session(search_id: str, user_id: str, response) -> None
         logger.debug(f"STORY-363: Session update failed (non-fatal): {e}")
 
 
+@traced_job()
 async def search_job(ctx: dict, search_id: str, request_data: dict, user_data: dict, **kwargs) -> dict:
     from middleware import search_id_var, request_id_var
     search_id_var.set(search_id)

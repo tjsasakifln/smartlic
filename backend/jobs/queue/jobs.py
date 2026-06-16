@@ -9,6 +9,7 @@ from datetime import datetime, timezone
 from typing import Any
 
 from supabase_client import sb_execute
+from telemetry import traced_job
 from templates.emails.base import FRONTEND_URL
 
 logger = logging.getLogger(__name__)
@@ -308,6 +309,7 @@ def _send_intel_report_failed_email(profile: dict | None, purchase: dict) -> Non
         logger.exception("Intel Report failure email failed: purchase_id=%s", purchase.get("id"))
 
 
+@traced_job()
 async def generate_intel_report(ctx: dict, purchase_id: str) -> dict:
     """Generate, upload, and deliver an Intel Report PDF for a paid purchase."""
     start = time.monotonic()
@@ -423,6 +425,7 @@ async def generate_intel_report(ctx: dict, purchase_id: str) -> dict:
         }
 
 
+@traced_job()
 async def send_founders_welcome(ctx: dict, user_email: str, user_name: str) -> dict:
     """ARQ job: send founders welcome email + record is_founder in Mixpanel.
 
@@ -464,6 +467,7 @@ async def send_founders_welcome(ctx: dict, user_email: str, user_name: str) -> d
     return {"status": "skipped", "email_id": None}
 
 
+@traced_job()
 async def llm_summary_job(ctx: dict, search_id: str, licitacoes: list, sector_name: str, termos_busca: str | None = None, **kwargs) -> dict:
     from middleware import search_id_var, request_id_var
     search_id_var.set(search_id)
@@ -501,6 +505,7 @@ async def llm_summary_job(ctx: dict, search_id: str, licitacoes: list, sector_na
     return result_data
 
 
+@traced_job()
 async def excel_generation_job(ctx: dict, search_id: str, licitacoes: list, allow_excel: bool, **kwargs) -> dict:
     from middleware import search_id_var, request_id_var
     search_id_var.set(search_id)
@@ -544,6 +549,7 @@ async def excel_generation_job(ctx: dict, search_id: str, licitacoes: list, allo
     return result
 
 
+@traced_job()
 async def bid_analysis_job(ctx: dict, search_id: str, licitacoes: list, user_profile: dict | None = None, sector_name: str = "", **kwargs) -> dict:
     from middleware import search_id_var, request_id_var
     search_id_var.set(search_id)
@@ -566,6 +572,7 @@ async def bid_analysis_job(ctx: dict, search_id: str, licitacoes: list, user_pro
     return {"status": "completed", "count": len(result_data)}
 
 
+@traced_job()
 async def daily_digest_job(ctx: dict) -> dict:
     import uuid as _uuid
     from config import DIGEST_ENABLED, DIGEST_MAX_PER_EMAIL, DIGEST_BATCH_SIZE
@@ -645,6 +652,7 @@ async def daily_digest_job(ctx: dict) -> dict:
     return {"status": "completed", **stats}
 
 
+@traced_job()
 async def email_alerts_job(ctx: dict) -> dict:
     import uuid as _uuid
     from config import ALERTS_ENABLED, ALERTS_MAX_PER_EMAIL
@@ -702,6 +710,7 @@ async def email_alerts_job(ctx: dict) -> dict:
     return {"status": "completed", **stats}
 
 
+@traced_job()
 async def reclassify_pending_bids_job(ctx: dict, search_id: str, sector_name: str = "", sector_id: str = "", attempt: int = 1, **kwargs) -> dict:
     from config import PENDING_REVIEW_MAX_RETRIES, PENDING_REVIEW_RETRY_DELAY
     from redis_pool import get_redis_pool
@@ -786,6 +795,7 @@ async def reclassify_pending_bids_job(ctx: dict, search_id: str, sector_name: st
     return {"status": "completed", "total": accepted + rejected + still_pending, "accepted": accepted, "rejected": rejected, "still_pending": still_pending}
 
 
+@traced_job()
 async def classify_zero_match_job(ctx: dict, search_id: str, candidates: list[dict], setor: str, sector_name: str, custom_terms: list[str] | None = None, enqueued_at: float = 0, **kwargs) -> dict:
     from config import MAX_ZERO_MATCH_ITEMS, ZERO_MATCH_VALUE_RATIO, ZERO_MATCH_JOB_TIMEOUT_S, LLM_ZERO_MATCH_BATCH_SIZE, FILTER_ZERO_MATCH_BUDGET_S, LLM_FALLBACK_PENDING_ENABLED
     from metrics import ZERO_MATCH_JOB_DURATION, ZERO_MATCH_JOB_STATUS, ZERO_MATCH_JOB_QUEUE_TIME, ZERO_MATCH_CAP_APPLIED_TOTAL, ZERO_MATCH_POOL_SIZE
@@ -969,6 +979,7 @@ async def classify_zero_match_job(ctx: dict, search_id: str, candidates: list[di
 # ============================================================================
 
 
+@traced_job()
 async def send_post_purchase_step(ctx: dict, sequence_id: str, step_index: int) -> dict:
     """Execute one step of a post-purchase sequence.
 
