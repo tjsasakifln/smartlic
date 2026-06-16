@@ -1,0 +1,93 @@
+{
+  "method": "GET",
+  "operationId": "list_alerts_v1_alerts_get",
+  "parameters": [],
+  "path": "/v1/alerts",
+  "requestBody": null,
+  "response_200": {
+    "properties": {
+      "alerts": {
+        "items": {
+          "properties": {
+            "active": {
+              "title": "Active",
+              "type": "boolean"
+            },
+            "created_at": {
+              "title": "Created At",
+              "type": "string"
+            },
+            "filters": {
+              "additionalProperties": true,
+              "title": "Filters",
+              "type": "object"
+            },
+            "id": {
+              "title": "Id",
+              "type": "string"
+            },
+            "name": {
+              "title": "Name",
+              "type": "string"
+            },
+            "sent_count": {
+              "default": 0,
+              "title": "Sent Count",
+              "type": "integer"
+            },
+            "tracked_fornecedores": {
+              "description": "ENTITY-001: CNPJ list of tracked suppliers (fornecedores).",
+              "items": {
+                "type": "string"
+              },
+              "title": "Tracked Fornecedores",
+              "type": "array"
+            },
+            "tracked_orgaos": {
+              "description": "ENTITY-001: CNPJ list of tracked public agencies (orgaos).",
+              "items": {
+                "type": "string"
+              },
+              "title": "Tracked Orgaos",
+              "type": "array"
+            },
+            "updated_at": {
+              "title": "Updated At",
+              "type": "string"
+            },
+            "user_id": {
+              "title": "User Id",
+              "type": "string"
+            }
+          },
+          "required": [
+            "id",
+            "user_id",
+            "name",
+            "filters",
+            "active",
+            "created_at",
+            "updated_at"
+          ],
+          "title": "AlertResponse",
+          "type": "object"
+        },
+        "title": "Alerts",
+        "type": "array"
+      },
+      "total": {
+        "title": "Total",
+        "type": "integer"
+      }
+    },
+    "required": [
+      "alerts",
+      "total"
+    ],
+    "title": "AlertListResponse",
+    "type": "object"
+  },
+  "response_401": null,
+  "response_403": null,
+  "response_422": null
+}

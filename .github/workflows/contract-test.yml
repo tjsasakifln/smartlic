@@ -1,0 +1,190 @@
+# P1 Contract testing — frontend<->backend type safety em runtime.
+#
+# Purpose: Detect schema drift between OpenAPI declarations (source of truth)
+# and both the committed contract snapshots and the actual API responses.
+#
+# Two safeguards:
+#
+#   1. PR drift check: compares current OpenAPI endpoint schemas against
+#      the committed snapshots in ``backend/tests/contracts/snapshots/openapi/``.
+#      Fails the PR if fields were added/removed/changed (unintentional drift).
+#
+#   2. Auto-commit snapshots: on push to main, regenerates and commits
+#      updated snapshots so the next PR has a fresh baseline.
+#
+# References:
+#   - Issue #1876
+#   - api-types-check.yml (sister workflow for TypeScript type sync)
+#   - backend/tests/contracts/contract_validator.py (schema diff engine)
+
+name: "Contract Test"
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'backend/schemas/**'
+      - 'backend/routes/**'
+      - 'backend/main.py'
+      - 'backend/startup/**'
+      - 'backend/config/**'
+      - 'scripts/contract-test.py'
+      - 'backend/tests/contracts/snapshots/openapi/*.json'
+      - '.github/workflows/contract-test.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'backend/schemas/**'
+      - 'backend/routes/**'
+      - 'backend/main.py'
+      - 'backend/startup/**'
+      - 'backend/config/**'
+      - 'scripts/contract-test.py'
+      - '.github/workflows/contract-test.yml'
+
+permissions:
+  contents: write  # Required for auto-commit on main
+
+concurrency:
+  group: contract-test-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  contract-test:
+    name: Validate API contract (OpenAPI schema consistency)
+    runs-on: ubuntu-latest
+    env:
+      SUPABASE_URL: https://test.supabase.co
+      SUPABASE_SERVICE_ROLE_KEY: test-service-role-key
+      OPENAI_API_KEY: sk-test-key
+      ENCRYPTION_KEY: bzc732A921Puw9JN4lrzMo1nw0EjlcUdAyR6Z6N7Sqc=
+      ENVIRONMENT: test
+      SENTRY_DSN: ""
+      REDIS_URL: ""
+      LOG_LEVEL: WARNING
+      SECRET_KEY: test-secret-key-do-not-use-in-prod
+      STRIPE_SECRET_KEY: sk_test_placeholder
+      STRIPE_WEBHOOK_SECRET: whsec_placeholder
+      RESEND_API_KEY: re_placeholder
+      NEXT_PUBLIC_SUPABASE_URL: https://test.supabase.co
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: test-anon-key
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+        with:
+          ref: ${{ github.head_ref || github.ref_name }}
+          token: ${{ secrets.GITHUB_TOKEN }}
+          fetch-depth: 0
+
+      - name: Setup Python 3.12
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+          cache: 'pip'
+          cache-dependency-path: backend/requirements.txt
+
+      - name: Install backend dependencies
+        run: |
+          cd backend
+          pip install -r requirements.txt
+
+      - name: Check for existing snapshots
+        id: snapshots_exist
+        run: |
+          count=$(ls -1 backend/tests/contracts/snapshots/openapi/*.json 2>/dev/null | wc -l)
+          echo "snapshot_count=$count" >> $GITHUB_OUTPUT
+          if [ "$count" -gt 0 ]; then
+            echo "has_snapshots=true" >> $GITHUB_OUTPUT
+            echo "Found $count existing snapshot(s)."
+          else
+            echo "has_snapshots=false" >> $GITHUB_OUTPUT
+            echo "No snapshots found — will generate fresh ones."
+          fi
+
+      - name: Run contract test — check drift (PR branch)
+        if: steps.snapshots_exist.outputs.has_snapshots == 'true' && github.event_name == 'pull_request'
+        id: drift_check
+        run: |
+          cd backend
+          python ../scripts/contract-test.py 2>&1 | tee /tmp/contract-test.out
+          exit_code=${PIPESTATUS[0]}
+          echo "exit_code=$exit_code" >> $GITHUB_OUTPUT
+
+          # Extract drift count from output
+          drift_count=$(grep -c "\[DRIFT\]" /tmp/contract-test.out || true)
+          echo "drift_count=$drift_count" >> $GITHUB_OUTPUT
+
+          if [ "$exit_code" -ne 0 ]; then
+            echo "::error title=API contract drift detected in PR#${{ github.event.pull_request.number }}::Some endpoint schemas have changed. Review the drift output above. If intentional, merge into main which will auto-update snapshots."
+          fi
+
+      - name: Comment drift on PR
+        if: failure() && steps.drift_check.outputs.drift_count > '0'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const driftCount = ${{ steps.drift_check.outputs.drift_count }};
+            const body = `## Contract Test: Drift Detected
+
+            ⚠️ **${driftCount} endpoint schema drift(s)** were detected in this PR.
+
+            The current OpenAPI schema differs from the committed contract snapshots.
+            This means the API contract has changed.
+
+            **If intentional:** Merge into main — the snapshots will be auto-updated.
+            **If unintentional:** Review the changes to \`backend/schemas/\` or \`backend/routes/\`.
+
+            Run locally to inspect:
+            \`\`\`bash
+            python scripts/contract-test.py
+            \`\`\`
+            `;
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: body
+            });
+
+      - name: Regenerate snapshots on main
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        run: |
+          cd backend
+          python ../scripts/contract-test.py --snapshot 2>&1
+
+      - name: Auto-commit updated snapshots (main)
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        run: |
+          snapshot_dir="backend/tests/contracts/snapshots/openapi"
+
+          # Check if anything changed
+          if git diff --quiet "$snapshot_dir"/*.json 2>/dev/null; then
+            echo "No snapshot changes to commit."
+            exit 0
+          fi
+
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          git add "$snapshot_dir"/*.json
+          git commit -m "chore: auto-update contract test snapshots" || {
+            echo "No changes to commit."
+            exit 0
+          }
+
+          # Pull to avoid race with other auto-commit workflows
+          git pull --rebase origin main || {
+            echo "Rebase failed — pushing anyway"
+          }
+          git push origin HEAD:main
+          echo "Auto-committed updated contract snapshots to main."
+
+      - name: Verify snapshot count
+        run: |
+          expected=20
+          actual=$(ls -1 backend/tests/contracts/snapshots/openapi/*.json 2>/dev/null | wc -l)
+          echo "Expected at least $expected snapshots, found $actual"
+          if [ "$actual" -lt "$expected" ]; then
+            echo "::warning title=Missing contract snapshots::Only $actual of $expected endpoint snapshots exist. Run \`python scripts/contract-test.py --snapshot\` to generate missing ones."
+          fi

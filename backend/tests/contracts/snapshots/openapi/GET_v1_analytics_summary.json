@@ -1,0 +1,58 @@
+{
+  "method": "GET",
+  "operationId": "get_analytics_summary_v1_analytics_summary_get",
+  "parameters": [],
+  "path": "/v1/analytics/summary",
+  "requestBody": null,
+  "response_200": {
+    "properties": {
+      "avg_results_per_search": {
+        "title": "Avg Results Per Search",
+        "type": "number"
+      },
+      "estimated_hours_saved": {
+        "title": "Estimated Hours Saved",
+        "type": "number"
+      },
+      "member_since": {
+        "title": "Member Since",
+        "type": "string"
+      },
+      "success_rate": {
+        "title": "Success Rate",
+        "type": "number"
+      },
+      "total_downloads": {
+        "title": "Total Downloads",
+        "type": "integer"
+      },
+      "total_opportunities": {
+        "title": "Total Opportunities",
+        "type": "integer"
+      },
+      "total_searches": {
+        "title": "Total Searches",
+        "type": "integer"
+      },
+      "total_value_discovered": {
+        "title": "Total Value Discovered",
+        "type": "number"
+      }
+    },
+    "required": [
+      "total_searches",
+      "total_downloads",
+      "total_opportunities",
+      "total_value_discovered",
+      "estimated_hours_saved",
+      "avg_results_per_search",
+      "success_rate",
+      "member_since"
+    ],
+    "title": "SummaryResponse",
+    "type": "object"
+  },
+  "response_401": null,
+  "response_403": null,
+  "response_422": null
+}

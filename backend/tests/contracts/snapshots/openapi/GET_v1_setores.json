@@ -1,0 +1,28 @@
+{
+  "method": "GET",
+  "operationId": "listar_setores_v1_setores_get",
+  "parameters": [],
+  "path": "/v1/setores",
+  "requestBody": null,
+  "response_200": {
+    "description": "Response for GET /setores endpoint.",
+    "properties": {
+      "setores": {
+        "items": {
+          "additionalProperties": true,
+          "type": "object"
+        },
+        "title": "Setores",
+        "type": "array"
+      }
+    },
+    "required": [
+      "setores"
+    ],
+    "title": "SetoresResponse",
+    "type": "object"
+  },
+  "response_401": null,
+  "response_403": null,
+  "response_422": null
+}

@@ -1,0 +1,178 @@
+{
+  "method": "GET",
+  "operationId": "list_conversations_v1_api_messages_conversations_get",
+  "parameters": [
+    {
+      "in": "query",
+      "name": "status",
+      "required": false,
+      "schema": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Status"
+      }
+    },
+    {
+      "in": "query",
+      "name": "limit",
+      "required": false,
+      "schema": {
+        "default": 50,
+        "maximum": 100,
+        "minimum": 1,
+        "title": "Limit",
+        "type": "integer"
+      }
+    },
+    {
+      "in": "query",
+      "name": "offset",
+      "required": false,
+      "schema": {
+        "default": 0,
+        "minimum": 0,
+        "title": "Offset",
+        "type": "integer"
+      }
+    }
+  ],
+  "path": "/v1/api/messages/conversations",
+  "requestBody": null,
+  "response_200": {
+    "description": "Paginated list of conversations.",
+    "properties": {
+      "conversations": {
+        "items": {
+          "description": "Summary of a conversation for list views.",
+          "properties": {
+            "category": {
+              "title": "Category",
+              "type": "string"
+            },
+            "created_at": {
+              "title": "Created At",
+              "type": "string"
+            },
+            "id": {
+              "title": "Id",
+              "type": "string"
+            },
+            "last_message_at": {
+              "title": "Last Message At",
+              "type": "string"
+            },
+            "status": {
+              "title": "Status",
+              "type": "string"
+            },
+            "subject": {
+              "title": "Subject",
+              "type": "string"
+            },
+            "unread_count": {
+              "default": 0,
+              "title": "Unread Count",
+              "type": "integer"
+            },
+            "user_email": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "User Email"
+            },
+            "user_id": {
+              "title": "User Id",
+              "type": "string"
+            }
+          },
+          "required": [
+            "id",
+            "user_id",
+            "subject",
+            "category",
+            "status",
+            "last_message_at",
+            "created_at"
+          ],
+          "title": "ConversationSummary",
+          "type": "object"
+        },
+        "title": "Conversations",
+        "type": "array"
+      },
+      "total": {
+        "title": "Total",
+        "type": "integer"
+      }
+    },
+    "required": [
+      "conversations",
+      "total"
+    ],
+    "title": "ConversationsListResponse",
+    "type": "object"
+  },
+  "response_401": null,
+  "response_403": null,
+  "response_422": {
+    "properties": {
+      "detail": {
+        "items": {
+          "properties": {
+            "ctx": {
+              "title": "Context",
+              "type": "object"
+            },
+            "input": {
+              "title": "Input"
+            },
+            "loc": {
+              "items": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "integer"
+                  }
+                ]
+              },
+              "title": "Location",
+              "type": "array"
+            },
+            "msg": {
+              "title": "Message",
+              "type": "string"
+            },
+            "type": {
+              "title": "Error Type",
+              "type": "string"
+            }
+          },
+          "required": [
+            "loc",
+            "msg",
+            "type"
+          ],
+          "title": "ValidationError",
+          "type": "object"
+        },
+        "title": "Detail",
+        "type": "array"
+      }
+    },
+    "title": "HTTPValidationError",
+    "type": "object"
+  }
+}
