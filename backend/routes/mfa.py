@@ -9,6 +9,10 @@ STORY-317: TOTP MFA with recovery codes.
 Issue #639: Primary TOTP enrollment + verification (B2G compliance).
 - POST /v1/mfa/enroll — Enrol a TOTP factor; returns QR + secret + backup codes
 - POST /v1/mfa/verify-totp — Verify TOTP code, complete enrollment, elevate to aal2
+
+#1882: MFA enforcement policy.
+- Policy documented in docs/security/mfa-policy.md and backend/mfa.py
+- Enforcement middleware in auth.py (require_mfa, require_mfa_high_impact)
 """
 
 import asyncio
@@ -31,6 +35,11 @@ from schemas.user import (
     MFAVerifyRequest,
     MFAVerifyResponse,
 )
+
+# #1882: Policy module — single source of truth for MFA enforcement rules.
+# The actual enforcement middleware lives in auth.py (require_mfa).
+# This reference ensures routes/mfa.py consumers can discover the policy.
+import mfa as mfa_policy  # noqa: F401 — imported for discoverability
 
 logger = logging.getLogger(__name__)
 
