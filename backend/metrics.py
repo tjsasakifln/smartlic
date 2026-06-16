@@ -85,6 +85,15 @@ def _create_gauge(name, documentation, labelnames=None):
 # Histograms (latency)
 # ============================================================================
 
+# #1866 AC3: DB query duration histogram — labeled by query_name for the 5 most
+# frequent query types. Values in milliseconds.
+DB_QUERY_DURATION = _create_histogram(
+    "smartlic_db_query_duration_ms",
+    "Database query latency in milliseconds",
+    labelnames=["query_name"],
+    buckets=[1, 5, 10, 25, 50, 100, 250, 500, 1000, 2000, 5000],
+)
+
 SEARCH_DURATION = _create_histogram(
     "smartlic_search_duration_seconds",
     "Total search pipeline duration",
