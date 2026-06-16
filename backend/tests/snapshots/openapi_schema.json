@@ -21349,6 +21349,46 @@
         ]
       }
     },
+    "/api/openapi.json": {
+      "get": {
+        "description": "Return filtered public OpenAPI 3.1 schema.\n\nExcludes admin routes (/v1/admin/*) and sanitizes examples\nto prevent leaking real user data.\n\nCache-Control: public, max-age=3600 (schema changes only on deploy).",
+        "operationId": "get_public_openapi_api_openapi_json_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Get Public Openapi",
+        "tags": [
+          "openapi"
+        ]
+      }
+    },
+    "/api/v1/openapi.json": {
+      "get": {
+        "description": "Versioned alias: /api/v1/openapi.json.\n\nSame schema as /api/openapi.json, provided for API versioning\nconsistency.",
+        "operationId": "get_public_openapi_v1_api_v1_openapi_json_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Get Public Openapi V1",
+        "tags": [
+          "openapi"
+        ]
+      }
+    },
     "/debug/pncp-test": {
       "get": {
         "description": "Diagnostic: test if PNCP API is reachable from this server. Admin only.",
