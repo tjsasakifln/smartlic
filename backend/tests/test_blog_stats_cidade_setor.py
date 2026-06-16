@@ -8,13 +8,6 @@ from main import app
 
 client = TestClient(app)
 
-@pytest.fixture(autouse=True)
-def _disable_ip_rate_limiter():
-    """Disable the IP rate limiter (Issue #1861) for blog stats tests."""
-    with patch("ip_rate_limiter.IP_RATE_LIMIT_ENABLED", False):
-        yield
-
-
 MOCK_ITEMS = [
     {
         "objetoCompra": "Aquisição de computadores e periféricos",

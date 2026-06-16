@@ -85,15 +85,6 @@ def _create_gauge(name, documentation, labelnames=None):
 # Histograms (latency)
 # ============================================================================
 
-# #1866 AC3: DB query duration histogram — labeled by query_name for the 5 most
-# frequent query types. Values in milliseconds.
-DB_QUERY_DURATION = _create_histogram(
-    "smartlic_db_query_duration_ms",
-    "Database query latency in milliseconds",
-    labelnames=["query_name"],
-    buckets=[1, 5, 10, 25, 50, 100, 250, 500, 1000, 2000, 5000],
-)
-
 SEARCH_DURATION = _create_histogram(
     "smartlic_search_duration_seconds",
     "Total search pipeline duration",
@@ -275,19 +266,6 @@ RATE_LIMIT_DECISIONS_TOTAL = _create_counter(
     "smartlic_rate_limit_decisions_total",
     "Rate limit decisions by tier (bot|human) and outcome (allow|throttle)",
     labelnames=["tier", "decision"],
-)
-
-# Issue #1861 AC6: IP rate limit exceeded counter (edge DDoS protection).
-IP_RATE_LIMIT_EXCEEDED_TOTAL = _create_counter(
-    "smartlic_ip_rate_limit_exceeded_total",
-    "IP rate limit exceeded (429 returned) by IP prefix and path prefix",
-    labelnames=["ip_prefix", "path_prefix"],
-)
-
-# Issue #1861 AC6: Active blocklist entries gauge (IPs currently blocked).
-IP_BLOCKLIST_ACTIVE = _create_gauge(
-    "smartlic_ip_blocklist_active",
-    "Number of IPs currently in the auto-blocklist",
 )
 
 # STORY-2.11 (EPIC-TD-2026Q2 P0): LLM monthly budget metrics

@@ -170,7 +170,7 @@ async def test_t4_health_canary_400_does_not_trip_breaker():
         # AsyncMock so awaiting client._client.get(...) yields mock_response.
         async_get = AsyncMock(return_value=mock_response)
         with patch.object(client._client, 'get', async_get), \
-             patch("jobs.cron.get_pncp_cron_status", return_value={"status": "healthy", "latency_ms": 100, "updated_at": 1000}):
+             patch("cron_jobs.get_pncp_cron_status", return_value={"status": "healthy", "latency_ms": 100, "updated_at": 1000}):
             result = await client.health_canary()
 
             # Health canary returns True for 4xx (client error → search proceeds).
@@ -202,7 +202,7 @@ async def test_t5_health_canary_503_trips_breaker():
     async with AsyncPNCPClient(max_concurrent=10) as client:
         async_get = AsyncMock(return_value=mock_response)
         with patch.object(client._client, 'get', async_get), \
-             patch("jobs.cron.get_pncp_cron_status", return_value={"status": "healthy", "latency_ms": 100, "updated_at": 1000}):
+             patch("cron_jobs.get_pncp_cron_status", return_value={"status": "healthy", "latency_ms": 100, "updated_at": 1000}):
             result = await client.health_canary()
 
             # Health canary returns False on 5xx (search blocked).

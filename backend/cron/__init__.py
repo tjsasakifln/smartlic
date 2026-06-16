@@ -1,7 +1,6 @@
-"""cron package — Legacy cron implementations (TD-1875: cron_jobs.py removed).
+"""cron package — DEBT-v3-S3 decomposition of cron_jobs.py.
 
-Re-exports from ``cron.*`` submodules directly. For new code, prefer importing
-from ``jobs.cron.*`` (the active implementations).
+Re-exports all public names so ``from cron_jobs import X`` works unchanged.
 """
 
 # __all__ needed so ``from cron import *`` exports underscore-prefixed names.

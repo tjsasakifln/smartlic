@@ -108,7 +108,7 @@ class TestHealthCanaryIncludesModalidade:
     """CRIT-FLT-008 AC2: Verify health_canary sends codigoModalidadeContratacao."""
 
     @pytest.mark.asyncio
-    @patch("jobs.cron.get_pncp_cron_status", return_value={"status": "healthy", "latency_ms": 100, "updated_at": 1000})
+    @patch("cron_jobs.get_pncp_cron_status", return_value={"status": "healthy", "latency_ms": 100, "updated_at": 1000})
     async def test_health_canary_params_include_modalidade(self, _mock_cron):
         """health_canary must include codigoModalidadeContratacao in its request params."""
         async with AsyncPNCPClient() as client:
@@ -132,7 +132,7 @@ class TestHealthCanaryIncludesModalidade:
             assert captured_params["codigoModalidadeContratacao"] == 6
 
     @pytest.mark.asyncio
-    @patch("jobs.cron.get_pncp_cron_status", return_value={"status": "healthy", "latency_ms": 100, "updated_at": 1000})
+    @patch("cron_jobs.get_pncp_cron_status", return_value={"status": "healthy", "latency_ms": 100, "updated_at": 1000})
     async def test_health_canary_params_include_all_required_fields(self, _mock_cron):
         """health_canary must send all PNCP required params."""
         async with AsyncPNCPClient() as client:

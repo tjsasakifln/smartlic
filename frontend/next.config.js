@@ -15,12 +15,6 @@ const nextConfig = {
   trailingSlash: false,
   output: 'standalone',
 
-  // #1870: TypeScript strict mode — 184 errors from noUncheckedIndexedAccess.
-  // Allow build to complete; type check is done separately via `tsc --noEmit`.
-  typescript: {
-    ignoreBuildErrors: true,
-  },
-
   // BUILD-FIX-2026-06-01: Aumentar staticPageGenerationTimeout para 300s.
   // Default 60s insuficiente para ISR com 200+ páginas × fetch backend.
   // Sem isso, cascade timeout → 3 retries → build falha.
@@ -129,60 +123,31 @@ const nextConfig = {
     ];
   },
 
-  // Issue #1868 — CDN-ready Cache-Control headers by content type.
-  // AC2: Assets estaticos com cache longo (1 ano + immutable para fingerprint).
-  // Static assets (JS/CSS bundles) servidos via Cloudflare CDN.
-  // max-age=31536000 (1 ano) + immutable permite CDN caching geografico
-  // sem revalidacao. Build ID unico (generateBuildId acima) garante que
-  // novas versoes tenham URLs diferentes — nunca servem stale.
-  // AC4: Security headers (CSP, HSTS, X-Frame-Options) NAO sao afetados aqui
-  // — estes headers sao aplicados pelo middleware.ts para todas as rotas HTML
-  // e API routes. Assets estaticos nao precisam de CSP/X-Frame-Options.
+  // SYS-019: Cache headers for static assets (CDN-ready)
   async headers() {
     return [
-      // AC2: 1 ano + immutable para JS/CSS bundles com fingerprint.
-      // Build ID unico (generateBuildId) garante URL unica por deploy →
-      // cache nunca precisa ser purgado manualmente para _next/static.
       {
         source: '/_next/static/:path*',
         headers: [
-          { key: 'Cache-Control', value: 'public, max-age=31536000, immutable' },
-          // AC5: Via header para identificar origem CDN nas metricas
-          { key: 'X-CDN-Strategy', value: 'immutable-1y' },
+          { key: 'Cache-Control', value: 'public, max-age=2592000, immutable' },
         ],
       },
       {
         source: '/images/:path*',
         headers: [
-          { key: 'Cache-Control', value: 'public, max-age=604800, stale-while-revalidate=86400' },
-          { key: 'X-CDN-Strategy', value: 'images-7d' },
+          { key: 'Cache-Control', value: 'public, max-age=604800' },
         ],
       },
       {
         source: '/fonts/:path*',
         headers: [
           { key: 'Cache-Control', value: 'public, max-age=31536000, immutable' },
-          { key: 'X-CDN-Strategy', value: 'fonts-1y' },
         ],
       },
-      // AC2: Sitemap XML servidos via CDN com cache de 1h + stale-while-revalidate.
-      // s-maxage=86400 permite CDN edge cache por 24h.
       {
         source: '/sitemap/:path*',
         headers: [
-          { key: 'Cache-Control', value: 'public, max-age=3600, s-maxage=86400, stale-while-revalidate=86400, stale-if-error=86400' },
-          { key: 'X-CDN-Strategy', value: 'sitemap-1h' },
-        ],
-      },
-      // AC2: public/ assets (favicon, manifest, txt, xml, json, pdf, svg)
-      // — cache de 1h com stale-while-revalidate. URLs fixas (sem fingerprint)
-      // precisam de stale-while-revalidate para evitar revalidacao constante.
-      // Regex exclui paths ja cobertos acima.
-      {
-        source: '/:path((?!_next/static|images|fonts|sitemap).*)\\.(txt|ico|xml|json|pdf|svg)$',
-        headers: [
-          { key: 'Cache-Control', value: 'public, max-age=3600, stale-while-revalidate=86400' },
-          { key: 'X-CDN-Strategy', value: 'public-assets-1h' },
+          { key: 'Cache-Control', value: 'public, max-age=3600, s-maxage=86400, stale-while-revalidate=86400' },
         ],
       },
     ];

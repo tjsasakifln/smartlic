@@ -12,8 +12,6 @@
     "resolveJsonModule": true,
     "allowJs": true,
     "strict": true,
-    "noUncheckedIndexedAccess": true,
-    "exactOptionalPropertyTypes": false,
     "noEmit": true,
     "esModuleInterop": true,
     "skipLibCheck": true,

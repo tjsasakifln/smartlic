@@ -1,8 +1,8 @@
 """jobs.cron_billing — Billing reconciliation and dunning cron tasks.
 
-Re-exports billing cron functions from jobs.cron.billing (TD-1875).
+Re-exports billing cron functions from cron_jobs.
 """
-from jobs.cron.billing import (  # noqa: F401
+from cron_jobs import (  # noqa: F401
     start_reconciliation_task,
     run_reconciliation,
     _reconciliation_loop,

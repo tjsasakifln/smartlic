@@ -76,7 +76,7 @@ def _read_cache(cache_key: str):
     # CRIT-056 AC2: Check quality vs current PNCP health
     qs = data.get("quality_score", 1.0)  # backward compat: assume full if missing
     if qs < 1.0:
-        from jobs.cron import get_pncp_cron_status, get_pncp_recovery_epoch
+        from cron_jobs import get_pncp_cron_status, get_pncp_recovery_epoch
         pncp_status = get_pncp_cron_status().get("status")
         if pncp_status == "healthy":
             data["_swr_stale"] = True
@@ -87,7 +87,7 @@ def _read_cache(cache_key: str):
     # CRIT-056 AC4: Check recovery epoch
     entry_epoch = data.get("recovery_epoch", 0)
     if entry_epoch is not None:
-        from jobs.cron import get_pncp_recovery_epoch
+        from cron_jobs import get_pncp_recovery_epoch
         current_epoch = get_pncp_recovery_epoch()
         if entry_epoch < current_epoch:
             data["_swr_stale"] = True
@@ -190,7 +190,7 @@ def _write_cache_per_uf(request, results: list, *,
     CRIT-056 AC1: Propagates quality metadata to per-UF entries.
     Returns number of UFs successfully cached.
     """
-    from jobs.cron import get_pncp_recovery_epoch
+    from cron_jobs import get_pncp_recovery_epoch
 
     results_by_uf: dict[str, list] = {}
     for r in results:

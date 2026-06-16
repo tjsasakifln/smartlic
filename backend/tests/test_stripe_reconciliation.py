@@ -445,7 +445,7 @@ class TestCronAndLocking:
         self, mock_reconcile, mock_save, mock_alert, mock_redis
     ):
         """AC6: If Redis lock exists, skip execution."""
-        from jobs.cron import run_reconciliation
+        from cron_jobs import run_reconciliation
 
         redis_mock = AsyncMock()
         redis_mock.set.return_value = False  # Lock already held
@@ -466,7 +466,7 @@ class TestCronAndLocking:
         self, mock_reconcile, mock_save, mock_alert, mock_redis
     ):
         """AC6: If lock acquired, run reconciliation."""
-        from jobs.cron import run_reconciliation
+        from cron_jobs import run_reconciliation
 
         redis_mock = AsyncMock()
         redis_mock.set.return_value = True
@@ -502,7 +502,7 @@ class TestCronAndLocking:
         self, mock_reconcile, mock_save, mock_alert, mock_redis
     ):
         """AC6: Redis failure → proceed without lock (graceful degradation)."""
-        from jobs.cron import run_reconciliation
+        from cron_jobs import run_reconciliation
 
         mock_redis.side_effect = Exception("Redis down")
 
@@ -641,7 +641,7 @@ class TestAdminEndpoints:
         assert len(data["runs"]) == 1
         assert data["runs"][0]["divergences_found"] == 2
 
-    @patch("jobs.cron.run_reconciliation", new_callable=AsyncMock)
+    @patch("cron_jobs.run_reconciliation", new_callable=AsyncMock)
     def test_reconciliation_trigger_endpoint(self, mock_run, client):
         """AC13: POST /admin/reconciliation/trigger executes reconciliation."""
         mock_run.return_value = {
@@ -659,7 +659,7 @@ class TestAdminEndpoints:
         data = response.json()
         assert data["total_checked"] == 10
 
-    @patch("jobs.cron.run_reconciliation", new_callable=AsyncMock)
+    @patch("cron_jobs.run_reconciliation", new_callable=AsyncMock)
     def test_reconciliation_trigger_locked(self, mock_run, client):
         """AC13: POST /admin/reconciliation/trigger returns 409 if locked."""
         mock_run.return_value = {"status": "skipped", "reason": "lock_held"}

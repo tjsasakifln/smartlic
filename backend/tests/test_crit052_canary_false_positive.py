@@ -37,7 +37,7 @@ class TestCronCanaryState:
 
     def test_get_pncp_cron_status_returns_dict(self):
         """``get_pncp_cron_status()`` returns a dict with known status keys."""
-        from jobs.cron import get_pncp_cron_status
+        from cron_jobs import get_pncp_cron_status
 
         status = get_pncp_cron_status()
         assert isinstance(status, dict)
@@ -46,7 +46,7 @@ class TestCronCanaryState:
 
     def test_update_and_get_pncp_cron_status(self):
         """Thread-safe update round-trips back via ``get_pncp_cron_status()``."""
-        from jobs.cron import (
+        from cron_jobs import (
             _pncp_cron_status,
             _pncp_cron_status_lock,
             _update_pncp_cron_status,

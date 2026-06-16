@@ -2,15 +2,9 @@
 # SmartLic - Backend Dockerfile
 # =============================================================================
 # Production-ready Python FastAPI application for Railway deployment
-# Base: Python 3.12 slim (default) — override with --build-arg PYTHON_VERSION=3.13
-# for Python 3.13 staging/compatibility testing (Issue #1880).
-#
-# Usage:
-#   Default (3.12):  docker build -t smartlic-backend backend/
-#   3.13 staging:    docker build --build-arg PYTHON_VERSION=3.13 -t smartlic-backend backend/
+# Base: Python 3.12 slim for smaller image size
 
-ARG PYTHON_VERSION=3.12
-FROM python:${PYTHON_VERSION}-slim
+FROM python:3.12-slim
 
 # CACHE BUST - This label forces Railway to rebuild when changed
 # Update timestamp to invalidate all cached layers: 2026-02-28T18:00:00

@@ -27,7 +27,7 @@ class TestDailyDigestJob:
     async def test_skips_when_disabled(self):
         with patch.dict(sys.modules, {"arq": _fake_arq, "arq.connections": _fake_arq.connections, "arq.cron": _fake_arq}):
             _fake_arq.connections.RedisSettings = _FakeRedisSettings
-            from jobs.queue.jobs import daily_digest_job
+            from job_queue import daily_digest_job
 
             result = await daily_digest_job({})
             assert result["status"] == "disabled"
@@ -41,13 +41,13 @@ class TestDailyDigestJob:
             _fake_arq.connections.RedisSettings = _FakeRedisSettings
 
             mock_db = MagicMock()
-            with patch("jobs.queue.jobs.daily_digest_job.__module__", "job_queue"):
+            with patch("job_queue.daily_digest_job.__module__", "job_queue"):
                 pass
 
             # Patch supabase
             with patch("supabase_client.get_supabase", return_value=mock_db):
                 with patch("services.digest_service.get_digest_eligible_users", new_callable=AsyncMock, return_value=[]):
-                    from jobs.queue.jobs import daily_digest_job
+                    from job_queue import daily_digest_job
                     result = await daily_digest_job({})
 
             assert result["status"] == "no_users"
@@ -81,7 +81,7 @@ class TestDailyDigestJob:
                  patch("services.digest_service.mark_digest_sent", new_callable=AsyncMock), \
                  patch("email_service.send_batch_email", return_value=[{"id": "email-1"}]):
 
-                from jobs.queue.jobs import daily_digest_job
+                from job_queue import daily_digest_job
                 result = await daily_digest_job({})
 
             assert result["status"] == "completed"
@@ -106,7 +106,7 @@ class TestDailyDigestJob:
                  patch("services.digest_service.get_digest_eligible_users", new_callable=AsyncMock, return_value=eligible_users), \
                  patch("services.digest_service.build_digest_for_user", new_callable=AsyncMock, side_effect=Exception("Build error")):
 
-                from jobs.queue.jobs import daily_digest_job
+                from job_queue import daily_digest_job
                 result = await daily_digest_job({})
 
             assert result["emails_failed"] == 1
@@ -121,7 +121,7 @@ class TestDailyDigestJob:
             _fake_arq.connections.RedisSettings = _FakeRedisSettings
 
             with patch("supabase_client.get_supabase", side_effect=Exception("DB down")):
-                from jobs.queue.jobs import daily_digest_job
+                from job_queue import daily_digest_job
                 result = await daily_digest_job({})
 
             assert result["status"] == "db_unavailable"
@@ -145,7 +145,7 @@ class TestDailyDigestJob:
                  patch("services.digest_service.get_digest_eligible_users", new_callable=AsyncMock, return_value=eligible_users), \
                  patch("services.digest_service.build_digest_for_user", new_callable=AsyncMock, return_value=None):
 
-                from jobs.queue.jobs import daily_digest_job
+                from job_queue import daily_digest_job
                 result = await daily_digest_job({})
 
             assert result["emails_skipped"] == 1
@@ -160,7 +160,7 @@ class TestWorkerSettingsDigest:
             _fake_arq.connections.RedisSettings = _FakeRedisSettings
             _fake_arq.cron = MagicMock()
 
-            from jobs.queue.config import WorkerSettings
+            from job_queue import WorkerSettings
             # BTS-010b: some entries may be MagicMocks lacking __name__ due to arq stub;
             # fall back to repr for those entries so we can scan reliably.
             func_names = [

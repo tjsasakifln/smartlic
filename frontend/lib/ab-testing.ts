@@ -69,8 +69,7 @@ function setCookie(name: string, value: string, days: number): void {
   try {
     const expires = new Date();
     expires.setTime(expires.getTime() + days * 24 * 60 * 60 * 1000);
-    const secure = typeof window !== 'undefined' && window.location.protocol === 'https:' ? '; Secure' : '';
-    document.cookie = `${encodeURIComponent(name)}=${encodeURIComponent(value)};expires=${expires.toUTCString()};path=/;SameSite=Lax${secure}`;
+    document.cookie = `${encodeURIComponent(name)}=${encodeURIComponent(value)};expires=${expires.toUTCString()};path=/;SameSite=Lax`;
   } catch {
     // SSR or cookie-blocked — swallow silently
   }

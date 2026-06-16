@@ -158,7 +158,7 @@ async def search_status_endpoint(
         # STORY-364 AC1: Include Excel status from job result
         excel_url = None
         excel_status_val = None
-        from jobs.queue.result_store import get_job_result
+        from job_queue import get_job_result
         excel_result = await get_job_result(search_id, "excel_result")
         if excel_result:
             excel_url = excel_result.get("download_url")
@@ -205,7 +205,7 @@ async def search_status_endpoint(
     # STORY-364 AC1: Include Excel status from job result (slow path)
     excel_url_db = None
     excel_status_db = None
-    from jobs.queue.result_store import get_job_result as _get_job_result
+    from job_queue import get_job_result as _get_job_result
     excel_result_db = await _get_job_result(search_id, "excel_result")
     if excel_result_db:
         excel_url_db = excel_result_db.get("download_url")
@@ -286,7 +286,7 @@ async def get_search_results_v1(
     if result is not None:
         # STORY-364 AC2: Merge Excel job result if not already in response
         if isinstance(result, dict) and not result.get("download_url"):
-            from jobs.queue.result_store import get_job_result as _gjr
+            from job_queue import get_job_result as _gjr
             _excel = await _gjr(search_id, "excel_result")
             if _excel and _excel.get("download_url"):
                 result["download_url"] = _excel["download_url"]
@@ -333,7 +333,7 @@ async def get_zero_match_results_endpoint(
     - 404: Job not yet completed or results expired
     """
     await _verify_search_ownership(search_id, user["id"])
-    from jobs.queue.result_store import get_zero_match_results
+    from job_queue import get_zero_match_results
 
     results = await get_zero_match_results(search_id)
     if results is None:
@@ -407,7 +407,7 @@ async def regenerate_excel_endpoint(
         storage_result = upload_excel(excel_bytes, search_id)
         if storage_result:
             download_url = storage_result["signed_url"]
-            from jobs.queue.result_store import persist_job_result
+            from job_queue import persist_job_result
             await persist_job_result(
                 search_id, "excel_result",
                 {"excel_status": "ready", "download_url": download_url},

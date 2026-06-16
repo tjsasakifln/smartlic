@@ -1,8 +1,8 @@
 """jobs.cron_health — Health canary and PNCP status cron tasks.
 
-Re-exports health-related cron functions from jobs.cron.canary (TD-1875).
+Re-exports health-related cron functions from cron_jobs.
 """
-from jobs.cron.canary import (  # noqa: F401
+from cron_jobs import (  # noqa: F401
     get_pncp_cron_status,
     get_pncp_recovery_epoch,
     _update_pncp_cron_status,

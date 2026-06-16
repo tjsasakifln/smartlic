@@ -96,7 +96,7 @@ def _status_fast_path_mocks(tracker, sm, bg_result=None, excel_job_result=None):
 
     Returns a dict of context managers for use with nested `with` statements.
     Mock get_job_result at the job_queue module level since the status endpoint
-    does `from jobs.queue.result_store import get_job_result` at call time.
+    does `from job_queue import get_job_result` at call time.
     """
     mocks = {
         "tracker": patch("routes.search_status.get_tracker", new_callable=AsyncMock, return_value=tracker),
@@ -105,7 +105,7 @@ def _status_fast_path_mocks(tracker, sm, bg_result=None, excel_job_result=None):
     if bg_result is not None:
         mocks["bg_results"] = patch("routes.search_status.get_background_results", return_value=bg_result)
     mocks["get_job_result"] = patch(
-        "jobs.queue.result_store.get_job_result",
+        "job_queue.get_job_result",
         new_callable=AsyncMock,
         return_value=excel_job_result,
     )
@@ -135,7 +135,7 @@ class TestStatusExcelUrlReady:
         with patch("routes.search_status.get_tracker", new_callable=AsyncMock, return_value=tracker), \
              patch("routes.search_status.get_state_machine", return_value=sm), \
              patch("routes.search_status.get_background_results", return_value=mock_bg), \
-             patch("jobs.queue.result_store.get_job_result", new_callable=AsyncMock, return_value=excel_result):
+             patch("job_queue.get_job_result", new_callable=AsyncMock, return_value=excel_result):
 
             response = client.get(f"/v1/search/{sid}/status")
 
@@ -162,7 +162,7 @@ class TestStatusExcelUrlReady:
         with patch("routes.search_status.get_tracker", new_callable=AsyncMock, return_value=None), \
              patch("routes.search_status.get_state_machine", return_value=None), \
              patch("routes.search_status.get_search_status", new_callable=AsyncMock, return_value=db_status), \
-             patch("jobs.queue.result_store.get_job_result", new_callable=AsyncMock, return_value=excel_result):
+             patch("job_queue.get_job_result", new_callable=AsyncMock, return_value=excel_result):
 
             response = client.get(f"/v1/search/{sid}/status")
 
@@ -194,7 +194,7 @@ class TestStatusExcelProcessing:
         with patch("routes.search_status.get_tracker", new_callable=AsyncMock, return_value=tracker), \
              patch("routes.search_status.get_state_machine", return_value=sm), \
              patch("routes.search_status.get_background_results", return_value=mock_bg), \
-             patch("jobs.queue.result_store.get_job_result", new_callable=AsyncMock, return_value=excel_result):
+             patch("job_queue.get_job_result", new_callable=AsyncMock, return_value=excel_result):
 
             response = client.get(f"/v1/search/{sid}/status")
 
@@ -222,7 +222,7 @@ class TestStatusNoExcelResult:
         with patch("routes.search_status.get_tracker", new_callable=AsyncMock, return_value=tracker), \
              patch("routes.search_status.get_state_machine", return_value=sm), \
              patch("routes.search_status.get_background_results", return_value=mock_bg), \
-             patch("jobs.queue.result_store.get_job_result", new_callable=AsyncMock, return_value=None):
+             patch("job_queue.get_job_result", new_callable=AsyncMock, return_value=None):
 
             response = client.get(f"/v1/search/{sid}/status")
 
@@ -242,7 +242,7 @@ class TestStatusNoExcelResult:
         with patch("routes.search_status.get_tracker", new_callable=AsyncMock, return_value=tracker), \
              patch("routes.search_status.get_state_machine", return_value=sm), \
              patch("routes.search_status.get_background_results", return_value=mock_bg), \
-             patch("jobs.queue.result_store.get_job_result", new_callable=AsyncMock, return_value=None):
+             patch("job_queue.get_job_result", new_callable=AsyncMock, return_value=None):
 
             response = client.get(f"/v1/search/{sid}/status")
 
@@ -258,7 +258,7 @@ class TestStatusNoExcelResult:
 
         with patch("routes.search_status.get_tracker", new_callable=AsyncMock, return_value=tracker), \
              patch("routes.search_status.get_state_machine", return_value=sm), \
-             patch("jobs.queue.result_store.get_job_result", new_callable=AsyncMock, return_value=None):
+             patch("job_queue.get_job_result", new_callable=AsyncMock, return_value=None):
 
             response = client.get(f"/v1/search/{sid}/status")
 
@@ -456,7 +456,7 @@ class TestRegenerateExcelInlineFallback:
              patch("job_queue.is_queue_available", new_callable=AsyncMock, return_value=False), \
              patch("routes.search_status.create_excel", return_value=mock_buffer), \
              patch("storage.upload_excel", return_value={"signed_url": "https://storage.example.com/inline.xlsx"}), \
-             patch("jobs.queue.result_store.persist_job_result", new_callable=AsyncMock):
+             patch("job_queue.persist_job_result", new_callable=AsyncMock):
 
             response = client.post(f"/v1/search/{sid}/regenerate-excel")
 
@@ -478,7 +478,7 @@ class TestRegenerateExcelInlineFallback:
              patch("job_queue.is_queue_available", new_callable=AsyncMock, return_value=False), \
              patch("routes.search_status.create_excel", return_value=mock_buffer), \
              patch("storage.upload_excel", return_value={"signed_url": "https://storage.example.com/persisted.xlsx"}), \
-             patch("jobs.queue.result_store.persist_job_result", new_callable=AsyncMock) as mock_persist:
+             patch("job_queue.persist_job_result", new_callable=AsyncMock) as mock_persist:
 
             response = client.post(f"/v1/search/{sid}/regenerate-excel")
 
@@ -564,7 +564,7 @@ class TestResultsMergeExcel:
         }
 
         with patch("routes.search_status.get_background_results_async", new_callable=AsyncMock, return_value=stored_result), \
-             patch("jobs.queue.result_store.get_job_result", new_callable=AsyncMock, return_value=excel_job_result):
+             patch("job_queue.get_job_result", new_callable=AsyncMock, return_value=excel_job_result):
 
             response = client.get(f"/v1/search/{sid}/results")
 
@@ -587,7 +587,7 @@ class TestResultsMergeExcel:
         }
 
         with patch("routes.search_status.get_background_results_async", new_callable=AsyncMock, return_value=stored_result), \
-             patch("jobs.queue.result_store.get_job_result", new_callable=AsyncMock, return_value=excel_job_result):
+             patch("job_queue.get_job_result", new_callable=AsyncMock, return_value=excel_job_result):
 
             response = client.get(f"/v1/search/{sid}/results")
 
@@ -605,7 +605,7 @@ class TestResultsMergeExcel:
         }
 
         with patch("routes.search_status.get_background_results_async", new_callable=AsyncMock, return_value=stored_result), \
-             patch("jobs.queue.result_store.get_job_result", new_callable=AsyncMock, return_value=None):
+             patch("job_queue.get_job_result", new_callable=AsyncMock, return_value=None):
 
             response = client.get(f"/v1/search/{sid}/results")
 
@@ -622,7 +622,7 @@ class TestResultsMergeExcel:
         }
 
         with patch("routes.search_status.get_background_results_async", new_callable=AsyncMock, return_value=stored_result), \
-             patch("jobs.queue.result_store.get_job_result", new_callable=AsyncMock, return_value=None):
+             patch("job_queue.get_job_result", new_callable=AsyncMock, return_value=None):
 
             response = client.get(f"/v1/search/{sid}/results")
 
@@ -643,7 +643,7 @@ class TestResultsMergeExcel:
         }
 
         with patch("routes.search_status.get_background_results_async", new_callable=AsyncMock, return_value=stored_result), \
-             patch("jobs.queue.result_store.get_job_result", new_callable=AsyncMock, return_value=excel_job_result):
+             patch("job_queue.get_job_result", new_callable=AsyncMock, return_value=excel_job_result):
 
             response = client.get(f"/v1/search/{sid}/results")
 
@@ -674,7 +674,7 @@ class TestUpdateResultsExcelUrl:
         mock_redis.set = AsyncMock()
 
         with patch("redis_pool.get_redis_pool", new_callable=AsyncMock, return_value=mock_redis):
-            from jobs.queue.result_store import _update_results_excel_url
+            from job_queue import _update_results_excel_url
             await _update_results_excel_url(sid, "https://example.com/excel.xlsx")
 
         # Verify Redis SET was called with the patched data
@@ -699,7 +699,7 @@ class TestUpdateResultsExcelUrl:
         mock_redis.set = AsyncMock()
 
         with patch("redis_pool.get_redis_pool", new_callable=AsyncMock, return_value=mock_redis):
-            from jobs.queue.result_store import _update_results_excel_url
+            from job_queue import _update_results_excel_url
             await _update_results_excel_url(sid, "https://example.com/unused.xlsx")
 
         mock_redis.set.assert_not_called()
@@ -710,7 +710,7 @@ class TestUpdateResultsExcelUrl:
         sid = _search_id()
 
         with patch("redis_pool.get_redis_pool", new_callable=AsyncMock, return_value=None):
-            from jobs.queue.result_store import _update_results_excel_url
+            from job_queue import _update_results_excel_url
             # Should not raise
             await _update_results_excel_url(sid, "https://example.com/unused.xlsx")
 
@@ -725,7 +725,7 @@ class TestUpdateResultsExcelUrl:
         mock_redis.set = AsyncMock()
 
         with patch("redis_pool.get_redis_pool", new_callable=AsyncMock, return_value=mock_redis):
-            from jobs.queue.result_store import _update_results_excel_url
+            from job_queue import _update_results_excel_url
             await _update_results_excel_url(sid, "https://example.com/ttl-test.xlsx")
 
         call_kwargs = mock_redis.set.call_args[1]
@@ -742,7 +742,7 @@ class TestUpdateResultsExcelUrl:
         mock_redis.set = AsyncMock(side_effect=Exception("Redis connection lost"))
 
         with patch("redis_pool.get_redis_pool", new_callable=AsyncMock, return_value=mock_redis):
-            from jobs.queue.result_store import _update_results_excel_url
+            from job_queue import _update_results_excel_url
             # Should not raise
             await _update_results_excel_url(sid, "https://example.com/error-test.xlsx")
 
@@ -767,7 +767,7 @@ class TestGetJobResult:
         mock_redis.get = AsyncMock(return_value=stored_value)
 
         with patch("redis_pool.get_redis_pool", new_callable=AsyncMock, return_value=mock_redis):
-            from jobs.queue.result_store import get_job_result
+            from job_queue import get_job_result
             result = await get_job_result(sid, "excel_result")
 
         assert result is not None
@@ -785,7 +785,7 @@ class TestGetJobResult:
         mock_redis.get = AsyncMock(return_value=None)
 
         with patch("redis_pool.get_redis_pool", new_callable=AsyncMock, return_value=mock_redis):
-            from jobs.queue.result_store import get_job_result
+            from job_queue import get_job_result
             result = await get_job_result(sid, "excel_result")
 
         assert result is None
@@ -796,7 +796,7 @@ class TestGetJobResult:
         sid = _search_id()
 
         with patch("redis_pool.get_redis_pool", new_callable=AsyncMock, return_value=None):
-            from jobs.queue.result_store import get_job_result
+            from job_queue import get_job_result
             result = await get_job_result(sid, "excel_result")
 
         assert result is None
@@ -810,7 +810,7 @@ class TestGetJobResult:
         mock_redis.get = AsyncMock(return_value="not-valid-json")
 
         with patch("redis_pool.get_redis_pool", new_callable=AsyncMock, return_value=mock_redis):
-            from jobs.queue.result_store import get_job_result
+            from job_queue import get_job_result
             result = await get_job_result(sid, "excel_result")
 
         # Returns raw string when JSON parsing fails
@@ -825,7 +825,7 @@ class TestGetJobResult:
         mock_redis.get = AsyncMock(side_effect=Exception("Connection refused"))
 
         with patch("redis_pool.get_redis_pool", new_callable=AsyncMock, return_value=mock_redis):
-            from jobs.queue.result_store import get_job_result
+            from job_queue import get_job_result
             result = await get_job_result(sid, "excel_result")
 
         assert result is None
@@ -860,13 +860,13 @@ class TestExcelResilienceFullFlow:
         with patch("routes.search_status.get_tracker", new_callable=AsyncMock, return_value=tracker), \
              patch("routes.search_status.get_state_machine", return_value=sm), \
              patch("routes.search_status.get_background_results", return_value=mock_bg), \
-             patch("jobs.queue.result_store.get_job_result", new_callable=AsyncMock, return_value=excel_data):
+             patch("job_queue.get_job_result", new_callable=AsyncMock, return_value=excel_data):
 
             status_resp = client.get(f"/v1/search/{sid}/status")
 
         # Check results endpoint
         with patch("routes.search_status.get_background_results_async", new_callable=AsyncMock, return_value=stored_result), \
-             patch("jobs.queue.result_store.get_job_result", new_callable=AsyncMock, return_value=excel_data):
+             patch("job_queue.get_job_result", new_callable=AsyncMock, return_value=excel_data):
 
             results_resp = client.get(f"/v1/search/{sid}/results")
 
@@ -903,7 +903,7 @@ class TestExcelResilienceFullFlow:
         with patch("routes.search_status.get_tracker", new_callable=AsyncMock, return_value=tracker), \
              patch("routes.search_status.get_state_machine", return_value=sm), \
              patch("routes.search_status.get_background_results", return_value=mock_bg), \
-             patch("jobs.queue.result_store.get_job_result", new_callable=AsyncMock, return_value=None):
+             patch("job_queue.get_job_result", new_callable=AsyncMock, return_value=None):
 
             status1 = client.get(f"/v1/search/{sid}/status")
 
@@ -927,7 +927,7 @@ class TestExcelResilienceFullFlow:
         with patch("routes.search_status.get_tracker", new_callable=AsyncMock, return_value=tracker), \
              patch("routes.search_status.get_state_machine", return_value=sm), \
              patch("routes.search_status.get_background_results", return_value=mock_bg), \
-             patch("jobs.queue.result_store.get_job_result", new_callable=AsyncMock, return_value={"excel_status": "processing"}):
+             patch("job_queue.get_job_result", new_callable=AsyncMock, return_value={"excel_status": "processing"}):
 
             status2 = client.get(f"/v1/search/{sid}/status")
 

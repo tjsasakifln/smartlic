@@ -359,7 +359,7 @@ class TestSessionCleanupStale:
         mock_delete_lt.execute.return_value = MagicMock(data=[])
 
         with patch("supabase_client.get_supabase", return_value=mock_sb):
-            from jobs.cron import cleanup_stale_sessions
+            from cron_jobs import cleanup_stale_sessions
             result = await cleanup_stale_sessions()
 
         # 2 from in_progress + potential from created/processing
@@ -407,7 +407,7 @@ class TestSessionCleanupOld:
         ]
 
         with patch("supabase_client.get_supabase", return_value=mock_sb):
-            from jobs.cron import cleanup_stale_sessions
+            from cron_jobs import cleanup_stale_sessions
             result = await cleanup_stale_sessions()
 
         assert result["deleted_old"] == 3
