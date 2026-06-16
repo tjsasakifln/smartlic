@@ -144,14 +144,17 @@ def setup_middleware(app: FastAPI) -> None:
     # STORY-299 AC2: Track HTTP responses for SLO availability metric
     @app.middleware("http")
     async def http_response_counter(request: Request, call_next):
-        """Track HTTP responses for SLO availability metric."""
+        """Track HTTP responses for SLO availability metric + per-worker request count."""
         response = await call_next(request)
         path = request.url.path
         if not path.startswith("/metrics") and not path.startswith("/health"):
             try:
-                from metrics import HTTP_RESPONSES_TOTAL
+                from metrics import HTTP_RESPONSES_TOTAL, WEB_REQUESTS_TOTAL
+                import os
                 status_class = f"{response.status_code // 100}xx"
                 HTTP_RESPONSES_TOTAL.labels(status_class=status_class, method=request.method).inc()
+                # Issue #1867 AC3: Track requests per worker PID for load distribution observability
+                WEB_REQUESTS_TOTAL.labels(worker_pid=str(os.getpid())).inc()
             except Exception:
                 pass
         return response

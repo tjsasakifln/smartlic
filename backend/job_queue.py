@@ -10,6 +10,7 @@ from __future__ import annotations
 import asyncio
 import logging
 import os
+import threading
 import time
 from typing import Any, Optional
 from urllib.parse import urlparse
@@ -27,6 +28,12 @@ arq_log_config = {
 # Pool state lives here so tests can mutate job_queue._arq_pool directly
 _arq_pool = None
 _pool_lock = asyncio.Lock()
+# Issue #1867 AC1: threading.Lock alongside asyncio.Lock for thread safety.
+# asyncio.Lock protects coroutine interleaving within the same event loop;
+# threading.Lock protects global state writes from thread-level races
+# (e.g., when get_arq_pool() is called via run_coroutine_threadsafe or
+# from thread pool executors). Dual-lock pattern is belt-and-suspenders.
+_pool_thread_lock = threading.Lock()
 _worker_alive_cache: tuple[float, bool] = (0.0, False)
 _WORKER_CHECK_INTERVAL = 15
 
@@ -48,20 +55,34 @@ def _get_redis_settings():
 
 
 async def get_arq_pool():
+    """Get or create the shared ARQ connection pool.
+
+    Thread-safe: uses threading.Lock for global variable writes and
+    asyncio.Lock for coroutine serialization within the same event loop.
+    Tests can still directly mutate ``_arq_pool`` for injection.
+    """
     global _arq_pool
+    # Fast path: pool is already connected and healthy
     if _arq_pool is not None:
         try:
             await _arq_pool.ping()
             return _arq_pool
         except Exception:
-            _arq_pool = None
+            # Issue #1867 AC1: thread lock protects the reset from thread races
+            with _pool_thread_lock:
+                _arq_pool = None
+
+    # Slow path: asyncio lock for coroutine serialization during creation
     async with _pool_lock:
         if _arq_pool is not None:
             return _arq_pool
         for attempt in range(1, 4):
             try:
                 from arq import create_pool
-                _arq_pool = await create_pool(_get_redis_settings())
+                pool = await create_pool(_get_redis_settings())
+                # Issue #1867 AC1: thread lock protects the global assignment
+                with _pool_thread_lock:
+                    _arq_pool = pool
                 logger.info(f"ARQ connection pool created (attempt {attempt})")
                 return _arq_pool
             except Exception as e:
@@ -74,13 +95,18 @@ async def get_arq_pool():
 
 
 async def close_arq_pool() -> None:
+    """Close the ARQ connection pool and reset the global reference.
+
+    Thread-safe: uses threading.Lock for the global variable reset.
+    """
     global _arq_pool
     if _arq_pool is not None:
         try:
             await _arq_pool.close()
         except Exception as e:
             logger.warning(f"Error closing ARQ pool: {e}")
-        _arq_pool = None
+        with _pool_thread_lock:
+            _arq_pool = None
         logger.info("ARQ pool closed")
 
 

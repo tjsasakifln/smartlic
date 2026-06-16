@@ -1509,6 +1509,29 @@ DLQ_SIZE_DEPTH = _create_histogram(
 
 
 # ============================================================================
+# Issue #1867 AC3: Horizontal scaling metrics (Gunicorn/Uvicorn workers)
+# ============================================================================
+
+# Gauge of the configured web worker count (from WEB_CONCURRENCY env var).
+# Set once at startup by lifespan. Useful for dashboards to correlate
+# error rates / latency with the number of active workers.
+WEB_WORKERS_CONFIGURED = _create_gauge(
+    "smartlic_web_workers_configured",
+    "Issue #1867: Number of configured web worker processes (WEB_CONCURRENCY)",
+)
+
+# Counter of total HTTP requests handled, labeled by worker PID so operators
+# can detect uneven request distribution (e.g., one worker handling 80% of
+# traffic due to a sticky routing issue). Incremented per request in the
+# http_response_counter middleware.
+WEB_REQUESTS_TOTAL = _create_counter(
+    "smartlic_web_requests_total",
+    "Issue #1867: Total HTTP requests handled by each web worker (labeled by PID)",
+    labelnames=["worker_pid"],
+)
+
+
+# ============================================================================
 # ASGI app factory for /metrics endpoint
 # ============================================================================
 
