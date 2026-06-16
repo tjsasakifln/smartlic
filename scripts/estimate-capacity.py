@@ -2,17 +2,19 @@
 """
 Capacity Estimator — SmartLic Growth Projections
 
-Calcula projeções de capacidade baseadas no número de usuários ativos.
+Calcula projecoes de capacidade baseadas no numero de usuarios ativos.
 Combina dados de load testing (k6, #1796), custos operacionais conhecidos,
 e limites de infraestrutura para projetar quando e como escalar.
 
 Uso:
     python scripts/estimate-capacity.py                    # Tabela para 100/500/1000/5000 users
-    python scripts/estimate-capacity.py --users 250        # Projeção para número específico
-    python scripts/estimate-capacity.py --json             # Saída JSON (pipeável)
-    python scripts/estimate-capacity.py --bottleneck       # Apenas bottleneck primário
+    python scripts/estimate-capacity.py --users 250        # Projecao para numero especifico
+    python scripts/estimate-capacity.py --json             # Saida JSON (pipeavel)
+    python scripts/estimate-capacity.py --bottleneck       # Apenas bottleneck primario
+    python scripts/estimate-capacity.py --brl              # Custos em reais (BRL)
+    python scripts/estimate-capacity.py --exchange-rate 6.0  # Cambio customizado USD->BRL
 
-Referência:
+Referencia:
     docs/operations/capacity-planning.md  — Documento completo de capacity planning
     docs/operations/capacity-limits.md    — Limites conhecidos e gargalos
     docs/operations/cost-analysis.md      — Custos operacionais detalhados
@@ -53,6 +55,9 @@ SUPABASE_OVERAGE_DB_GB = 0.125  # $/GB/month extra
 # Upstash Redis
 REDIS_FREE_COMMANDS = 500_000   # commands/month free tier
 REDIS_PAID_PER_100K = 0.20      # $/100K commands above free
+
+# Exchange rate (USD to BRL)
+DEFAULT_EXCHANGE_RATE = 5.80    # Updated 2026-06 — reference from cost-analysis.md
 
 # OpenAI GPT-4.1-nano
 LLM_COST_PER_SEARCH = 0.000303  # $/search (from cost-analysis.md)
@@ -380,7 +385,7 @@ def compute_supabase_cost(infra: InfrastructureTier, db_rows_month: int) -> floa
         if estimated_gb > SUPABASE_PRO_DB_GB:
             extra = estimated_gb - SUPABASE_PRO_DB_GB
             base += extra * SUPABASE_OVERAGE_DB_GB
-    return base
+    return round(base, 2)
 
 
 def compute_redis_cost(infra: InfrastructureTier, commands_month: int) -> float:
@@ -449,23 +454,40 @@ def project(active_users: int) -> CapacityProjection:
 # ---------------------------------------------------------------------------
 
 
-def print_projection_table(projections: List[CapacityProjection]) -> None:
-    """Print projections as a readable ASCII table."""
+def print_projection_table(
+    projections: List[CapacityProjection],
+    exchange_rate: float | None = None,
+) -> None:
+    """Print projections as a readable ASCII table.
+
+    If exchange_rate is provided, costs are shown in BRL (R$) as well.
+    """
+    currency_symbol = "R$" if exchange_rate else "$"
+    rate_note = f" (cambio: USD 1 = BRL {exchange_rate})" if exchange_rate else ""
+
     header = (
         f"{'Users':>8} | {'Searches/mo':>12} | {'Peak conc.':>10} | {'Redis MB':>8} | "
-        f"{'Infra Tier':<25} | {'Total $/mo':>10} | {'Bottleneck':<40}"
+        f"{'Infra Tier':<25} | {'Total/mo':>10} | {'Bottleneck':<40}"
     )
     sep = "-" * len(header)
 
-    print("\nSmartLic — Capacity Projections (2026-06-15)\n")
+    title = "SmartLic — Capacity Projections (2026-06-15)"
+    if exchange_rate:
+        title += f"  [BRL{rate_note}]"
+    print(f"\n{title}\n")
     print(header)
     print(sep)
+
+    def fmt_cost(usd: float) -> str:
+        if exchange_rate:
+            return f"R$ {usd * exchange_rate:>8.2f}"
+        return f"${usd:>8.2f}"
 
     for p in projections:
         print(
             f"{p.active_users:>8} | {int(p.searches_per_month):>12,} | {p.concurrent_peak:>10} | "
             f"{p.redis_memory_mb:>8.1f} | {p.infrastructure_tier.name:<25} | "
-            f"${p.total_cost_monthly_usd:>8.2f} | {p.bottleneck:<40}"
+            f"{fmt_cost(p.total_cost_monthly_usd)} | {p.bottleneck:<40}"
         )
 
     print(sep)
@@ -473,6 +495,7 @@ def print_projection_table(projections: List[CapacityProjection]) -> None:
 
     # Detailed view per tier
     for p in projections:
+        currency = "R$" if exchange_rate else "$"
         print(f"\n--- {p.active_users} Active Users ---")
         print(f"  Tier:                {p.infrastructure_tier.name}")
         print(f"  Searches/day:        {int(p.searches_per_day):,}")
@@ -482,11 +505,16 @@ def print_projection_table(projections: List[CapacityProjection]) -> None:
         print(f"  Redis memory:        {p.redis_memory_mb:.1f} MB")
         print(f"  Redis commands/mo:   {p.redis_commands_per_month:,}")
         print("  Cost breakdown:")
-        print(f"    Railway:           ${p.railway_cost_monthly_usd:.2f}/mo")
-        print(f"    Supabase:          ${p.supabase_cost_monthly_usd:.2f}/mo")
-        print(f"    Redis:             ${p.redis_cost_monthly_usd:.2f}/mo")
-        print(f"    LLM (OpenAI):      ${p.llm_cost_monthly_usd:.2f}/mo")
-        print(f"    Total:             ${p.total_cost_monthly_usd:.2f}/mo")
+        f_rail = p.railway_cost_monthly_usd * exchange_rate if exchange_rate else p.railway_cost_monthly_usd
+        f_supa = p.supabase_cost_monthly_usd * exchange_rate if exchange_rate else p.supabase_cost_monthly_usd
+        f_redis = p.redis_cost_monthly_usd * exchange_rate if exchange_rate else p.redis_cost_monthly_usd
+        f_llm = p.llm_cost_monthly_usd * exchange_rate if exchange_rate else p.llm_cost_monthly_usd
+        f_total = p.total_cost_monthly_usd * exchange_rate if exchange_rate else p.total_cost_monthly_usd
+        print(f"    Railway:           {currency} {f_rail:.2f}/mo")
+        print(f"    Supabase:          {currency} {f_supa:.2f}/mo")
+        print(f"    Redis:             {currency} {f_redis:.2f}/mo")
+        print(f"    LLM (OpenAI):      {currency} {f_llm:.2f}/mo")
+        print(f"    Total:             {currency} {f_total:.2f}/mo")
         print(f"  Primary bottleneck:  {p.bottleneck}")
         if p.bottleneck_threshold_pct > 0:
             print(f"  Threshold:           {p.bottleneck_threshold_pct:.1f}% of limit")
@@ -503,24 +531,44 @@ def main() -> None:
     )
     parser.add_argument(
         "--users", type=int, nargs="+", default=[100, 500, 1000, 5000],
-        help="Número(s) de usuários ativos para projetar (default: 100 500 1000 5000)",
+        help="Numero(s) de usuarios ativos para projetar (default: 100 500 1000 5000)",
     )
     parser.add_argument(
         "--json", action="store_true",
-        help="Saída em JSON (pipeável)",
+        help="Saida em JSON (pipeavel)",
     )
     parser.add_argument(
         "--bottleneck", action="store_true",
-        help="Exibe apenas o bottleneck primário para o cenário",
+        help="Exibe apenas o bottleneck primario para o cenario",
+    )
+    parser.add_argument(
+        "--brl", action="store_true",
+        help="Exibe custos em reais (BRL) usando cambio padrao (USD 1 = BRL {})".format(DEFAULT_EXCHANGE_RATE),
+    )
+    parser.add_argument(
+        "--exchange-rate", type=float, default=None,
+        help="Taxa de cambio USD->BRL customizada (ex: 6.0). Implica --brl.",
     )
     args = parser.parse_args()
 
     projections = [project(u) for u in args.users]
 
+    # Determine exchange rate for BRL output
+    exchange_rate = args.exchange_rate
+    if args.brl and exchange_rate is None:
+        exchange_rate = DEFAULT_EXCHANGE_RATE
+
     if args.json:
         output = []
         for p in projections:
             d = asdict(p)
+            if exchange_rate:
+                d["exchange_rate"] = exchange_rate
+                d["total_cost_monthly_brl"] = round(p.total_cost_monthly_usd * exchange_rate, 2)
+                d["railway_cost_monthly_brl"] = round(p.railway_cost_monthly_usd * exchange_rate, 2)
+                d["supabase_cost_monthly_brl"] = round(p.supabase_cost_monthly_usd * exchange_rate, 2)
+                d["redis_cost_monthly_brl"] = round(p.redis_cost_monthly_usd * exchange_rate, 2)
+                d["llm_cost_monthly_brl"] = round(p.llm_cost_monthly_usd * exchange_rate, 2)
             d["infrastructure_tier"] = {
                 "name": p.infrastructure_tier.name,
                 "web_instances": p.infrastructure_tier.web_instances,
@@ -539,7 +587,7 @@ def main() -> None:
             print(f"{p.active_users:>6} users | {p.bottleneck} ({p.bottleneck_threshold_pct:.0f}%) | {p.scale_action}")
         return
 
-    print_projection_table(projections)
+    print_projection_table(projections, exchange_rate=exchange_rate)
 
 
 if __name__ == "__main__":
