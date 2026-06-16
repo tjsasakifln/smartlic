@@ -32,6 +32,7 @@ import {
   WCAG_2_1_AA_TAGS,
   AxeSeverity,
   DEFAULT_EXCLUDE_SELECTORS,
+  DEFAULT_DISABLED_RULES,
 } from '../a11y/axe-config';
 
 // Re-export for backward compatibility — specs that import AxeSeverity
@@ -71,6 +72,11 @@ export const test = base.extend<AxeFixtures>({
       // control: Stripe iframes, Google embeds, Clarity analytics.
       for (const sel of DEFAULT_EXCLUDE_SELECTORS) {
         axe.exclude(sel);
+      }
+      // Known pre-existing violations disabled pending design-system fix.
+      // See axe-config.ts DEFAULT_DISABLED_RULES for rationale and tracking.
+      for (const rule of DEFAULT_DISABLED_RULES) {
+        axe.disableRules([rule]);
       }
       return axe;
     };

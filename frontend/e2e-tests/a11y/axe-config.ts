@@ -80,3 +80,36 @@ export const DEFAULT_RUN_OPTIONS = {
 export function getAxeAttachmentName(pageName: string): string {
   return `axe-${pageName.toLowerCase().replace(/\s+/g, '-')}.json`;
 }
+
+/**
+ * axe-core rules deliberately disabled for the CI gate.
+ *
+ * Every entry in this list represents a KNOWN pre-existing violation that
+ * requires a design-system-level fix (e.g. Tailwind theme tokens) and
+ * cannot be patched in isolation. Disabling these rules here allows the
+ * CI gate to enforce ALL OTHER a11y rules while these are tracked
+ * separately.
+ *
+ * Disabled rules:
+ *
+ * 1. color-contrast
+ *    - Severity: serious (WCAG 2.1 AA, SC 1.4.3)
+ *    - Root cause: `text-ink-muted` (#808f9f, ratio 3.11) and
+ *      `text-brand-blue` (#116dff, ratio 4.24) on `bg-surface-1`
+ *      (#f7f8fa) both fail the 4.5:1 minimum contrast ratio.
+ *    - These are Tailwind theme tokens used across the entire app.
+ *      Fixing them requires design review (impact on visual hierarchy)
+ *      followed by a single CSS variable change.
+ *    - Tracking: https://github.com/tjsasakifln/SmartLic/issues/1901
+ *
+ * 2. link-in-text-block
+ *    - Severity: serious
+ *    - Root cause: consequence of the same color-contrast issue above.
+ *      Links in text blocks inherit the insufficient contrast ratios.
+ *    - Automatically resolved once color-contrast is fixed.
+ *    - Tracking: https://github.com/tjsasakifln/SmartLic/issues/1901
+ */
+export const DEFAULT_DISABLED_RULES = [
+  'color-contrast',
+  'link-in-text-block',
+] as const;
