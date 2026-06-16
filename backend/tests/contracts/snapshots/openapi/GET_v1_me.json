@@ -1,0 +1,211 @@
+{
+  "method": "GET",
+  "operationId": "get_profile_v1_me_get",
+  "parameters": [],
+  "path": "/v1/me",
+  "requestBody": null,
+  "response_200": {
+    "description": "User profile with plan capabilities and quota status.\n\nReturned by /api/me endpoint to provide frontend with all\nnecessary plan information for UI rendering.",
+    "properties": {
+      "allow_network_analytics": {
+        "anyOf": [
+          {
+            "type": "boolean"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "description": "NETINT-001/006: User consent for anonymized network analytics collection. NULL = undecided (treated as opt-out), true = opted in, false = opted out.",
+        "title": "Allow Network Analytics"
+      },
+      "capabilities": {
+        "additionalProperties": true,
+        "description": "Plan capabilities (max_history_days, allow_excel, etc.)",
+        "title": "Capabilities",
+        "type": "object"
+      },
+      "consulting_discount_pct": {
+        "anyOf": [
+          {
+            "maximum": 100.0,
+            "minimum": 0.0,
+            "type": "integer"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "description": "Consultoria discount % granted to this founder (default 50 for v2_lifetime). NULL = no consulting discount.",
+        "title": "Consulting Discount Pct"
+      },
+      "days_since_failure": {
+        "anyOf": [
+          {
+            "type": "integer"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "description": "STORY-309: Days since first payment failure (null if no failure)",
+        "title": "Days Since Failure"
+      },
+      "dunning_phase": {
+        "default": "healthy",
+        "description": "STORY-309: Dunning phase — healthy, active_retries, grace_period, blocked",
+        "title": "Dunning Phase",
+        "type": "string"
+      },
+      "email": {
+        "title": "Email",
+        "type": "string"
+      },
+      "founder_checkout_source": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "description": "utm_source or checkout source param from founding checkout metadata.",
+        "title": "Founder Checkout Source"
+      },
+      "founder_offer_version": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "description": "Offer version string from checkout metadata (e.g. 'v2_lifetime').",
+        "title": "Founder Offer Version"
+      },
+      "founder_since": {
+        "anyOf": [
+          {
+            "format": "date-time",
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "description": "Timestamp of checkout.session.completed for the lifetime purchase.",
+        "title": "Founder Since"
+      },
+      "is_admin": {
+        "default": false,
+        "description": "Whether user has admin privileges",
+        "title": "Is Admin",
+        "type": "boolean"
+      },
+      "is_founder": {
+        "default": false,
+        "description": "TRUE if user purchased the v2 lifetime Plano Fundadores (R$997). NOT set for v1 subscription founders (-50% monthly).",
+        "title": "Is Founder",
+        "type": "boolean"
+      },
+      "last_login_at": {
+        "anyOf": [
+          {
+            "format": "date-time",
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "description": "LIFECYCLE-001: Timestamp do último login bem-sucedido do usuário. NULL se nunca logou.",
+        "title": "Last Login At"
+      },
+      "login_count": {
+        "default": 0,
+        "description": "LIFECYCLE-001: Contador total de logins bem-sucedidos.",
+        "minimum": 0.0,
+        "title": "Login Count",
+        "type": "integer"
+      },
+      "plan_id": {
+        "description": "Plan ID (e.g., 'consultor_agil')",
+        "title": "Plan Id",
+        "type": "string"
+      },
+      "plan_name": {
+        "description": "Display name (e.g., 'Consultor Ágil')",
+        "title": "Plan Name",
+        "type": "string"
+      },
+      "quota_remaining": {
+        "description": "Searches remaining this month",
+        "minimum": 0.0,
+        "title": "Quota Remaining",
+        "type": "integer"
+      },
+      "quota_reset_date": {
+        "description": "ISO 8601 timestamp of next quota reset",
+        "title": "Quota Reset Date",
+        "type": "string"
+      },
+      "quota_used": {
+        "description": "Searches used this month",
+        "minimum": 0.0,
+        "title": "Quota Used",
+        "type": "integer"
+      },
+      "subscription_end_date": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "description": "ISO 8601 — data real de renovação Stripe (current_period_end), null para trial/admin",
+        "title": "Subscription End Date"
+      },
+      "subscription_status": {
+        "description": "Status: 'trial', 'active', 'expired', or 'past_due'",
+        "title": "Subscription Status",
+        "type": "string"
+      },
+      "trial_expires_at": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "description": "ISO 8601 timestamp when trial expires (if applicable)",
+        "title": "Trial Expires At"
+      },
+      "user_id": {
+        "title": "User Id",
+        "type": "string"
+      }
+    },
+    "required": [
+      "user_id",
+      "email",
+      "plan_id",
+      "plan_name",
+      "capabilities",
+      "quota_used",
+      "quota_remaining",
+      "quota_reset_date",
+      "subscription_status"
+    ],
+    "title": "UserProfileResponse",
+    "type": "object"
+  },
+  "response_401": null,
+  "response_403": null,
+  "response_422": null
+}

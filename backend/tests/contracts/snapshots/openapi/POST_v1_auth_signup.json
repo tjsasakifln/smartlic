@@ -1,0 +1,138 @@
+{
+  "method": "POST",
+  "operationId": "signup_v1_auth_signup_post",
+  "parameters": [],
+  "path": "/v1/auth/signup",
+  "requestBody": {
+    "content": {
+      "application/json": {
+        "schema": {
+          "$ref": "#/components/schemas/SignupRequest"
+        }
+      }
+    },
+    "required": true
+  },
+  "response_200": {
+    "description": "Response body for POST /v1/auth/signup (STORY-CONV-003a AC3).",
+    "properties": {
+      "email": {
+        "description": "Confirmed user email",
+        "format": "email",
+        "title": "Email",
+        "type": "string"
+      },
+      "requires_email_confirmation": {
+        "default": true,
+        "description": "Whether Supabase requires email confirmation before login",
+        "title": "Requires Email Confirmation",
+        "type": "boolean"
+      },
+      "stripe_customer_id": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "description": "Stripe Customer ID (cus_...) if card was attached",
+        "title": "Stripe Customer Id"
+      },
+      "stripe_subscription_id": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "description": "Stripe Subscription ID (sub_...) if card was attached",
+        "title": "Stripe Subscription Id"
+      },
+      "subscription_status": {
+        "default": "trialing",
+        "description": "Subscription status: trialing | free_trial | payment_failed",
+        "title": "Subscription Status",
+        "type": "string"
+      },
+      "trial_end_ts": {
+        "anyOf": [
+          {
+            "type": "integer"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "description": "Unix epoch seconds when trial ends. Sourced from Stripe when subscription created; otherwise computed locally (now + 14d).",
+        "title": "Trial End Ts"
+      },
+      "user_id": {
+        "description": "Supabase auth.users.id UUID",
+        "title": "User Id",
+        "type": "string"
+      }
+    },
+    "required": [
+      "user_id",
+      "email"
+    ],
+    "title": "SignupResponse",
+    "type": "object"
+  },
+  "response_401": null,
+  "response_403": null,
+  "response_422": {
+    "properties": {
+      "detail": {
+        "items": {
+          "properties": {
+            "ctx": {
+              "title": "Context",
+              "type": "object"
+            },
+            "input": {
+              "title": "Input"
+            },
+            "loc": {
+              "items": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "integer"
+                  }
+                ]
+              },
+              "title": "Location",
+              "type": "array"
+            },
+            "msg": {
+              "title": "Message",
+              "type": "string"
+            },
+            "type": {
+              "title": "Error Type",
+              "type": "string"
+            }
+          },
+          "required": [
+            "loc",
+            "msg",
+            "type"
+          ],
+          "title": "ValidationError",
+          "type": "object"
+        },
+        "title": "Detail",
+        "type": "array"
+      }
+    },
+    "title": "HTTPValidationError",
+    "type": "object"
+  }
+}

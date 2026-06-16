@@ -1,0 +1,38 @@
+{
+  "method": "GET",
+  "operationId": "health_live_health_live_get",
+  "parameters": [],
+  "path": "/health/live",
+  "requestBody": null,
+  "response_200": {
+    "additionalProperties": true,
+    "description": "`/health/live` snapshot — pure liveness probe.",
+    "properties": {
+      "live": {
+        "default": true,
+        "title": "Live",
+        "type": "boolean"
+      },
+      "process_uptime_seconds": {
+        "default": 0.0,
+        "title": "Process Uptime Seconds",
+        "type": "number"
+      },
+      "ready": {
+        "default": false,
+        "title": "Ready",
+        "type": "boolean"
+      },
+      "uptime_seconds": {
+        "default": 0.0,
+        "title": "Uptime Seconds",
+        "type": "number"
+      }
+    },
+    "title": "_LivenessResponse",
+    "type": "object"
+  },
+  "response_401": null,
+  "response_403": null,
+  "response_422": null
+}

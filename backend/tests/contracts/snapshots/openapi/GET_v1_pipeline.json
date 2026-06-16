@@ -1,0 +1,278 @@
+{
+  "method": "GET",
+  "operationId": "list_pipeline_items_v1_pipeline_get",
+  "parameters": [
+    {
+      "description": "Filter by stage",
+      "in": "query",
+      "name": "stage",
+      "required": false,
+      "schema": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "description": "Filter by stage",
+        "title": "Stage"
+      }
+    },
+    {
+      "description": "Items per page",
+      "in": "query",
+      "name": "limit",
+      "required": false,
+      "schema": {
+        "default": 50,
+        "description": "Items per page",
+        "maximum": 200,
+        "minimum": 1,
+        "title": "Limit",
+        "type": "integer"
+      }
+    },
+    {
+      "description": "Offset for pagination",
+      "in": "query",
+      "name": "offset",
+      "required": false,
+      "schema": {
+        "default": 0,
+        "description": "Offset for pagination",
+        "minimum": 0,
+        "title": "Offset",
+        "type": "integer"
+      }
+    },
+    {
+      "description": "Exclude items with data_encerramento >24h in the past",
+      "in": "query",
+      "name": "exclude_expired",
+      "required": false,
+      "schema": {
+        "default": true,
+        "description": "Exclude items with data_encerramento >24h in the past",
+        "title": "Exclude Expired",
+        "type": "boolean"
+      }
+    }
+  ],
+  "path": "/v1/pipeline",
+  "requestBody": null,
+  "response_200": {
+    "description": "Paginated list of pipeline items.",
+    "properties": {
+      "items": {
+        "items": {
+          "description": "Single pipeline item response.",
+          "properties": {
+            "created_at": {
+              "title": "Created At",
+              "type": "string"
+            },
+            "data_encerramento": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Data Encerramento"
+            },
+            "id": {
+              "title": "Id",
+              "type": "string"
+            },
+            "is_expired": {
+              "default": false,
+              "description": "True if data_encerramento is in the past",
+              "title": "Is Expired",
+              "type": "boolean"
+            },
+            "link_pncp": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Link Pncp"
+            },
+            "notes": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Notes"
+            },
+            "objeto": {
+              "title": "Objeto",
+              "type": "string"
+            },
+            "orgao": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Orgao"
+            },
+            "pncp_id": {
+              "title": "Pncp Id",
+              "type": "string"
+            },
+            "search_id": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Search Id"
+            },
+            "stage": {
+              "title": "Stage",
+              "type": "string"
+            },
+            "uf": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Uf"
+            },
+            "updated_at": {
+              "title": "Updated At",
+              "type": "string"
+            },
+            "user_id": {
+              "title": "User Id",
+              "type": "string"
+            },
+            "valor_estimado": {
+              "anyOf": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Valor Estimado"
+            },
+            "version": {
+              "default": 1,
+              "title": "Version",
+              "type": "integer"
+            }
+          },
+          "required": [
+            "id",
+            "user_id",
+            "pncp_id",
+            "objeto",
+            "stage",
+            "created_at",
+            "updated_at"
+          ],
+          "title": "PipelineItemResponse",
+          "type": "object"
+        },
+        "title": "Items",
+        "type": "array"
+      },
+      "limit": {
+        "title": "Limit",
+        "type": "integer"
+      },
+      "offset": {
+        "title": "Offset",
+        "type": "integer"
+      },
+      "total": {
+        "title": "Total",
+        "type": "integer"
+      }
+    },
+    "required": [
+      "items",
+      "total",
+      "limit",
+      "offset"
+    ],
+    "title": "PipelineListResponse",
+    "type": "object"
+  },
+  "response_401": null,
+  "response_403": null,
+  "response_422": {
+    "properties": {
+      "detail": {
+        "items": {
+          "properties": {
+            "ctx": {
+              "title": "Context",
+              "type": "object"
+            },
+            "input": {
+              "title": "Input"
+            },
+            "loc": {
+              "items": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "integer"
+                  }
+                ]
+              },
+              "title": "Location",
+              "type": "array"
+            },
+            "msg": {
+              "title": "Message",
+              "type": "string"
+            },
+            "type": {
+              "title": "Error Type",
+              "type": "string"
+            }
+          },
+          "required": [
+            "loc",
+            "msg",
+            "type"
+          ],
+          "title": "ValidationError",
+          "type": "object"
+        },
+        "title": "Detail",
+        "type": "array"
+      }
+    },
+    "title": "HTTPValidationError",
+    "type": "object"
+  }
+}
