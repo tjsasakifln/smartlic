@@ -207,6 +207,7 @@ _FLAG_DESCRIPTIONS: dict[str, str] = {
     "B2G_OPS_ENABLED": "B2G Operations workspace_basic vertical (EPIC-B2GOPS #1262)",
     # Infra
     "METRICS_ENABLED": "Prometheus metrics collection",
+    "IP_RATE_LIMIT_ENABLED": "IP-based rate limiting with Redis sliding window (Issue #1861)",
     "RATE_LIMITING_ENABLED": "Redis token-bucket rate limiting",
     "USER_FEEDBACK_ENABLED": "User feedback collection on search results",
     "USE_REDIS_CIRCUIT_BREAKER": "Redis-backed circuit breaker (vs in-memory)",
@@ -278,6 +279,7 @@ _FLAG_LIFECYCLE: dict[str, dict] = {
     "MESSAGES_ENABLED": {"owner": "product", "category": "gate", "lifecycle": "gate", "created": "2025-12"},
     "PARTNERS_ENABLED": {"owner": "product", "category": "gate", "lifecycle": "gate", "created": "2026-01"},
     # Infra
+    "IP_RATE_LIMIT_ENABLED": {"owner": "infra", "category": "infra", "lifecycle": "permanent", "created": "2026-06"},
     "METRICS_ENABLED": {"owner": "infra", "category": "infra", "lifecycle": "permanent", "created": "2025-11"},
     "RATE_LIMITING_ENABLED": {"owner": "infra", "category": "infra", "lifecycle": "permanent", "created": "2025-11"},
     "USER_FEEDBACK_ENABLED": {"owner": "product", "category": "infra", "lifecycle": "permanent", "created": "2025-12"},
