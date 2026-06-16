@@ -42,7 +42,6 @@ from rate_limiter import (
     _flexible_limiter,
 )
 from redis_pool import get_sse_redis_pool
-from redis_resilience import safe_redis_call
 from search_state_manager import (
     get_search_status,
     get_current_state,
@@ -337,11 +336,11 @@ async def buscar_progress_stream(
                         # Non-blocking XREAD — returns immediately with data or empty
                         # #1881: Wrapped with safe_redis_call for resilience.
                         # On failure returns [] -> treated as "no new data" below.
-                        result = await safe_redis_call(
-                            _redis.xread({_stream_key: _last_id}, count=100),
-                            fallback=[],
-                            method_name="xread",
-                            module="sse",
+                        # NOTE: NOT wrapped with safe_redis_call because the SSE handler
+                        # depends on exception propagation for its error handling.
+                        result = await _redis.xread(
+                            {_stream_key: _last_id},
+                            count=100,
                         )
                         _consecutive_errors = 0  # reset on success
 
