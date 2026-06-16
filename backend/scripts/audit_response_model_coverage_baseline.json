@@ -10,6 +10,16 @@
       "router_count": 1
     },
     {
+      "coverage_pct": 0.0,
+      "file": "backend/routes/openapi_public.py",
+      "missing_paths": [
+        "/api/openapi.json",
+        "/api/v1/openapi.json"
+      ],
+      "response_model_count": 0,
+      "router_count": 2
+    },
+    {
       "coverage_pct": 50.0,
       "file": "backend/routes/intel_vitrine.py",
       "missing_paths": [
@@ -759,15 +769,15 @@
     }
   ],
   "summary": {
-    "coverage_pct": 97.39,
-    "files_scanned": 109,
-    "files_with_routes": 106,
+    "coverage_pct": 96.75,
+    "files_scanned": 110,
+    "files_with_routes": 107,
     "helper_files_excluded": [
       "backend/routes/_recency_helpers.py",
       "backend/routes/_sitemap_cache_headers.py",
       "backend/routes/search_state.py"
     ],
-    "total_routes": 306,
+    "total_routes": 308,
     "total_with_response_model": 298
   }
 }

@@ -102,6 +102,26 @@ jobs:
           "
           ls -la /tmp/openapi.json
 
+      # Issue #1872 AC7: Validate public OpenAPI schema endpoint (no admin routes).
+      - name: Validate public OpenAPI schema endpoint
+        run: |
+          cd backend
+          python -c "
+          import json
+          from fastapi.testclient import TestClient
+          from main import app
+          app.openapi_schema = None
+          client = TestClient(app)
+          resp = client.get('/api/openapi.json')
+          assert resp.status_code == 200
+          schema = resp.json()
+          admin_paths = [p for p in schema.get('paths', {}) if p.startswith('/v1/admin/')]
+          assert len(admin_paths) == 0, f'Admin paths found: {admin_paths}'
+          cc = resp.headers.get('cache-control', '')
+          assert 'public' in cc, f'Missing public cache directive: {cc}'
+          print(f'Public OpenAPI validated: {len(schema[\"paths\"])} paths, 0 admin routes')
+          "
+
       - name: Regenerate TypeScript types
         run: |
           cd frontend
