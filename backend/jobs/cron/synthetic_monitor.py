@@ -62,6 +62,331 @@ def _get_config(key: str, default: str = "") -> str:
     return os.getenv(key, default)
 
 
+async def asyncio_sleep(seconds: float) -> None:
+    """Thin wrapper for testability."""
+    import asyncio
+    await asyncio.sleep(seconds)
+
+
+# ---------------------------------------------------------------------------
+# Step helpers — each handles one stage of the synthetic user flow.
+# Every helper returns a stage dict (with elapsed_ms and success keys).
+# The main orchestrator assembles them.
+# ---------------------------------------------------------------------------
+
+
+async def _step_auth(
+    client: Any,
+    email: str,
+    password: str,
+) -> tuple[dict, str]:
+    """Step 1 — authenticate via Supabase Auth REST API.
+
+    Returns (stage_dict, access_token). On failure access_token is empty.
+    """
+    import httpx
+
+    step_start = time_mod.monotonic()
+    supabase_url = _get_config("SUPABASE_URL", "").rstrip("/")
+    anon_key = _get_config("SUPABASE_ANON_KEY", "")
+
+    if not supabase_url or not anon_key:
+        return (
+            {
+                "elapsed_ms": 0,
+                "success": False,
+                "error": "SUPABASE_URL/ANON_KEY not configured",
+            },
+            "",
+        )
+
+    try:
+        auth_resp = await client.post(
+            f"{supabase_url}/auth/v1/token?grant_type=password",
+            headers={"apikey": anon_key, "Content-Type": "application/json"},
+            json={"email": email, "password": password},
+        )
+        auth_resp.raise_for_status()
+        auth_data = auth_resp.json()
+        access_token = auth_data.get("access_token", "")
+        stage = {
+            "elapsed_ms": int((time_mod.monotonic() - step_start) * 1000),
+            "success": bool(access_token),
+        }
+        if not access_token:
+            stage["error"] = "no access_token in response"
+        return (stage, access_token)
+    except Exception as exc:
+        return (
+            {
+                "elapsed_ms": int((time_mod.monotonic() - step_start) * 1000),
+                "success": False,
+                "error": str(exc),
+            },
+            "",
+        )
+
+
+async def _poll_search_status(
+    client: Any,
+    headers: dict,
+    base_url: str,
+    search_id: str,
+    step_start: float,
+    poll_timeout: float,
+) -> tuple[dict, str]:
+    """Poll ``GET /v1/search/{id}/status`` until completion, error, or timeout.
+
+    Returns (stage_dict, overall_status_modifier).
+    ``overall_status_modifier`` is ``"success"``, ``"failure"``.
+    """
+    poll_deadline = time_mod.monotonic() + poll_timeout
+    while time_mod.monotonic() < poll_deadline:
+        await asyncio_sleep(2)
+        status_resp = await client.get(
+            f"{base_url}/v1/search/{search_id}/status",
+            headers=headers,
+        )
+        if status_resp.status_code != 200:
+            continue
+
+        status_data = status_resp.json()
+        state = status_data.get("state", "")
+
+        if state in ("completed", "complete"):
+            return (
+                {
+                    "elapsed_ms": int((time_mod.monotonic() - step_start) * 1000),
+                    "success": True,
+                    "search_id": search_id,
+                    "state": state,
+                },
+                "success",
+            )
+
+        if state in ("error", "failed"):
+            return (
+                {
+                    "elapsed_ms": int((time_mod.monotonic() - step_start) * 1000),
+                    "success": False,
+                    "search_id": search_id,
+                    "state": state,
+                    "error": status_data.get("error", "search failed"),
+                },
+                "failure",
+            )
+
+    # Poll timeout
+    return (
+        {
+            "elapsed_ms": int((time_mod.monotonic() - step_start) * 1000),
+            "success": False,
+            "search_id": search_id,
+            "error": "poll timeout",
+        },
+        "failure",
+    )
+
+
+async def _step_search(
+    client: Any,
+    headers: dict,
+    base_url: str,
+) -> tuple[dict, str]:
+    """Step 2 — POST /v1/buscar with synchronous or async (poll) path.
+
+    Returns (stage_dict, overall_status_modifier).
+    ``overall_status_modifier`` is ``"success"`` or ``"failure"``.
+    """
+    import httpx
+
+    step_start = time_mod.monotonic()
+    search_payload = {
+        "termo": "informatica",  # sector popular (AC1)
+        "ufs": ["SP"],           # AC1: busca em SP
+        "modalidades": ["pregao"],
+    }
+
+    try:
+        search_resp = await client.post(
+            f"{base_url}/v1/buscar",
+            headers=headers,
+            json=search_payload,
+            timeout=httpx.Timeout(SYNTHETIC_MONITOR_SEARCH_TIMEOUT_S),
+        )
+        search_elapsed = int((time_mod.monotonic() - step_start) * 1000)
+
+        # Synchronous mode — results are inline
+        if search_resp.status_code == 200:
+            search_data = search_resp.json()
+            return (
+                {
+                    "elapsed_ms": search_elapsed,
+                    "success": True,
+                    "search_id": search_data.get("search_id", ""),
+                    "state": "completed",
+                },
+                "success",
+            )
+
+        # Async mode — poll for completion
+        if search_resp.status_code == 202:
+            search_data = search_resp.json()
+            search_id = search_data.get("search_id", "")
+            return await _poll_search_status(
+                client, headers, base_url, search_id,
+                step_start, SYNTHETIC_MONITOR_SEARCH_TIMEOUT_S,
+            )
+
+        # Unexpected status code
+        return (
+            {
+                "elapsed_ms": search_elapsed,
+                "success": False,
+                "error": f"HTTP {search_resp.status_code}: {search_resp.text[:200]}",
+                "state": "error",
+            },
+            "failure",
+        )
+    except Exception as exc:
+        return (
+            {
+                "elapsed_ms": int((time_mod.monotonic() - step_start) * 1000),
+                "success": False,
+                "error": str(exc),
+            },
+            "failure",
+        )
+
+
+async def _step_fetch_results(
+    client: Any,
+    headers: dict,
+    base_url: str,
+    search_id: str,
+) -> tuple[dict, Any]:
+    """Step 3 — fetch search results and verify total_bids > 0.
+
+    Returns (stage_dict, results_data_or_None).
+    """
+    step_start = time_mod.monotonic()
+    try:
+        results_resp = await client.get(
+            f"{base_url}/v1/search/{search_id}/results",
+            headers=headers,
+        )
+        results_elapsed = int((time_mod.monotonic() - step_start) * 1000)
+
+        if results_resp.status_code != 200:
+            return (
+                {
+                    "elapsed_ms": results_elapsed,
+                    "success": False,
+                    "error": f"HTTP {results_resp.status_code}",
+                },
+                None,
+            )
+
+        results_data = results_resp.json()
+        total_bids = 0
+        if isinstance(results_data, dict):
+            total_bids = (
+                results_data.get("total_bids", 0)
+                or results_data.get("total_results", 0)
+                or len(results_data.get("results", []) or [])
+            )
+        elif isinstance(results_data, list):
+            total_bids = len(results_data)
+
+        stage = {
+            "elapsed_ms": results_elapsed,
+            "success": total_bids > 0,
+            "total_bids": total_bids,
+        }
+        if total_bids == 0:
+            stage["error"] = "no results returned"
+        return (stage, results_data)
+    except Exception as exc:
+        return (
+            {
+                "elapsed_ms": int((time_mod.monotonic() - step_start) * 1000),
+                "success": False,
+                "error": str(exc),
+            },
+            None,
+        )
+
+
+async def _step_check_viability(results_data: Any, step_start: float) -> dict:
+    """Step 4 — verify viability_score present in the first result."""
+    try:
+        if not isinstance(results_data, dict) or not results_data.get("results"):
+            return {
+                "elapsed_ms": int((time_mod.monotonic() - step_start) * 1000),
+                "success": False,
+                "error": "no results to check viability",
+            }
+
+        first_bid = results_data["results"]
+        if isinstance(first_bid, list):
+            first_bid = first_bid[0] if first_bid else {}
+
+        viability = None
+        if isinstance(first_bid, dict):
+            viability = (
+                first_bid.get("viability_score")
+                or first_bid.get("viability")
+                or first_bid.get("viabilidade")
+            )
+
+        stage = {
+            "elapsed_ms": int((time_mod.monotonic() - step_start) * 1000),
+            "success": viability is not None,
+            "has_viability": viability is not None,
+        }
+        if viability is None:
+            stage["error"] = "no viability data in first result"
+        return stage
+    except Exception as exc:
+        return {
+            "elapsed_ms": int((time_mod.monotonic() - step_start) * 1000),
+            "success": False,
+            "error": str(exc),
+        }
+
+
+async def _step_check_excel(results_data: Any, step_start: float) -> dict:
+    """Step 5 — verify excel_url present in results."""
+    try:
+        if not isinstance(results_data, dict):
+            return {
+                "elapsed_ms": int((time_mod.monotonic() - step_start) * 1000),
+                "success": False,
+                "error": "no results to check excel",
+            }
+
+        excel_url = results_data.get("excel_url") or results_data.get("relatorio_url")
+        stage = {
+            "elapsed_ms": int((time_mod.monotonic() - step_start) * 1000),
+            "success": bool(excel_url),
+            "has_excel": bool(excel_url),
+        }
+        if not excel_url:
+            stage["error"] = "no excel_url in results"
+        return stage
+    except Exception as exc:
+        return {
+            "elapsed_ms": int((time_mod.monotonic() - step_start) * 1000),
+            "success": False,
+            "error": str(exc),
+        }
+
+
+# ---------------------------------------------------------------------------
+# Orchestrator
+# ---------------------------------------------------------------------------
+
+
 async def run_synthetic_monitor(
     base_url: str | None = None,
     email: str | None = None,
@@ -99,252 +424,75 @@ async def run_synthetic_monitor(
 
     async with httpx.AsyncClient(timeout=httpx.Timeout(SYNTHETIC_MONITOR_TIMEOUT_S)) as client:
         # ---- Step 1: Auth ----
-        step_start = time_mod.monotonic()
-        try:
-            supabase_url = _get_config("SUPABASE_URL", "").rstrip("/")
-            anon_key = _get_config("SUPABASE_ANON_KEY", "")
-            if supabase_url and anon_key:
-                auth_resp = await client.post(
-                    f"{supabase_url}/auth/v1/token?grant_type=password",
-                    headers={
-                        "apikey": anon_key,
-                        "Content-Type": "application/json",
-                    },
-                    json={"email": email, "password": password},
-                )
-                auth_resp.raise_for_status()
-                auth_data = auth_resp.json()
-                access_token = auth_data.get("access_token", "")
-                stages["auth"] = {
-                    "elapsed_ms": int((time_mod.monotonic() - step_start) * 1000),
-                    "success": bool(access_token),
-                }
-                if not access_token:
-                    stages["auth"]["error"] = "no access_token in response"
-                    overall_status = "failure"
-                    return {"status": overall_status, "stages": stages, "timings": {}}
-            else:
-                stages["auth"] = {"elapsed_ms": 0, "success": False, "error": "SUPABASE_URL/ANON_KEY not configured"}
-                overall_status = "failure"
-                return {"status": overall_status, "stages": stages, "timings": {}}
-        except Exception as exc:
-            stages["auth"] = {
-                "elapsed_ms": int((time_mod.monotonic() - step_start) * 1000),
-                "success": False,
-                "error": str(exc),
-            }
+        stages["auth"], access_token = await _step_auth(client, email, password)
+        if not stages["auth"]["success"]:
             overall_status = "failure"
-            return {"status": overall_status, "stages": stages, "timings": {}}
+            return _build_result(overall_status, stages, overall_start)
 
-        # ---- Step 2: Search (POST /v1/buscar) ----
         headers = {
             "Authorization": f"Bearer {access_token}",
             "Content-Type": "application/json",
         }
-        step_start = time_mod.monotonic()
-        try:
-            search_payload = {
-                "termo": "informatica",         # sector popular (AC1)
-                "ufs": ["SP"],                  # AC1: busca em SP
-                "modalidades": ["pregao"],      # modalidade mais comum
-            }
-            search_resp = await client.post(
-                f"{base_url}/v1/buscar",
-                headers=headers,
-                json=search_payload,
-                timeout=httpx.Timeout(SYNTHETIC_MONITOR_SEARCH_TIMEOUT_S),
-            )
-            search_elapsed = int((time_mod.monotonic() - step_start) * 1000)
-            if search_resp.status_code == 202:
-                # Async mode — poll for completion
-                search_data = search_resp.json()
-                search_id = search_data.get("search_id", "")
-                # Poll status until complete or timeout
-                poll_start = time_mod.monotonic()
-                poll_timeout = SYNTHETIC_MONITOR_SEARCH_TIMEOUT_S
-                while (time_mod.monotonic() - poll_start) < poll_timeout:
-                    await asyncio_sleep(2)
-                    status_resp = await client.get(
-                        f"{base_url}/v1/search/{search_id}/status",
-                        headers=headers,
-                    )
-                    if status_resp.status_code == 200:
-                        status_data = status_resp.json()
-                        state = status_data.get("state", "")
-                        if state in ("completed", "complete"):
-                            search_elapsed = int((time_mod.monotonic() - step_start) * 1000)
-                            stages["search"] = {
-                                "elapsed_ms": search_elapsed,
-                                "success": True,
-                                "search_id": search_id,
-                                "state": state,
-                            }
-                            break
-                        elif state in ("error", "failed"):
-                            stages["search"] = {
-                                "elapsed_ms": int((time_mod.monotonic() - step_start) * 1000),
-                                "success": False,
-                                "search_id": search_id,
-                                "state": state,
-                                "error": status_data.get("error", "search failed"),
-                            }
-                            overall_status = "failure"
-                            break
-                else:
-                    # Timeout polling
-                    stages["search"] = {
-                        "elapsed_ms": int((time_mod.monotonic() - step_start) * 1000),
-                        "success": False,
-                        "search_id": search_id,
-                        "error": "poll timeout",
-                    }
-                    overall_status = "failure"
-            elif search_resp.status_code == 200:
-                # Synchronous mode — results are inline
-                search_data = search_resp.json()
-                stages["search"] = {
-                    "elapsed_ms": search_elapsed,
-                    "success": True,
-                    "search_id": search_data.get("search_id", ""),
-                    "state": "completed",
-                }
-            else:
-                stages["search"] = {
-                    "elapsed_ms": search_elapsed,
-                    "success": False,
-                    "error": f"HTTP {search_resp.status_code}: {search_resp.text[:200]}",
-                    "state": "error",
-                }
-                overall_status = "failure"
-        except Exception as exc:
-            stages["search"] = {
-                "elapsed_ms": int((time_mod.monotonic() - step_start) * 1000),
-                "success": False,
-                "error": str(exc),
-            }
+
+        # ---- Step 2: Search ----
+        stages["search"], _ = await _step_search(client, headers, base_url)
+        if not stages["search"]["success"]:
             overall_status = "failure"
 
-        # ---- Step 3: Check results > 0 (AC2) ----
-        if stages.get("search", {}).get("success"):
+        # ---- Steps 3-5: only if search succeeded ----
+        if stages["search"].get("success"):
             search_id = stages["search"].get("search_id", "")
-            step_start = time_mod.monotonic()
-            try:
-                results_resp = await client.get(
-                    f"{base_url}/v1/search/{search_id}/results",
-                    headers=headers,
-                )
-                results_elapsed = int((time_mod.monotonic() - step_start) * 1000)
-                if results_resp.status_code == 200:
-                    results_data = results_resp.json()
-                    total_bids = 0
-                    if isinstance(results_data, dict):
-                        total_bids = results_data.get("total_bids", 0) or results_data.get("total_results", 0) or len(results_data.get("results", []) or [])
-                    elif isinstance(results_data, list):
-                        total_bids = len(results_data)
-                    stages["results"] = {
-                        "elapsed_ms": results_elapsed,
-                        "success": total_bids > 0,
-                        "total_bids": total_bids,
-                    }
-                    if total_bids == 0:
-                        stages["results"]["error"] = "no results returned"
-                        overall_status = "degraded"
-                else:
-                    stages["results"] = {
-                        "elapsed_ms": results_elapsed,
-                        "success": False,
-                        "error": f"HTTP {results_resp.status_code}",
-                    }
-                    overall_status = "degraded"
-            except Exception as exc:
-                stages["results"] = {
-                    "elapsed_ms": int((time_mod.monotonic() - step_start) * 1000),
-                    "success": False,
-                    "error": str(exc),
-                }
+
+            # Step 3: Results
+            stages["results"], results_data = await _step_fetch_results(
+                client, headers, base_url, search_id,
+            )
+            if not stages["results"].get("success") or stages["results"].get("total_bids", 0) == 0:
                 overall_status = "degraded"
 
-            # ---- Step 4: Check viability present (AC2) ----
+            # Step 4: Viability
             step_start = time_mod.monotonic()
-            try:
-                if isinstance(results_data, dict) and results_data.get("results"):
-                    first_bid = results_data["results"][0] if isinstance(results_data["results"], list) else results_data["results"]
-                    viability = None
-                    if isinstance(first_bid, dict):
-                        viability = first_bid.get("viability_score") or first_bid.get("viability") or first_bid.get("viabilidade")
-                    stages["viability"] = {
-                        "elapsed_ms": int((time_mod.monotonic() - step_start) * 1000),
-                        "success": viability is not None,
-                        "has_viability": viability is not None,
-                    }
-                    if viability is None:
-                        stages["viability"]["error"] = "no viability data in first result"
-                        overall_status = "degraded"
-                else:
-                    stages["viability"] = {
-                        "elapsed_ms": int((time_mod.monotonic() - step_start) * 1000),
-                        "success": False,
-                        "error": "no results to check viability",
-                    }
-                    overall_status = "degraded"
-            except Exception as exc:
-                stages["viability"] = {
-                    "elapsed_ms": int((time_mod.monotonic() - step_start) * 1000),
-                    "success": False,
-                    "error": str(exc),
-                }
+            stages["viability"] = await _step_check_viability(results_data, step_start)
+            if not stages["viability"]["success"]:
                 overall_status = "degraded"
 
-            # ---- Step 5: Check Excel generation (AC2) ----
+            # Step 5: Excel
             step_start = time_mod.monotonic()
-            try:
-                if isinstance(results_data, dict):
-                    excel_url = results_data.get("excel_url") or results_data.get("relatorio_url")
-                    stages["excel"] = {
-                        "elapsed_ms": int((time_mod.monotonic() - step_start) * 1000),
-                        "success": bool(excel_url),
-                        "has_excel": bool(excel_url),
-                    }
-                    if not excel_url:
-                        stages["excel"]["error"] = "no excel_url in results"
-                        overall_status = "degraded"
-                else:
-                    stages["excel"] = {
-                        "elapsed_ms": int((time_mod.monotonic() - step_start) * 1000),
-                        "success": False,
-                        "error": "no results to check excel",
-                    }
-                    overall_status = "degraded"
-            except Exception as exc:
-                stages["excel"] = {
-                    "elapsed_ms": int((time_mod.monotonic() - step_start) * 1000),
-                    "success": False,
-                    "error": str(exc),
-                }
+            stages["excel"] = await _step_check_excel(results_data, step_start)
+            if not stages["excel"]["success"]:
                 overall_status = "degraded"
 
     overall_elapsed_ms = int((time_mod.monotonic() - overall_start) * 1000)
 
-    # Build per-stage timing list for Prometheus (AC4, AC8)
     timings = {
         stage: data.get("elapsed_ms", 0)
         for stage, data in stages.items()
     }
 
-    result = {
+    return {
         "status": overall_status,
         "queried_at": time_mod.time(),
         "overall_elapsed_ms": overall_elapsed_ms,
         "stages": stages,
         "timings": timings,
     }
-    return result
 
 
-async def asyncio_sleep(seconds: float) -> None:
-    """Thin wrapper for testability."""
-    import asyncio
-    await asyncio.sleep(seconds)
+def _build_result(status: str, stages: dict, start: float) -> dict:
+    """Build a minimal result dict (used on early-exit paths)."""
+    return {
+        "status": status,
+        "stages": stages,
+        "timings": {
+            stage: data.get("elapsed_ms", 0)
+            for stage, data in stages.items()
+        },
+    }
+
+
+# ---------------------------------------------------------------------------
+# Metrics
+# ---------------------------------------------------------------------------
 
 
 async def _record_metrics(result: dict) -> None:
@@ -374,6 +522,11 @@ async def _record_metrics(result: dict) -> None:
         logger.warning("Failed to record synthetic monitor metrics", exc_info=True)
 
 
+# ---------------------------------------------------------------------------
+# ARQ cron entry point
+# ---------------------------------------------------------------------------
+
+
 async def synthetic_monitor_job(ctx: dict) -> dict:
     """ARQ cron job entry point — runs the synthetic monitor and stores state.
 
@@ -382,7 +535,6 @@ async def synthetic_monitor_job(ctx: dict) -> dict:
 
     On 3 consecutive failures (AC5), emits a Sentry SEV1 alert.
     """
-    # Detect base URL from environment
     base_url = _get_config("API_BASE_URL", "https://api.smartlic.tech")
 
     result = await run_synthetic_monitor(base_url=base_url)
