@@ -33,6 +33,7 @@ from cache import redis_cache  # noqa: F401 — re-exported for test patches
 from log_sanitizer import get_sanitized_logger
 from quota import invalidate_plan_status_cache, clear_plan_capabilities_cache  # noqa: F401
 from pipeline.budget import _run_with_budget
+from telemetry import get_tracer
 
 # Re-export handler functions for backward compatibility with test patches.
 # Tests do: @patch('webhooks.stripe._handle_checkout_session_completed')
@@ -290,15 +291,25 @@ async def stripe_webhook(request: Request):
         # of the form @patch('webhooks.stripe._handle_*') continue to work.
         async def _process_event():
             """Route event to appropriate handler via HANDLERS_REGISTRY."""
-            handler = HANDLERS_REGISTRY.get(event.type)
-            if handler is None:
-                logger.info(f"Unhandled event type: {event.type}")
-                return
-            # NOTE: invoke process() directly (not handle()) — the dispatcher
-            # above has already claimed stripe_webhook_events for this
-            # event.id, so calling handle() would double-claim and skip the
-            # processing. handle() is for callers outside this dispatcher.
-            await handler.process(sb, event)
+            tracer = get_tracer(__name__)
+            event_type = event.type
+            event_id = event.id
+            with tracer.start_as_current_span(
+                f"webhook.{event_type}",
+                attributes={
+                    "webhook.event_type": event_type,
+                    "webhook.event_id": event_id,
+                },
+            ):
+                handler = HANDLERS_REGISTRY.get(event_type)
+                if handler is None:
+                    logger.info(f"Unhandled event type: {event_type}")
+                    return
+                # NOTE: invoke process() directly (not handle()) — the dispatcher
+                # above has already claimed stripe_webhook_events for this
+                # event.id, so calling handle() would double-claim and skip the
+                # processing. handle() is for callers outside this dispatcher.
+                await handler.process(sb, event)
 
         try:
             await asyncio.wait_for(_process_event(), timeout=WEBHOOK_DB_TIMEOUT_S)
