@@ -66,44 +66,17 @@ class PlanReconciliationLoop(BaseCronLoop):
         subs_result = await sb_execute(sb.table("user_subscriptions").select("user_id, plan_id").eq("is_active", True))
         subs = {s["user_id"]: s["plan_id"] for s in (subs_result.data or [])}
 
-        drift_details = []
-        auto_healed = 0
-        for user_id, plan_type in profiles.items():
-            sub_plan = subs.get(user_id)
-            if sub_plan is None:
-                if plan_type not in ("free_trial", "cancelled", None, ""):
-                    drift_details.append({"user_id": user_id[:8] + "...", "profile_plan": plan_type, "sub_plan": None, "direction": "orphan_profile"})
-                    PLAN_RECONCILIATION_DRIFT.labels(direction="orphan_profile").inc()
-                    try:
-                        await sb_execute(sb.table("profiles").update({"plan_type": "free_trial"}).eq("id", user_id))
-                        auto_healed += 1
-                        PLAN_RECONCILIATION_AUTO_HEALED.labels(direction="orphan_profile").inc()
-                    except Exception as heal_err:
-                        logger.warning("DEBT-010: auto-heal failed for orphan %s: %s", user_id[:8], heal_err)
-            elif plan_type != sub_plan:
-                drift_details.append({"user_id": user_id[:8] + "...", "profile_plan": plan_type, "sub_plan": sub_plan, "direction": "profiles_stale"})
-                PLAN_RECONCILIATION_DRIFT.labels(direction="profiles_stale").inc()
-                try:
-                    await sb_execute(sb.table("profiles").update({"plan_type": sub_plan}).eq("id", user_id))
-                    auto_healed += 1
-                    PLAN_RECONCILIATION_AUTO_HEALED.labels(direction="profiles_stale").inc()
-                except Exception as heal_err:
-                    logger.warning("DEBT-010: auto-heal failed for %s: %s", user_id[:8], heal_err)
+        drift_details, auto_healed = await self._detect_and_heal_drifts(
+            profiles, subs, sb, sb_execute,
+            PLAN_RECONCILIATION_DRIFT, PLAN_RECONCILIATION_AUTO_HEALED,
+        )
 
         if drift_details:
             logger.warning("DEBT-010: %d drifts, auto-healed %d: %s", len(drift_details), auto_healed, drift_details[:5])
         else:
             logger.info("DEBT-010: clean — %d profiles, %d active subs", len(profiles), len(subs))
 
-        # Table size metrics
-        for table_name in _MONITORED_TABLES:
-            try:
-                size_result = await sb_execute_direct(sb.rpc("pg_total_relation_size_safe", {"tbl": table_name}))
-                if size_result and size_result.data is not None:
-                    sz = int(size_result.data) if not isinstance(size_result.data, list) else (int(size_result.data[0]) if size_result.data else 0)
-                    DB_TABLE_SIZE_BYTES.labels(table_name=table_name).set(sz)
-            except Exception:
-                pass
+        await self._update_table_sizes(sb, sb_execute_direct, DB_TABLE_SIZE_BYTES)
 
         return {
             "status": "completed", "total_profiles": len(profiles),
@@ -112,3 +85,47 @@ class PlanReconciliationLoop(BaseCronLoop):
             "drift_details": drift_details[:20],
             "checked_at": datetime.now(timezone.utc).isoformat(),
         }
+
+    async def _detect_and_heal_drifts(
+        self, profiles: dict, subs: dict, sb, sb_execute,
+        drift_metric, healed_metric,
+    ) -> tuple[list[dict], int]:
+        """Iterate profiles, detect drifts and auto-heal where possible.
+
+        Returns (drift_details, auto_healed_count).
+        """
+        drift_details: list[dict] = []
+        auto_healed = 0
+        for user_id, plan_type in profiles.items():
+            sub_plan = subs.get(user_id)
+            if sub_plan is None:
+                if plan_type not in ("free_trial", "cancelled", None, ""):
+                    drift_details.append({"user_id": user_id[:8] + "...", "profile_plan": plan_type, "sub_plan": None, "direction": "orphan_profile"})
+                    drift_metric.labels(direction="orphan_profile").inc()
+                    try:
+                        await sb_execute(sb.table("profiles").update({"plan_type": "free_trial"}).eq("id", user_id))
+                        auto_healed += 1
+                        healed_metric.labels(direction="orphan_profile").inc()
+                    except Exception as heal_err:
+                        logger.warning("DEBT-010: auto-heal failed for orphan %s: %s", user_id[:8], heal_err)
+            elif plan_type != sub_plan:
+                drift_details.append({"user_id": user_id[:8] + "...", "profile_plan": plan_type, "sub_plan": sub_plan, "direction": "profiles_stale"})
+                drift_metric.labels(direction="profiles_stale").inc()
+                try:
+                    await sb_execute(sb.table("profiles").update({"plan_type": sub_plan}).eq("id", user_id))
+                    auto_healed += 1
+                    healed_metric.labels(direction="profiles_stale").inc()
+                except Exception as heal_err:
+                    logger.warning("DEBT-010: auto-heal failed for %s: %s", user_id[:8], heal_err)
+        return drift_details, auto_healed
+
+    async def _update_table_sizes(self, sb, sb_execute_direct, size_gauge) -> None:
+        """Update Prometheus table-size gauges for monitored tables."""
+        for table_name in _MONITORED_TABLES:
+            try:
+                size_result = await sb_execute_direct(sb.rpc("pg_total_relation_size_safe", {"tbl": table_name}))
+                if size_result and size_result.data is not None:
+                    sz = int(size_result.data) if not isinstance(size_result.data, list) else (int(size_result.data[0]) if size_result.data else 0)
+                    size_gauge.labels(table_name=table_name).set(sz)
+            except Exception:
+                pass
