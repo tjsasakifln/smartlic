@@ -138,3 +138,8 @@ from cron.api_metered_billing import (  # noqa: F401
     run_api_metered_billing,
     start_api_metered_billing_task,
 )
+
+# GAP-005 (#1877): Data retention — purge old temporal table records
+from jobs.cron.data_retention import (  # noqa: F401
+    start_data_retention_task,
+)
