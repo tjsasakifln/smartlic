@@ -33,3 +33,7 @@ from cron.api_metered_billing import (  # noqa: F401
     API_METERED_BILLING_HOUR_UTC, run_api_metered_billing,
     start_api_metered_billing_task,
 )
+from jobs.cron.data_retention import *  # noqa: F401,F403
+from jobs.cron.data_retention import (  # noqa: F401
+    start_data_retention_task,
+)
