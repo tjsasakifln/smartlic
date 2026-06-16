@@ -49,6 +49,17 @@ class PlanReconciliationLoop(BaseCronLoop):
         from supabase_client import get_supabase, sb_execute, sb_execute_direct
         from metrics import PLAN_RECONCILIATION_DRIFT, PLAN_RECONCILIATION_AUTO_HEALED, DB_TABLE_SIZE_BYTES
 
+        try:
+            return await self._do_reconciliation(sb_execute, sb_execute_direct, get_supabase,
+                                                  PLAN_RECONCILIATION_DRIFT, PLAN_RECONCILIATION_AUTO_HEALED,
+                                                  DB_TABLE_SIZE_BYTES)
+        except Exception as e:
+            logger.error("DEBT-010: Plan reconciliation error: %s", e)
+            return {"status": "error", "error": str(e)}
+
+    async def _do_reconciliation(self, sb_execute, sb_execute_direct, get_supabase,
+                                  PLAN_RECONCILIATION_DRIFT, PLAN_RECONCILIATION_AUTO_HEALED,
+                                  DB_TABLE_SIZE_BYTES) -> dict:
         sb = get_supabase()
         profiles_result = await sb_execute(sb.table("profiles").select("id, plan_type"))
         profiles = {p["id"]: p["plan_type"] for p in (profiles_result.data or [])}
