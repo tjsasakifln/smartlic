@@ -277,7 +277,7 @@ end
                         str(self.refill_rate),
                         str(now),
                     ),
-                    fallback=None,
+                    fallback=1,  # Fail-open: return token granted when Redis unavailable
                     method_name="eval",
                     module="rate_limiter",
                 )
