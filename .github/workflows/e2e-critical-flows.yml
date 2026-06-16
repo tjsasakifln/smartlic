@@ -1,0 +1,184 @@
+# E2E Critical Flow Tests (Issue #1863)
+#
+# Runs the 6 critical business flow E2E scenarios against staging/PR environments.
+# These tests validate complete user journeys end-to-end.
+#
+# AC5: Trigger on PRs that touch frontend/ or backend/routes/
+# AC6: HTML report with screenshots on failure (handled by playwright.config.ts)
+# AC7: 5-minute timeout per suite (defined in each spec via test.describe.configure)
+# AC8: Test data cleanup after each run (handled in afterEach hooks)
+
+name: 'E2E Critical Flows'
+run-name: 'E2E Critical Flows (${{ github.ref_name }})'
+
+on:
+  pull_request:
+    branches: [main, develop]
+    # AC5: Trigger when critical business flow files are modified
+    paths:
+      # Frontend critical paths
+      - 'frontend/app/buscar/**'
+      - 'frontend/app/pipeline/**'
+      - 'frontend/app/planos/**'
+      - 'frontend/app/onboarding/**'
+      - 'frontend/app/conta/**'
+      - 'frontend/app/login/**'
+      - 'frontend/app/dashboard/**'
+      - 'frontend/components/billing/**'
+      - 'frontend/e2e-tests/flows/**'
+      - 'frontend/e2e-tests/fixtures/mock-data.ts'
+      # Backend routes that power these flows
+      - 'backend/routes/search.py'
+      - 'backend/routes/pipeline.py'
+      - 'backend/routes/billing.py'
+      - 'backend/routes/onboarding.py'
+      - 'backend/routes/auth.py'
+      - 'backend/routes/mfa.py'
+      - 'backend/routes/user.py'
+      - 'backend/search_pipeline.py'
+      - 'backend/job_queue.py'
+      - 'backend/progress.py'
+      - 'backend/main.py'
+      - 'backend/config.py'
+  workflow_dispatch:
+    inputs:
+      grep_filter:
+        description: 'Test filter (--grep pattern)'
+        required: false
+        type: string
+        default: ''
+
+# Cancel stale PR runs when new commits are pushed
+concurrency:
+  group: critical-flows-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  critical-flows:
+    name: 'Critical Flow E2E Tests'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    env:
+      FRONTEND_URL: http://localhost:3000
+      BACKEND_URL: http://localhost:8000
+      CI: 'true'
+      # Required for backend startup (even if fallback)
+      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY || 'sk-test-fallback-key' }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Set up Python (Backend)
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+          cache: 'pip'
+
+      - name: Set up Node.js (Frontend)
+        uses: actions/setup-node@v6
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install backend dependencies
+        working-directory: backend
+        run: pip install -r requirements.txt
+
+      - name: Install frontend dependencies
+        working-directory: frontend
+        run: npm ci
+
+      - name: Install Playwright browsers
+        working-directory: frontend
+        run: npx playwright install --with-deps chromium
+
+      - name: Start backend server
+        working-directory: backend
+        run: |
+          uvicorn main:app --host 0.0.0.0 --port 8000 > backend-cf.log 2>&1 &
+          BACKEND_PID=$!
+          echo "BACKEND_PID=$BACKEND_PID" >> $GITHUB_ENV
+
+          # Wait for backend to be ready (max 30 seconds)
+          for i in $(seq 1 30); do
+            if curl -sf http://localhost:8000/health/live > /dev/null 2>&1; then
+              echo "Backend is ready"
+              exit 0
+            fi
+            echo "Waiting for backend... ($i/30)"
+            sleep 1
+          done
+
+          echo "Backend failed to start"
+          cat backend-cf.log
+          exit 1
+
+      - name: Build and start frontend server
+        working-directory: frontend
+        run: |
+          npm run build
+          if [ -f .next/standalone/server.js ]; then
+            echo "Starting with standalone server.js"
+            node .next/standalone/server.js > frontend-cf.log 2>&1 &
+          else
+            echo "standalone server.js not found, using next start"
+            npx next start > frontend-cf.log 2>&1 &
+          fi
+          FRONTEND_PID=$!
+          echo "FRONTEND_PID=$FRONTEND_PID" >> $GITHUB_ENV
+
+          # Wait for frontend to be ready (max 60 seconds)
+          for i in $(seq 1 60); do
+            if curl -sf http://localhost:3000 > /dev/null 2>&1; then
+              echo "Frontend is ready"
+              exit 0
+            fi
+            echo "Waiting for frontend... ($i/60)"
+            sleep 1
+          done
+
+          echo "Frontend failed to start"
+          cat frontend-cf.log
+          exit 1
+
+      - name: Run critical flow E2E tests
+        working-directory: frontend
+        run: npx playwright test e2e-tests/flows/ --project=chromium --reporter=html,list
+        env:
+          CI: 'true'
+
+      - name: Stop services
+        if: always()
+        run: |
+          [ -n "$BACKEND_PID" ] && kill $BACKEND_PID || true
+          [ -n "$FRONTEND_PID" ] && kill $FRONTEND_PID || true
+
+      # AC6: HTML report with screenshots on failure
+      - name: Upload Playwright report
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: playwright-report-critical-flows
+          path: frontend/playwright-report/
+          retention-days: 7
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: e2e-test-results-critical-flows
+          path: frontend/test-results/
+          retention-days: 7
+
+      - name: Upload server logs
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: server-logs-critical-flows
+          path: |
+            backend/backend-cf.log
+            frontend/frontend-cf.log
+          retention-days: 7
