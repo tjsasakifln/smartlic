@@ -1,11 +1,13 @@
-"""STORY-1.1 (EPIC-TD-2026Q2 P0): pg_cron health monitor.
+"""STORY-1.1 (EPIC-TD-2026Q2 P0): pg_cron + ARQ cron health monitor.
 
-Hourly ARQ cron that queries ``public.get_cron_health()`` and raises a
-Sentry alert for any scheduled job that either:
+Monitors two cron layers:
 
-  * has status = 'failed' on its most recent run, or
-  * has not produced a successful run for more than ``STALE_AFTER_HOURS``
-    hours (default 25h — one-day window + 1h grace).
+  1. **pg_cron** — queries ``public.get_cron_health()`` (PostgreSQL native cron)
+     and fires Sentry alerts for failed / stale scheduled jobs.
+
+  2. **ARQ cron jobs** — checks ``loop:health:*`` Redis keys written by
+     ``BaseCronLoop`` subclasses (Issue #1781 AC5.6) and ``arq:job-result:*``
+     keys for pure ARQ schedules.
 
 Dedup: ``sentry_sdk.push_scope`` + ``fingerprint=['cron_job', jobname]``
 prevents spam when a job fails repeatedly for the same reason.
@@ -180,29 +182,198 @@ def evaluate_jobs(rows: Iterable[dict[str, Any]], *, now: datetime | None = None
     return problems
 
 
+# ── ARQ cron job health checking (Issue #1781 AC5.6) ────────────────────────
+
+# Known ARQ cron job function names that should be monitored.
+# These are the function names registered in ``_worker_cron_jobs`` in
+# ``jobs/queue/config.py``.
+_ARQ_KNOWN_CRONS: list[str] = [
+    "daily_digest_job",
+    "email_alerts_job",
+    "predictive_alert_job",
+    "cron_monitoring_job",
+    "founders_auto_disable_check",
+    "gsc_sync_job",
+    "aggregate_and_cleanup_network_events",
+    "ingestion_full_crawl_job",
+    "ingestion_incremental_job",
+    "ingestion_purge_job",
+    "contracts_full_crawl_job",
+    "contracts_incremental_job",
+    "enrich_entities_job",
+    "enrich_municipios_job",
+    "enrich_pncp_ibge_codes_job",
+    "run_competitive_alert_detection",
+    "run_competitive_alert_weekly_digest",
+]
+
+# How long an ARQ cron job can go without reporting health before being
+# considered stale.  Daily jobs → 25h, weekly jobs → 8d, monthly → 35d.
+_ARQ_STALE_HOURS: dict[str, float] = {
+    "ingestion_full_crawl_job": 8 * 24,        # weekly-ish
+    "contracts_full_crawl_job": 8 * 24,         # 3x/week
+    "gsc_sync_job": 8 * 24,                     # weekly (sun)
+    "aggregate_and_cleanup_network_events": 8 * 24,  # weekly (sun)
+    "run_competitive_alert_weekly_digest": 8 * 24,   # weekly (mon)
+    "enrich_entities_job": 3 * 24,              # daily-ish
+    "enrich_municipios_job": 3 * 24,            # daily-ish
+    "enrich_pncp_ibge_codes_job": 3 * 24,       # daily-ish
+}
+_LOOP_HEALTH_PREFIX = "loop:health:"
+
+
+async def _check_arq_cron_health() -> list[dict[str, Any]]:
+    """Check health of ARQ cron jobs via ``loop:health:*`` Redis keys.
+
+    Iterates known ARQ cron job names and checks their last health report
+    in Redis.  Falls back to scanning ``arq:job-result:*`` when a health
+    key is missing.
+
+    Returns:
+        List of ``{jobname, reason, row}`` dicts for unhealthy jobs.
+    """
+    problems: list[dict[str, Any]] = []
+    now = datetime.now(timezone.utc)
+
+    try:
+        from redis_pool import get_redis_pool
+        redis = await get_redis_pool()
+        if not redis:
+            logger.warning("[ArqCronMonitor] Redis unavailable — skipping ARQ health check")
+            return problems
+    except Exception:
+        return problems
+
+    for name in _ARQ_KNOWN_CRONS:
+        try:
+            health_data = await redis.hgetall(f"{_LOOP_HEALTH_PREFIX}{name}")
+        except Exception:
+            continue
+
+        stale_hours = _ARQ_STALE_HOURS.get(name, 25.0)  # default 25h
+
+        if not health_data:
+            # No health key — check if there's a recent job result in ARQ
+            try:
+                cursor, keys = await redis.scan(
+                    cursor=0, match="arq:job-result:*", count=500,
+                )
+                found = False
+                for key in keys:
+                    result_data = await redis.hgetall(key)
+                    if result_data and result_data.get(b"function") == name.encode():
+                        found = True
+                        # Parse completion time
+                        finish_ts = result_data.get(b"finish_time") or result_data.get(b"job_try")
+                        if finish_ts:
+                            try:
+                                finish_dt = datetime.fromtimestamp(float(finish_ts), tz=timezone.utc)
+                                delta_h = (now - finish_dt).total_seconds() / 3600.0
+                                if delta_h <= stale_hours:
+                                    found = True
+                                    break
+                                # Found but stale
+                                problems.append({
+                                    "jobname": name,
+                                    "reason": f"arq_stale ({delta_h:.1f}h > {stale_hours}h)",
+                                    "row": {"jobname": name, "last_status": "stale"},
+                                })
+                                found = True
+                                break
+                            except (ValueError, TypeError):
+                                continue
+                if not found:
+                    problems.append({
+                        "jobname": name,
+                        "reason": "arq_no_recent_result",
+                        "row": {"jobname": name, "last_status": "no_data"},
+                    })
+            except Exception:
+                problems.append({
+                    "jobname": name,
+                    "reason": "arq_health_scan_error",
+                    "row": {"jobname": name, "last_status": "error"},
+                })
+            continue
+
+        # Parse health hash fields (keys may be bytes)
+        last_status = _decode_redis(health_data.get(b"last_status") or health_data.get("last_status"), "unknown")
+        last_error = _decode_redis(health_data.get(b"last_error") or health_data.get("last_error"), "")
+        last_str = _decode_redis(health_data.get(b"last_run_at") or health_data.get("last_run_at"), "")
+
+        if last_status == "error":
+            problems.append({
+                "jobname": name,
+                "reason": f"arq_last_status=error: {last_error[:200]}",
+                "row": {"jobname": name, "last_status": last_status, "last_error": last_error},
+            })
+            continue
+
+        # Check staleness
+        if last_str:
+            try:
+                last_dt = datetime.fromisoformat(last_str.replace("Z", "+00:00"))
+                delta_h = (now - last_dt).total_seconds() / 3600.0
+                if delta_h > stale_hours:
+                    problems.append({
+                        "jobname": name,
+                        "reason": f"arq_stale ({delta_h:.1f}h > {stale_hours}h)",
+                        "row": {"jobname": name, "last_status": last_status, "last_run_at": last_str},
+                    })
+            except (ValueError, TypeError):
+                pass
+
+    return problems
+
+
+def _decode_redis(value: Any, default: str = "") -> str:
+    """Decode bytes to str; return default for None/empty."""
+    if value is None:
+        return default
+    if isinstance(value, bytes):
+        return value.decode("utf-8", errors="replace")
+    return str(value)
+
+
 async def run_cron_monitor() -> dict:
-    """Core monitoring logic: query get_cron_health() and fire alerts for problems.
+    """Core monitoring logic: query get_cron_health() + ARQ health and fire alerts.
 
     Public interface for tests and direct invocation. Returns::
 
         {"status": "ok", "jobs_checked": N, "alerts_fired": M}
         {"status": "error", "jobs_checked": 0, "alerts_fired": 0, "error": "..."}
     """
+    problems: list[dict[str, Any]] = []
+    pg_rows: list[dict[str, Any]] = []
+    pg_cron_error: str | None = None
+
     try:
         sb = get_supabase()
         result = await sb_execute_direct(sb.rpc("get_cron_health"))
-        rows = getattr(result, "data", None) or []
+        pg_rows = getattr(result, "data", None) or []
     except Exception as exc:
-        logger.error("[CronMonitor] RPC failed: %s", exc, exc_info=True)
-        return {"status": "error", "jobs_checked": 0, "alerts_fired": 0, "error": str(exc)}
+        pg_cron_error = str(exc)
+        logger.error("[CronMonitor] pg_cron RPC failed: %s", exc, exc_info=True)
+        problems.append({"jobname": "_pg_cron_rpc", "reason": f"rpc_error:{type(exc).__name__}", "row": {"error": str(exc)}})
 
-    problems = evaluate_jobs(rows)
+    # Evaluate pg_cron jobs
+    problems.extend(evaluate_jobs(pg_rows))
+
+    # Evaluate ARQ cron jobs (Issue #1781 AC5.6)
+    try:
+        arq_problems = await _check_arq_cron_health()
+        problems.extend(arq_problems)
+    except Exception as exc:
+        logger.error("[CronMonitor] ARQ health check failed: %s", exc, exc_info=True)
+        problems.append({"jobname": "_arq_health", "reason": f"check_error:{type(exc).__name__}", "row": {"error": str(exc)}})
+
     for p in problems:
         _fire_sentry_alert(p["jobname"], p["reason"], p["row"])
 
     logger.info(
-        "[CronMonitor] Evaluated %d jobs, %d problems",
-        len(rows),
+        "[CronMonitor] Evaluated %d pg_cron + %d ARQ jobs, %d problems",
+        len(pg_rows),
+        len(_ARQ_KNOWN_CRONS),
         len(problems),
     )
     if problems:
@@ -210,11 +381,18 @@ async def run_cron_monitor() -> dict:
             "[CronMonitor] Problem jobs: %s",
             [{"jobname": p["jobname"], "reason": p["reason"]} for p in problems],
         )
-    return {
-        "status": "ok",
-        "jobs_checked": len(rows),
+
+    # backward compat: when pg_cron RPC fails, return error status with error message
+    status = "error" if pg_cron_error else "ok"
+    result: dict[str, Any] = {
+        "status": status,
+        "jobs_checked": len(pg_rows),
+        "arq_jobs_checked": len(_ARQ_KNOWN_CRONS),
         "alerts_fired": len(problems),
     }
+    if pg_cron_error:
+        result["error"] = pg_cron_error
+    return result
 
 
 async def _cron_monitor_loop() -> None:
@@ -244,23 +422,37 @@ async def start_cron_monitor_task() -> asyncio.Task:
 async def cron_monitoring_job(ctx: dict) -> dict:
     """ARQ cron handler: scheduled hourly (minute=0).
 
+    Checks both pg_cron health (``get_cron_health()`` RPC) and ARQ cron
+    job health (``loop:health:*`` Redis keys per Issue #1781 AC5.6).
+
     Returns a summary dict so the ARQ result store surfaces health without
     requiring the Sentry/dashboard side-channel.
     """
     start = time.monotonic()
+    problems: list[dict[str, Any]] = []
+    pg_rows: list[dict[str, Any]] = []
+    pg_cron_error: str | None = None
+
     try:
         sb = get_supabase()
         result = await sb_execute_direct(sb.rpc("get_cron_health"))
-        rows = getattr(result, "data", None) or []
+        pg_rows = getattr(result, "data", None) or []
     except Exception as exc:
-        duration_s = round(time.monotonic() - start, 2)
-        logger.error("[CronMonitor] RPC failed: %s", exc, exc_info=True)
-        # Surface the monitoring failure itself so Sentry doesn't stay quiet
-        # while the underlying signal is blind.
+        pg_cron_error = str(exc)
+        logger.error("[CronMonitor] pg_cron RPC failed: %s", exc, exc_info=True)
         _fire_sentry_alert("_monitor_self", f"rpc_error:{type(exc).__name__}", {"error": str(exc)})
-        return {"status": "failed", "error": str(exc), "duration_s": duration_s}
+        # Don't add _pg_cron_rpc to problems — _monitor_self covers it (avoids double-fire).
 
-    problems = evaluate_jobs(rows)
+    try:
+        arq_problems = await _check_arq_cron_health()
+        problems.extend(arq_problems)
+    except Exception as exc:
+        logger.error("[CronMonitor] ARQ health check failed: %s", exc, exc_info=True)
+        problems.append({"jobname": "_arq_health", "reason": f"check_error:{type(exc).__name__}", "row": {"error": str(exc)}})
+
+    if not pg_cron_error:
+        problems.extend(evaluate_jobs(pg_rows))
+
     for p in problems:
         _fire_sentry_alert(p["jobname"], p["reason"], p["row"])
 
@@ -268,22 +460,24 @@ async def cron_monitoring_job(ctx: dict) -> dict:
     problem_names = [p["jobname"] for p in problems]
     if problems:
         logger.warning(
-            "[CronMonitor] Evaluated %d jobs, %d problems in %ss: %s",
-            len(rows),
-            len(problems),
-            duration_s,
-            problem_names,
+            "[CronMonitor] Evaluated %d jobs (pg_cron=%d, arq=%d), %d problems in %ss: %s",
+            len(pg_rows), len(pg_rows), len(_ARQ_KNOWN_CRONS),
+            len(problems), duration_s, problem_names,
         )
     else:
         logger.info(
-            "[CronMonitor] Evaluated %d jobs, 0 problems in %ss",
-            len(rows),
-            duration_s,
+            "[CronMonitor] Evaluated %d jobs (pg_cron=%d, arq=%d), 0 problems in %ss",
+            len(pg_rows), len(pg_rows), len(_ARQ_KNOWN_CRONS), duration_s,
         )
-    return {
-        "status": "completed",
-        "evaluated": len(rows),
+    status = "failed" if pg_cron_error else "completed"
+    result: dict[str, Any] = {
+        "status": status,
+        "evaluated": len(pg_rows),
+        "arq_jobs_evaluated": len(_ARQ_KNOWN_CRONS),
         "problems": len(problems),
         "problem_jobs": problem_names,
         "duration_s": duration_s,
     }
+    if pg_cron_error:
+        result["error"] = pg_cron_error
+    return result

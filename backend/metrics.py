@@ -1177,6 +1177,21 @@ INDICE_MUNICIPAL_DURATION = _create_histogram(
     buckets=[1, 2, 5, 10, 15, 20, 30, 45, 60, 90],
 )
 
+# Issue #1781 (Module 5): Generic cron loop duration + status tracking.
+# Used by all BaseCronLoop subclasses and CronLoopRegistry.
+CRON_LOOP_DURATION = _create_histogram(
+    "smartlic_cron_loop_duration_seconds",
+    "Duration of a cron loop cycle",
+    labelnames=["loop"],
+    buckets=[0.1, 0.5, 1, 2, 5, 10, 30, 60, 120, 300, 600],
+)
+
+CRON_LOOP_STATUS = _create_counter(
+    "smartlic_cron_loop_status_total",
+    "Cron loop cycle outcomes by status",
+    labelnames=["loop", "status"],
+)
+
 
 # ============================================================================
 # STORY-4.5 (TD-SYS-002): PNCP breaking-change canary

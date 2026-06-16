@@ -28,11 +28,8 @@ arq_log_config = {
 # Pool state lives here so tests can mutate job_queue._arq_pool directly
 _arq_pool = None
 _pool_lock = asyncio.Lock()
-# Issue #1867 AC1: threading.Lock alongside asyncio.Lock for thread safety.
-# asyncio.Lock protects coroutine interleaving within the same event loop;
-# threading.Lock protects global state writes from thread-level races
-# (e.g., when get_arq_pool() is called via run_coroutine_threadsafe or
-# from thread pool executors). Dual-lock pattern is belt-and-suspenders.
+# Issue #1867 AC1 / Issue #1781 AC5.7: threading.Lock protects global state from
+# cross-event-loop / cross-thread access (e.g., lifespan vs colocated ARQ worker).
 _pool_thread_lock = threading.Lock()
 _worker_alive_cache: tuple[float, bool] = (0.0, False)
 _WORKER_CHECK_INTERVAL = 15
@@ -62,36 +59,32 @@ async def get_arq_pool():
     Tests can still directly mutate ``_arq_pool`` for injection.
     """
     global _arq_pool
-    # Fast path: pool is already connected and healthy
-    if _arq_pool is not None:
-        try:
-            await _arq_pool.ping()
-            return _arq_pool
-        except Exception:
-            # Issue #1867 AC1: thread lock protects the reset from thread races
-            with _pool_thread_lock:
-                _arq_pool = None
-
-    # Slow path: asyncio lock for coroutine serialization during creation
-    async with _pool_lock:
+    # Issue #1781 AC5.7: acquire thread lock before asyncio lock to protect
+    # _arq_pool from concurrent access across different event loops or threads
+    # (e.g., lifespan startup vs. colocated ARQ worker).
+    with _pool_thread_lock:
         if _arq_pool is not None:
-            return _arq_pool
-        for attempt in range(1, 4):
             try:
-                from arq import create_pool
-                pool = await create_pool(_get_redis_settings())
-                # Issue #1867 AC1: thread lock protects the global assignment
-                with _pool_thread_lock:
-                    _arq_pool = pool
-                logger.info(f"ARQ connection pool created (attempt {attempt})")
+                await _arq_pool.ping()
                 return _arq_pool
-            except Exception as e:
-                delay = 2 ** attempt
-                logger.warning(f"redis_pool_reconnect attempt={attempt}/3 delay={delay}s error={type(e).__name__}: {e}")
-                if attempt < 3:
-                    await asyncio.sleep(delay)
-        logger.warning("ARQ pool creation failed after all retries")
-        return None
+            except Exception:
+                _arq_pool = None
+        async with _pool_lock:
+            if _arq_pool is not None:
+                return _arq_pool
+            for attempt in range(1, 4):
+                try:
+                    from arq import create_pool
+                    _arq_pool = await create_pool(_get_redis_settings())
+                    logger.info(f"ARQ connection pool created (attempt {attempt})")
+                    return _arq_pool
+                except Exception as e:
+                    delay = 2 ** attempt
+                    logger.warning(f"redis_pool_reconnect attempt={attempt}/3 delay={delay}s error={type(e).__name__}: {e}")
+                    if attempt < 3:
+                        await asyncio.sleep(delay)
+            logger.warning("ARQ pool creation failed after all retries")
+            return None
 
 
 async def close_arq_pool() -> None:
@@ -100,14 +93,15 @@ async def close_arq_pool() -> None:
     Thread-safe: uses threading.Lock for the global variable reset.
     """
     global _arq_pool
-    if _arq_pool is not None:
-        try:
-            await _arq_pool.close()
-        except Exception as e:
-            logger.warning(f"Error closing ARQ pool: {e}")
-        with _pool_thread_lock:
+    # Issue #1781 AC5.7: protect _arq_pool with thread lock
+    with _pool_thread_lock:
+        if _arq_pool is not None:
+            try:
+                await _arq_pool.close()
+            except Exception as e:
+                logger.warning(f"Error closing ARQ pool: {e}")
             _arq_pool = None
-        logger.info("ARQ pool closed")
+            logger.info("ARQ pool closed")
 
 
 async def _check_worker_alive(pool) -> bool:
