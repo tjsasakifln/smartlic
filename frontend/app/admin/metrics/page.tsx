@@ -65,6 +65,7 @@ function formatInt(value: number): string {
 function formatMonth(month: string): string {
   if (!month || month.length < 7) return month;
   const [y, m] = month.split("-");
+  if (!y || !m) return month;
   const meses: Record<string, string> = {
     "01": "jan", "02": "fev", "03": "mar", "04": "abr",
     "05": "mai", "06": "jun", "07": "jul", "08": "ago",
