@@ -268,6 +268,19 @@ RATE_LIMIT_DECISIONS_TOTAL = _create_counter(
     labelnames=["tier", "decision"],
 )
 
+# Issue #1861 AC6: IP rate limit exceeded counter (edge DDoS protection).
+IP_RATE_LIMIT_EXCEEDED_TOTAL = _create_counter(
+    "smartlic_ip_rate_limit_exceeded_total",
+    "IP rate limit exceeded (429 returned) by IP prefix and path prefix",
+    labelnames=["ip_prefix", "path_prefix"],
+)
+
+# Issue #1861 AC6: Active blocklist entries gauge (IPs currently blocked).
+IP_BLOCKLIST_ACTIVE = _create_gauge(
+    "smartlic_ip_blocklist_active",
+    "Number of IPs currently in the auto-blocklist",
+)
+
 # STORY-2.11 (EPIC-TD-2026Q2 P0): LLM monthly budget metrics
 LLM_BUDGET_USD_MTD = _create_gauge(
     "smartlic_llm_budget_usd_mtd",
