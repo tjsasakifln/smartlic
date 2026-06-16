@@ -65,12 +65,15 @@ type AxeFixtures = {
 
 export const test = base.extend<AxeFixtures>({
   makeAxeBuilder: async ({ page }, use) => {
-    const builder = () =>
-      new AxeBuilder({ page })
-        .withTags([...WCAG_2_1_AA_TAGS])
-        // Exclusions from central config (#1871). Third-party widgets we don't
-        // control: Stripe iframes, Google embeds, Clarity analytics.
-        .exclude(...DEFAULT_EXCLUDE_SELECTORS);
+    const builder = () => {
+      const axe = new AxeBuilder({ page }).withTags([...WCAG_2_1_AA_TAGS]);
+      // Exclusions from central config (#1871). Third-party widgets we don't
+      // control: Stripe iframes, Google embeds, Clarity analytics.
+      for (const sel of DEFAULT_EXCLUDE_SELECTORS) {
+        axe.exclude(sel);
+      }
+      return axe;
+    };
     await use(builder);
   },
 
