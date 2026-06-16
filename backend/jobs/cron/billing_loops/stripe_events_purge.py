@@ -3,6 +3,7 @@ import logging
 from datetime import datetime, timezone, timedelta
 
 from jobs.cron.base import BaseCronLoop
+from jobs.cron.canary import _is_cb_or_connection_error
 
 logger = logging.getLogger(__name__)
 
@@ -28,13 +29,11 @@ class StripeEventsPurgeLoop(BaseCronLoop):
             cutoff = (datetime.now(timezone.utc) - timedelta(days=STRIPE_EVENTS_RETENTION_DAYS)).isoformat()
             result = await sb_execute(sb.table("stripe_webhook_events").delete().lt("processed_at", cutoff))
             deleted = len(result.data) if result and result.data else 0
-            logger.info("HARDEN-028: Purged %d events older than %d days", deleted, STRIPE_EVENTS_RETENTION_DAYS)
+            logger.info("HARDEN-028: Purged %d Stripe webhook events older than %d days", deleted, STRIPE_EVENTS_RETENTION_DAYS)
             return {"deleted": deleted, "cutoff": cutoff}
         except Exception as e:
-            err_name = type(e).__name__
-            err_str = str(e)
-            if "CircuitBreaker" in err_name or "ConnectionError" in err_name or "ConnectError" in err_str or "PGRST205" in err_str:
-                logger.warning("HARDEN-028: Purge skipped (Supabase unavailable): %s", e)
+            if _is_cb_or_connection_error(e):
+                logger.warning("HARDEN-028: Stripe events purge skipped (Supabase unavailable): %s", e)
             else:
-                logger.error("HARDEN-028: Purge error: %s", e, exc_info=True)
+                logger.error("HARDEN-028: Stripe events purge error: %s", e, exc_info=True)
             return {"deleted": 0, "error": str(e)}
