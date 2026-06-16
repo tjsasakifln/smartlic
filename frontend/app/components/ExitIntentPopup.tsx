@@ -34,7 +34,8 @@ function setExitCookie(): void {
   try {
     const data = { t: Date.now() };
     const encoded = encodeURIComponent(JSON.stringify(data));
-    document.cookie = `${EXIT_COOKIE_KEY}=${encoded}; path=/; max-age=${EXIT_COOKIE_DAYS * 86400}; SameSite=Lax`;
+    const secure = typeof window !== 'undefined' && window.location.protocol === 'https:' ? '; Secure' : '';
+    document.cookie = `${EXIT_COOKIE_KEY}=${encoded}; path=/; max-age=${EXIT_COOKIE_DAYS * 86400}; SameSite=Lax${secure}`;
   } catch {
     // Cookie failure is non-blocking
   }
