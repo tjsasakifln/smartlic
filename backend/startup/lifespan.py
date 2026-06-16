@@ -327,6 +327,18 @@ async def lifespan(app_instance: FastAPI):
                 mem["rss_mb"], mem["vms_mb"], mem["peak_rss_mb"])
     update_memory_metrics()
 
+    # Issue #1867 AC3: Set configured worker count gauge at startup
+    try:
+        from metrics import WEB_WORKERS_CONFIGURED
+        _worker_count = int(os.getenv("WEB_CONCURRENCY", "2"))
+        WEB_WORKERS_CONFIGURED.set(_worker_count)
+        logger.info(
+            "Issue #1867: WEB_WORKERS_CONFIGURED=%d (from WEB_CONCURRENCY env)",
+            _worker_count,
+        )
+    except Exception:
+        pass
+
     # SEN-BE-010 AC0: tracemalloc opt-in via env var (10% overhead — disabled
     # in prod default; enable on demand for memory leak investigation).
     # Memory `feedback_pool_leak_caller_timeout_vs_sql_timeout` documents 5.5GB
