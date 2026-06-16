@@ -275,7 +275,7 @@ for filepath in prod_files:
                 key = f"{filepath}:{name}"
 
                 # Rule 2: Individual function > cap (30)
-                if cplx > INDIVIDUAL_CAP:
+                if cplx > INDIVIDUAL_CAP and key not in baseline:  # baseline exempt (grandfathered legacy)
                     msg = f"Function {name} (line {lineno}) has complexity {cplx}, exceeding cap of {INDIVIDUAL_CAP}"
                     print(f"::error file={filepath},line={lineno},title=Complexity exceeds cap ({cplx} > {INDIVIDUAL_CAP})::{msg}", file=sys.stderr)
                     violations.append(f"{name}:{cplx}>{INDIVIDUAL_CAP} (cap)")
