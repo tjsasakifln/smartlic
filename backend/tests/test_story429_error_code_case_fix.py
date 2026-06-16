@@ -12,6 +12,7 @@ from error_response import ErrorCode
 # AC4: Verificar que todos os call sites usam ErrorCode enum (type-safety)
 # ---------------------------------------------------------------------------
 
+
 def test_errorcode_timeout_is_uppercase():
     """ErrorCode.TIMEOUT.value deve ser 'TIMEOUT' (uppercase)."""
     assert ErrorCode.TIMEOUT.value == "TIMEOUT"
@@ -58,11 +59,14 @@ def _extract_error_code_string_literals(filepath: Path) -> list[str]:
     return results
 
 
-@pytest.mark.parametrize("rel_path", [
-    "pipeline/stages/execute.py",
-    "pipeline/stages/validate.py",
-    "routes/search/__init__.py",
-])
+@pytest.mark.parametrize(
+    "rel_path",
+    [
+        "pipeline/stages/execute.py",
+        "pipeline/stages/validate.py",
+        "routes/search/__init__.py",
+    ],
+)
 def test_no_lowercase_error_code_strings(rel_path: str):
     """Nenhum call site deve passar string lowercase como error_code=."""
     filepath = _BACKEND_ROOT / rel_path
@@ -80,6 +84,7 @@ def test_no_lowercase_error_code_strings(rel_path: str):
 # ---------------------------------------------------------------------------
 # AC5: Integration — simulate timeout/quota/sources-unavailable flows
 # ---------------------------------------------------------------------------
+
 
 def test_execute_py_imports_error_code():
     """pipeline/stages/execute.py deve importar ErrorCode."""
@@ -101,11 +106,11 @@ def test_search_py_uses_search_error_code_enum_for_timeout():
     """routes/search.py deve usar SearchErrorCode.TIMEOUT.value para erro 504."""
     source = (_BACKEND_ROOT / "routes/search/__init__.py").read_text()
     # The old pattern was: error_code="timeout" if exc.status_code == 504 else "unknown"
-    assert '"timeout"' not in source or 'SearchErrorCode.TIMEOUT' in source, (
-        "search.py deve usar SearchErrorCode.TIMEOUT.value em vez de string \"timeout\""
+    assert '"timeout"' not in source or "SearchErrorCode.TIMEOUT" in source, (
+        'search.py deve usar SearchErrorCode.TIMEOUT.value em vez de string "timeout"'
     )
-    assert '"unknown"' not in source or 'SearchErrorCode.INTERNAL_ERROR' in source, (
-        "search.py deve usar SearchErrorCode.INTERNAL_ERROR.value em vez de string \"unknown\""
+    assert '"unknown"' not in source or "SearchErrorCode.INTERNAL_ERROR" in source, (
+        'search.py deve usar SearchErrorCode.INTERNAL_ERROR.value em vez de string "unknown"'
     )
 
 
@@ -114,5 +119,5 @@ def test_search_py_uses_search_error_code_enum_for_sources_unavailable():
     source = (_BACKEND_ROOT / "routes/search/__init__.py").read_text()
     assert '"sources_unavailable"' not in source, (
         "search.py deve usar SearchErrorCode.SOURCE_UNAVAILABLE.value em vez de "
-        "string literal \"sources_unavailable\""
+        'string literal "sources_unavailable"'
     )

@@ -19,15 +19,21 @@ class TestSanitizeSourceError:
     """AC3: Backend sanitization maps technical errors → friendly messages."""
 
     def test_401_http_status_returns_unavailable(self):
-        result = _sanitize_source_error("HTTP 401: Authentication failed", "COMPRAS_GOV")
+        result = _sanitize_source_error(
+            "HTTP 401: Authentication failed", "COMPRAS_GOV"
+        )
         assert result == "COMPRAS_GOV indisponível"
 
     def test_env_var_name_in_error_returns_unavailable(self):
-        result = _sanitize_source_error("check COMPRAS_GOV_API_KEY env var", "COMPRAS_GOV")
+        result = _sanitize_source_error(
+            "check COMPRAS_GOV_API_KEY env var", "COMPRAS_GOV"
+        )
         assert result == "COMPRAS_GOV indisponível"
 
     def test_source_auth_error_with_brackets_returns_unavailable(self):
-        result = _sanitize_source_error("[COMPRAS_GOV] HTTP 401: SourceAuthError", "COMPRAS_GOV")
+        result = _sanitize_source_error(
+            "[COMPRAS_GOV] HTTP 401: SourceAuthError", "COMPRAS_GOV"
+        )
         assert result == "COMPRAS_GOV indisponível"
 
     def test_authentication_word_case_insensitive_returns_unavailable(self):
@@ -39,7 +45,9 @@ class TestSanitizeSourceError:
         assert result == "COMPRAS_GOV indisponível"
 
     def test_forbidden_word_returns_unavailable(self):
-        result = _sanitize_source_error("Access Forbidden for this resource", "COMPRAS_GOV")
+        result = _sanitize_source_error(
+            "Access Forbidden for this resource", "COMPRAS_GOV"
+        )
         assert result == "COMPRAS_GOV indisponível"
 
     def test_429_rate_limit_returns_overloaded(self):
@@ -47,7 +55,9 @@ class TestSanitizeSourceError:
         assert result == "COMPRAS_GOV sobrecarregado"
 
     def test_rate_limit_string_returns_overloaded(self):
-        result = _sanitize_source_error("rate limit exceeded, retry after 60s", "COMPRAS_GOV")
+        result = _sanitize_source_error(
+            "rate limit exceeded, retry after 60s", "COMPRAS_GOV"
+        )
         assert result == "COMPRAS_GOV sobrecarregado"
 
     def test_timeout_error_returns_timeout_message(self):
@@ -55,7 +65,9 @@ class TestSanitizeSourceError:
         assert result == "COMPRAS_GOV não respondeu a tempo"
 
     def test_timeout_uppercase_returns_timeout_message(self):
-        result = _sanitize_source_error("Timeout connecting to API endpoint", "COMPRAS_GOV")
+        result = _sanitize_source_error(
+            "Timeout connecting to API endpoint", "COMPRAS_GOV"
+        )
         assert result == "COMPRAS_GOV não respondeu a tempo"
 
     def test_connection_refused_returns_generic(self):
@@ -63,7 +75,9 @@ class TestSanitizeSourceError:
         assert result == "COMPRAS_GOV: erro temporário"
 
     def test_generic_http_500_returns_generic(self):
-        result = _sanitize_source_error("HTTP 500: Internal Server Error", "COMPRAS_GOV")
+        result = _sanitize_source_error(
+            "HTTP 500: Internal Server Error", "COMPRAS_GOV"
+        )
         assert result == "COMPRAS_GOV: erro temporário"
 
     def test_empty_error_returns_generic(self):
@@ -112,7 +126,9 @@ async def test_emit_source_error_sanitizes_detail():
     detail = emitted_event.detail
 
     assert "401" not in detail["error"], "Raw HTTP status exposed in detail"
-    assert "COMPRAS_GOV_API_KEY" not in detail["error"], "Env var name exposed in detail"
+    assert "COMPRAS_GOV_API_KEY" not in detail["error"], (
+        "Env var name exposed in detail"
+    )
     assert "COMPRAS_GOV" in detail["error"]
     assert detail["source"] == "COMPRAS_GOV"
     assert detail["duration_ms"] == 1234
@@ -128,6 +144,7 @@ async def test_emit_source_error_sanitizes_rate_limit():
     tracker = ProgressTracker.__new__(ProgressTracker)
     tracker.search_id = "test-429"
     from unittest.mock import AsyncMock
+
     tracker._emit_event = AsyncMock()
 
     await tracker.emit_source_error(

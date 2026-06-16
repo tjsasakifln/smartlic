@@ -25,11 +25,14 @@ from schemas import SearchErrorCode
 # Fixtures
 # ---------------------------------------------------------------------------
 
+
 @pytest.fixture(autouse=True)
 def mock_auth():
     """Override auth for all tests."""
+
     async def fake_auth():
         return {"id": str(uuid.uuid4()), "email": "test@example.com"}
+
     app.dependency_overrides[require_auth] = fake_auth
     yield
     app.dependency_overrides.pop(require_auth, None)
@@ -38,8 +41,10 @@ def mock_auth():
 @pytest.fixture(autouse=True)
 def mock_require_active_plan():
     """STORY-265: Bypass require_active_plan in error code tests (not testing trial blocking here)."""
+
     async def _passthrough(user):
         return user
+
     with patch("quota.require_active_plan", side_effect=_passthrough):
         yield
 
@@ -77,6 +82,7 @@ def _assert_structured_error(response_json: dict, expected_code: str):
 # T1: AllSourcesFailedError → ALL_SOURCES_FAILED or SOURCE_UNAVAILABLE
 # ---------------------------------------------------------------------------
 
+
 class TestAllSourcesFailedError:
     """T1: AllSourcesFailedError produces structured error with correct code."""
 
@@ -91,17 +97,22 @@ class TestAllSourcesFailedError:
             mock_pipeline.stage_validate = AsyncMock()
             mock_pipeline.stage_prepare = AsyncMock()
 
-            with patch("routes.search.check_user_roles", return_value=None), \
-                 patch("routes.search.rate_limiter"):
+            with (
+                patch("routes.search.check_user_roles", return_value=None),
+                patch("routes.search.rate_limiter"),
+            ):
                 response = client.post("/v1/buscar", json=VALID_SEARCH_BODY)
 
         assert response.status_code == 502
-        _assert_structured_error(response.json(), SearchErrorCode.SOURCE_UNAVAILABLE.value)
+        _assert_structured_error(
+            response.json(), SearchErrorCode.SOURCE_UNAVAILABLE.value
+        )
 
 
 # ---------------------------------------------------------------------------
 # T2: asyncio.TimeoutError → TIMEOUT
 # ---------------------------------------------------------------------------
+
 
 class TestTimeoutError:
     """T2: asyncio.TimeoutError returns error_code TIMEOUT."""
@@ -114,8 +125,10 @@ class TestTimeoutError:
             mock_pipeline.stage_validate = AsyncMock()
             mock_pipeline.stage_prepare = AsyncMock()
 
-            with patch("routes.search.check_user_roles", return_value=None), \
-                 patch("routes.search.rate_limiter"):
+            with (
+                patch("routes.search.check_user_roles", return_value=None),
+                patch("routes.search.rate_limiter"),
+            ):
                 response = client.post("/v1/buscar", json=VALID_SEARCH_BODY)
 
         assert response.status_code == 504
@@ -125,6 +138,7 @@ class TestTimeoutError:
 # ---------------------------------------------------------------------------
 # T3: QuotaExceededError → QUOTA_EXCEEDED
 # ---------------------------------------------------------------------------
+
 
 class TestQuotaExceededError:
     """T3: QuotaExceeded (403 HTTPException from pipeline) returns QUOTA_EXCEEDED."""
@@ -136,13 +150,17 @@ class TestQuotaExceededError:
         with patch("routes.search.SearchPipeline") as MockPipeline:
             mock_pipeline = MockPipeline.return_value
             mock_pipeline.run = AsyncMock(
-                side_effect=HTTPException(status_code=403, detail="Suas análises acabaram.")
+                side_effect=HTTPException(
+                    status_code=403, detail="Suas análises acabaram."
+                )
             )
             mock_pipeline.stage_validate = AsyncMock()
             mock_pipeline.stage_prepare = AsyncMock()
 
-            with patch("routes.search.check_user_roles", return_value=None), \
-                 patch("routes.search.rate_limiter"):
+            with (
+                patch("routes.search.check_user_roles", return_value=None),
+                patch("routes.search.rate_limiter"),
+            ):
                 response = client.post("/v1/buscar", json=VALID_SEARCH_BODY)
 
         assert response.status_code == 403
@@ -152,6 +170,7 @@ class TestQuotaExceededError:
 # ---------------------------------------------------------------------------
 # T4: Generic exception → INTERNAL_ERROR (no stack trace)
 # ---------------------------------------------------------------------------
+
 
 class TestInternalError:
     """T4: Unexpected exception returns INTERNAL_ERROR without stack traces."""
@@ -166,8 +185,10 @@ class TestInternalError:
             mock_pipeline.stage_validate = AsyncMock()
             mock_pipeline.stage_prepare = AsyncMock()
 
-            with patch("routes.search.check_user_roles", return_value=None), \
-                 patch("routes.search.rate_limiter"):
+            with (
+                patch("routes.search.check_user_roles", return_value=None),
+                patch("routes.search.rate_limiter"),
+            ):
                 response = client.post("/v1/buscar", json=VALID_SEARCH_BODY)
 
         assert response.status_code == 500
@@ -183,6 +204,7 @@ class TestInternalError:
 # ---------------------------------------------------------------------------
 # T5: Validate required fields always present
 # ---------------------------------------------------------------------------
+
 
 class TestRequiredFields:
     """T5: All structured error responses contain required fields."""
@@ -200,8 +222,10 @@ class TestRequiredFields:
             mock_pipeline.stage_validate = AsyncMock()
             mock_pipeline.stage_prepare = AsyncMock()
 
-            with patch("routes.search.check_user_roles", return_value=None), \
-                 patch("routes.search.rate_limiter"):
+            with (
+                patch("routes.search.check_user_roles", return_value=None),
+                patch("routes.search.rate_limiter"),
+            ):
                 response = client.post("/v1/buscar", json=VALID_SEARCH_BODY)
 
         assert response.status_code == 503
