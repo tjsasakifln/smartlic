@@ -488,13 +488,13 @@ async def cron_monitoring_job(ctx: dict) -> dict:
     if problems:
         logger.warning(
             "[CronMonitor] Evaluated %d jobs (pg_cron=%d, arq=%d), %d problems in %ss: %s",
-            len(pg_rows), len(pg_rows), len(_ARQ_KNOWN_CRONS),
+            len(pg_rows) + len(_ARQ_KNOWN_CRONS), len(pg_rows), len(_ARQ_KNOWN_CRONS),
             len(problems), duration_s, problem_names,
         )
     else:
         logger.info(
             "[CronMonitor] Evaluated %d jobs (pg_cron=%d, arq=%d), 0 problems in %ss",
-            len(pg_rows), len(pg_rows), len(_ARQ_KNOWN_CRONS), duration_s,
+            len(pg_rows) + len(_ARQ_KNOWN_CRONS), len(pg_rows), len(_ARQ_KNOWN_CRONS), duration_s,
         )
     status = "failed" if pg_cron_error else "completed"
     result: dict[str, Any] = {
