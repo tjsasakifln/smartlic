@@ -232,98 +232,125 @@ async def _check_arq_cron_health() -> list[dict[str, Any]]:
     Returns:
         List of ``{jobname, reason, row}`` dicts for unhealthy jobs.
     """
-    problems: list[dict[str, Any]] = []
     now = datetime.now(timezone.utc)
+    redis = await _get_redis_for_health()
+    if redis is None:
+        return []
 
-    try:
-        from redis_pool import get_redis_pool
-        redis = await get_redis_pool()
-        if not redis:
-            logger.warning("[ArqCronMonitor] Redis unavailable — skipping ARQ health check")
-            return problems
-    except Exception:
-        return problems
-
+    problems: list[dict[str, Any]] = []
     for name in _ARQ_KNOWN_CRONS:
         try:
             health_data = await redis.hgetall(f"{_LOOP_HEALTH_PREFIX}{name}")
         except Exception:
             continue
+        stale_hours = _ARQ_STALE_HOURS.get(name, 25.0)
 
-        stale_hours = _ARQ_STALE_HOURS.get(name, 25.0)  # default 25h
+        if health_data:
+            problem = _evaluate_arq_health_key(name, health_data, now, stale_hours)
+        else:
+            problem = await _evaluate_arq_fallback(name, redis, now, stale_hours)
 
-        if not health_data:
-            # No health key — check if there's a recent job result in ARQ
-            try:
-                cursor, keys = await redis.scan(
-                    cursor=0, match="arq:job-result:*", count=500,
-                )
-                found = False
-                for key in keys:
-                    result_data = await redis.hgetall(key)
-                    if result_data and result_data.get(b"function") == name.encode():
-                        found = True
-                        # Parse completion time
-                        finish_ts = result_data.get(b"finish_time") or result_data.get(b"job_try")
-                        if finish_ts:
-                            try:
-                                finish_dt = datetime.fromtimestamp(float(finish_ts), tz=timezone.utc)
-                                delta_h = (now - finish_dt).total_seconds() / 3600.0
-                                if delta_h <= stale_hours:
-                                    found = True
-                                    break
-                                # Found but stale
-                                problems.append({
-                                    "jobname": name,
-                                    "reason": f"arq_stale ({delta_h:.1f}h > {stale_hours}h)",
-                                    "row": {"jobname": name, "last_status": "stale"},
-                                })
-                                found = True
-                                break
-                            except (ValueError, TypeError):
-                                continue
-                if not found:
-                    problems.append({
-                        "jobname": name,
-                        "reason": "arq_no_recent_result",
-                        "row": {"jobname": name, "last_status": "no_data"},
-                    })
-            except Exception:
-                problems.append({
-                    "jobname": name,
-                    "reason": "arq_health_scan_error",
-                    "row": {"jobname": name, "last_status": "error"},
-                })
-            continue
-
-        # Parse health hash fields (keys may be bytes)
-        last_status = _decode_redis(health_data.get(b"last_status") or health_data.get("last_status"), "unknown")
-        last_error = _decode_redis(health_data.get(b"last_error") or health_data.get("last_error"), "")
-        last_str = _decode_redis(health_data.get(b"last_run_at") or health_data.get("last_run_at"), "")
-
-        if last_status == "error":
-            problems.append({
-                "jobname": name,
-                "reason": f"arq_last_status=error: {last_error[:200]}",
-                "row": {"jobname": name, "last_status": last_status, "last_error": last_error},
-            })
-            continue
-
-        # Check staleness
-        if last_str:
-            try:
-                last_dt = datetime.fromisoformat(last_str.replace("Z", "+00:00"))
-                delta_h = (now - last_dt).total_seconds() / 3600.0
-                if delta_h > stale_hours:
-                    problems.append({
-                        "jobname": name,
-                        "reason": f"arq_stale ({delta_h:.1f}h > {stale_hours}h)",
-                        "row": {"jobname": name, "last_status": last_status, "last_run_at": last_str},
-                    })
-            except (ValueError, TypeError):
-                pass
+        if problem:
+            problems.append(problem)
 
     return problems
+
+
+async def _get_redis_for_health() -> Any | None:
+    """Get Redis pool connection for ARQ health checking.
+
+    Returns the Redis client, or None if unavailable.
+    """
+    try:
+        from redis_pool import get_redis_pool
+        redis = await get_redis_pool()
+        if not redis:
+            logger.warning("[ArqCronMonitor] Redis unavailable — skipping ARQ health check")
+            return None
+        return redis
+    except Exception:
+        return None
+
+
+def _evaluate_arq_health_key(
+    name: str, health_data: dict, now: datetime, stale_hours: float,
+) -> dict[str, Any] | None:
+    """Evaluate a single ARQ cron job from its ``loop:health:*`` Redis hash.
+
+    Returns a problem dict if the job is unhealthy, or None if healthy.
+    """
+    last_status = _decode_redis(health_data.get(b"last_status") or health_data.get("last_status"), "unknown")
+    last_error = _decode_redis(health_data.get(b"last_error") or health_data.get("last_error"), "")
+    last_str = _decode_redis(health_data.get(b"last_run_at") or health_data.get("last_run_at"), "")
+
+    if last_status == "error":
+        return {
+            "jobname": name,
+            "reason": f"arq_last_status=error: {last_error[:200]}",
+            "row": {"jobname": name, "last_status": last_status, "last_error": last_error},
+        }
+
+    if last_str:
+        try:
+            last_dt = datetime.fromisoformat(last_str.replace("Z", "+00:00"))
+            delta_h = (now - last_dt).total_seconds() / 3600.0
+            if delta_h > stale_hours:
+                return {
+                    "jobname": name,
+                    "reason": f"arq_stale ({delta_h:.1f}h > {stale_hours}h)",
+                    "row": {"jobname": name, "last_status": last_status, "last_run_at": last_str},
+                }
+        except (ValueError, TypeError):
+            pass
+    return None
+
+
+async def _evaluate_arq_fallback(
+    name: str, redis: Any, now: datetime, stale_hours: float,
+) -> dict[str, Any] | None:
+    """Fallback check when a health key is missing: scan ``arq:job-result:*``.
+
+    Returns a problem dict if the job is unhealthy or has no recent result,
+    or None if the job is healthy.
+    """
+    try:
+        cursor, keys = await redis.scan(
+            cursor=0, match="arq:job-result:*", count=500,
+        )
+        found = False
+        for key in keys:
+            result_data = await redis.hgetall(key)
+            if result_data and result_data.get(b"function") == name.encode():
+                found = True
+                finish_ts = result_data.get(b"finish_time") or result_data.get(b"job_try")
+                if finish_ts:
+                    try:
+                        finish_dt = datetime.fromtimestamp(float(finish_ts), tz=timezone.utc)
+                        delta_h = (now - finish_dt).total_seconds() / 3600.0
+                        if delta_h <= stale_hours:
+                            return None  # healthy
+                        # Found but stale
+                        return {
+                            "jobname": name,
+                            "reason": f"arq_stale ({delta_h:.1f}h > {stale_hours}h)",
+                            "row": {"jobname": name, "last_status": "stale"},
+                        }
+                    except (ValueError, TypeError):
+                        continue
+                break
+        if not found:
+            return {
+                "jobname": name,
+                "reason": "arq_no_recent_result",
+                "row": {"jobname": name, "last_status": "no_data"},
+            }
+        return None
+    except Exception:
+        return {
+            "jobname": name,
+            "reason": "arq_health_scan_error",
+            "row": {"jobname": name, "last_status": "error"},
+        }
 
 
 def _decode_redis(value: Any, default: str = "") -> str:
