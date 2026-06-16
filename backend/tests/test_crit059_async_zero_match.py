@@ -135,7 +135,7 @@ class TestClassifyZeroMatchJob:
              patch("config.MAX_ZERO_MATCH_ITEMS", 200), \
              patch("config.LLM_FALLBACK_PENDING_ENABLED", True):
 
-            import job_queue
+            import jobs.queue.jobs as job_queue
             result = await job_queue.classify_zero_match_job(
                 ctx={},
                 search_id="test-search-001",
@@ -176,7 +176,7 @@ class TestClassifyZeroMatchJob:
              patch("config.MAX_ZERO_MATCH_ITEMS", 200), \
              patch("config.LLM_FALLBACK_PENDING_ENABLED", True):
 
-            import job_queue
+            import jobs.queue.jobs as job_queue
             result = await job_queue.classify_zero_match_job(
                 ctx={},
                 search_id="test-search-002",
@@ -210,7 +210,7 @@ class TestZeroMatchEndpoint:
             {"objetoCompra": "Uniformes escolares", "_relevance_source": "llm_zero_match"},
         ]
 
-        with patch("job_queue.get_zero_match_results", new_callable=AsyncMock, return_value=mock_results), \
+        with patch("jobs.queue.result_store.get_zero_match_results", new_callable=AsyncMock, return_value=mock_results), \
              patch("routes.search_status._verify_search_ownership", new_callable=AsyncMock, return_value=None):
             from fastapi.testclient import TestClient
             from main import app
@@ -230,7 +230,7 @@ class TestZeroMatchEndpoint:
     @pytest.mark.asyncio
     async def test_returns_404_when_not_ready(self):
         """404 when job hasn't completed yet."""
-        with patch("job_queue.get_zero_match_results", new_callable=AsyncMock, return_value=None):
+        with patch("jobs.queue.result_store.get_zero_match_results", new_callable=AsyncMock, return_value=None):
             from fastapi.testclient import TestClient
             from main import app
             from auth import require_auth
@@ -255,7 +255,7 @@ class TestGracefulDegradation:
     async def test_redis_unavailable_store_returns_false(self):
         """When Redis is down, store_zero_match_results returns False."""
         with patch("redis_pool.get_redis_pool", new_callable=AsyncMock, return_value=None):
-            from job_queue import store_zero_match_results
+            from jobs.queue.result_store import store_zero_match_results
             result = await store_zero_match_results("test-id", [{"test": True}])
             assert result is False
 
@@ -263,7 +263,7 @@ class TestGracefulDegradation:
     async def test_redis_unavailable_get_returns_none(self):
         """When Redis is down, get_zero_match_results returns None."""
         with patch("redis_pool.get_redis_pool", new_callable=AsyncMock, return_value=None):
-            from job_queue import get_zero_match_results
+            from jobs.queue.result_store import get_zero_match_results
             result = await get_zero_match_results("test-id")
             assert result is None
 
@@ -284,7 +284,7 @@ class TestGracefulDegradation:
         mock_redis.get = mock_get
 
         with patch("redis_pool.get_redis_pool", new_callable=AsyncMock, return_value=mock_redis):
-            from job_queue import store_zero_match_results, get_zero_match_results
+            from jobs.queue.result_store import store_zero_match_results, get_zero_match_results
 
             test_results = [{"objetoCompra": "Test", "_relevance_source": "llm_zero_match"}]
             ok = await store_zero_match_results("roundtrip-test", test_results)

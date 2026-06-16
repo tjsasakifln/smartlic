@@ -54,7 +54,7 @@ class TestRecordDailyVolume:
     @patch("supabase_client.get_supabase")
     async def test_sums_total_raw_correctly(self, mock_get_sb, mock_sb_execute):
         """Sums total_raw across all returned sessions."""
-        from cron_jobs import record_daily_volume
+        from jobs.cron import record_daily_volume
 
         mock_sb_execute.return_value = MagicMock(
             data=[
@@ -75,7 +75,7 @@ class TestRecordDailyVolume:
     @patch("supabase_client.get_supabase")
     async def test_handles_none_total_raw(self, mock_get_sb, mock_sb_execute):
         """Sessions with null total_raw are treated as 0."""
-        from cron_jobs import record_daily_volume
+        from jobs.cron import record_daily_volume
 
         mock_sb_execute.return_value = MagicMock(
             data=[
@@ -95,7 +95,7 @@ class TestRecordDailyVolume:
     @patch("supabase_client.get_supabase")
     async def test_empty_sessions(self, mock_get_sb, mock_sb_execute):
         """Returns zeros when no sessions exist in the last 24h."""
-        from cron_jobs import record_daily_volume
+        from jobs.cron import record_daily_volume
 
         mock_sb_execute.return_value = MagicMock(data=[])
 
@@ -110,7 +110,7 @@ class TestRecordDailyVolume:
     @patch("supabase_client.get_supabase")
     async def test_handles_db_error_gracefully(self, mock_get_sb, mock_sb_execute):
         """Returns safe defaults with error key when DB raises."""
-        from cron_jobs import record_daily_volume
+        from jobs.cron import record_daily_volume
 
         mock_sb_execute.side_effect = Exception("connection refused")
 
@@ -126,7 +126,7 @@ class TestRecordDailyVolume:
     @patch("supabase_client.get_supabase")
     async def test_result_data_none_treated_as_empty(self, mock_get_sb, mock_sb_execute):
         """result.data = None is handled without crashing."""
-        from cron_jobs import record_daily_volume
+        from jobs.cron import record_daily_volume
 
         mock_sb_execute.return_value = MagicMock(data=None)
 

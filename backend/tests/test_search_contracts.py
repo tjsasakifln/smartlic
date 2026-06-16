@@ -160,7 +160,7 @@ class TestBuscarResponseContract:
 
         with patch("search_state_manager.create_state_machine", new_callable=AsyncMock) as mock_sm:
             mock_sm.return_value = MagicMock()
-            with patch("job_queue.acquire_search_slot", new_callable=AsyncMock, return_value=True):
+            with patch("jobs.queue.result_store.acquire_search_slot", new_callable=AsyncMock, return_value=True):
                 with patch("job_queue.is_queue_available", new_callable=AsyncMock, return_value=False):
                     with patch("routes.search_state._run_async_search", new_callable=AsyncMock):
                         with patch("authorization.check_user_roles", new_callable=AsyncMock, return_value=(True, False)):
@@ -384,7 +384,7 @@ class TestStatusEndpointContract:
             with patch("routes.search_status.get_tracker", new_callable=AsyncMock, return_value=None):
                 with patch("routes.search_status.get_state_machine", return_value=None):
                     with patch("routes.search_status.get_search_status", new_callable=AsyncMock, return_value=mock_status):
-                        with patch("job_queue.get_job_result", new_callable=AsyncMock, return_value=None):
+                        with patch("jobs.queue.result_store.get_job_result", new_callable=AsyncMock, return_value=None):
                             async with AsyncClient(
                                 transport=ASGITransport(app=app),
                                 base_url="http://test",
@@ -457,7 +457,7 @@ class TestStatusEndpointContract:
             with patch("routes.search_status.get_tracker", new_callable=AsyncMock, return_value=None):
                 with patch("routes.search_status.get_state_machine", return_value=None):
                     with patch("routes.search_status.get_search_status", new_callable=AsyncMock, return_value=mock_status):
-                        with patch("job_queue.get_job_result", new_callable=AsyncMock, return_value=mock_excel):
+                        with patch("jobs.queue.result_store.get_job_result", new_callable=AsyncMock, return_value=mock_excel):
                             async with AsyncClient(
                                 transport=ASGITransport(app=app),
                                 base_url="http://test",

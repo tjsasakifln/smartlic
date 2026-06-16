@@ -16,17 +16,11 @@ Backward compatibility:
 - ``from routes.search import buscar_licitacoes`` → still works.
 - All test patches such as ``@patch("routes.search.X")``,
   ``@patch("routes.search_sse.X")``, ``@patch("routes.search_state.X")`` and
-  ``@patch("routes.search_status.X")`` remain valid because:
+  ``@patch("routes.search_status.X")`` remain valid.
 
-  1. The canonical SSE / state / status implementations still live in the
-     flat ``routes/search_sse.py``, ``search_state.py`` and ``search_status.py``
-     modules — patches against those module paths keep targeting the same
-     objects.
-  2. The POST /buscar handler is defined **directly in this package's
-     ``__init__``** (not in the ``post_handler`` submodule) so that
-     ``@patch("routes.search.SearchPipeline")`` and similar still mutate the
-     names that the handler resolves at call time. ``post_handler`` is kept
-     as a thin re-export shim for the package's documented module list.
+NOTE (TD-1875): ``buscar_licitacoes`` is kept in ``__init__`` for backward
+compat with test patches. A future refactor should move the implementation to
+``post_handler`` and update all test patch targets accordingly.
 """
 
 import asyncio
@@ -428,7 +422,7 @@ async def buscar_licitacoes(
 
         if not force_sync:
             # STORY-363 AC14: Check concurrent search limit per user
-            from job_queue import acquire_search_slot, enqueue_job, is_queue_available
+            from jobs.queue.result_store import acquire_search_slot; from job_queue import enqueue_job, is_queue_available
             _slot_acquired = await acquire_search_slot(user["id"], request.search_id)
             if not _slot_acquired:
                 from config import MAX_CONCURRENT_SEARCHES

@@ -360,7 +360,7 @@ async def lifespan(app_instance: FastAPI):
     # NOTE: cache_refresh/warmup/coverage_check deprecated 2026-04-18
     # (STORY-CIG-BE-cache-warming-deprecate). DataLake is primary query path.
     from task_registry import task_registry
-    from cron_jobs import (
+    from jobs.cron import (
         start_cache_cleanup_task, start_session_cleanup_task,
         start_trial_sequence_task, start_reconciliation_task,
         start_health_canary_task, start_revenue_share_task,

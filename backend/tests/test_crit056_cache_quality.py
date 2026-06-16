@@ -38,7 +38,7 @@ def clear_inmemory_cache():
 @pytest.fixture(autouse=True)
 def reset_recovery_epoch():
     """Reset PNCP recovery epoch between tests."""
-    import cron_jobs
+    import jobs.cron.canary as cron_jobs
     with cron_jobs._pncp_cron_status_lock:
         cron_jobs._pncp_recovery_epoch = 0
         cron_jobs._pncp_cron_status.update({
@@ -84,7 +84,7 @@ class TestCacheQualityWrite:
         req = _make_request(ufs=["SP"])
         cache_key = _compute_cache_key(req)
 
-        from cron_jobs import get_pncp_recovery_epoch
+        from jobs.cron import get_pncp_recovery_epoch
         cache_data = {
             "licitacoes": [_make_bid("SP", "001")],
             "total": 1,
@@ -178,7 +178,7 @@ class TestCacheQualityRead:
 
     def test_read_quality_low_pncp_healthy_marks_stale(self):
         """quality<1.0 + PNCP healthy → _swr_stale=True."""
-        import cron_jobs
+        import jobs.cron.canary as cron_jobs
         cron_jobs._update_pncp_cron_status("healthy", 500)
 
         req = _make_request(ufs=["SP"])
@@ -202,7 +202,7 @@ class TestCacheQualityRead:
 
     def test_read_quality_low_pncp_degraded_no_stale(self):
         """quality<1.0 + PNCP degraded → no _swr_stale (better than nothing)."""
-        import cron_jobs
+        import jobs.cron.canary as cron_jobs
         cron_jobs._update_pncp_cron_status("degraded", 5000)
 
         req = _make_request(ufs=["SP"])
@@ -224,7 +224,7 @@ class TestCacheQualityRead:
 
     def test_read_quality_full_no_stale(self):
         """quality=1.0 → never stale from quality check."""
-        import cron_jobs
+        import jobs.cron.canary as cron_jobs
         cron_jobs._update_pncp_cron_status("healthy", 500)
 
         req = _make_request(ufs=["SP"])
@@ -246,7 +246,7 @@ class TestCacheQualityRead:
 
     def test_read_backward_compat_no_quality_field(self):
         """Old cache entries without quality_score → treated as quality=1.0 (backward compat)."""
-        import cron_jobs
+        import jobs.cron.canary as cron_jobs
         cron_jobs._update_pncp_cron_status("healthy", 500)
 
         req = _make_request(ufs=["SP"])
@@ -311,7 +311,7 @@ class TestRecoveryEpoch:
 
     def test_epoch_increments_on_recovery(self):
         """PNCP degraded → healthy increments recovery epoch."""
-        import cron_jobs
+        import jobs.cron.canary as cron_jobs
 
         assert cron_jobs.get_pncp_recovery_epoch() == 0
 
@@ -323,7 +323,7 @@ class TestRecoveryEpoch:
 
     def test_epoch_no_increment_healthy_to_healthy(self):
         """healthy → healthy does NOT increment epoch."""
-        import cron_jobs
+        import jobs.cron.canary as cron_jobs
 
         cron_jobs._update_pncp_cron_status("healthy", 500)
         assert cron_jobs.get_pncp_recovery_epoch() == 0
@@ -333,7 +333,7 @@ class TestRecoveryEpoch:
 
     def test_epoch_increment_down_to_healthy(self):
         """down → healthy also increments epoch."""
-        import cron_jobs
+        import jobs.cron.canary as cron_jobs
 
         cron_jobs._update_pncp_cron_status("down", None)
         cron_jobs._update_pncp_cron_status("healthy", 500)
@@ -341,7 +341,7 @@ class TestRecoveryEpoch:
 
     def test_epoch_multiple_cycles(self):
         """Multiple degraded→healthy cycles increment epoch each time."""
-        import cron_jobs
+        import jobs.cron.canary as cron_jobs
 
         cron_jobs._update_pncp_cron_status("degraded", 5000)
         cron_jobs._update_pncp_cron_status("healthy", 500)
@@ -353,7 +353,7 @@ class TestRecoveryEpoch:
 
     def test_read_old_epoch_marks_stale(self):
         """Cache entry with old epoch → stale after PNCP recovery."""
-        import cron_jobs
+        import jobs.cron.canary as cron_jobs
 
         req = _make_request(ufs=["SP"])
         cache_key = _compute_cache_key(req)
@@ -382,7 +382,7 @@ class TestRecoveryEpoch:
 
     def test_read_current_epoch_not_stale(self):
         """Cache entry with current epoch → not stale from epoch check."""
-        import cron_jobs
+        import jobs.cron.canary as cron_jobs
 
         # Simulate one recovery cycle first
         cron_jobs._update_pncp_cron_status("degraded", 5000)
@@ -419,7 +419,7 @@ class TestComposedCacheQuality:
 
     def test_composed_stale_from_quality(self):
         """If any per-UF entry is quality-stale, composed result is stale."""
-        import cron_jobs
+        import jobs.cron.canary as cron_jobs
         cron_jobs._update_pncp_cron_status("healthy", 500)
 
         req = _make_request(ufs=["SP", "RJ"])
@@ -451,7 +451,7 @@ class TestComposedCacheQuality:
 
     def test_composed_not_stale_when_all_full_quality(self):
         """All per-UF entries full quality → composed not stale."""
-        import cron_jobs
+        import jobs.cron.canary as cron_jobs
         cron_jobs._update_pncp_cron_status("healthy", 500)
 
         req = _make_request(ufs=["SP", "RJ"])
@@ -505,7 +505,7 @@ class TestRecoveryEpochThreadSafety:
 
     def test_concurrent_updates(self):
         """Multiple threads updating status don't corrupt epoch."""
-        import cron_jobs
+        import jobs.cron.canary as cron_jobs
 
         errors = []
 
@@ -539,7 +539,7 @@ class TestCacheManagerEpochIntegration:
 
     def test_per_uf_writes_include_epoch(self):
         """_write_cache_per_uf includes current recovery_epoch."""
-        import cron_jobs
+        import jobs.cron.canary as cron_jobs
 
         # Set epoch to 3
         for _ in range(3):

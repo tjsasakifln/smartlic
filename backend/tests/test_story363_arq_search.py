@@ -133,7 +133,7 @@ class TestAC15PostReturns202:
                  patch("quota.require_active_plan", new_callable=AsyncMock), \
                  patch("quota.check_quota", return_value=MagicMock(allowed=True, error_message="", capabilities={"max_requests_per_month": 1000})), \
                  patch("quota.check_and_increment_quota_atomic", return_value=(True, 1, 999)), \
-                 patch("job_queue.acquire_search_slot", new_callable=AsyncMock, return_value=True), \
+                 patch("jobs.queue.result_store.acquire_search_slot", new_callable=AsyncMock, return_value=True), \
                  patch("job_queue.is_queue_available", new_callable=AsyncMock, return_value=True), \
                  patch("job_queue.enqueue_job", new_callable=AsyncMock, return_value=mock_job):
 
@@ -169,7 +169,7 @@ class TestAC15PostReturns202:
                  patch("quota.require_active_plan", new_callable=AsyncMock), \
                  patch("quota.check_quota", return_value=MagicMock(allowed=True, error_message="", capabilities={"max_requests_per_month": 1000})), \
                  patch("quota.check_and_increment_quota_atomic", return_value=(True, 1, 999)), \
-                 patch("job_queue.acquire_search_slot", new_callable=AsyncMock, return_value=True), \
+                 patch("jobs.queue.result_store.acquire_search_slot", new_callable=AsyncMock, return_value=True), \
                  patch("job_queue.is_queue_available", new_callable=AsyncMock, return_value=False), \
                  patch("routes.search._run_async_search", new_callable=AsyncMock):
 
@@ -195,18 +195,18 @@ class TestAC16WorkerPersistsResults:
         self, mock_tracker, mock_busca_response, mock_user
     ):
         """AC16: search_job calls executar_busca_completa and persists to L2+L3."""
-        from job_queue import search_job
+        from jobs.queue.search import search_job
 
         with patch("pipeline.worker.executar_busca_completa", new_callable=AsyncMock, return_value=mock_busca_response), \
              patch("progress.get_tracker", new_callable=AsyncMock, return_value=mock_tracker), \
              patch("progress.remove_tracker", new_callable=AsyncMock), \
-             patch("job_queue.check_cancel_flag", new_callable=AsyncMock, return_value=False), \
-             patch("job_queue.clear_cancel_flag", new_callable=AsyncMock), \
+             patch("jobs.queue.result_store.check_cancel_flag", new_callable=AsyncMock, return_value=False), \
+             patch("jobs.queue.result_store.clear_cancel_flag", new_callable=AsyncMock), \
              patch("jobs.queue.result_store.persist_job_result", new_callable=AsyncMock) as mock_persist_arq, \
              patch("jobs.queue.search._persist_search_results_to_redis", new_callable=AsyncMock) as mock_persist_redis, \
              patch("jobs.queue.search._persist_search_results_to_supabase", new_callable=AsyncMock) as mock_persist_supa, \
-             patch("job_queue._update_search_session", new_callable=AsyncMock), \
-             patch("job_queue.release_search_slot", new_callable=AsyncMock), \
+             patch("jobs.queue.search._update_search_session", new_callable=AsyncMock), \
+             patch("jobs.queue.result_store.release_search_slot", new_callable=AsyncMock), \
              patch("config.get_feature_flag", return_value=False):
 
             result = await search_job(
@@ -236,14 +236,14 @@ class TestAC16WorkerPersistsResults:
     @pytest.mark.asyncio
     async def test_search_job_emits_error_on_failure(self, mock_tracker, mock_user):
         """AC16: search_job emits error SSE event on pipeline failure."""
-        from job_queue import search_job
+        from jobs.queue.search import search_job
 
         with patch("pipeline.worker.executar_busca_completa", new_callable=AsyncMock, side_effect=RuntimeError("Pipeline boom")), \
              patch("progress.get_tracker", new_callable=AsyncMock, return_value=mock_tracker), \
              patch("progress.remove_tracker", new_callable=AsyncMock), \
-             patch("job_queue.check_cancel_flag", new_callable=AsyncMock, return_value=False), \
-             patch("job_queue.clear_cancel_flag", new_callable=AsyncMock), \
-             patch("job_queue.release_search_slot", new_callable=AsyncMock):
+             patch("jobs.queue.result_store.check_cancel_flag", new_callable=AsyncMock, return_value=False), \
+             patch("jobs.queue.result_store.clear_cancel_flag", new_callable=AsyncMock), \
+             patch("jobs.queue.result_store.release_search_slot", new_callable=AsyncMock):
 
             with pytest.raises(RuntimeError, match="Pipeline boom"):
                 await search_job(
@@ -266,10 +266,10 @@ class TestAC13WorkerValidatesUser:
     @pytest.mark.asyncio
     async def test_search_job_rejects_missing_user_id(self):
         """AC13: search_job returns failed when user_id is missing."""
-        from job_queue import search_job
+        from jobs.queue.search import search_job
 
-        with patch("job_queue.release_search_slot", new_callable=AsyncMock), \
-             patch("job_queue.clear_cancel_flag", new_callable=AsyncMock), \
+        with patch("jobs.queue.result_store.release_search_slot", new_callable=AsyncMock), \
+             patch("jobs.queue.result_store.clear_cancel_flag", new_callable=AsyncMock), \
              patch("progress.get_tracker", new_callable=AsyncMock, return_value=None):
 
             result = await search_job(
@@ -293,7 +293,7 @@ class TestAC14ConcurrentSearchLimiting:
     @pytest.mark.asyncio
     async def test_acquire_slot_succeeds_within_limit(self):
         """AC14: acquire_search_slot succeeds when under limit."""
-        from job_queue import acquire_search_slot
+        from jobs.queue.result_store import acquire_search_slot
 
         mock_redis = AsyncMock()
         mock_redis.zremrangebyscore = AsyncMock()
@@ -311,7 +311,7 @@ class TestAC14ConcurrentSearchLimiting:
     @pytest.mark.asyncio
     async def test_acquire_slot_rejects_at_limit(self):
         """AC14: acquire_search_slot rejects when at limit."""
-        from job_queue import acquire_search_slot
+        from jobs.queue.result_store import acquire_search_slot
 
         mock_redis = AsyncMock()
         mock_redis.zremrangebyscore = AsyncMock()
@@ -327,7 +327,7 @@ class TestAC14ConcurrentSearchLimiting:
     @pytest.mark.asyncio
     async def test_acquire_slot_allows_when_redis_unavailable(self):
         """AC14: acquire_search_slot allows through (fail-open) when Redis is down."""
-        from job_queue import acquire_search_slot
+        from jobs.queue.result_store import acquire_search_slot
 
         with patch("redis_pool.get_redis_pool", new_callable=AsyncMock, return_value=None):
             result = await acquire_search_slot("user-001", "search-001")
@@ -337,7 +337,7 @@ class TestAC14ConcurrentSearchLimiting:
     @pytest.mark.asyncio
     async def test_release_slot_removes_from_set(self):
         """AC14: release_search_slot removes search_id from sorted set."""
-        from job_queue import release_search_slot
+        from jobs.queue.result_store import release_search_slot
 
         mock_redis = AsyncMock()
         mock_redis.zrem = AsyncMock()
@@ -364,7 +364,7 @@ class TestAC14ConcurrentSearchLimiting:
                  patch("quota.require_active_plan", new_callable=AsyncMock), \
                  patch("quota.check_quota", return_value=MagicMock(allowed=True, error_message="", capabilities={"max_requests_per_month": 1000})), \
                  patch("quota.check_and_increment_quota_atomic", return_value=(True, 1, 999)), \
-                 patch("job_queue.acquire_search_slot", new_callable=AsyncMock, return_value=False), \
+                 patch("jobs.queue.result_store.acquire_search_slot", new_callable=AsyncMock, return_value=False), \
                  patch("routes.search.remove_tracker", new_callable=AsyncMock):
 
                 client = TestClient(app, raise_server_exceptions=False)
@@ -396,7 +396,7 @@ class TestAC14ConcurrentSearchLimiting:
                  patch("quota.require_active_plan", new_callable=AsyncMock), \
                  patch("quota.check_quota", return_value=MagicMock(allowed=True, error_message="", capabilities={"max_requests_per_month": 1000})), \
                  patch("quota.check_and_increment_quota_atomic", return_value=(True, 1, 999)), \
-                 patch("job_queue.acquire_search_slot", new_callable=AsyncMock, return_value=False), \
+                 patch("jobs.queue.result_store.acquire_search_slot", new_callable=AsyncMock, return_value=False), \
                  patch("routes.search.remove_tracker", new_callable=AsyncMock):
 
                 client = TestClient(app, raise_server_exceptions=False)
@@ -466,18 +466,18 @@ class TestAC18PipelineCompletesIndependently:
         self, mock_busca_response, mock_user
     ):
         """AC18: search_job completes and persists even when no SSE tracker exists."""
-        from job_queue import search_job
+        from jobs.queue.search import search_job
 
         with patch("pipeline.worker.executar_busca_completa", new_callable=AsyncMock, return_value=mock_busca_response), \
              patch("progress.get_tracker", new_callable=AsyncMock, return_value=None), \
              patch("progress.remove_tracker", new_callable=AsyncMock), \
-             patch("job_queue.check_cancel_flag", new_callable=AsyncMock, return_value=False), \
-             patch("job_queue.clear_cancel_flag", new_callable=AsyncMock), \
+             patch("jobs.queue.result_store.check_cancel_flag", new_callable=AsyncMock, return_value=False), \
+             patch("jobs.queue.result_store.clear_cancel_flag", new_callable=AsyncMock), \
              patch("jobs.queue.result_store.persist_job_result", new_callable=AsyncMock) as mock_persist, \
              patch("jobs.queue.search._persist_search_results_to_redis", new_callable=AsyncMock) as mock_redis, \
              patch("jobs.queue.search._persist_search_results_to_supabase", new_callable=AsyncMock) as mock_supa, \
-             patch("job_queue._update_search_session", new_callable=AsyncMock), \
-             patch("job_queue.release_search_slot", new_callable=AsyncMock), \
+             patch("jobs.queue.search._update_search_session", new_callable=AsyncMock), \
+             patch("jobs.queue.result_store.release_search_slot", new_callable=AsyncMock), \
              patch("config.get_feature_flag", return_value=False):
 
             result = await search_job(
@@ -522,7 +522,7 @@ class TestAC2ARQDispatchWithFallback:
                  patch("quota.require_active_plan", new_callable=AsyncMock), \
                  patch("quota.check_quota", return_value=MagicMock(allowed=True, error_message="", capabilities={"max_requests_per_month": 1000})), \
                  patch("quota.check_and_increment_quota_atomic", return_value=(True, 1, 999)), \
-                 patch("job_queue.acquire_search_slot", new_callable=AsyncMock, return_value=True), \
+                 patch("jobs.queue.result_store.acquire_search_slot", new_callable=AsyncMock, return_value=True), \
                  patch("job_queue.is_queue_available", new_callable=AsyncMock, return_value=True), \
                  patch("job_queue.enqueue_job", new_callable=AsyncMock, return_value=mock_job) as mock_enqueue:
 
@@ -553,7 +553,7 @@ class TestAC2ARQDispatchWithFallback:
                  patch("quota.require_active_plan", new_callable=AsyncMock), \
                  patch("quota.check_quota", return_value=MagicMock(allowed=True, error_message="", capabilities={"max_requests_per_month": 1000})), \
                  patch("quota.check_and_increment_quota_atomic", return_value=(True, 1, 999)), \
-                 patch("job_queue.acquire_search_slot", new_callable=AsyncMock, return_value=True), \
+                 patch("jobs.queue.result_store.acquire_search_slot", new_callable=AsyncMock, return_value=True), \
                  patch("job_queue.is_queue_available", new_callable=AsyncMock, return_value=True), \
                  patch("job_queue.enqueue_job", new_callable=AsyncMock, return_value=None), \
                  patch("routes.search._run_async_search", new_callable=AsyncMock) as mock_run:
@@ -595,7 +595,7 @@ class TestAC5NeverExceedsTimeout:
                  patch("quota.require_active_plan", new_callable=AsyncMock), \
                  patch("quota.check_quota", return_value=MagicMock(allowed=True, error_message="", capabilities={"max_requests_per_month": 1000})), \
                  patch("quota.check_and_increment_quota_atomic", return_value=(True, 1, 999)), \
-                 patch("job_queue.acquire_search_slot", new_callable=AsyncMock, return_value=True), \
+                 patch("jobs.queue.result_store.acquire_search_slot", new_callable=AsyncMock, return_value=True), \
                  patch("job_queue.is_queue_available", new_callable=AsyncMock, return_value=True), \
                  patch("job_queue.enqueue_job", new_callable=AsyncMock, return_value=mock_job):
 
@@ -621,7 +621,7 @@ class TestWorkerPersistenceHelpers:
     @pytest.mark.asyncio
     async def test_persist_search_results_to_redis(self, mock_busca_response):
         """L2 Redis persistence uses smartlic:results:{search_id} key format."""
-        from job_queue import _persist_search_results_to_redis
+        from jobs.queue.search import _persist_search_results_to_redis
 
         mock_redis = AsyncMock()
         mock_redis.setex = AsyncMock()
@@ -638,7 +638,7 @@ class TestWorkerPersistenceHelpers:
     @pytest.mark.asyncio
     async def test_persist_search_results_to_redis_graceful_on_failure(self, mock_busca_response):
         """L2 Redis persistence is fire-and-forget — never raises."""
-        from job_queue import _persist_search_results_to_redis
+        from jobs.queue.search import _persist_search_results_to_redis
 
         mock_redis = AsyncMock()
         mock_redis.setex = AsyncMock(side_effect=ConnectionError("Redis down"))
@@ -650,7 +650,7 @@ class TestWorkerPersistenceHelpers:
     @pytest.mark.asyncio
     async def test_persist_search_results_to_supabase(self, mock_busca_response):
         """L3 Supabase persistence stores results with TTL."""
-        from job_queue import _persist_search_results_to_supabase
+        from jobs.queue.search import _persist_search_results_to_supabase
 
         mock_db = MagicMock()
         mock_table = MagicMock()
@@ -668,7 +668,7 @@ class TestWorkerPersistenceHelpers:
     @pytest.mark.asyncio
     async def test_persist_search_results_to_supabase_graceful_on_failure(self, mock_busca_response):
         """L3 Supabase persistence is fire-and-forget — never raises."""
-        from job_queue import _persist_search_results_to_supabase
+        from jobs.queue.search import _persist_search_results_to_supabase
 
         with patch("supabase_client.get_supabase", side_effect=Exception("Supabase down")):
             # Should not raise

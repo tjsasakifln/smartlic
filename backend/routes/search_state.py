@@ -275,7 +275,7 @@ async def get_background_results_async(search_id: str) -> Optional[Dict[str, Any
         return redis_result
 
     # ARQ: Check ARQ Worker results (job_queue)
-    from job_queue import get_job_result
+    from jobs.queue.result_store import get_job_result
     arq_result = await get_job_result(search_id, "search_result")
     if arq_result:
         return arq_result
@@ -628,7 +628,7 @@ async def _run_async_search(
     finally:
         # Release concurrent search slot to prevent slot leak (was missing — 3 crashes = user blocked 10min)
         try:
-            from job_queue import release_search_slot
+            from jobs.queue.result_store import release_search_slot
             user_id = user.get("id", "")
             if user_id:
                 await release_search_slot(user_id, search_id)

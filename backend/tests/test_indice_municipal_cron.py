@@ -117,13 +117,13 @@ async def test_run_indice_municipal_recalc_email_failure_does_not_abort():
 
 def test_start_indice_municipal_task_is_importable():
     """start_indice_municipal_task está disponível em cron_jobs facade."""
-    from cron_jobs import start_indice_municipal_task
+    from jobs.cron import start_indice_municipal_task
     assert callable(start_indice_municipal_task)
 
 
 def test_run_indice_municipal_recalc_is_importable():
     """run_indice_municipal_recalc está disponível em cron_jobs facade."""
-    from cron_jobs import run_indice_municipal_recalc
+    from jobs.cron import run_indice_municipal_recalc
     assert callable(run_indice_municipal_recalc)
 
 
