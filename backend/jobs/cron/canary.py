@@ -1,42 +1,44 @@
 """jobs.cron.canary — PNCP health canary and status tracking.
 
-State moved from cron_jobs.py to this module (TD-1875). Tests that previously
-mutated ``cron_jobs._pncp_recovery_epoch`` must now use
-``jobs.cron.canary._pncp_recovery_epoch``.
+State (_pncp_cron_status, _pncp_cron_status_lock, _pncp_recovery_epoch) lives in
+cron_jobs.py so that test fixtures that do ``cron_jobs._pncp_recovery_epoch = 0``
+keep working.  All state access here goes through a lazy ``import cron_jobs``.
 """
 import asyncio
 import logging
-import threading
 
 logger = logging.getLogger(__name__)
 
 HEALTH_CANARY_INTERVAL_SECONDS = 5 * 60
 
-# ── Canary state (previously in cron_jobs.py — migrated in TD-1875) ──────────
-_pncp_cron_status_lock = threading.Lock()
-_pncp_cron_status: dict = {"status": "unknown", "latency_ms": None, "updated_at": None}
-_pncp_recovery_epoch: int = 0
+
+def _state():
+    """Return the cron_jobs module (lazy, avoids circular import at load time)."""
+    import cron_jobs as _cj
+    return _cj
 
 
 def get_pncp_cron_status() -> dict:
-    with _pncp_cron_status_lock:
-        return dict(_pncp_cron_status)
+    m = _state()
+    with m._pncp_cron_status_lock:
+        return dict(m._pncp_cron_status)
 
 
 def get_pncp_recovery_epoch() -> int:
-    with _pncp_cron_status_lock:
-        return _pncp_recovery_epoch
+    m = _state()
+    with m._pncp_cron_status_lock:
+        return m._pncp_recovery_epoch
 
 
 def _update_pncp_cron_status(status: str, latency_ms: int | None) -> None:
     import time as _time_mod
-    global _pncp_recovery_epoch
-    with _pncp_cron_status_lock:
-        old_status = _pncp_cron_status["status"]
-        _pncp_cron_status.update({"status": status, "latency_ms": latency_ms, "updated_at": _time_mod.time()})
+    m = _state()
+    with m._pncp_cron_status_lock:
+        old_status = m._pncp_cron_status["status"]
+        m._pncp_cron_status.update({"status": status, "latency_ms": latency_ms, "updated_at": _time_mod.time()})
         if old_status in ("degraded", "down") and status == "healthy":
-            _pncp_recovery_epoch += 1
-            logger.info(f"CRIT-056: PNCP recovered (epoch={_pncp_recovery_epoch})")
+            m._pncp_recovery_epoch += 1
+            logger.info(f"CRIT-056: PNCP recovered (epoch={m._pncp_recovery_epoch})")
 
 
 def _is_cb_or_connection_error(e: Exception) -> bool:

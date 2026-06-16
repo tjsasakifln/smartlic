@@ -7,17 +7,24 @@ Provides organized import paths for job/cron-related modules:
     - jobs.result_store — Job result persistence, cancel flags, enqueue
 
   Job functions (ARQ worker):
-    - jobs.jobs — LLM summary, reclassification
+    - jobs.llm_jobs — LLM summary, reclassification
+    - jobs.excel_jobs — Excel generation
     - jobs.search_jobs — Search pipeline execution
+    - jobs.cache_jobs — Cache refresh/warming
     - jobs.zero_match_jobs — Zero-match classification
     - jobs.notification_jobs — Email alerts, daily digest
 
   Cron tasks (lifespan background loops):
-    - jobs.cron — aggregated re-exports from jobs.cron.*
-    - jobs.cron.canary — PNCP health canary
-    - jobs.cron.billing — Billing reconciliation
-    - jobs.cron.notifications — Alerts, trial sequence, SLA, volume
+    - jobs.cron_health — PNCP health canary
+    - jobs.cron_cache — Cache cleanup, refresh, warmup, coverage
+    - jobs.cron_billing — Reconciliation, dunning, revenue share
+    - jobs.cron_notifications — Alerts, trial sequence, SLA, volume
 
-Import from ``jobs.cron.`` or ``job_queue`` directly.
-Previous cron_jobs facade has been removed (TD-1875).
+  Legacy re-exports (unchanged top-level modules):
+    - jobs.queue → job_queue.*
+    - jobs.cron → cron_jobs.*
+    - jobs.worker_lifecycle → worker_lifecycle.*
+
+All original import paths (``from job_queue import X``,
+``from cron_jobs import Y``) continue to work unchanged.
 """

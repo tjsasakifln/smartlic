@@ -344,15 +344,17 @@ class TestCrossWorkerE2E:
             if line.startswith("data: ")
         ]
         events = [json.loads(line.replace("data: ", "")) for line in data_lines]
+        # Filter out heartbeat keepalive events (empty JSON objects)
+        content_events = [e for e in events if e]
 
         # AC5: ALL 5 events received (zero loss)
-        assert len(events) == 5, f"Expected 5 events, got {len(events)}: {events}"
-        assert events[0]["stage"] == "connecting"
-        assert events[1]["stage"] == "fetching"
-        assert events[1]["progress"] == 20
-        assert events[2]["stage"] == "fetching"
-        assert events[3]["stage"] == "filtering"
-        assert events[4]["stage"] == "complete"
+        assert len(content_events) == 5, f"Expected 5 events, got {len(events)}: {events}"
+        assert content_events[0]["stage"] == "connecting"
+        assert content_events[1]["stage"] == "fetching"
+        assert content_events[1]["progress"] == 20
+        assert content_events[2]["stage"] == "fetching"
+        assert content_events[3]["stage"] == "filtering"
+        assert content_events[4]["stage"] == "complete"
 
     @pytest.mark.asyncio
     async def test_subscriber_receives_events_incrementally(self):
@@ -478,9 +480,11 @@ class TestCrossWorkerE2E:
             line for line in response.text.split("\n")
             if line.startswith("data: ")
         ]
-        assert len(data_lines) == 1
-        event = json.loads(data_lines[0].replace("data: ", ""))
-        assert event["detail"] == detail
+        events = [json.loads(line.replace("data: ", "")) for line in data_lines]
+        # Filter out heartbeat events (empty JSON objects)
+        content_events = [e for e in events if e]
+        assert len(content_events) == 1, f"Expected 1 content event, got {len(content_events)}: {events}"
+        assert content_events[0]["detail"] == detail
 
     @pytest.mark.asyncio
     async def test_fallback_to_queue_when_redis_down_at_sse(self):

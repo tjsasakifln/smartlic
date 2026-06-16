@@ -29,11 +29,6 @@ function isValidCnpjFormat(s: string): boolean {
  * STORY-300: Initial security headers setup.
  * STORY-311: Security hardening — CSP enforcement, report-uri, COOP, HSTS preload.
  *
- * #1874: Cookie security audit.
- * - Auth cookies (sb-* prefix): SameSite=Strict + Secure (CSRF protection)
- * - Preference cookies (non-sb-*): SameSite=Lax + Secure
- * - All cookies get Secure in production
- *
  * Protected routes: /buscar, /historico, /conta, /admin/*, /dashboard, /mensagens
  * Public routes: /login, /signup, /planos, /auth/callback
  */
@@ -70,15 +65,6 @@ function isValidCnpjFormat(s: string): boolean {
  *   - Phase 2 will require a permanent solution (e.g., per-page nonce via RSC inject)
  *
  * Third-party allowlists cover: Stripe, Sentry, Cloudflare, Clarity, GTM, Mixpanel.
- *
- * #1874 AC6: CSP protects cookies against XSS-based theft.
- *   - script-src restricts inline script injection (primary attack vector for cookie theft)
- *   - connect-src limits data exfiltration channels if XSS occurs
- *   - Supabase auth endpoints (*.supabase.co) explicitly allowed in connect-src
- *   - Combined with cookie SameSite=Strict (auth) and SameSite=Lax (prefs), CSP provides
- *     defense-in-depth against session hijacking via XSS.
- *   - Set-Cookie headers with Secure+HttpOnly+SameSite ensure cookies cannot be stolen
- *     even if XSS bypasses CSP.
  *
  * Theme-init script SHA-256 hash (static, never changes):
  *   node -e "const {createHash}=require('crypto');
@@ -226,12 +212,10 @@ function isPublicContentRoute(pathname: string): boolean {
   return CACHEABLE_CONTENT_PREFIXES.some(prefix => pathname.startsWith(prefix));
 }
 
-// SEO-CWV: s-maxage=3600 (Cloudflare caches 1h), stale-while-revalidate=3600
-// (serve stale for 1h while revalidating in background). max-age=0 forces
+// SEO-CWV: s-maxage=3600 (Cloudflare caches 1h), stale-while-revalidate=86400
+// (serve stale for 24h while revalidating in background). max-age=0 forces
 // browsers to always revalidate but allows CDN to cache.
-// ISSUE-1868 AC2: HTML pages com stale-while-revalidate=3600 (1h) para
-// Googlebot nunca ver 5xx mas nao acumular stale por mais de 1 hora.
-const PUBLIC_CACHE_CONTROL = "public, max-age=0, s-maxage=3600, stale-while-revalidate=3600";
+const PUBLIC_CACHE_CONTROL = "public, max-age=0, s-maxage=3600, stale-while-revalidate=86400";
 
 export async function middleware(request: NextRequest) {
   const { pathname, search } = request.nextUrl;
@@ -380,15 +364,13 @@ export async function middleware(request: NextRequest) {
             headers: request.headers,
           },
         });
-        // Set cookies on response with security flags per prefix (#1874)
+        // Set cookies on response
         cookiesToSet.forEach(({ name, value, options }) => {
-          // SB- prefix: auth cookies → SameSite=Strict for CSRF protection
-          // Other cookies: SameSite=Lax for cross-site usability
-          const isAuthCookie = name.startsWith("sb-");
           response.cookies.set(name, value, {
             ...options,
+            // Ensure proper cookie settings for auth
             path: options?.path || "/",
-            sameSite: isAuthCookie ? "strict" : (options?.sameSite || "lax"),
+            sameSite: options?.sameSite || "lax",
             secure: process.env.NODE_ENV === "production",
           });
         });

@@ -314,7 +314,7 @@ class TestAC10StorePendingReviewBids:
         mock_redis.setex = AsyncMock(return_value=True)
 
         with patch("redis_pool.get_redis_pool", new_callable=AsyncMock, return_value=mock_redis):
-            from jobs.queue.result_store import store_pending_review_bids
+            from job_queue import store_pending_review_bids
 
             bids = [
                 {"objetoCompra": "Bid 1", "_pending_review": True},
@@ -347,7 +347,7 @@ class TestAC10StorePendingReviewBids:
     async def test_store_pending_review_bids_redis_unavailable(self):
         """Returns False when Redis is unavailable."""
         with patch("redis_pool.get_redis_pool", new_callable=AsyncMock, return_value=None):
-            from jobs.queue.result_store import store_pending_review_bids
+            from job_queue import store_pending_review_bids
 
             result = await store_pending_review_bids(
                 search_id="search-fail",
@@ -362,7 +362,7 @@ class TestAC10StorePendingReviewBids:
         mock_redis.setex = AsyncMock(side_effect=ConnectionError("Redis connection lost"))
 
         with patch("redis_pool.get_redis_pool", new_callable=AsyncMock, return_value=mock_redis):
-            from jobs.queue.result_store import store_pending_review_bids
+            from job_queue import store_pending_review_bids
 
             result = await store_pending_review_bids(
                 search_id="search-err",
@@ -412,7 +412,7 @@ class TestAC10ReclassifyJob:
             patch("llm_arbiter.classify_contract_primary_match", side_effect=_mock_classify),
             patch("progress.get_tracker", new_callable=AsyncMock, return_value=mock_tracker),
         ):
-            from jobs.queue.jobs import reclassify_pending_bids_job
+            from job_queue import reclassify_pending_bids_job
 
             result = await reclassify_pending_bids_job(
                 ctx={},
@@ -470,7 +470,7 @@ class TestAC10ReclassifyJob:
             patch("job_queue.get_arq_pool", new_callable=AsyncMock, return_value=mock_arq_pool),
             patch("progress.get_tracker", new_callable=AsyncMock, return_value=None),
         ):
-            from jobs.queue.jobs import reclassify_pending_bids_job
+            from job_queue import reclassify_pending_bids_job
 
             result = await reclassify_pending_bids_job(
                 ctx={},
@@ -498,7 +498,7 @@ class TestAC10ReclassifyJob:
         mock_redis.get = AsyncMock(return_value=None)  # Key expired or deleted
 
         with patch("redis_pool.get_redis_pool", new_callable=AsyncMock, return_value=mock_redis):
-            from jobs.queue.jobs import reclassify_pending_bids_job
+            from job_queue import reclassify_pending_bids_job
 
             result = await reclassify_pending_bids_job(
                 ctx={},
@@ -524,7 +524,7 @@ class TestAC10ReclassifyJob:
         mock_redis.get = AsyncMock(return_value=stored_data)
 
         with patch("redis_pool.get_redis_pool", new_callable=AsyncMock, return_value=mock_redis):
-            from jobs.queue.jobs import reclassify_pending_bids_job
+            from job_queue import reclassify_pending_bids_job
 
             result = await reclassify_pending_bids_job(
                 ctx={},
@@ -568,7 +568,7 @@ class TestAC10ReclassifyJob:
             patch("progress.get_tracker", new_callable=AsyncMock, return_value=None),
             patch("config.PENDING_REVIEW_MAX_RETRIES", 3),
         ):
-            from jobs.queue.jobs import reclassify_pending_bids_job
+            from job_queue import reclassify_pending_bids_job
 
             result = await reclassify_pending_bids_job(
                 ctx={},
@@ -740,7 +740,7 @@ class TestPendingReviewEdgeCases:
         mock_redis.get = AsyncMock(side_effect=ConnectionError("Redis offline"))
 
         with patch("redis_pool.get_redis_pool", new_callable=AsyncMock, return_value=mock_redis):
-            from jobs.queue.jobs import reclassify_pending_bids_job
+            from job_queue import reclassify_pending_bids_job
 
             result = await reclassify_pending_bids_job(
                 ctx={},
@@ -756,7 +756,7 @@ class TestPendingReviewEdgeCases:
     async def test_reclassify_job_redis_unavailable(self):
         """Job returns error when Redis pool is None."""
         with patch("redis_pool.get_redis_pool", new_callable=AsyncMock, return_value=None):
-            from jobs.queue.jobs import reclassify_pending_bids_job
+            from job_queue import reclassify_pending_bids_job
 
             result = await reclassify_pending_bids_job(
                 ctx={},

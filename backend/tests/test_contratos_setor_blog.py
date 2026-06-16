@@ -4,13 +4,6 @@ import pytest
 from unittest.mock import patch, MagicMock
 
 
-
-@pytest.fixture(autouse=True)
-def _disable_ip_rate_limiter():
-    """Disable the IP rate limiter (Issue #1861) for contratos blog tests."""
-    with patch("ip_rate_limiter.IP_RATE_LIMIT_ENABLED", False):
-        yield
-
 @pytest.fixture
 def client():
     from main import app

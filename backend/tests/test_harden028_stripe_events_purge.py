@@ -29,9 +29,9 @@ async def test_purge_deletes_old_events(mock_supabase):
     async def fake_execute(query):
         return SimpleNamespace(data=result_data, count=None)
 
-    with patch("jobs.cron.get_supabase" if False else "supabase_client.get_supabase", return_value=sb), \
-         patch("jobs.cron.sb_execute" if False else "supabase_client.sb_execute", side_effect=fake_execute) as mock_exec:  # noqa: F841
-        from jobs.cron import purge_old_stripe_events
+    with patch("cron_jobs.get_supabase" if False else "supabase_client.get_supabase", return_value=sb), \
+         patch("cron_jobs.sb_execute" if False else "supabase_client.sb_execute", side_effect=fake_execute) as mock_exec:  # noqa: F841
+        from cron_jobs import purge_old_stripe_events
         result = await purge_old_stripe_events()
 
     assert result["deleted"] == 5
@@ -57,7 +57,7 @@ async def test_purge_no_old_events(mock_supabase):
 
     with patch("supabase_client.get_supabase", return_value=sb), \
          patch("supabase_client.sb_execute", side_effect=fake_execute):
-        from jobs.cron import purge_old_stripe_events
+        from cron_jobs import purge_old_stripe_events
         result = await purge_old_stripe_events()
 
     assert result["deleted"] == 0
@@ -88,7 +88,7 @@ async def test_purge_cutoff_is_90_days():
 
     with patch("supabase_client.get_supabase", return_value=sb), \
          patch("supabase_client.sb_execute", side_effect=fake_execute):
-        from jobs.cron import purge_old_stripe_events
+        from cron_jobs import purge_old_stripe_events
         result = await purge_old_stripe_events()  # noqa: F841
 
     assert captured_cutoff is not None
@@ -102,7 +102,7 @@ async def test_purge_cutoff_is_90_days():
 async def test_purge_handles_supabase_error():
     """AC1: Purge handles errors gracefully."""
     with patch("supabase_client.get_supabase", side_effect=Exception("DB down")):
-        from jobs.cron import purge_old_stripe_events
+        from cron_jobs import purge_old_stripe_events
         result = await purge_old_stripe_events()
 
     assert result["deleted"] == 0
@@ -118,20 +118,20 @@ async def test_purge_logs_deleted_count(mock_supabase, caplog):
     async def fake_execute(query):
         return SimpleNamespace(data=[{"id": "evt_1"}, {"id": "evt_2"}, {"id": "evt_3"}], count=None)
 
-    with caplog.at_level(logging.INFO, logger="jobs.cron.billing"), \
+    with caplog.at_level(logging.INFO, logger="jobs.cron"), \
          patch("supabase_client.get_supabase", return_value=sb), \
          patch("supabase_client.sb_execute", side_effect=fake_execute):
-        from jobs.cron import purge_old_stripe_events
+        from cron_jobs import purge_old_stripe_events
         result = await purge_old_stripe_events()
 
     assert result["deleted"] == 3
-    assert any("Purged 3 Stripe webhook events" in msg for msg in caplog.messages)
+    assert any("HARDEN-028: Purged 3 Stripe webhook events older than" in msg for msg in caplog.messages)
 
 
 @pytest.mark.asyncio
 async def test_purge_constants():
     """AC1+AC2: Verify retention and interval constants."""
-    from jobs.cron import STRIPE_EVENTS_RETENTION_DAYS, STRIPE_PURGE_INTERVAL_SECONDS
+    from cron_jobs import STRIPE_EVENTS_RETENTION_DAYS, STRIPE_PURGE_INTERVAL_SECONDS
 
     assert STRIPE_EVENTS_RETENTION_DAYS == 90
     assert STRIPE_PURGE_INTERVAL_SECONDS == 86400  # 24h

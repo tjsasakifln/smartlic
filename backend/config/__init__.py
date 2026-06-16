@@ -94,13 +94,6 @@ from config.features import (
     NETWORK_EVENTS_WEEKLY_RETENTION_DAYS,  # noqa: F401
     NETWORK_EVENTS_CLEANUP_HOUR,  # noqa: F401
     NETWORK_EVENTS_CLEANUP_ENABLED,  # noqa: F401
-    # Issue #1861: IP Rate Limiter (Edge DDoS Protection)
-    IP_RATE_LIMIT_ENABLED,  # noqa: F401
-    IP_RATE_LIMIT_WINDOW_S,  # noqa: F401
-    IP_RATE_LIMIT_DEFAULT,  # noqa: F401
-    IP_RATE_LIMIT_BLOCKLIST_MULTIPLIER,  # noqa: F401
-    IP_RATE_LIMIT_BLOCKLIST_DURATION_S,  # noqa: F401
-    RATE_LIMIT_WHITELIST_IPS,  # noqa: F401
     _feature_flag_cache,  # noqa: F401
     get_feature_flag,  # noqa: F401
     log_feature_flags,  # noqa: F401

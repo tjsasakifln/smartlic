@@ -1,19 +1,15 @@
-"""job_queue.py — ARQ pool + enqueue core (TD-1875: re-exports removed).
+"""job_queue.py — ARQ pool + enqueue (state lives here for test compat).
 
-This module contains the real ARQ connection management and job enqueue
-functions. All re-exported names have been moved to ``jobs/queue/`` submodules.
-Import job functions directly from ``jobs.queue.jobs``, result store from
-``jobs.queue.result_store``, and worker config from ``jobs.queue.config``.
+Job function implementations moved to jobs/queue/ sub-package (DEBT-v3-S3 Phase 2.3).
+Import from this module continues to work unchanged.
 """
 from __future__ import annotations
 
 import asyncio
 import logging
-import os
 import threading
 import time
 from typing import Any, Optional
-from urllib.parse import urlparse
 
 logger = logging.getLogger(__name__)
 
@@ -28,30 +24,11 @@ arq_log_config = {
 # Pool state lives here so tests can mutate job_queue._arq_pool directly
 _arq_pool = None
 _pool_lock = asyncio.Lock()
-# Issue #1867 AC1: threading.Lock alongside asyncio.Lock for thread safety.
-# asyncio.Lock protects coroutine interleaving within the same event loop;
-# threading.Lock protects global state writes from thread-level races
-# (e.g., when get_arq_pool() is called via run_coroutine_threadsafe or
-# from thread pool executors). Dual-lock pattern is belt-and-suspenders.
+# Issue #1867 AC1 / Issue #1781 AC5.7: threading.Lock protects global state from
+# cross-event-loop / cross-thread access (e.g., lifespan vs colocated ARQ worker).
 _pool_thread_lock = threading.Lock()
 _worker_alive_cache: tuple[float, bool] = (0.0, False)
 _WORKER_CHECK_INTERVAL = 15
-
-
-def _get_redis_settings():
-    from arq.connections import RedisSettings
-    redis_url = os.getenv("REDIS_URL", "")
-    if not redis_url:
-        raise ValueError("REDIS_URL not set — ARQ worker cannot start without Redis")
-    parsed = urlparse(redis_url)
-    ssl = parsed.scheme == "rediss"
-    return RedisSettings(
-        host=parsed.hostname or "localhost", port=parsed.port or 6379,
-        password=parsed.password, database=int(parsed.path.lstrip("/") or 0),
-        conn_timeout=10, conn_retries=5, conn_retry_delay=2.0, ssl=ssl,
-        retry_on_timeout=True, retry_on_error=[TimeoutError, ConnectionError, OSError],
-        max_connections=50,
-    )
 
 
 async def get_arq_pool():
@@ -62,36 +39,32 @@ async def get_arq_pool():
     Tests can still directly mutate ``_arq_pool`` for injection.
     """
     global _arq_pool
-    # Fast path: pool is already connected and healthy
-    if _arq_pool is not None:
-        try:
-            await _arq_pool.ping()
-            return _arq_pool
-        except Exception:
-            # Issue #1867 AC1: thread lock protects the reset from thread races
-            with _pool_thread_lock:
-                _arq_pool = None
-
-    # Slow path: asyncio lock for coroutine serialization during creation
-    async with _pool_lock:
+    # Issue #1781 AC5.7: acquire thread lock before asyncio lock to protect
+    # _arq_pool from concurrent access across different event loops or threads
+    # (e.g., lifespan startup vs. colocated ARQ worker).
+    with _pool_thread_lock:
         if _arq_pool is not None:
-            return _arq_pool
-        for attempt in range(1, 4):
             try:
-                from arq import create_pool
-                pool = await create_pool(_get_redis_settings())
-                # Issue #1867 AC1: thread lock protects the global assignment
-                with _pool_thread_lock:
-                    _arq_pool = pool
-                logger.info(f"ARQ connection pool created (attempt {attempt})")
+                await _arq_pool.ping()
                 return _arq_pool
-            except Exception as e:
-                delay = 2 ** attempt
-                logger.warning(f"redis_pool_reconnect attempt={attempt}/3 delay={delay}s error={type(e).__name__}: {e}")
-                if attempt < 3:
-                    await asyncio.sleep(delay)
-        logger.warning("ARQ pool creation failed after all retries")
-        return None
+            except Exception:
+                _arq_pool = None
+        async with _pool_lock:
+            if _arq_pool is not None:
+                return _arq_pool
+            for attempt in range(1, 4):
+                try:
+                    from arq import create_pool
+                    _arq_pool = await create_pool(_get_redis_settings())
+                    logger.info(f"ARQ connection pool created (attempt {attempt})")
+                    return _arq_pool
+                except Exception as e:
+                    delay = 2 ** attempt
+                    logger.warning(f"redis_pool_reconnect attempt={attempt}/3 delay={delay}s error={type(e).__name__}: {e}")
+                    if attempt < 3:
+                        await asyncio.sleep(delay)
+            logger.warning("ARQ pool creation failed after all retries")
+            return None
 
 
 async def close_arq_pool() -> None:
@@ -100,14 +73,15 @@ async def close_arq_pool() -> None:
     Thread-safe: uses threading.Lock for the global variable reset.
     """
     global _arq_pool
-    if _arq_pool is not None:
-        try:
-            await _arq_pool.close()
-        except Exception as e:
-            logger.warning(f"Error closing ARQ pool: {e}")
-        with _pool_thread_lock:
+    # Issue #1781 AC5.7: protect _arq_pool with thread lock
+    with _pool_thread_lock:
+        if _arq_pool is not None:
+            try:
+                await _arq_pool.close()
+            except Exception as e:
+                logger.warning(f"Error closing ARQ pool: {e}")
             _arq_pool = None
-        logger.info("ARQ pool closed")
+            logger.info("ARQ pool closed")
 
 
 async def _check_worker_alive(pool) -> bool:
@@ -166,3 +140,40 @@ async def enqueue_job(function_name: str, *args: Any, _job_id: Optional[str] = N
     except Exception as e:
         logger.warning(f"Failed to enqueue {function_name}: {e}")
         return None
+
+
+# --- Result store / cancel flags / concurrent slots ---
+from jobs.queue.result_store import (  # noqa: F401
+    _CANCEL_KEY_PREFIX, _CANCEL_TTL,
+    _CONCURRENT_SEARCH_KEY_PREFIX, _CONCURRENT_SEARCH_TTL,
+    _PENDING_REVIEW_KEY_PREFIX, _ZERO_MATCH_KEY_PREFIX,
+    set_cancel_flag, check_cancel_flag, clear_cancel_flag,
+    persist_job_result, get_job_result, _update_results_excel_url,
+    acquire_search_slot, release_search_slot,
+    store_pending_review_bids, store_zero_match_results, get_zero_match_results,
+)
+
+# --- Job functions ---
+# Note: cache_refresh_job + cache_warming_job deprecated 2026-04-18
+# (STORY-CIG-BE-cache-warming-deprecate).
+from jobs.queue.jobs import (  # noqa: F401
+    llm_summary_job, excel_generation_job, bid_analysis_job,
+    daily_digest_job, email_alerts_job,
+    reclassify_pending_bids_job, classify_zero_match_job,
+    generate_intel_report,
+)
+from jobs.cron.send_lead_magnet import (  # noqa: F401
+    send_lead_magnet_job,
+    send_lead_magnet_batch_job,
+)
+
+# --- Search job ---
+from jobs.queue.search import (  # noqa: F401
+    search_job, _persist_search_results_to_redis,
+    _persist_search_results_to_supabase, _update_search_session,
+)
+
+# --- Worker config ---
+from jobs.queue.config import (  # noqa: F401
+    _get_redis_settings, _worker_redis_settings, _worker_cron_jobs, _worker_on_startup, WorkerSettings,
+)

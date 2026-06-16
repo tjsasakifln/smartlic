@@ -23,13 +23,6 @@ STORY-227 Track 1: ES256+JWKS support
 - Supports PEM public key via SUPABASE_JWT_SECRET env var
 - Backward compatible: accepts both HS256 and ES256 during transition
 - Key detection order: JWKS endpoint > PEM key > HS256 symmetric secret
-
-#1874: Cookie security audit — Secure, HttpOnly, SameSite em todos os cookies
-- Auth uses Bearer tokens (not cookies), but when auth fails we return
-  cookie-clearing headers so the frontend Supabase SSR session cookies
-  (sb-*-auth-token) are properly cleaned up.
-- The header Set-Cookie with Max-Age=0 + Secure + HttpOnly + SameSite=Strict
-  ensures cookies are cleared and new ones are set with proper flags.
 """
 
 import json
@@ -64,34 +57,6 @@ CACHE_TTL = 60  # L1 in-memory TTL (seconds)
 REDIS_CACHE_TTL = 300  # L2 Redis TTL (5 minutes, shared between workers)
 MAX_CACHE_ENTRIES = 1000  # Max L1 entries (LRU eviction when exceeded)
 _REDIS_KEY_PREFIX = "smartlic:auth:"
-
-# ---------------------------------------------------------------------------
-# #1874: Cookie security — auth error cookie clearing
-# ---------------------------------------------------------------------------
-# The backend uses Bearer tokens (JWT in Authorization header), not cookies.
-# When JWT validation fails, we return Set-Cookie headers to clear stale
-# Supabase SSR session cookies (sb-*-auth-token pattern) so the frontend
-# properly redirects to login without stale session state.
-# ---------------------------------------------------------------------------
-AUTH_COOKIE_CLEAR_HEADER: str = (
-    "sb-auth-token=; Path=/; Max-Age=0; "
-    "Expires=Thu, 01 Jan 1970 00:00:00 GMT; "
-    "Secure; HttpOnly; SameSite=Strict"
-)
-
-
-def get_auth_error_headers() -> dict[str, str]:
-    """Return headers to clear stale auth cookies on JWT failure.
-
-    Used when auth validation fails (expired token, invalid signature,
-    revoked session) to instruct the browser to delete Supabase SSR
-    session cookies. The frontend middleware or browser will then
-    redirect the user to /login without stale auth state.
-
-    Returns:
-        dict with Set-Cookie header for clearing the session cookie.
-    """
-    return {"Set-Cookie": AUTH_COOKIE_CLEAR_HEADER}
 
 
 def _cache_store_memory(token_hash: str, user_data: dict) -> None:
@@ -274,10 +239,7 @@ def _get_jwt_key_and_algorithms(token: str) -> Tuple[Any, list[str]]:
     raise HTTPException(
         status_code=401,
         detail="Autenticação indisponível. Faça login novamente.",
-        headers={
-            "WWW-Authenticate": "Bearer",
-            **get_auth_error_headers(),
-        },
+        headers={"WWW-Authenticate": "Bearer"},
     )
 
 
@@ -454,11 +416,7 @@ async def get_current_user(
             success=False,
             reason=type(e).__name__,  # Only log exception type, not message
         )
-        raise HTTPException(
-            status_code=401,
-            detail="Token invalido ou expirado",
-            headers=get_auth_error_headers(),
-        )
+        raise HTTPException(status_code=401, detail="Token invalido ou expirado")
 
 
 async def require_auth(
@@ -469,7 +427,6 @@ async def require_auth(
         raise HTTPException(
             status_code=401,
             detail="Autenticacao necessaria. Faca login para continuar.",
-            headers=get_auth_error_headers(),
         )
     return user
 

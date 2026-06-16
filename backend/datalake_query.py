@@ -121,22 +121,6 @@ def _record_sentry_truncation(uf: str) -> None:
         pass  # sentry_sdk not available (tests, local dev)
 
 
-# #1866 AC3: Record DB query latency in milliseconds for Prometheus histogram.
-# Graceful degradation — never blocks or raises if metrics module is unavailable.
-def _record_db_query_latency(query_name: str, duration_s: float) -> None:
-    """Observe a database query duration on the smartlic_db_query_duration_ms histogram.
-
-    Args:
-        query_name: Logical name for the query (e.g. ``search_datalake``).
-        duration_s: Wall-clock duration in seconds (converted to ms internally).
-    """
-    try:
-        from metrics import DB_QUERY_DURATION
-        DB_QUERY_DURATION.labels(query_name=query_name).observe(duration_s * 1000.0)
-    except Exception:
-        pass  # Metrics are optional — never block the main flow
-
-
 async def _query_single_day_with_offset(
     sb: Any,
     sb_execute: Any,
@@ -162,11 +146,9 @@ async def _query_single_day_with_offset(
     while offset < max_pages * _POSTGREST_ROW_CAP:
         page_params = {**uf_params, "p_offset": offset, "p_limit": _POSTGREST_ROW_CAP}
         try:
-            _start = time.monotonic()
             result = await sb_execute(
                 sb.rpc("search_datalake", page_params), category="rpc"
             )
-            _record_db_query_latency("search_datalake", time.monotonic() - _start)
             page_rows = result.data or []
         except Exception as e:
             logger.warning(
@@ -238,11 +220,9 @@ async def _query_uf_with_pagination(
     }
 
     try:
-        _start = time.monotonic()
         result = await sb_execute(
             sb.rpc("search_datalake", uf_params), category="rpc"
         )
-        _record_db_query_latency("search_datalake", time.monotonic() - _start)
         uf_rows = result.data or []
     except Exception as e:
         logger.warning(
@@ -396,8 +376,6 @@ async def query_datalake(
         except Exception:
             pass  # Metrics are optional — never block the main flow
 
-        _query_start = time.monotonic()  # #1866: track overall datalake query duration
-
         from supabase_client import get_supabase, sb_execute
         sb = get_supabase()
     except Exception as e:
@@ -471,11 +449,9 @@ async def query_datalake(
                             trigram_term, len(normalized),
                         )
                         _cache_put(_ck, normalized)
-                        _record_db_query_latency("query_datalake_total", time.monotonic() - _query_start)
                         return normalized
 
             logger.warning("[DatalakeQuery] All UF queries returned 0 rows")
-            _record_db_query_latency("query_datalake_total", time.monotonic() - _query_start)
             return []
 
         normalized = [_row_to_normalized(row) for row in rows]
@@ -485,7 +461,6 @@ async def query_datalake(
         # S3-FIX: Cache results before returning
         _cache_put(_ck, normalized)
 
-        _record_db_query_latency("query_datalake_total", time.monotonic() - _query_start)
         return normalized
     finally:
         _SEO_SEMAPHORE.release()
@@ -506,12 +481,10 @@ def _query_trigram_fallback(
     max_retries = 2
     for attempt in range(max_retries + 1):
         try:
-            _start = time.time()
             result = sb.rpc(
                 "search_datalake_trigram_fallback",
                 {"p_query_term": query_term, "p_ufs": ufs, "p_limit": limit},
             ).execute()
-            _record_db_query_latency("search_datalake_trigram_fallback", time.time() - _start)
             return result.data or []
         except Exception as e:
             errmsg = str(e)

@@ -147,7 +147,7 @@ class TestT2WorkerProcesses:
         self, mock_request_data, mock_user, mock_busca_response, mock_tracker,
     ):
         """search_job calls executar_busca_completa and persists result in Redis."""
-        import jobs.queue.search as job_queue
+        import job_queue
 
         # Inside search_job, all these are function-level imports:
         #   from pipeline.worker import executar_busca_completa
@@ -191,7 +191,7 @@ class TestT3SSEDelivery:
         self, mock_request_data, mock_user, mock_busca_response, mock_tracker,
     ):
         """Worker emits search_complete via tracker after pipeline completes."""
-        import jobs.queue.search as job_queue
+        import job_queue
 
         # Same function-level imports inside search_job -- patch at source.
         with patch("pipeline.worker.executar_busca_completa", new_callable=AsyncMock, return_value=mock_busca_response), \
@@ -456,7 +456,7 @@ class TestT7AsyncReturnsImmediately:
                  patch("routes.search.SearchPipeline") as mock_pipeline_cls, \
                  patch("routes.search.remove_tracker", new_callable=AsyncMock), \
                  patch("routes.search.remove_state_machine"), \
-                 patch("jobs.queue.result_store.acquire_search_slot", new_callable=AsyncMock, return_value=True), \
+                 patch("job_queue.acquire_search_slot", new_callable=AsyncMock, return_value=True), \
                  patch("job_queue.is_queue_available", new_callable=AsyncMock, return_value=False), \
                  patch("routes.search._run_async_search", new_callable=AsyncMock):
 
@@ -648,7 +648,7 @@ class TestT10Heartbeat:
         self, mock_request_data, mock_user, mock_busca_response, mock_tracker,
     ):
         """Worker passes tracker to pipeline, enabling heartbeat emission."""
-        import jobs.queue.search as job_queue
+        import job_queue
 
         # Inside search_job, all these are function-level imports -- patch at source.
         with patch("pipeline.worker.executar_busca_completa", new_callable=AsyncMock, return_value=mock_busca_response) as mock_exec, \
@@ -750,11 +750,10 @@ class TestSearchJobInWorkerSettings:
 
     def test_search_job_in_functions(self):
         """search_job must be in WorkerSettings.functions."""
-        from jobs.queue.config import WorkerSettings
-        from jobs.queue.search import search_job
+        from job_queue import WorkerSettings, search_job
         assert search_job in WorkerSettings.functions
 
     def test_job_timeout_sufficient(self):
         """Job timeout must be >=300s for multi-UF searches."""
-        from jobs.queue.config import WorkerSettings
+        from job_queue import WorkerSettings
         assert WorkerSettings.job_timeout >= 300

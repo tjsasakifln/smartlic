@@ -16,6 +16,7 @@ from datetime import datetime, timezone
 from fastapi import HTTPException, Request
 
 from redis_pool import get_redis_pool
+from redis_resilience import safe_redis_call
 
 logger = logging.getLogger(__name__)
 
@@ -68,12 +69,18 @@ class RateLimiter:
     async def _check_redis(self, redis, key: str, limit: int) -> tuple[bool, int]:
         """Check rate limit using shared Redis pool."""
         try:
-            count = await redis.incr(key)
+            count = await safe_redis_call(
+                redis.incr(key), fallback=0, method_name="incr", module="rate_limiter",
+            )
             if count == 1:
-                await redis.expire(key, 60)
+                await safe_redis_call(
+                    redis.expire(key, 60), fallback=True, method_name="expire", module="rate_limiter",
+                )
 
             if count > limit:
-                ttl = await redis.ttl(key)
+                ttl = await safe_redis_call(
+                    redis.ttl(key), fallback=0, method_name="ttl", module="rate_limiter",
+                )
                 return (False, max(1, ttl))
 
             return (True, 0)
@@ -261,14 +268,24 @@ end
         while True:
             try:
                 now = _time.time()
-                result = await redis.eval(
-                    self._BUCKET_SCRIPT,
-                    1,
-                    self._key,
-                    str(self.max_tokens),
-                    str(self.refill_rate),
-                    str(now),
+                result = await safe_redis_call(
+                    redis.eval(
+                        self._BUCKET_SCRIPT,
+                        1,
+                        self._key,
+                        str(self.max_tokens),
+                        str(self.refill_rate),
+                        str(now),
+                    ),
+                    fallback=None,
+                    method_name="eval",
+                    module="rate_limiter",
                 )
+
+                if result is None:
+                    # safe_redis_call returned fallback=None (Redis error) — fail open
+                    logger.debug("Redis rate limiter error (safe_redis_call fallback) — allowing request")
+                    return True
 
                 if int(result) == 1:
                     # Token acquired — track request count for metrics
@@ -304,9 +321,18 @@ end
             }
 
         try:
-            bucket = await redis.hmget(self._key, "tokens", "last_refill")
+            bucket = await safe_redis_call(
+                redis.hmget(self._key, "tokens", "last_refill"),
+                fallback=[None, None],
+                method_name="hmget",
+                module="rate_limiter",
+            )
             tokens = float(bucket[0]) if bucket[0] else float(self.max_tokens)
-            requests = await redis.get(self._requests_key)
+            requests = await safe_redis_call(
+                redis.get(self._requests_key),
+                method_name="get",
+                module="rate_limiter",
+            )
             return {
                 "backend": "redis",
                 "tokens_available": round(tokens, 1),
@@ -374,14 +400,20 @@ class FlexibleRateLimiter:
         Returns (allowed, retry_after_seconds, remaining).
         """
         try:
-            count = await redis.incr(key)
+            count = await safe_redis_call(
+                redis.incr(key), fallback=0, method_name="incr", module="rate_limiter",
+            )
             if count == 1:
-                await redis.expire(key, window_seconds)
+                await safe_redis_call(
+                    redis.expire(key, window_seconds), fallback=True, method_name="expire", module="rate_limiter",
+                )
 
             remaining = max(0, limit - count)
 
             if count > limit:
-                ttl = await redis.ttl(key)
+                ttl = await safe_redis_call(
+                    redis.ttl(key), fallback=0, method_name="ttl", module="rate_limiter",
+                )
                 return (False, max(1, ttl), remaining)
 
             return (True, 0, remaining)

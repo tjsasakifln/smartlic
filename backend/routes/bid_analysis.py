@@ -151,7 +151,7 @@ async def _cache_analysis(key: str, data: dict) -> None:
 async def _get_bid_from_session(search_id: str, bid_id: str) -> dict | None:
     """Try to retrieve bid data from search session cache."""
     try:
-        from jobs.queue.result_store import get_job_result
+        from job_queue import get_job_result
         result = await get_job_result(search_id, "search_result")
         if result and isinstance(result, dict):
             licitacoes = result.get("licitacoes", [])

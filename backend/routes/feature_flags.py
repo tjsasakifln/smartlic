@@ -34,6 +34,7 @@ from config.features import (
     reload_feature_flags,
 )
 from log_sanitizer import log_admin_action
+from redis_resilience import safe_redis_call
 from schemas.parity import ExperimentsListResponse
 
 logger = logging.getLogger(__name__)
@@ -58,7 +59,11 @@ async def _redis_get_override(flag_name: str) -> Optional[bool]:
         from redis_pool import get_redis_pool
         redis = await get_redis_pool()
         if redis:
-            val = await redis.get(f"{_REDIS_PREFIX}{flag_name}")
+            val = await safe_redis_call(
+                redis.get(f"{_REDIS_PREFIX}{flag_name}"),
+                method_name="get",
+                module="feature_flags",
+            )
             if val is not None:
                 return str_to_bool(val)
     except Exception as e:
@@ -72,7 +77,12 @@ async def _redis_set_override(flag_name: str, value: bool) -> bool:
         from redis_pool import get_redis_pool
         redis = await get_redis_pool()
         if redis:
-            await redis.set(f"{_REDIS_PREFIX}{flag_name}", "true" if value else "false")
+            await safe_redis_call(
+                redis.set(f"{_REDIS_PREFIX}{flag_name}", "true" if value else "false"),
+                fallback=True,
+                method_name="set",
+                module="feature_flags",
+            )
             return True
     except Exception as e:
         logger.warning("Redis SET for flag %s failed: %s", flag_name, e)
@@ -85,7 +95,12 @@ async def _redis_delete_override(flag_name: str) -> None:
         from redis_pool import get_redis_pool
         redis = await get_redis_pool()
         if redis:
-            await redis.delete(f"{_REDIS_PREFIX}{flag_name}")
+            await safe_redis_call(
+                redis.delete(f"{_REDIS_PREFIX}{flag_name}"),
+                fallback=0,
+                method_name="delete",
+                module="feature_flags",
+            )
     except Exception:
         pass
 
@@ -101,7 +116,12 @@ async def _redis_get_all_overrides() -> dict[str, bool]:
             async for key in redis.scan_iter(match=f"{_REDIS_PREFIX}*", count=100):
                 keys.append(key)
             if keys:
-                values = await redis.mget(keys)
+                values = await safe_redis_call(
+                    redis.mget(keys),
+                    fallback=[],
+                    method_name="mget",
+                    module="feature_flags",
+                )
                 for key, val in zip(keys, values):
                     flag_name = key.removeprefix(_REDIS_PREFIX)
                     if val is not None:
@@ -122,7 +142,13 @@ async def _redis_clear_all_overrides() -> int:
             async for key in redis.scan_iter(match=f"{_REDIS_PREFIX}*", count=100):
                 keys.append(key)
             if keys:
-                count = await redis.delete(*keys)
+                result = await safe_redis_call(
+                    redis.delete(*keys),
+                    fallback=0,
+                    method_name="delete",
+                    module="feature_flags",
+                )
+                count = int(result) if result else 0
     except Exception as e:
         logger.warning("Redis DELETE all flag overrides failed: %s", e)
     return count
@@ -207,7 +233,6 @@ _FLAG_DESCRIPTIONS: dict[str, str] = {
     "B2G_OPS_ENABLED": "B2G Operations workspace_basic vertical (EPIC-B2GOPS #1262)",
     # Infra
     "METRICS_ENABLED": "Prometheus metrics collection",
-    "IP_RATE_LIMIT_ENABLED": "IP-based rate limiting with Redis sliding window (Issue #1861)",
     "RATE_LIMITING_ENABLED": "Redis token-bucket rate limiting",
     "USER_FEEDBACK_ENABLED": "User feedback collection on search results",
     "USE_REDIS_CIRCUIT_BREAKER": "Redis-backed circuit breaker (vs in-memory)",
@@ -279,7 +304,6 @@ _FLAG_LIFECYCLE: dict[str, dict] = {
     "MESSAGES_ENABLED": {"owner": "product", "category": "gate", "lifecycle": "gate", "created": "2025-12"},
     "PARTNERS_ENABLED": {"owner": "product", "category": "gate", "lifecycle": "gate", "created": "2026-01"},
     # Infra
-    "IP_RATE_LIMIT_ENABLED": {"owner": "infra", "category": "infra", "lifecycle": "permanent", "created": "2026-06"},
     "METRICS_ENABLED": {"owner": "infra", "category": "infra", "lifecycle": "permanent", "created": "2025-11"},
     "RATE_LIMITING_ENABLED": {"owner": "infra", "category": "infra", "lifecycle": "permanent", "created": "2025-11"},
     "USER_FEEDBACK_ENABLED": {"owner": "product", "category": "infra", "lifecycle": "permanent", "created": "2025-12"},
