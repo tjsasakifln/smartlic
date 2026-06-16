@@ -1549,7 +1549,6 @@ DATA_PURGE_DURATION = _create_histogram(
     "GAP-005: Duration of data retention purge cycle",
     buckets=[1, 5, 10, 30, 60, 120, 300],
 )
-)
 
 
 # ============================================================================
