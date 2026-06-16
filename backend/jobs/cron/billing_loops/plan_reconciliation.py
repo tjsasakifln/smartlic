@@ -63,7 +63,7 @@ class PlanReconciliationLoop(BaseCronLoop):
                     drift_details.append({"user_id": user_id[:8] + "...", "profile_plan": plan_type, "sub_plan": None, "direction": "orphan_profile"})
                     PLAN_RECONCILIATION_DRIFT.labels(direction="orphan_profile").inc()
                     try:
-                        await sb_execute(sb.table("profiles").update({"plan_type": "free_trial"}).eq("id", user_id), category="write")
+                        await sb_execute(sb.table("profiles").update({"plan_type": "free_trial"}).eq("id", user_id))
                         auto_healed += 1
                         PLAN_RECONCILIATION_AUTO_HEALED.labels(direction="orphan_profile").inc()
                     except Exception as heal_err:
@@ -72,7 +72,7 @@ class PlanReconciliationLoop(BaseCronLoop):
                 drift_details.append({"user_id": user_id[:8] + "...", "profile_plan": plan_type, "sub_plan": sub_plan, "direction": "profiles_stale"})
                 PLAN_RECONCILIATION_DRIFT.labels(direction="profiles_stale").inc()
                 try:
-                    await sb_execute(sb.table("profiles").update({"plan_type": sub_plan}).eq("id", user_id), category="write")
+                    await sb_execute(sb.table("profiles").update({"plan_type": sub_plan}).eq("id", user_id))
                     auto_healed += 1
                     PLAN_RECONCILIATION_AUTO_HEALED.labels(direction="profiles_stale").inc()
                 except Exception as heal_err:
