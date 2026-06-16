@@ -28,7 +28,7 @@ class TestHTMLErrorResponse:
         mock_error_response = Mock()
         mock_error_response.status = 302
         mock_error_response.reason = "Found"
-        html_body = b'<!DOCTYPE html><html><body>Redirecting to login...</body></html>'
+        html_body = b"<!DOCTYPE html><html><body>Redirecting to login...</body></html>"
         http_error = HttpError(resp=mock_error_response, content=html_body)
 
         mock_spreadsheets.create.return_value.execute.side_effect = http_error
@@ -38,8 +38,7 @@ class TestHTMLErrorResponse:
 
             with pytest.raises(HTTPException) as exc_info:
                 await exporter.create_spreadsheet(
-                    licitacoes=[{"codigoUnidadeCompradora": "123"}],
-                    title="Test"
+                    licitacoes=[{"codigoUnidadeCompradora": "123"}], title="Test"
                 )
 
             # Should raise 401 (token expired) instead of 500 (parsing error)
@@ -58,7 +57,7 @@ class TestHTMLErrorResponse:
         mock_error_response = Mock()
         mock_error_response.status = 500
         mock_error_response.reason = "Internal Server Error"
-        html_body = b'<!DOCTYPE html><html><body><h1>Error 500</h1></body></html>'
+        html_body = b"<!DOCTYPE html><html><body><h1>Error 500</h1></body></html>"
         http_error = HttpError(resp=mock_error_response, content=html_body)
 
         mock_spreadsheets.create.return_value.execute.side_effect = http_error
@@ -68,8 +67,7 @@ class TestHTMLErrorResponse:
 
             with pytest.raises(HTTPException) as exc_info:
                 await exporter.create_spreadsheet(
-                    licitacoes=[{"codigoUnidadeCompradora": "123"}],
-                    title="Test"
+                    licitacoes=[{"codigoUnidadeCompradora": "123"}], title="Test"
                 )
 
             # Should raise 500 with user-friendly message
@@ -89,7 +87,7 @@ class TestHTMLErrorResponse:
         mock_error_response = Mock()
         mock_error_response.status = 429
         mock_error_response.reason = "Too Many Requests"
-        html_body = b'<!DOCTYPE html><html><body>Rate limit exceeded</body></html>'
+        html_body = b"<!DOCTYPE html><html><body>Rate limit exceeded</body></html>"
         http_error = HttpError(resp=mock_error_response, content=html_body)
 
         mock_spreadsheets.create.return_value.execute.side_effect = http_error
@@ -99,13 +97,15 @@ class TestHTMLErrorResponse:
 
             with pytest.raises(HTTPException) as exc_info:
                 await exporter.create_spreadsheet(
-                    licitacoes=[{"codigoUnidadeCompradora": "123"}],
-                    title="Test"
+                    licitacoes=[{"codigoUnidadeCompradora": "123"}], title="Test"
                 )
 
             # Should raise 429 with rate limit message
             assert exc_info.value.status_code == 429
-            assert "limite" in exc_info.value.detail.lower() or "rate" in exc_info.value.detail.lower()
+            assert (
+                "limite" in exc_info.value.detail.lower()
+                or "rate" in exc_info.value.detail.lower()
+            )
 
 
 class TestTokenRefreshWithHTMLError:
@@ -120,13 +120,14 @@ class TestTokenRefreshWithHTMLError:
 
         # Token is expired
         from datetime import datetime, timezone, timedelta
+
         expires_at = datetime.now(timezone.utc) - timedelta(minutes=1)
 
         mock_token_data = {
             "access_token": "encrypted_old_token",
             "refresh_token": "encrypted_refresh_token",
             "expires_at": expires_at.isoformat(),
-            "scope": "https://www.googleapis.com/auth/spreadsheets"
+            "scope": "https://www.googleapis.com/auth/spreadsheets",
         }
 
         # Mock Supabase chain: table().select().eq().eq().limit().execute()
@@ -135,14 +136,18 @@ class TestTokenRefreshWithHTMLError:
         mock_supabase.table.return_value.select.return_value.eq.return_value.eq.return_value.limit.return_value = mock_chain
 
         # Mock HTTP client as async context manager
-        mock_response = Mock(status_code=401, text='<!DOCTYPE html><html><body>Error</body></html>')
+        mock_response = Mock(
+            status_code=401, text="<!DOCTYPE html><html><body>Error</body></html>"
+        )
         mock_http_client = AsyncMock()
         mock_http_client.__aenter__.return_value = mock_http_client
         mock_http_client.__aexit__.return_value = None
         mock_http_client.post.return_value = mock_response
 
         with patch("oauth.get_supabase", return_value=mock_supabase):
-            with patch("oauth.decrypt_aes256", side_effect=["old_token", "refresh_token"]):
+            with patch(
+                "oauth.decrypt_aes256", side_effect=["old_token", "refresh_token"]
+            ):
                 with patch("oauth.httpx.AsyncClient", return_value=mock_http_client):
                     # Should raise HTTPException 401 (refresh_google_token raises on non-200)
                     with pytest.raises(HTTPException) as exc_info:
@@ -154,7 +159,9 @@ class TestExportEndpointHTMLError:
     """Test suite for export endpoint handling HTML errors."""
 
     @pytest.mark.asyncio
-    async def test_export_endpoint_returns_json_on_google_html_error(self, mock_supabase):
+    async def test_export_endpoint_returns_json_on_google_html_error(
+        self, mock_supabase
+    ):
         """Export endpoint should always return JSON, even when Google returns HTML."""
         from fastapi.testclient import TestClient
         from fastapi import FastAPI
@@ -165,30 +172,37 @@ class TestExportEndpointHTMLError:
 
         # Mock authentication
         from auth import require_auth
+
         app.dependency_overrides[require_auth] = lambda: {"id": "user-123"}
 
         client = TestClient(app)
 
         mock_licitacoes = [{"codigoUnidadeCompradora": "123"}]
 
-        with patch("routes.export_sheets.get_user_google_token", new_callable=AsyncMock) as mock_get_token:
+        with patch(
+            "routes.export_sheets.get_user_google_token", new_callable=AsyncMock
+        ) as mock_get_token:
             mock_get_token.return_value = "access_token"
 
-            with patch("routes.export_sheets.GoogleSheetsExporter") as mock_exporter_class:
+            with patch(
+                "routes.export_sheets.GoogleSheetsExporter"
+            ) as mock_exporter_class:
                 # Simulate Google API returning HTML error
                 from googleapiclient.errors import HttpError
+
                 mock_error_response = Mock()
                 mock_error_response.status = 500
                 HttpError(
                     resp=mock_error_response,
-                    content=b'<!DOCTYPE html><html>Error</html>'
+                    content=b"<!DOCTYPE html><html>Error</html>",
                 )
 
                 mock_exporter = Mock()
-                mock_exporter.create_spreadsheet = AsyncMock(side_effect=HTTPException(
-                    status_code=500,
-                    detail="Erro ao exportar para Google Sheets"
-                ))
+                mock_exporter.create_spreadsheet = AsyncMock(
+                    side_effect=HTTPException(
+                        status_code=500, detail="Erro ao exportar para Google Sheets"
+                    )
+                )
                 mock_exporter_class.return_value = mock_exporter
 
                 response = client.post(
@@ -196,8 +210,8 @@ class TestExportEndpointHTMLError:
                     json={
                         "licitacoes": mock_licitacoes,
                         "title": "Test",
-                        "mode": "create"
-                    }
+                        "mode": "create",
+                    },
                 )
 
                 # CRITICAL: Response must be JSON, not HTML

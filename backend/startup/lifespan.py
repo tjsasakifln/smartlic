@@ -385,6 +385,7 @@ async def lifespan(app_instance: FastAPI):
         start_cron_monitor_task,       # STORY-1.1 TD-DB-040
         start_lead_magnet_batch_task,  # LEAD-MAGNET-001: lead magnet PDF delivery
         start_api_metered_billing_task,  # API-SELF-004
+        start_data_retention_task,       # GAP-005 (#1877): data retention purge orchestrator
     )
     from progress import _periodic_tracker_cleanup
 
@@ -400,6 +401,7 @@ async def lifespan(app_instance: FastAPI):
     task_registry.register("results_cleanup", start_results_cleanup_task)
     task_registry.register("stripe_purge", start_stripe_events_purge_task)
     task_registry.register("plan_reconciliation", start_plan_reconciliation_task)
+    task_registry.register("data_retention", start_data_retention_task)
     task_registry.register("tracker_cleanup", _periodic_tracker_cleanup, is_coroutine=True)
     task_registry.register("saturation_metrics", _periodic_saturation_metrics, is_coroutine=True)
     task_registry.register("trial_risk", start_trial_risk_task)
