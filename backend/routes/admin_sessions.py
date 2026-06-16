@@ -85,7 +85,7 @@ async def revoke_user_sessions(
     Admin-only. Sets a Redis blacklist key with 24h TTL.
     Auth middleware checks this key on every request.
     """
-    require_admin(user)
+    await require_admin(user)
 
     admin_id = user["id"]
 
@@ -129,7 +129,7 @@ async def revoke_all_sessions(
     Sets a global timestamp in Redis. All tokens issued before this
     timestamp are invalidated in the auth middleware.
     """
-    require_admin(user)
+    await require_admin(user)
     if not await has_master_access(user["id"]):
         raise HTTPException(status_code=403, detail="Apenas master pode revogar todas as sessoes")
 
