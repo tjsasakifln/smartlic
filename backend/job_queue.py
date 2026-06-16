@@ -7,11 +7,9 @@ from __future__ import annotations
 
 import asyncio
 import logging
-import os
 import threading
 import time
 from typing import Any, Optional
-from urllib.parse import urlparse
 
 logger = logging.getLogger(__name__)
 
@@ -34,22 +32,6 @@ _pool_lock = asyncio.Lock()
 _pool_thread_lock = threading.Lock()
 _worker_alive_cache: tuple[float, bool] = (0.0, False)
 _WORKER_CHECK_INTERVAL = 15
-
-
-def _get_redis_settings():
-    from arq.connections import RedisSettings
-    redis_url = os.getenv("REDIS_URL", "")
-    if not redis_url:
-        raise ValueError("REDIS_URL not set — ARQ worker cannot start without Redis")
-    parsed = urlparse(redis_url)
-    ssl = parsed.scheme == "rediss"
-    return RedisSettings(
-        host=parsed.hostname or "localhost", port=parsed.port or 6379,
-        password=parsed.password, database=int(parsed.path.lstrip("/") or 0),
-        conn_timeout=10, conn_retries=5, conn_retry_delay=2.0, ssl=ssl,
-        retry_on_timeout=True, retry_on_error=[TimeoutError, ConnectionError, OSError],
-        max_connections=50,
-    )
 
 
 async def get_arq_pool():
@@ -199,5 +181,5 @@ from jobs.queue.search import (  # noqa: F401
 
 # --- Worker config ---
 from jobs.queue.config import (  # noqa: F401
-    _worker_redis_settings, _worker_cron_jobs, _worker_on_startup, WorkerSettings,
+    _get_redis_settings, _worker_redis_settings, _worker_cron_jobs, _worker_on_startup, WorkerSettings,
 )

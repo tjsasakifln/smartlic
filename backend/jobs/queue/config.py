@@ -1,5 +1,7 @@
 """jobs.queue.config — ARQ WorkerSettings and cron job configuration."""
 import logging
+import os
+from urllib.parse import urlparse
 
 logger = logging.getLogger(__name__)
 
@@ -11,9 +13,31 @@ arq_log_config = {
     "root": {"level": "INFO", "handlers": ["stdout"]},
 }
 
+
+def _get_redis_settings():
+    """Build ARQ RedisSettings from REDIS_URL env var.
+
+    Moved here from job_queue.py (was line 32) to break circular import:
+    job_queue → jobs.queue.config → job_queue. Now jobs.queue.config
+    defines the function and job_queue imports it.
+    """
+    from arq.connections import RedisSettings
+    redis_url = os.getenv("REDIS_URL", "")
+    if not redis_url:
+        raise ValueError("REDIS_URL not set — ARQ worker cannot start without Redis")
+    parsed = urlparse(redis_url)
+    ssl = parsed.scheme == "rediss"
+    return RedisSettings(
+        host=parsed.hostname or "localhost", port=parsed.port or 6379,
+        password=parsed.password, database=int(parsed.path.lstrip("/") or 0),
+        conn_timeout=10, conn_retries=5, conn_retry_delay=2.0, ssl=ssl,
+        retry_on_timeout=True, retry_on_error=[TimeoutError, ConnectionError, OSError],
+        max_connections=50,
+    )
+
+
 # Build worker Redis settings at module level
 try:
-    from job_queue import _get_redis_settings
     _worker_redis_settings = _get_redis_settings()
 except Exception:
     _worker_redis_settings = None
