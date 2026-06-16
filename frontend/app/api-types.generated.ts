@@ -282,6 +282,54 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/openapi.json": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Public Openapi
+         * @description Return filtered public OpenAPI 3.1 schema.
+         *
+         *     Excludes admin routes (/v1/admin/*) and sanitizes examples
+         *     to prevent leaking real user data.
+         *
+         *     Cache-Control: public, max-age=3600 (schema changes only on deploy).
+         */
+        get: operations["get_public_openapi_api_openapi_json_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/openapi.json": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Public Openapi V1
+         * @description Versioned alias: /api/v1/openapi.json.
+         *
+         *     Same schema as /api/openapi.json, provided for API versioning
+         *     consistency.
+         */
+        get: operations["get_public_openapi_v1_api_v1_openapi_json_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/debug/pncp-test": {
         parameters: {
             query?: never;
@@ -17132,6 +17180,46 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_public_openapi_api_openapi_json_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+        };
+    };
+    get_public_openapi_v1_api_v1_openapi_json_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
                 };
             };
         };
