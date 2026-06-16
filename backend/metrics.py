@@ -1000,6 +1000,13 @@ REDIS_FALLBACK_DURATION = _create_gauge(
     "Seconds since Redis entered fallback mode (0 when connected)",
 )
 
+# #1881: Per-operation Redis fallback counter
+REDIS_FALLBACK_TOTAL = _create_counter(
+    "smartlic_redis_fallback_total",
+    "Total Redis fallback operations by module, method, and reason",
+    labelnames=["module", "method", "reason"],
+)
+
 # STORY-353 AC5: Support SLA metrics
 SUPPORT_PENDING_MESSAGES = _create_gauge(
     "smartlic_support_pending_messages",

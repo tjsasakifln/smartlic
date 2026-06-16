@@ -334,6 +334,10 @@ async def buscar_progress_stream(
 
                     try:
                         # Non-blocking XREAD — returns immediately with data or empty
+                        # #1881: Wrapped with safe_redis_call for resilience.
+                        # On failure returns [] -> treated as "no new data" below.
+                        # NOTE: NOT wrapped with safe_redis_call because the SSE handler
+                        # depends on exception propagation for its error handling.
                         result = await _redis.xread(
                             {_stream_key: _last_id},
                             count=100,
