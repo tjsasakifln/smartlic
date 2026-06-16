@@ -97,5 +97,6 @@ class PlanReconciliationLoop(BaseCronLoop):
             "status": "completed", "total_profiles": len(profiles),
             "total_active_subs": len(subs), "drift_count": len(drift_details),
             "auto_healed": auto_healed,
+            "drift_details": drift_details[:20],
             "checked_at": datetime.now(timezone.utc).isoformat(),
         }
