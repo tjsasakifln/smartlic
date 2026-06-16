@@ -125,7 +125,7 @@ async def test_purge_logs_deleted_count(mock_supabase, caplog):
         result = await purge_old_stripe_events()
 
     assert result["deleted"] == 3
-    assert any("Purged 3 Stripe webhook events" in msg for msg in caplog.messages)
+    assert any("HARDEN-028: Purged 3 Stripe webhook events older than" in msg for msg in caplog.messages)
 
 
 @pytest.mark.asyncio
