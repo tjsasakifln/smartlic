@@ -142,6 +142,10 @@ async def enqueue_job(function_name: str, *args: Any, _job_id: Optional[str] = N
         return None
 
 
+# --- Worker config (lazy import inside get_arq_pool to break circular chain) ---
+# Symbols are imported on-demand in functions that need them.
+# Re-exports for consumer modules happen via the lazy import pattern below.
+
 # --- Result store / cancel flags / concurrent slots ---
 from jobs.queue.result_store import (  # noqa: F401
     _CANCEL_KEY_PREFIX, _CANCEL_TTL,
@@ -173,7 +177,8 @@ from jobs.queue.search import (  # noqa: F401
     _persist_search_results_to_supabase, _update_search_session,
 )
 
-# --- Worker config ---
+# Re-export config symbols AFTER all other imports to break circular chain:
+# job_queue → jobs.queue.config → jobs.queue.__init__ → jobs.queue.pool → job_queue
 from jobs.queue.config import (  # noqa: F401
     _get_redis_settings, _worker_redis_settings, _worker_cron_jobs, _worker_on_startup, WorkerSettings,
 )
