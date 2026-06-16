@@ -282,7 +282,12 @@ end
                     module="rate_limiter",
                 )
 
-                if result is not None and int(result) == 1:
+                if result is None:
+                    # safe_redis_call returned fallback=None (Redis error) — fail open
+                    logger.debug("Redis rate limiter error (safe_redis_call fallback) — allowing request")
+                    return True
+
+                if int(result) == 1:
                     # Token acquired — track request count for metrics
                     try:
                         pipe = redis.pipeline()
