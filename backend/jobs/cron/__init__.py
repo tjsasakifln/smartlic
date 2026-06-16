@@ -1,7 +1,7 @@
 """jobs.cron — Cron task package. Re-exports all public and private symbols."""
 from jobs.cron.canary import *  # noqa: F401,F403
 from jobs.cron.canary import (  # noqa: F401
-    _update_pncp_cron_status, _is_cb_or_connection_error, _health_canary_loop,
+    _update_is_cb_or_connection_error, _health_canary_loop,
 )
 from jobs.cron.session_cleanup import *  # noqa: F401,F403
 from jobs.cron.session_cleanup import (  # noqa: F401
