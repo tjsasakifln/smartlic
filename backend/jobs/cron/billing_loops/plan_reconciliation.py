@@ -34,6 +34,8 @@ class PlanReconciliationLoop(BaseCronLoop):
     error_retry_seconds = 300.0
 
     async def run_once(self) -> dict:
+        from metrics import PLAN_RECONCILIATION_RUNS
+        PLAN_RECONCILIATION_RUNS.inc()
         locked = await self._acquire_lock()
         if not locked:
             logger.info("DEBT-010: Plan reconciliation skipped — lock held")
@@ -45,9 +47,8 @@ class PlanReconciliationLoop(BaseCronLoop):
 
     async def _run_reconciliation(self) -> dict:
         from supabase_client import get_supabase, sb_execute, sb_execute_direct
-        from metrics import PLAN_RECONCILIATION_RUNS, PLAN_RECONCILIATION_DRIFT, PLAN_RECONCILIATION_AUTO_HEALED, DB_TABLE_SIZE_BYTES
+        from metrics import PLAN_RECONCILIATION_DRIFT, PLAN_RECONCILIATION_AUTO_HEALED, DB_TABLE_SIZE_BYTES
 
-        PLAN_RECONCILIATION_RUNS.inc()
         sb = get_supabase()
         profiles_result = await sb_execute(sb.table("profiles").select("id, plan_type"))
         profiles = {p["id"]: p["plan_type"] for p in (profiles_result.data or [])}
