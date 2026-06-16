@@ -75,9 +75,10 @@ export const test = base.extend<AxeFixtures>({
       }
       // Known pre-existing violations disabled pending design-system fix.
       // See axe-config.ts DEFAULT_DISABLED_RULES for rationale and tracking.
-      for (const rule of DEFAULT_DISABLED_RULES) {
-        axe.disableRules([rule]);
-      }
+      // NOTE: disableRules must be called ONCE with all rules — the
+      // implementation resets this.option.rules on each invocation,
+      // so calling it in a loop would only keep the last rule.
+      axe.disableRules([...DEFAULT_DISABLED_RULES]);
       return axe;
     };
     await use(builder);
