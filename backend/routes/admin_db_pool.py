@@ -14,14 +14,13 @@ import logging
 from fastapi import APIRouter, Depends, HTTPException
 
 from admin import require_admin
-from schemas.admin import DbPoolStatusResponse
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/v1/admin", tags=["admin", "db-pool"])
 
 
-@router.get("/db-pool", response_model=DbPoolStatusResponse)
+@router.get("/db-pool")
 async def get_db_pool_status(
     admin: dict = Depends(require_admin),
 ) -> dict:

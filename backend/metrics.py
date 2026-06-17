@@ -652,6 +652,12 @@ SUPABASE_POOL_ACTIVE = _create_gauge(
     "Number of currently active Supabase connections (via sb_execute)",
 )
 
+# Issue #1916: DB pool utilization ratio 0-1 (active / max_connections)
+DB_POOL_UTILIZATION = _create_gauge(
+    "smartlic_db_pool_utilization",
+    "DB pool utilization ratio (0-1, active / max_connections)",
+)
+
 # #1817: Connection pool idle estimate (max - active)
 SUPABASE_POOL_IDLE = _create_gauge(
     "smartlic_supabase_pool_idle_connections",

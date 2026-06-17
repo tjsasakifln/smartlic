@@ -31,11 +31,11 @@ _LOCK_KEY = "lock:db_pool_monitor"
 _LOCK_TTL = 600  # 10 minutes
 
 
-async def _db_pool_monitor_loop() -> None:
-    """Background loop: scrape pool metrics, update gauges, alert on threshold.
+async def start_db_pool_monitor_task() -> None:
+    """Register the ARQ cron task for hourly pool monitoring.
 
-    Runs at the configured interval (default 3600s) with a distributed Redis
-    lock to prevent duplicate work across workers.
+    Returns an ARQ cron-ready wrapper ``async def`` that acquires a
+    distributed Redis lock before running the monitor.
     """
     interval = int(os.getenv("DB_POOL_MONITOR_INTERVAL_S", str(_DEFAULT_INTERVAL_S)))
     if interval <= 0:
@@ -90,17 +90,3 @@ async def _db_pool_monitor_loop() -> None:
             except Exception:
                 pass
 
-
-async def start_db_pool_monitor_task() -> asyncio.Task:
-    """Register the ARQ cron task for hourly pool monitoring.
-
-    Creates a background ``asyncio.Task`` that acquires a distributed Redis
-    lock before each monitor run.  Follows the same pattern as all other
-    ``start_*_task`` factories in the codebase — returns the Task immediately.
-    """
-    task = asyncio.create_task(
-        _db_pool_monitor_loop(),
-        name="db_pool_monitor",
-    )
-    logger.info("Issue #1916: DB pool monitor task created")
-    return task
