@@ -242,6 +242,8 @@ _FLAG_DESCRIPTIONS: dict[str, str] = {
     "VIABILITY_DEFAULT_SORT": "A/B test: default sort order (VIAB-UX-005a)",
     # Schema Contract (STORY-414)
     "SCHEMA_CONTRACT_STRICT": "Strict schema contract validation for external responses (STORY-414)",
+    # MFA Enforcement (#1882)
+    "MFA_ENFORCEMENT_ENABLED": "Global kill switch for MFA enforcement policy — requires MFA for all authenticated users (#1882)",
     # Datalake Search Improvements
     "EMBEDDING_ENABLED": "Semantic embedding search for datalake (STORY-438)",
     # Founders Offer
@@ -314,6 +316,8 @@ _FLAG_LIFECYCLE: dict[str, dict] = {
     "VIABILITY_DEFAULT_SORT": {"owner": "search", "category": "experimental", "lifecycle": "experimental", "created": "2026-06"},
     # STORY-414: Schema contract gate
     "SCHEMA_CONTRACT_STRICT": {"owner": "data", "category": "validation", "lifecycle": "experimental", "created": "2026-03"},
+    # #1882: MFA Enforcement Policy
+    "MFA_ENFORCEMENT_ENABLED": {"owner": "security", "category": "auth", "lifecycle": "permanent", "created": "2026-06"},
     # STORY-437: Datalake search improvements
     # STORY-438: Semantic embeddings
     "EMBEDDING_ENABLED": {"owner": "search", "category": "search", "lifecycle": "experimental", "created": "2026-03"},
