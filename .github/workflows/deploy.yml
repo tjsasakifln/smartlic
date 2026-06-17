@@ -364,23 +364,34 @@ jobs:
       !(needs.deploy-backend.result == 'skipped' && needs.deploy-frontend.result == 'skipped')
 
     steps:
-      - name: Backend API smoke test
-        if: needs.deploy-backend.result == 'success'
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Run smoke test script (#1971)
+        id: smoke_script
+        if: needs.deploy-backend.result == 'success' || needs.deploy-frontend.result == 'success'
         env:
-          BACKEND_URL: ${{ vars.BACKEND_URL }}
+          SMOKE_TEST_API_URL: ${{ vars.BACKEND_URL }}
+          SMOKE_TEST_FRONTEND_URL: ${{ vars.FRONTEND_URL }}
         run: |
-          echo "=== Backend Smoke Tests ==="
+          echo "=== Smoke Test Script (#1971) ==="
+          echo "Attempt 1/2..."
+          if bash ./scripts/smoke-test.sh; then
+            echo "::notice::Smoke test script passed on attempt 1"
+            exit 0
+          fi
 
-          echo "1. Health check..."
-          curl -sfL "${BACKEND_URL}/health" | python3 -m json.tool
+          echo "::warning::Smoke test script failed on attempt 1. Waiting 30s before retry..."
+          sleep 30
 
-          echo "2. Root endpoint..."
-          curl -sfL "${BACKEND_URL}/" | python3 -m json.tool
+          echo "Attempt 2/2..."
+          if bash ./scripts/smoke-test.sh; then
+            echo "::notice::Smoke test script passed on attempt 2 (retry)"
+            exit 0
+          fi
 
-          echo "3. OpenAPI docs accessible..."
-          curl -sfL -o /dev/null -w "%{http_code}" "${BACKEND_URL}/docs" | grep -q 200
-
-          echo "All backend smoke tests passed"
+          echo "::error::Smoke test script failed after 2 attempts. Deploy may be DEGRADED."
+          exit 1
 
       - name: POST endpoint smoke test (CRIT-080)
         if: needs.deploy-backend.result == 'success'
@@ -402,25 +413,6 @@ jobs:
           fi
 
           echo "POST smoke test passed (HTTP $HTTP_CODE)"
-
-      - name: Frontend smoke test
-        if: needs.deploy-frontend.result == 'success'
-        env:
-          FRONTEND_URL: ${{ vars.FRONTEND_URL }}
-        run: |
-          echo "=== Frontend Smoke Tests ==="
-
-          echo "1. Page loads..."
-          STATUS=$(curl -sfL -o /dev/null -w "%{http_code}" "${FRONTEND_URL}")
-          if [ "$STATUS" != "200" ]; then
-            echo "Frontend returned $STATUS"
-            exit 1
-          fi
-
-          echo "2. Contains expected content..."
-          curl -sfL "${FRONTEND_URL}" | grep -q "SmartLic"
-
-          echo "All frontend smoke tests passed"
 
       - name: Integration smoke test
         if: needs.deploy-backend.result == 'success' && needs.deploy-frontend.result == 'success'
