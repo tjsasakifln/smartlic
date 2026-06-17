@@ -9,7 +9,7 @@ from fastapi.testclient import TestClient
 from fastapi import FastAPI
 
 from auth import require_auth
-from admin import require_admin
+from admin import require_admin_data
 from routes.messages import router
 
 
@@ -40,7 +40,7 @@ def _create_client(user=None, admin_user=None):
     app.include_router(router)
     app.dependency_overrides[require_auth] = lambda: (user or MOCK_USER)
     if admin_user is not None:
-        app.dependency_overrides[require_admin] = lambda: admin_user
+        app.dependency_overrides[require_admin_data] = lambda: admin_user
     return TestClient(app)
 
 
@@ -431,7 +431,7 @@ class TestUpdateConversationStatus:
             from fastapi import HTTPException
             raise HTTPException(status_code=403, detail="Acesso restrito a administradores")
 
-        app.dependency_overrides[require_admin] = reject_admin
+        app.dependency_overrides[require_admin_data] = reject_admin
         client = TestClient(app)
 
         resp = client.patch(f"/api/messages/conversations/{CONV_ID}/status", json={

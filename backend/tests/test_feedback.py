@@ -18,7 +18,7 @@ from fastapi.testclient import TestClient
 
 from main import app
 from auth import require_auth
-from admin import require_admin
+from admin import require_admin_data
 
 
 # --- Fixtures ---
@@ -44,11 +44,11 @@ def client_as_user(test_user):
 @pytest.fixture
 def client_as_admin(admin_user):
     app.dependency_overrides[require_auth] = lambda: admin_user
-    app.dependency_overrides[require_admin] = lambda: admin_user
+    app.dependency_overrides[require_admin_data] = lambda: admin_user
     client = TestClient(app)
     yield client
     app.dependency_overrides.pop(require_auth, None)
-    app.dependency_overrides.pop(require_admin, None)
+    app.dependency_overrides.pop(require_admin_data, None)
 
 
 @pytest.fixture

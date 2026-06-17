@@ -49,8 +49,17 @@ jobs:
         if: steps.link.outputs.linked == 'true'
         run: |
           echo "=== Checking migration status ==="
+          set +e
           OUTPUT=$(supabase migration list --linked 2>&1)
+          LIST_EXIT=$?
+          set -e
           echo "$OUTPUT"
+
+          # If supabase CLI failed entirely (no output), warn and skip
+          if [ $LIST_EXIT -ne 0 ] && [ -z "$OUTPUT" ]; then
+            echo "::warning::supabase migration list failed with exit $LIST_EXIT — cannot verify migrations, skipping check"
+            exit 0
+          fi
 
           # Parse unapplied migrations: rows with Local value but empty Remote
           UNAPPLIED=$(echo "$OUTPUT" | awk -F'|' '

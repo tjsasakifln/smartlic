@@ -340,7 +340,7 @@ class TestAdminEndpointValidation:
     def admin_app_with_overrides(self, mock_admin_user):
         """Create FastAPI app with admin router and dependency overrides."""
         from fastapi import FastAPI
-        from admin import router, require_admin
+        from admin import router, require_admin_users
         from authorization import (
             require_data_access,
             require_user_manager,
@@ -361,7 +361,7 @@ class TestAdminEndpointValidation:
         app.dependency_overrides[require_user_manager] = mock_admin
         app.dependency_overrides[require_billing] = mock_admin
         app.dependency_overrides[require_dashboard] = mock_admin
-        app.dependency_overrides[require_admin] = mock_admin
+        app.dependency_overrides[require_admin_users] = mock_admin
         return app
 
     @pytest.fixture

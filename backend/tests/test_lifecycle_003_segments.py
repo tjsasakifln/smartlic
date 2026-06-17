@@ -32,7 +32,8 @@ class TestUserLifecycleClassification:
     def admin_app_with_overrides(self, mock_admin_user):
         """Create FastAPI app with admin router and auth override."""
         from fastapi import FastAPI
-        from admin import router, require_admin
+        from admin import router, require_admin_data
+        from auth import require_auth
         from authorization import require_data_access
 
         app = FastAPI()
@@ -41,7 +42,8 @@ class TestUserLifecycleClassification:
         async def mock_require_admin():
             return mock_admin_user
 
-        app.dependency_overrides[require_admin] = mock_require_admin
+        app.dependency_overrides[require_auth] = mock_require_admin
+        app.dependency_overrides[require_admin_data] = mock_require_admin
         app.dependency_overrides[require_data_access] = mock_require_admin
         return app
 
