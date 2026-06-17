@@ -21152,7 +21152,7 @@
   "info": {
     "description": "API para busca e analise de licitacoes em fontes oficiais brasileiras.\n\n## Data Sources\n- **PNCP** (Portal Nacional de Contratacoes Publicas) - primary\n- **PCP v2** (Portal de Compras Publicas) - secondary\n- **ComprasGov v3** (Dados Abertos de Compras Governamentais) - tertiary\n\n## Authentication\nAll endpoints require a Supabase JWT Bearer token unless noted otherwise.\n\n## Contact\nCONFENGE Avaliacoes e Inteligencia Artificial LTDA\n- Website: https://smartlic.tech\n- Email: suporte@smartlic.tech",
     "title": "SmartLic API",
-    "version": "dev"
+    "version": "v1"
   },
   "openapi": "3.1.0",
   "paths": {
