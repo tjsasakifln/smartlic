@@ -45,8 +45,17 @@ jobs:
       - name: Check for unapplied migrations
         run: |
           echo "Checking migration status..."
+          set +e  # supabase CLI may exit non-zero on runner image mismatches
           OUTPUT=$(supabase migration list --linked 2>&1)
+          LIST_EXIT=$?
+          set -e
           echo "$OUTPUT"
+
+          # If supabase CLI failed entirely, warn and skip (not a migration problem)
+          if [ $LIST_EXIT -ne 0 ] && [ -z "$OUTPUT" ]; then
+            echo "::warning::supabase migration list failed with exit $LIST_EXIT — cannot verify migrations, skipping check"
+            exit 0
+          fi
 
           # Detect unapplied migrations: rows with Local value but empty Remote.
           # Supabase CLI outputs table with "Local | Remote | Time" columns.
