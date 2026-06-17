@@ -315,7 +315,7 @@ def _parse_structured_response(
         data = json.loads(raw_content.strip())
         classification = LLMClassification.model_validate(data)
 
-        from filter import normalize_text as _normalize
+        from utils import normalize_text as _normalize  # Issue #1965
         objeto_normalized = _normalize(objeto)
         validated_evidence = []
         for ev in classification.evidencias:

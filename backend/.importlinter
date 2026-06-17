@@ -1,0 +1,41 @@
+[importlinter]
+root_packages =
+    .
+include_external_packages = False
+
+[contract:no-circular-deps]
+name = No circular dependencies
+type = forbidden
+description = Modules must not form circular import chains
+
+source_modules =
+    .
+forbidden_modules =
+    .
+allow_indirect_imports = False
+
+[contract:infra-not-on-routes]
+name = Infrastructure independence
+type = forbidden
+description = Infrastructure modules must not depend on application-layer modules
+
+source_modules =
+    supabase_client
+    redis_pool
+    redis_client
+    config
+    config_dir
+    config.pncp
+    config.settings
+    email_service
+    database
+forbidden_modules =
+    routes
+    admin
+    webhooks
+    llm
+    llm_arbiter
+    services
+    jobs
+    cron
+allow_indirect_imports = True

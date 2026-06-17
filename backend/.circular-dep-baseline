@@ -1,0 +1,16 @@
+# Known circular dependency baseline for SmartLic backend.
+#
+# Format: one known cycle per line, spaces between module names.
+# The cycle is written as "A B C" (meaning A <-> B <-> C <-> A).
+# Order does not matter (set comparison).
+#
+# These cycles are accepted because:
+# - Giant SCC: interconexao esperada em backend monolitico coeso (~26 modulos)
+#   auth/routes/pipeline/services/cache/jobs estao naturalmente acoplados.
+#   Componentes compartilham tipos, dependencias e fluxos de dados.
+#   Quebrar exigiria event bus ou extracao de microservicos (fora de escopo).
+#
+# Para adicionar um novo ciclo a baseline: append a linha aqui.
+# Para remover: delete a linha e corrija o codigo.
+
+rbac_granular webhooks startup dependencies search_cache ingestion scripts jobs job_queue health cron cron_jobs search_state_manager progress cache models search_pipeline pipeline routes services analytics_events quota authorization auth admin

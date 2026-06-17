@@ -26,7 +26,7 @@ import logging
 from difflib import SequenceMatcher
 from typing import Dict, Set, List, Tuple
 
-from filter import normalize_text
+from utils import normalize_text  # Issue #1965: broken cycle filter<->synonyms
 
 logger = logging.getLogger(__name__)
 

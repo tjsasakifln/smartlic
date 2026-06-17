@@ -3,6 +3,8 @@
 STORY-371 AC4: BRL currency formatter and date helpers.
 """
 
+import re
+import unicodedata
 from datetime import date, datetime
 from typing import Optional
 
@@ -52,3 +54,29 @@ def truncate_text(text: str, max_length: int = 120) -> str:
     if len(text) <= max_length:
         return text
     return text[:max_length - 3] + "..."
+
+
+# normalize_text extracted from filter/keywords.py to break circular dependency
+# (Issue #1965). Imported by synonyms.py, sectors.py, llm_arbiter/.
+def normalize_text(text: str) -> str:
+    """Lowercase + strip accents + remove punctuation + normalize whitespace."""
+    if not text:
+        return ""
+
+    # Lowercase
+    text = text.lower()
+
+    # Remove accents using NFD normalization
+    # NFD = Canonical Decomposition (separates base chars from combining marks)
+    text = unicodedata.normalize("NFD", text)
+    # Remove combining characters (category "Mn" = Mark, nonspacing)
+    text = "".join(c for c in text if unicodedata.category(c) != "Mn")
+
+    # Remove punctuation (keep only word characters and spaces)
+    # Replace non-alphanumeric with spaces
+    text = re.sub(r"[^\w\s]", " ", text)
+
+    # Normalize multiple spaces to single space
+    text = re.sub(r"\s+", " ", text)
+
+    return text.strip()

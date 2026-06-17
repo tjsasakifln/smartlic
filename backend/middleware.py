@@ -1,6 +1,7 @@
 """Request correlation, observability, and security middleware."""
 import json
 import logging
+import os
 import re
 import time
 import uuid
@@ -259,12 +260,10 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
         # Issue #1913: CSP header with enforce/report-only toggle
         # Backend API responses get a restrictive default-src 'none' policy
         # since this is a JSON API, not a browser-rendered page.
-        enforce = False
-        try:
-            from config.features import CSP_ENFORCE_MODE
-            enforce = CSP_ENFORCE_MODE
-        except Exception:
-            pass
+        # CSP_ENFORCE_MODE inlined here to avoid circular import with config
+        # (config/base.py -> middleware -> config/features.py, Issue #1965).
+        csp_enforce_mode = os.getenv("CSP_ENFORCE_MODE", "false")
+        enforce = csp_enforce_mode.lower() in ("1", "true", "yes")
 
         csp_directives = (
             "default-src 'none'; "
