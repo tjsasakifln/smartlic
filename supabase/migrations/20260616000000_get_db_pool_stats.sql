@@ -8,6 +8,7 @@ CREATE OR REPLACE FUNCTION public.get_db_pool_stats()
 RETURNS json
 LANGUAGE sql
 SECURITY DEFINER
+SET search_path = ''
 STABLE
 AS $$
   SELECT json_build_object(
