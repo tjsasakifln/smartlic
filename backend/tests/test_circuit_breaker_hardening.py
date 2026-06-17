@@ -79,8 +79,9 @@ class TestGetCB:
         assert get_circuit_breaker("ibge").name == "ibge"
     def test_fallback(self):
         assert get_circuit_breaker("unknown").name == "pncp"
-    def test_all_states(self):
-        states = get_all_circuit_breaker_states()
-        sources = {s["source"] for s in states}
+    @pytest.mark.asyncio
+    async def test_all_states(self):
+        states = await get_all_circuit_breaker_states()
+        sources = {name for name in states}
         for s in ["pncp", "pcp", "comprasgov", "brasilapi", "ibge"]:
             assert s in sources
