@@ -1005,3 +1005,229 @@ class TestCircuitBreakerPrometheusMetrics:
         from metrics import CIRCUIT_BREAKER_TRIPS_TOTAL
         # Just verify it imports without error
         assert CIRCUIT_BREAKER_TRIPS_TOTAL is not None
+
+
+# ===========================================================================
+# Issue #1919: Circuit breaker hardening tests (BrasilAPI, IBGE, ALL_CIRCUIT_BREAKERS)
+# ===========================================================================
+
+
+class TestHardeningAllCircuitBreakersRegistry:
+    """ALL_CIRCUIT_BREAKERS must contain all expected sources."""
+
+    def test_all_sources_registered(self):
+        """All 5 data sources have circuit breakers registered."""
+        from clients.pncp.circuit_breaker import ALL_CIRCUIT_BREAKERS
+        expected_sources = {"pncp", "pcp", "comprasgov", "brasilapi", "ibge"}
+        assert set(ALL_CIRCUIT_BREAKERS.keys()) == expected_sources
+
+    def test_all_sources_have_distinct_instances(self):
+        """Each source has a unique circuit breaker instance."""
+        from clients.pncp.circuit_breaker import ALL_CIRCUIT_BREAKERS
+        seen = set()
+        for name, cb in ALL_CIRCUIT_BREAKERS.items():
+            assert cb.name == name
+            assert id(cb) not in seen, f"Duplicate CB instance for {name}"
+            seen.add(id(cb))
+
+
+class TestHardeningGetCircuitBreaker:
+    """get_circuit_breaker returns correct instances."""
+
+    def test_returns_pncp_by_default(self):
+        """Default source is pncp."""
+        from clients.pncp.circuit_breaker import get_circuit_breaker
+        cb = get_circuit_breaker()
+        assert cb.name == "pncp"
+
+    def test_returns_all_known_sources(self):
+        """Each known source name returns the correct instance."""
+        from clients.pncp.circuit_breaker import get_circuit_breaker
+        for name in ("pncp", "pcp", "comprasgov", "brasilapi", "ibge"):
+            cb = get_circuit_breaker(name)
+            assert cb.name == name, f"Mismatch for source={name}"
+
+    def test_unknown_source_falls_back_to_pncp(self):
+        """Unknown source name falls back to pncp."""
+        from clients.pncp.circuit_breaker import get_circuit_breaker
+        cb = get_circuit_breaker("unknown")
+        assert cb.name == "pncp"
+
+    def test_all_instances_are_separate(self):
+        """All factory instances are distinct objects."""
+        from clients.pncp.circuit_breaker import get_circuit_breaker
+        instances = [get_circuit_breaker(n) for n in ("pncp", "pcp", "comprasgov", "brasilapi", "ibge")]
+        ids = [id(cb) for cb in instances]
+        assert len(ids) == len(set(ids)), "Some instances share the same ID"
+
+
+class TestHardeningGetAllCircuitBreakerStates:
+    """get_all_circuit_breaker_states returns state for all sources."""
+
+    @pytest.mark.asyncio
+    async def test_returns_all_sources(self):
+        """State dict contains all 5 sources."""
+        from clients.pncp.circuit_breaker import get_all_circuit_breaker_states
+        states = await get_all_circuit_breaker_states()
+        assert set(states.keys()) == {"pncp", "pcp", "comprasgov", "brasilapi", "ibge"}
+
+    @pytest.mark.asyncio
+    async def test_initial_states_are_healthy(self):
+        """All circuit breakers start healthy."""
+        from clients.pncp.circuit_breaker import get_all_circuit_breaker_states
+        states = await get_all_circuit_breaker_states()
+        for name, state in states.items():
+            assert state["status"] == "healthy", f"{name} should be healthy"
+            assert state["degraded"] is False, f"{name} should not be degraded"
+            assert state["failures"] == 0, f"{name} should have 0 failures"
+
+
+class TestHardeningBrasilAPICircuitBreaker:
+    """BrasilAPI CB has threshold=3, cooldown=60."""
+
+    def test_config_values(self):
+        """BrasilAPI CB uses threshold=3, cooldown=60."""
+        from clients.pncp.circuit_breaker import BRASILAPI_CIRCUIT_BREAKER_THRESHOLD, BRASILAPI_CIRCUIT_BREAKER_COOLDOWN
+        assert BRASILAPI_CIRCUIT_BREAKER_THRESHOLD == 3
+        assert BRASILAPI_CIRCUIT_BREAKER_COOLDOWN == 60
+
+    @pytest.mark.asyncio
+    async def test_trips_after_3_failures(self):
+        """BrasilAPI CB trips after 3 consecutive failures."""
+        from clients.pncp.circuit_breaker import ALL_CIRCUIT_BREAKERS
+        cb = ALL_CIRCUIT_BREAKERS["brasilapi"]
+        cb.reset()
+
+        await cb.record_failure()
+        assert cb.is_degraded is False
+        await cb.record_failure()
+        assert cb.is_degraded is False
+        await cb.record_failure()
+        assert cb.is_degraded is True
+
+        cb.reset()
+
+    @pytest.mark.asyncio
+    async def test_brasilapi_isolated_from_pncp(self):
+        """BrasilAPI CB failure does not affect PNCP CB."""
+        from clients.pncp.circuit_breaker import ALL_CIRCUIT_BREAKERS
+        brasilapi_cb = ALL_CIRCUIT_BREAKERS["brasilapi"]
+        pncp_cb = ALL_CIRCUIT_BREAKERS["pncp"]
+        brasilapi_cb.reset()
+        pncp_cb.reset()
+
+        await brasilapi_cb.record_failure()
+        await brasilapi_cb.record_failure()
+        await brasilapi_cb.record_failure()
+        assert brasilapi_cb.is_degraded is True
+        assert pncp_cb.is_degraded is False
+
+
+class TestHardeningIBGECircuitBreaker:
+    """IBGE CB has threshold=5, cooldown=120."""
+
+    def test_config_values(self):
+        """IBGE CB uses threshold=5, cooldown=120."""
+        from clients.pncp.circuit_breaker import IBGE_CIRCUIT_BREAKER_THRESHOLD, IBGE_CIRCUIT_BREAKER_COOLDOWN
+        assert IBGE_CIRCUIT_BREAKER_THRESHOLD == 5
+        assert IBGE_CIRCUIT_BREAKER_COOLDOWN == 120
+
+    @pytest.mark.asyncio
+    async def test_trips_after_5_failures(self):
+        """IBGE CB trips after 5 consecutive failures."""
+        from clients.pncp.circuit_breaker import ALL_CIRCUIT_BREAKERS
+        cb = ALL_CIRCUIT_BREAKERS["ibge"]
+        cb.reset()
+
+        for i in range(4):
+            await cb.record_failure()
+            assert cb.is_degraded is False, f"Not degraded after {i + 1} failures"
+        await cb.record_failure()
+        assert cb.is_degraded is True
+
+        cb.reset()
+
+    @pytest.mark.asyncio
+    async def test_ibge_isolated_from_pcp(self):
+        """IBGE CB failure does not affect PCP CB."""
+        from clients.pncp.circuit_breaker import ALL_CIRCUIT_BREAKERS
+        ibge_cb = ALL_CIRCUIT_BREAKERS["ibge"]
+        pcp_cb = ALL_CIRCUIT_BREAKERS["pcp"]
+        ibge_cb.reset()
+        pcp_cb.reset()
+
+        for _ in range(5):
+            await ibge_cb.record_failure()
+        assert ibge_cb.is_degraded is True
+        assert pcp_cb.is_degraded is False
+
+        ibge_cb.reset()
+
+
+class TestHardeningGetState:
+    """get_state() on PNCPCircuitBreaker."""
+
+    @pytest.mark.asyncio
+    async def test_opened_at_set_on_trip(self):
+        """opened_at is set when circuit breaker trips."""
+        from clients.pncp.circuit_breaker import PNCPCircuitBreaker
+        cb = PNCPCircuitBreaker(name="h_state", threshold=2, cooldown_seconds=60)
+        cb.reset()
+
+        await cb.record_failure()
+        await cb.record_failure()
+        assert cb.is_degraded is True
+
+        state = await cb.get_state()
+        assert state["opened_at"] is not None
+        assert state["open_duration_seconds"] >= 0
+        assert state["status"] == "degraded"
+
+        cb.reset()
+
+    @pytest.mark.asyncio
+    async def test_opened_at_cleared_on_reset(self):
+        """opened_at is cleared after reset."""
+        from clients.pncp.circuit_breaker import PNCPCircuitBreaker
+        cb = PNCPCircuitBreaker(name="h_reset", threshold=2, cooldown_seconds=60)
+        cb.reset()
+
+        await cb.record_failure()
+        await cb.record_failure()
+        assert cb.opened_at is not None
+
+        cb.reset()
+        assert cb.opened_at is None
+
+        state = await cb.get_state()
+        assert state["opened_at"] is None
+        assert state["status"] == "healthy"
+
+    @pytest.mark.asyncio
+    async def test_opened_at_cleared_on_recovery(self):
+        """opened_at is cleared after recovery."""
+        from clients.pncp.circuit_breaker import PNCPCircuitBreaker
+        cb = PNCPCircuitBreaker(name="h_recovery", threshold=2, cooldown_seconds=0.01)
+        cb.reset()
+
+        await cb.record_failure()
+        await cb.record_failure()
+        assert cb.opened_at is not None
+
+        await asyncio.sleep(0.02)
+        recovered = await cb.try_recover()
+        assert recovered is True
+        assert cb.opened_at is None
+
+    @pytest.mark.asyncio
+    async def test_healthy_state(self):
+        """get_state returns healthy state when not degraded."""
+        from clients.pncp.circuit_breaker import PNCPCircuitBreaker
+        cb = PNCPCircuitBreaker(name="h_healthy", threshold=5, cooldown_seconds=30)
+        cb.reset()
+        state = await cb.get_state()
+        assert state["status"] == "healthy"
+        assert state["degraded"] is False
+        assert state["failures"] == 0
+        assert state["opened_at"] is None
+        assert state["open_duration_seconds"] == 0.0

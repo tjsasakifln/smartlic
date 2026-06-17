@@ -145,6 +145,8 @@ from config.pipeline import (
 
 # pncp.py — PNCP, PCP, ComprasGov source config
 from config.pncp import (
+    BRASILAPI_CIRCUIT_BREAKER_COOLDOWN,  # noqa: F401
+    BRASILAPI_CIRCUIT_BREAKER_THRESHOLD,  # noqa: F401
     CACHE_FIRST_FRESH_TIMEOUT,  # noqa: F401
     CB_REDIS_TTL,  # noqa: F401
     COMPRASGOV_BULKHEAD_CONCURRENCY,  # noqa: F401
@@ -157,6 +159,8 @@ from config.pncp import (
     DEFAULT_MODALIDADES,  # noqa: F401
     EARLY_RETURN_THRESHOLD_PCT,  # noqa: F401
     EARLY_RETURN_TIME_S,  # noqa: F401
+    IBGE_CIRCUIT_BREAKER_COOLDOWN,  # noqa: F401
+    IBGE_CIRCUIT_BREAKER_THRESHOLD,  # noqa: F401
     MODALIDADES_EXCLUIDAS,  # noqa: F401
     MODALIDADES_PNCP,  # noqa: F401
     PCP_BULKHEAD_CONCURRENCY,  # noqa: F401

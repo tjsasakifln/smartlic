@@ -14,12 +14,14 @@ from config import (
     PNCP_CIRCUIT_BREAKER_THRESHOLD, PNCP_CIRCUIT_BREAKER_COOLDOWN,
     PCP_CIRCUIT_BREAKER_THRESHOLD, PCP_CIRCUIT_BREAKER_COOLDOWN,
     COMPRASGOV_CIRCUIT_BREAKER_THRESHOLD, COMPRASGOV_CIRCUIT_BREAKER_COOLDOWN,
+    BRASILAPI_CIRCUIT_BREAKER_THRESHOLD, BRASILAPI_CIRCUIT_BREAKER_COOLDOWN,
+    IBGE_CIRCUIT_BREAKER_THRESHOLD, IBGE_CIRCUIT_BREAKER_COOLDOWN,
     PNCP_TIMEOUT_PER_MODALITY, PNCP_MODALITY_RETRY_BACKOFF,
     PNCP_TIMEOUT_PER_UF, PNCP_TIMEOUT_PER_UF_DEGRADED,
     PNCP_BATCH_SIZE, PNCP_BATCH_DELAY_S,
     USE_REDIS_CIRCUIT_BREAKER, CB_REDIS_TTL,
 )
-from metrics import CIRCUIT_BREAKER_STATE
+from metrics import CIRCUIT_BREAKER_STATE, CB_STATE_GAUGE, CB_OPEN_DURATION
 
 logger = logging.getLogger(__name__)
 
@@ -55,6 +57,7 @@ class PNCPCircuitBreaker:
         self.cooldown_seconds = cooldown_seconds
         self.consecutive_failures: int = 0
         self.degraded_until: Optional[float] = None
+        self.opened_at: Optional[float] = None
         self._lock = asyncio.Lock()
 
     @property
@@ -74,8 +77,12 @@ class PNCPCircuitBreaker:
         async with self._lock:
             self.consecutive_failures += 1
             if self.consecutive_failures >= self.threshold and not self.is_degraded:
-                self.degraded_until = time.time() + self.cooldown_seconds
+                now = time.time()
+                self.degraded_until = now + self.cooldown_seconds
+                self.opened_at = now
                 CIRCUIT_BREAKER_STATE.labels(source=self.name).set(1)
+                CB_STATE_GAUGE.labels(source=self.name).set(1)
+                CB_OPEN_DURATION.labels(source=self.name).set(0.0)
                 logger.warning(
                     f"Circuit breaker [{self.name}] TRIPPED after {self.consecutive_failures} "
                     f"consecutive failures — degraded for {self.cooldown_seconds}s"
@@ -115,7 +122,10 @@ class PNCPCircuitBreaker:
                 if self.degraded_until is not None and time.time() >= self.degraded_until:
                     self.degraded_until = None
                     self.consecutive_failures = 0
+                    self.opened_at = None
                     CIRCUIT_BREAKER_STATE.labels(source=self.name).set(0)
+                    CB_STATE_GAUGE.labels(source=self.name).set(0)
+                    CB_OPEN_DURATION.labels(source=self.name).set(0.0)
                     logger.info(
                         f"Circuit breaker [{self.name}] cooldown expired — resetting to healthy"
                     )
@@ -153,6 +163,33 @@ class PNCPCircuitBreaker:
         """Manually reset the circuit breaker (for testing or admin use)."""
         self.consecutive_failures = 0
         self.degraded_until = None
+        self.opened_at = None
+        CIRCUIT_BREAKER_STATE.labels(source=self.name).set(0)
+        CB_STATE_GAUGE.labels(source=self.name).set(0)
+        CB_OPEN_DURATION.labels(source=self.name).set(0.0)
+
+    async def get_state(self) -> dict:
+        """Return the current circuit breaker state as a dict.
+
+        Returns:
+            Dict with keys: status, degraded, failures, degraded_until,
+            opened_at, open_duration_seconds, threshold, cooldown_seconds.
+        """
+        is_degraded = self.is_degraded
+        open_duration = 0.0
+        if is_degraded and self.opened_at is not None:
+            open_duration = time.time() - self.opened_at
+        return {
+            "status": "degraded" if is_degraded else "healthy",
+            "degraded": is_degraded,
+            "failures": self.consecutive_failures,
+            "degraded_until": self.degraded_until,
+            "opened_at": self.opened_at,
+            "open_duration_seconds": round(open_duration, 2),
+            "threshold": self.threshold,
+            "cooldown_seconds": self.cooldown_seconds,
+            "backend": "local",
+        }
 
 
 class RedisCircuitBreaker(PNCPCircuitBreaker):
@@ -278,7 +315,10 @@ return {failures, 0}
                     await pipe.execute()
                     self.degraded_until = None
                     self.consecutive_failures = 0
+                    self.opened_at = None
                     CIRCUIT_BREAKER_STATE.labels(source=self.name).set(0)
+                    CB_STATE_GAUGE.labels(source=self.name).set(0)
+                    CB_OPEN_DURATION.labels(source=self.name).set(0.0)
                     logger.info(
                         f"Circuit breaker [{self.name}] cooldown expired "
                         f"— resetting to healthy"
@@ -419,14 +459,44 @@ _comprasgov_circuit_breaker = _CBClass(
     cooldown_seconds=COMPRASGOV_CIRCUIT_BREAKER_COOLDOWN,
 )
 
+# Issue #1919: Circuit breakers for BrasilAPI (CNPJ enrichment) and IBGE (municipios)
+_brasilapi_circuit_breaker = _CBClass(
+    name="brasilapi",
+    threshold=BRASILAPI_CIRCUIT_BREAKER_THRESHOLD,
+    cooldown_seconds=BRASILAPI_CIRCUIT_BREAKER_COOLDOWN,
+)
+_ibge_circuit_breaker = _CBClass(
+    name="ibge",
+    threshold=IBGE_CIRCUIT_BREAKER_THRESHOLD,
+    cooldown_seconds=IBGE_CIRCUIT_BREAKER_COOLDOWN,
+)
+
+# Issue #1919: Registry of all circuit breaker sources for admin endpoint
+ALL_CIRCUIT_BREAKERS: dict[str, PNCPCircuitBreaker] = {
+    "pncp": _circuit_breaker,
+    "pcp": _pcp_circuit_breaker,
+    "comprasgov": _comprasgov_circuit_breaker,
+    "brasilapi": _brasilapi_circuit_breaker,
+    "ibge": _ibge_circuit_breaker,
+}
+
+async def get_all_circuit_breaker_states() -> dict[str, dict]:
+    """Return the state of all registered circuit breakers.
+
+    Returns:
+        Dict mapping source name to its state dict (from get_state()).
+    """
+    results = {}
+    for name, cb in ALL_CIRCUIT_BREAKERS.items():
+        results[name] = await cb.get_state()
+    return results
+
 def get_circuit_breaker(source: str = "pncp") -> PNCPCircuitBreaker:
     """Return the circuit breaker singleton for a given data source.
 
     Args:
-        source: "pncp" (default), "pcp", or "comprasgov".
+        source: "pncp" (default), "pcp", "comprasgov", "brasilapi", or "ibge".
     """
-    if source == "pcp":
-        return _pcp_circuit_breaker
-    if source == "comprasgov":
-        return _comprasgov_circuit_breaker
+    if source in ALL_CIRCUIT_BREAKERS:
+        return ALL_CIRCUIT_BREAKERS[source]
     return _circuit_breaker

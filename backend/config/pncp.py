@@ -169,6 +169,20 @@ PNCP_MODALITY_RETRY_BACKOFF: float = float(
 PNCP_BATCH_SIZE: int = int(os.getenv("PNCP_BATCH_SIZE", "5"))
 PNCP_BATCH_DELAY_S: float = float(os.getenv("PNCP_BATCH_DELAY_S", "2.0"))
 
+# Issue #1919: Circuit breakers for BrasilAPI (CNPJ enrichment) and IBGE (municipios)
+BRASILAPI_CIRCUIT_BREAKER_THRESHOLD: int = int(
+    os.getenv("BRASILAPI_CIRCUIT_BREAKER_THRESHOLD", "3")
+)
+BRASILAPI_CIRCUIT_BREAKER_COOLDOWN: int = int(
+    os.getenv("BRASILAPI_CIRCUIT_BREAKER_COOLDOWN", "60")
+)
+IBGE_CIRCUIT_BREAKER_THRESHOLD: int = int(
+    os.getenv("IBGE_CIRCUIT_BREAKER_THRESHOLD", "5")
+)
+IBGE_CIRCUIT_BREAKER_COOLDOWN: int = int(
+    os.getenv("IBGE_CIRCUIT_BREAKER_COOLDOWN", "120")
+)
+
 # B-06: Redis-backed circuit breaker toggle (rollback: set to "false")
 USE_REDIS_CIRCUIT_BREAKER: bool = os.getenv(
     "USE_REDIS_CIRCUIT_BREAKER", "true"

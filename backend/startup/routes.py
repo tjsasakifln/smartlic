@@ -112,6 +112,7 @@ from routes.score import router as score_router
 from routes.subcontract_intel import router as subcontract_intel_router
 from routes.data_deletion import router as data_deletion_router
 from routes.admin_alerts import router as admin_alerts_router
+from routes.admin_circuit_breakers import router as admin_circuit_breakers_router
 from routes.admin_data_retention import router as admin_data_retention_router
 _v1_routers = [
     admin_router, subscriptions_router, upgrade_to_lifetime_router,
@@ -224,6 +225,8 @@ def register_routes(app: FastAPI) -> None:
     app.include_router(admin_alerts_router)
     # #1877 AC2: Data retention status — self-prefixed at /v1/admin/data-retention/status
     app.include_router(admin_data_retention_router)
+    # Issue #1919: Circuit breaker states — self-prefixed at /v1/admin/circuit-breakers
+    app.include_router(admin_circuit_breakers_router)
     # Stripe webhook at root — DEBT-324: single registration only.
     # Removed from _v1_routers above to prevent duplicate at /v1/webhooks/stripe.
     # Stripe Dashboard must be configured with: POST /webhooks/stripe
