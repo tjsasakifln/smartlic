@@ -13,7 +13,6 @@ import io
 import json
 import logging
 import os
-import sys
 from unittest.mock import patch
 
 import pytest
@@ -48,29 +47,25 @@ class TestJSONStructuredLogging:
     def _setup_and_capture(self, env_overrides: dict) -> tuple:
         """Setup logging with env vars and return (buffer, logger).
 
-        Replaces sys.stdout during setup_logging so the StreamHandler
-        writes directly to our buffer. Then removes any extra handlers
-        (e.g. pytest's) so only our handler remains.
+        Calls setup_logging normally (it creates a StreamHandler writing to
+        the real sys.stdout), then replaces every StreamHandler's stream
+        with our StringIO buffer.  This avoids a fragile sys.stdout swap
+        that fails on some Python patch versions (observed on 3.12.13 in CI).
         """
         self._clean_root_logger()
         buffer = io.StringIO()
 
-        saved_stdout = sys.stdout
-        try:
-            sys.stdout = buffer
-            with patch.dict(os.environ, env_overrides, clear=False):
-                setup_logging("INFO")
-        finally:
-            sys.stdout = saved_stdout
+        with patch.dict(os.environ, env_overrides, clear=False):
+            setup_logging("INFO")
 
-        # Remove any handlers not writing to our buffer (pytest adds its own)
+        # Replace every StreamHandler's stream with our buffer so all log
+        # output is captured — even from handlers that pytest may add later.
         root = logging.getLogger()
         for h in root.handlers[:]:
-            is_ours = (
-                isinstance(h, logging.StreamHandler)
-                and getattr(h, "stream", None) is buffer
-            )
-            if not is_ours:
+            if isinstance(h, logging.StreamHandler):
+                h.flush()
+                h.stream = buffer
+            else:
                 root.removeHandler(h)
 
         return buffer, logging.getLogger("test_structured")

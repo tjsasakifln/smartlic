@@ -57,6 +57,24 @@ class TestLogconfigDictStructure:
             assert handler["stream"] == "ext://sys.stdout"
 
 
+def _capture_after_dictconfig(buf):
+    """Redirect every StreamHandler in the process to *buf*."""
+    root = logging.getLogger()
+    for h in list(root.handlers):
+        if isinstance(h, logging.StreamHandler):
+            h.flush()
+            h.stream = buf
+    # Also scan named loggers
+    for name in logging.root.manager.loggerDict:
+        lg = logging.getLogger(name)
+        if isinstance(lg, logging.PlaceHolder):
+            continue
+        for h in list(lg.handlers):
+            if isinstance(h, logging.StreamHandler):
+                h.flush()
+                h.stream = buf
+
+
 class TestJsonFormatterProduction:
     """In production, logs must be JSON with a 'level' field for Railway."""
 
@@ -86,17 +104,14 @@ class TestJsonFormatterProduction:
             import gunicorn_conf
             importlib.reload(gunicorn_conf)
 
-            # Capture stdout
             buf = io.StringIO()
 
             # Apply the dictConfig
             logging.config.dictConfig(gunicorn_conf.logconfig_dict)
 
-            # Redirect the stdout handler to our buffer
+            # Redirect ALL StreamHandler instances to our buffer
+            _capture_after_dictconfig(buf)
             gc_logger = logging.getLogger("gunicorn.error")
-            for h in gc_logger.handlers:
-                if isinstance(h, logging.StreamHandler):
-                    h.stream = buf
 
             gc_logger.info("Test startup message")
 
@@ -116,10 +131,8 @@ class TestJsonFormatterProduction:
 
             buf = io.StringIO()
             logging.config.dictConfig(gunicorn_conf.logconfig_dict)
+            _capture_after_dictconfig(buf)
             gc_logger = logging.getLogger("gunicorn.error")
-            for h in gc_logger.handlers:
-                if isinstance(h, logging.StreamHandler):
-                    h.stream = buf
 
             gc_logger.info("Timestamp test")
             parsed = json.loads(buf.getvalue().strip())
@@ -148,10 +161,8 @@ class TestTextFormatterDevelopment:
 
             buf = io.StringIO()
             logging.config.dictConfig(gunicorn_conf.logconfig_dict)
+            _capture_after_dictconfig(buf)
             gc_logger = logging.getLogger("gunicorn.conf")
-            for h in gc_logger.handlers:
-                if isinstance(h, logging.StreamHandler):
-                    h.stream = buf
 
             gc_logger.info("Dev test")
             output = buf.getvalue()
@@ -199,10 +210,8 @@ class TestHooksStillWork:
 
         buf = io.StringIO()
         logging.config.dictConfig(gunicorn_conf.logconfig_dict)
+        _capture_after_dictconfig(buf)
         gc_logger = logging.getLogger("gunicorn.conf")
-        for h in gc_logger.handlers:
-            if isinstance(h, logging.StreamHandler):
-                h.stream = buf
 
         gunicorn_conf.when_ready(MockServer())
         output = buf.getvalue()
@@ -224,10 +233,8 @@ class TestHooksStillWork:
 
         buf = io.StringIO()
         logging.config.dictConfig(gunicorn_conf.logconfig_dict)
+        _capture_after_dictconfig(buf)
         gc_logger = logging.getLogger("gunicorn.conf")
-        for h in gc_logger.handlers:
-            if isinstance(h, logging.StreamHandler):
-                h.stream = buf
 
         gunicorn_conf.worker_exit(MockServer(), MockWorker())
         output = buf.getvalue()

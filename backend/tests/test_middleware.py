@@ -185,14 +185,13 @@ class TestSetupLoggingGracefulDegradationAC3:
 
         # Verify setup_logging works when middleware is available
         buffer = io.StringIO()
-        saved_stdout = sys.stdout
-
-        try:
-            sys.stdout = buffer
-            # Should not raise
-            setup_logging(level="INFO")
-        finally:
-            sys.stdout = saved_stdout
+        setup_logging(level="INFO")
+        # Redirect all StreamHandler streams to our buffer
+        root = logging.getLogger()
+        for h in root.handlers:
+            if isinstance(h, logging.StreamHandler):
+                h.flush()
+                h.stream = buffer
 
         # If we wanted to TEST graceful failure, we'd need to modify config.py first.
         # For now, this test documents that middleware is a required dependency.
@@ -201,59 +200,58 @@ class TestSetupLoggingGracefulDegradationAC3:
         """setup_logging() works normally when middleware is available (baseline)."""
         # This is the happy path - middleware exists and imports successfully
         buffer = io.StringIO()
-        saved_stdout = sys.stdout
+        setup_logging(level="INFO")
 
-        try:
-            sys.stdout = buffer
-            # Should not raise
-            setup_logging(level="INFO")
+        # Redirect all StreamHandler streams to our buffer
+        root = logging.getLogger()
+        for h in root.handlers:
+            if isinstance(h, logging.StreamHandler):
+                h.flush()
+                h.stream = buffer
 
-            # Verify logging actually works
-            test_logger = logging.getLogger("test_baseline")
-            test_logger.info("Baseline test message")
+        # Verify logging actually works
+        test_logger = logging.getLogger("test_baseline")
+        test_logger.info("Baseline test message")
 
-            output = buffer.getvalue()
-            assert "Baseline test message" in output
-        finally:
-            sys.stdout = saved_stdout
+        output = buffer.getvalue()
+        assert "Baseline test message" in output
 
     def test_setup_logging_adds_request_id_filter_to_handler(self):
         """setup_logging() adds RequestIDFilter to handler and root logger."""
         buffer = io.StringIO()
-        saved_stdout = sys.stdout
+        setup_logging(level="INFO")
 
-        try:
-            sys.stdout = buffer
-            setup_logging(level="INFO")
+        # Redirect all StreamHandler streams to our buffer
+        root = logging.getLogger()
+        for h in root.handlers:
+            if isinstance(h, logging.StreamHandler):
+                h.flush()
+                h.stream = buffer
 
-            root = logging.getLogger()
+        # Check that RequestIDFilter is on root logger (config.py line 135)
+        has_root_filter = any(
+            isinstance(f, RequestIDFilter) for f in root.filters
+        )
+        assert has_root_filter, "RequestIDFilter not found on root logger"
 
-            # Check that RequestIDFilter is on root logger (config.py line 135)
-            has_root_filter = any(
-                isinstance(f, RequestIDFilter) for f in root.filters
+        # Verify that the handler also has RequestIDFilter (config.py line 129)
+        # Find the StreamHandler that writes to our buffer
+        stream_handler = None
+        for handler in root.handlers:
+            if isinstance(handler, logging.StreamHandler) and handler.stream is buffer:
+                stream_handler = handler
+                break
+
+        # If we found our handler, check its filters
+        # Note: Filter may be applied at root level OR handler level
+        if stream_handler:
+            has_handler_filter = any(
+                isinstance(f, RequestIDFilter) for f in stream_handler.filters
             )
-            assert has_root_filter, "RequestIDFilter not found on root logger"
-
-            # Verify that the handler also has RequestIDFilter (config.py line 129)
-            # Find the StreamHandler that writes to our buffer
-            stream_handler = None
-            for handler in root.handlers:
-                if isinstance(handler, logging.StreamHandler) and handler.stream is buffer:
-                    stream_handler = handler
-                    break
-
-            # If we found our handler, check its filters
-            # Note: Filter may be applied at root level OR handler level
-            if stream_handler:
-                has_handler_filter = any(
-                    isinstance(f, RequestIDFilter) for f in stream_handler.filters
-                )
-                # It's OK if filter is only on root logger (will still apply to all handlers)
-                assert has_root_filter or has_handler_filter, (
-                    "RequestIDFilter must be on root logger or handler"
-                )
-        finally:
-            sys.stdout = saved_stdout
+            # It's OK if filter is only on root logger (will still apply to all handlers)
+            assert has_root_filter or has_handler_filter, (
+                "RequestIDFilter must be on root logger or handler"
+            )
 
 
 class TestModuleLevelLoggingAC4:
