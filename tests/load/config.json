@@ -1,0 +1,33 @@
+{
+  "base_url": "http://localhost:8000",
+  "frontend_url": "http://localhost:3000",
+  "thresholds": {
+    "search": {
+      "p95_ms": 3000,
+      "error_rate": 0.02,
+      "vus": 50,
+      "duration": "7m30s"
+    },
+    "observatory": {
+      "p95_ms": 2000,
+      "error_rate": 0.05,
+      "vus": 500,
+      "duration": "7m30s"
+    },
+    "pipeline": {
+      "p95_ms": 2000,
+      "error_rate": 0.05,
+      "vus": 20,
+      "duration": "4m30s"
+    },
+    "spike": {
+      "p95_ms": 5000,
+      "error_rate": 0.10,
+      "vus": 200,
+      "duration": "2m30s"
+    }
+  },
+  "think_time_seconds": 1,
+  "timeout_seconds": 30,
+  "jwts_path": "./fixtures/jwts.json"
+}
