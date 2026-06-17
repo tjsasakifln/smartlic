@@ -22399,6 +22399,36 @@
         ]
       }
     },
+    "/v1/admin/data-retention/status": {
+      "get": {
+        "description": "Return the last purge status per table.\n\nReads data from Redis keys set by the data retention purge cycle.\nFalls back gracefully when Redis is unavailable.\n\nReturns::\n\n    {\n        \"status\": \"ok\",\n        \"queried_at\": \"2026-06-16T12:00:00+00:00\",\n        \"tables\": [\n            {\n                \"name\": \"trial_email_log\",\n                \"last_purge_at\": \"2026-06-16T12:00:00+00:00\",\n                \"rows_purged_last\": 42,\n                \"status\": \"success\"\n            },\n            ...\n        ],\n        \"total_rows_purged_last\": 123,\n        \"last_cycle_duration_seconds\": 5.23\n    }",
+        "operationId": "get_data_retention_status_v1_admin_data_retention_status_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Get Data Retention Status V1 Admin Data Retention Status Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Get Data Retention Status",
+        "tags": [
+          "admin",
+          "data_retention"
+        ]
+      }
+    },
     "/v1/admin/dlq": {
       "delete": {
         "description": "Delete **all** entries from the ARQ Dead Letter Queue.\n\nReturns ``{\"status\": \"ok\", \"keys_deleted\": N}`` on success.\nReturns ``{\"status\": \"error\", \"detail\": \"...\"}`` on failure.",

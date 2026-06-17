@@ -767,6 +767,47 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/admin/data-retention/status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Data Retention Status
+         * @description Return the last purge status per table.
+         *
+         *     Reads data from Redis keys set by the data retention purge cycle.
+         *     Falls back gracefully when Redis is unavailable.
+         *
+         *     Returns::
+         *
+         *         {
+         *             "status": "ok",
+         *             "queried_at": "2026-06-16T12:00:00+00:00",
+         *             "tables": [
+         *                 {
+         *                     "name": "trial_email_log",
+         *                     "last_purge_at": "2026-06-16T12:00:00+00:00",
+         *                     "rows_purged_last": 42,
+         *                     "status": "success"
+         *                 },
+         *                 ...
+         *             ],
+         *             "total_rows_purged_last": 123,
+         *             "last_cycle_duration_seconds": 5.23
+         *         }
+         */
+        get: operations["get_data_retention_status_v1_admin_data_retention_status_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/admin/dlq": {
         parameters: {
             query?: never;
@@ -17910,6 +17951,28 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["AdminCronStatusResponse"];
+                };
+            };
+        };
+    };
+    get_data_retention_status_v1_admin_data_retention_status_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
                 };
             };
         };
