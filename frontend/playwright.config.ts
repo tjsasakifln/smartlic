@@ -78,6 +78,14 @@ export default defineConfig({
       use: { ...devices['Desktop Chrome'] },
       retries: process.env.CI ? 1 : 0,
     },
+    /* Issue #1967: Critical business flow E2E tests — revenue-impacting journeys */
+    {
+      name: 'critical-flows',
+      testDir: './e2e-tests/flows',
+      testMatch: /critical-.*\.spec\.ts/,
+      use: { ...devices['Desktop Chrome'] },
+      retries: process.env.CI ? 2 : 0,
+    },
   ],
 
   /* Run local dev server before starting the tests */
