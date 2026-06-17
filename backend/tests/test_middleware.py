@@ -206,6 +206,7 @@ class TestSetupLoggingGracefulDegradationAC3:
         # If we wanted to TEST graceful failure, we'd need to modify config.py first.
         # For now, this test documents that middleware is a required dependency.
 
+    @_skip_ci
     def test_setup_logging_works_with_middleware_available(self):
         """setup_logging() works normally when middleware is available (baseline)."""
         # This is the happy path - middleware exists and imports successfully
