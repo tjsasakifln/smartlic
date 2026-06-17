@@ -1,6 +1,6 @@
 # Source Tree — SmartLic
 
-**Atualizado:** 2026-02-20
+**Atualizado:** 2026-06-17
 
 ## Backend (FastAPI)
 
@@ -113,12 +113,12 @@ backend/
 ├── Procfile                    # Railway process definition
 ├── sectors_data.yaml           # Sector keyword definitions
 ├── seed_users.py               # Database seeding
-└── tests/                      # ~3966 tests
+└── tests/                      # ~5131 tests (454 test files)
     ├── test_*.py               # Unit and integration tests
     └── snapshots/              # API schema snapshots
 ```
 
-## Frontend (Next.js 14)
+## Frontend (Next.js 16.2)
 
 ```
 frontend/
@@ -191,7 +191,7 @@ frontend/
 │   ├── termos/                 # Terms of service
 │   └── ajuda/                  # Help page
 │
-├── __tests__/                  # Jest tests (~1921 tests)
+├── __tests__/                  # Jest tests (~2681 tests, 376 test files)
 ├── e2e-tests/                  # Playwright E2E tests
 ├── public/                     # Static assets
 ├── jest.config.js
