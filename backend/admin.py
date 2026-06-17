@@ -60,7 +60,7 @@ from schemas import (
     AdminUpdateCreditsResponse, MemorySnapshot, TraceMallocEntry,
     UserSegmentsResponse,
 )
-from log_sanitizer import sanitize_dict, log_admin_action
+from log_sanitizer import sanitize_dict, log_admin_action, log_admin_action_db
 from authorization import require_data_access, require_user_manager  # noqa: F401 — kept for backward compat
 from rbac_granular import (
     require_admin_role, require_admin_users, require_admin_billing,
@@ -367,6 +367,7 @@ async def list_users(
 
 @router.post("/users", response_model=AdminCreateUserResponse)
 async def create_user(
+    request: Request,
     req: CreateUserRequest,
     admin: dict = Depends(require_admin_users),
 ):
@@ -416,12 +417,22 @@ async def create_user(
         target_user_id=user_id,
         details={"plan": req.plan_id},
     )
+    # #1974: Persist to admin_audit_log
+    await log_admin_action_db(
+        admin_id=admin['id'],
+        action="create_user",
+        entity_type="user",
+        entity_id=user_id,
+        details={"plan": req.plan_id},
+    )
+    request.state.admin_audit_logged = True
 
     return {"user_id": user_id, "email": req.email, "plan_id": req.plan_id}
 
 
 @router.delete("/users/{user_id}", response_model=AdminDeleteUserResponse)
 async def delete_user(
+    request: Request,
     user_id: str = Path(..., description="User UUID to delete"),
     admin: dict = Depends(require_admin_users),
 ):
@@ -453,12 +464,21 @@ async def delete_user(
         action="delete-user",
         target_user_id=user_id,
     )
+    # #1974: Persist to admin_audit_log
+    await log_admin_action_db(
+        admin_id=admin['id'],
+        action="delete_user",
+        entity_type="user",
+        entity_id=user_id,
+    )
+    request.state.admin_audit_logged = True
 
     return {"deleted": True, "user_id": user_id}
 
 
 @router.put("/users/{user_id}", response_model=AdminUpdateUserResponse)
 async def update_user(
+    request: Request,
     req: UpdateUserRequest,
     user_id: str = Path(..., description="User UUID to update"),
     admin: dict = Depends(require_admin_users),
@@ -500,6 +520,15 @@ async def update_user(
         target_user_id=user_id,
         details=sanitize_dict(updates),
     )
+    # #1974: Persist to admin_audit_log
+    await log_admin_action_db(
+        admin_id=admin['id'],
+        action="update_user",
+        entity_type="user",
+        entity_id=user_id,
+        details=sanitize_dict(updates),
+    )
+    request.state.admin_audit_logged = True
     return {"updated": True, "user_id": user_id}
 
 
@@ -535,11 +564,20 @@ async def reset_user_password(
         action="reset-password",
         target_user_id=user_id,
     )
+    # #1974: Persist to admin_audit_log
+    await log_admin_action_db(
+        admin_id=admin['id'],
+        action="reset_password",
+        entity_type="user",
+        entity_id=user_id,
+    )
+    request.state.admin_audit_logged = True
     return {"success": True, "user_id": user_id}
 
 
 @router.post("/users/{user_id}/assign-plan", response_model=AdminAssignPlanResponse)
 async def assign_plan(
+    request: Request,
     user_id: str = Path(..., description="User UUID to assign plan to"),
     plan_id: str = Query(..., description="Plan ID to assign"),
     admin: dict = Depends(require_admin_users),
@@ -586,6 +624,15 @@ async def assign_plan(
         target_user_id=user_id,
         details={"plan_id": plan_id},
     )
+    # #1974: Persist to admin_audit_log
+    await log_admin_action_db(
+        admin_id=admin['id'],
+        action="assign_plan",
+        entity_type="user",
+        entity_id=user_id,
+        details={"plan_id": plan_id},
+    )
+    request.state.admin_audit_logged = True
     return {"assigned": True, "user_id": user_id, "plan_id": plan_id}
 
 
@@ -596,6 +643,7 @@ class UpdateCreditsRequest(BaseModel):
 
 @router.put("/users/{user_id}/credits", response_model=AdminUpdateCreditsResponse)
 async def update_user_credits(
+    request: Request,
     req: UpdateCreditsRequest,
     user_id: str = Path(..., description="User UUID to update credits for"),
     admin: dict = Depends(require_admin_users),
@@ -655,6 +703,15 @@ async def update_user_credits(
             target_user_id=user_id,
             details={"old_credits": old_credits, "new_credits": req.credits},
         )
+        # #1974: Persist to admin_audit_log
+        await log_admin_action_db(
+            admin_id=admin['id'],
+            action="update_credits",
+            entity_type="user",
+            entity_id=user_id,
+            details={"old_credits": old_credits, "new_credits": req.credits},
+        )
+        request.state.admin_audit_logged = True
 
         return {
             "success": True,
@@ -698,6 +755,15 @@ async def update_user_credits(
             target_user_id=user_id,
             details={"plan_id": plan_id, "credits": req.credits},
         )
+        # #1974: Persist to admin_audit_log
+        await log_admin_action_db(
+            admin_id=admin['id'],
+            action="create_subscription_with_credits",
+            entity_type="user",
+            entity_id=user_id,
+            details={"plan_id": plan_id, "credits": req.credits},
+        )
+        request.state.admin_audit_logged = True
 
         return {
             "success": True,
@@ -805,6 +871,7 @@ async def inspect_cache_entry_endpoint(
 
 @router.delete("/cache/{params_hash}")
 async def delete_cache_entry_endpoint(
+    request: Request,
     params_hash: str = Path(..., min_length=8, max_length=128, description="Cache entry hash"),
     admin: dict = Depends(require_admin_ops),
 ):
@@ -827,6 +894,15 @@ async def delete_cache_entry_endpoint(
         target_user_id=admin["id"],
         details={"params_hash": params_hash[:12], "deleted_levels": result["deleted_levels"]},
     )
+    # #1974: Persist to admin_audit_log
+    await log_admin_action_db(
+        admin_id=admin["id"],
+        action="invalidate_cache_entry",
+        entity_type="cache",
+        entity_id=params_hash,
+        details={"deleted_levels": result["deleted_levels"]},
+    )
+    request.state.admin_audit_logged = True
 
     return result
 
@@ -859,6 +935,15 @@ async def delete_all_cache_endpoint(
         target_user_id=admin["id"],
         details=result["deleted_counts"],
     )
+    # #1974: Persist to admin_audit_log
+    await log_admin_action_db(
+        admin_id=admin["id"],
+        action="invalidate_all_cache",
+        entity_type="cache",
+        entity_id="all",
+        details=result["deleted_counts"],
+    )
+    request.state.admin_audit_logged = True
 
     return result
 
@@ -895,6 +980,7 @@ async def get_reconciliation_history(
 
 @router.post("/reconciliation/trigger")
 async def trigger_reconciliation(
+    request: Request,
     admin: dict = Depends(require_admin_billing),
 ):
     """AC13: Manually trigger a reconciliation run.
@@ -910,6 +996,14 @@ async def trigger_reconciliation(
         target_user_id=admin["id"],
         details={},
     )
+    # #1974: Persist to admin_audit_log
+    await log_admin_action_db(
+        admin_id=admin["id"],
+        action="trigger_reconciliation",
+        entity_type="reconciliation",
+        entity_id=admin["id"],
+    )
+    request.state.admin_audit_logged = True
 
     result = await run_reconciliation()
 

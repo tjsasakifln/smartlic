@@ -19,6 +19,7 @@ from middleware import (CorrelationIDMiddleware, SecurityHeadersMiddleware,
                          DeprecationMiddleware, RateLimitMiddleware,
                          APIVersionHeaderMiddleware)
 from seo_404_middleware import SEO404MetricsMiddleware
+from admin_audit_middleware import AdminAuditMiddleware
 
 logger = logging.getLogger(__name__)
 
@@ -109,6 +110,8 @@ def setup_middleware(app: FastAPI) -> None:
     # Added AFTER tracing middlewares so this sees the final response status; pure response-side
     # logic (no route file changes) — avoids races with concurrent route refactors.
     app.add_middleware(SEO404MetricsMiddleware)
+    # #1974: Admin audit middleware — auto-log POST/PATCH/DELETE to admin_audit_log
+    app.add_middleware(AdminAuditMiddleware)
 
     # DEBT-124: Graceful shutdown drain — reject new requests with 503 during shutdown
     @app.middleware("http")

@@ -21,7 +21,7 @@ RBAC Phase 2 (#1954): admin flag management requires ``admin:ops`` role.
 import logging
 from typing import Optional
 
-from fastapi import APIRouter, Depends, HTTPException, Path
+from fastapi import APIRouter, Depends, HTTPException, Path, Request
 from pydantic import BaseModel, Field
 
 from admin import require_admin_ops
@@ -35,7 +35,7 @@ from config.features import (
     get_feature_flag,
     reload_feature_flags,
 )
-from log_sanitizer import log_admin_action
+from log_sanitizer import log_admin_action, log_admin_action_db
 from redis_resilience import safe_redis_call
 from schemas.parity import ExperimentsListResponse
 
@@ -458,6 +458,7 @@ async def list_feature_flags(
 
 @router.patch("/{flag_name}", response_model=FeatureFlagUpdateResponse)
 async def update_feature_flag(
+    request: Request,
     body: FeatureFlagUpdateRequest,
     flag_name: str = Path(..., description="Feature flag name from the registry"),
     admin: dict = Depends(require_admin_ops),
@@ -504,6 +505,19 @@ async def update_feature_flag(
             "source": source,
         },
     )
+    # #1974: Persist to admin_audit_log
+    await log_admin_action_db(
+        admin_id=admin["id"],
+        action="update_feature_flag",
+        entity_type="feature_flag",
+        entity_id=flag_name,
+        details={
+            "old_value": str(prev_value),
+            "new_value": str(new_value),
+            "source": source,
+        },
+    )
+    request.state.admin_audit_logged = True
 
     await audit_logger.log(
         event_type="admin.feature_flag_change",
@@ -534,6 +548,7 @@ async def update_feature_flag(
 
 @router.post("/reload", response_model=FeatureFlagReloadResponse)
 async def reload_flags_endpoint(
+    request: Request,
     admin: dict = Depends(require_admin_ops),
 ):
     """Reload all feature flags from environment variables (admin only).
@@ -569,6 +584,18 @@ async def reload_flags_endpoint(
             "flags": current_values,
         },
     )
+    # #1974: Persist to admin_audit_log
+    await log_admin_action_db(
+        admin_id=admin["id"],
+        action="reload_feature_flags",
+        entity_type="feature_flag",
+        entity_id="all",
+        details={
+            "redis_cleared": redis_cleared,
+            "memory_cleared": memory_cleared,
+        },
+    )
+    request.state.admin_audit_logged = True
 
     logger.info(
         "Feature flags fully reloaded: %d Redis + %d memory overrides cleared (by=%s)",

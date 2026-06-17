@@ -119,6 +119,7 @@ from routes.admin_db_pool import router as admin_db_pool_router
 from routes.csp_report import router as csp_report_router
 from routes.alerts_b2gops import router as alerts_b2gops_router
 from routes.admin_outgoing_webhooks import router as admin_outgoing_webhooks_router
+from routes.admin_audit_log import router as admin_audit_log_router
 _v1_routers = [
     admin_router, subscriptions_router, upgrade_to_lifetime_router,
     features_router, messages_router,
@@ -239,6 +240,8 @@ def register_routes(app: FastAPI) -> None:
     app.include_router(admin_db_pool_router)
     # Issue #1959: Outgoing webhook deliveries — self-prefixed at /v1/admin/webhook-deliveries
     app.include_router(admin_outgoing_webhooks_router)
+    # #1974: Admin audit log — query endpoint at /v1/admin/audit-log
+    app.include_router(admin_audit_log_router)
     # Stripe webhook at root — DEBT-324: single registration only.
     # Removed from _v1_routers above to prevent duplicate at /v1/webhooks/stripe.
     # Stripe Dashboard must be configured with: POST /webhooks/stripe
