@@ -262,10 +262,10 @@ class TestAdminEndpointLifecycle:
 
     def test_admin_endpoint_includes_lifecycle(self, client):
         """GET /v1/admin/feature-flags includes lifecycle metadata."""
-        from admin import require_admin
+        from admin import require_admin_ops
         from main import app
 
-        app.dependency_overrides[require_admin] = lambda: {
+        app.dependency_overrides[require_admin_ops] = lambda: {
             "id": "admin-id",
             "email": "admin@test.com",
         }
@@ -286,7 +286,7 @@ class TestAdminEndpointLifecycle:
             assert "lifecycle" in lc
             assert "created" in lc
         finally:
-            app.dependency_overrides.pop(require_admin, None)
+            app.dependency_overrides.pop(require_admin_ops, None)
 
 
 # ---------------------------------------------------------------------------

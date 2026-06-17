@@ -18,7 +18,7 @@ from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
 
-from admin import require_admin
+from admin import require_admin_ops
 
 logger = logging.getLogger(__name__)
 
@@ -126,7 +126,7 @@ class SetLogLevelResponse(BaseModel):
 @router.post("/log-level", response_model=SetLogLevelResponse)
 async def set_log_level(
     body: SetLogLevelRequest,
-    user: dict = Depends(require_admin),
+    user: dict = Depends(require_admin_ops),
 ) -> SetLogLevelResponse:
     """Set a logger's level at runtime (admin-only).
 
@@ -195,7 +195,7 @@ async def set_log_level(
 
 @router.get("/log-level", response_model=LogLevelStatusResponse)
 async def get_log_levels(
-    user: dict = Depends(require_admin),
+    user: dict = Depends(require_admin_ops),
 ) -> LogLevelStatusResponse:
     """Return current log level overrides (admin-only)."""
     now_mono = time.monotonic()

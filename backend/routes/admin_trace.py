@@ -16,7 +16,7 @@ from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends
 
-from admin import require_admin
+from admin import require_admin_ops
 from schemas.admin import (
     AdminCacheTraceState,
     AdminCircuitBreakerResetResponse,
@@ -37,7 +37,7 @@ router = APIRouter(prefix="/v1/admin", tags=["admin"])
     "/trigger-contracts-backfill",
     response_model=AdminJobTriggerResponse,
 )
-async def trigger_contracts_backfill(user=Depends(require_admin)) -> AdminJobTriggerResponse:
+async def trigger_contracts_backfill(user=Depends(require_admin_ops)) -> AdminJobTriggerResponse:
     """Enqueue contracts_full_crawl_job to ARQ Worker.
 
     Runs on Railway Worker (better network for PNCP).
@@ -75,7 +75,7 @@ async def trigger_contracts_backfill(user=Depends(require_admin)) -> AdminJobTri
     "/trigger-bids-backfill",
     response_model=AdminJobTriggerResponse,
 )
-async def trigger_bids_backfill(user=Depends(require_admin)) -> AdminJobTriggerResponse:
+async def trigger_bids_backfill(user=Depends(require_admin_ops)) -> AdminJobTriggerResponse:
     """Enqueue ingestion_backfill_job to ARQ Worker.
 
     One-time historical crawl: fetches up to 365 days of PNCP bids
@@ -112,7 +112,7 @@ async def trigger_bids_backfill(user=Depends(require_admin)) -> AdminJobTriggerR
     response_model=AdminClearCheckpointsResponse,
 )
 async def clear_contracts_checkpoints(
-    user=Depends(require_admin),
+    user=Depends(require_admin_ops),
 ) -> AdminClearCheckpointsResponse:
     """Clear all Redis checkpoints for contracts crawler.
 
@@ -137,7 +137,7 @@ async def clear_contracts_checkpoints(
 )
 async def get_search_trace(
     search_id: str,
-    user=Depends(require_admin),
+    user=Depends(require_admin_ops),
 ) -> AdminSearchTraceResponse:
     """Reconstruct complete search journey from search_id.
 
@@ -212,7 +212,7 @@ async def get_search_trace(
     response_model=AdminCircuitBreakerResetResponse,
 )
 async def reset_circuit_breakers(
-    user=Depends(require_admin),
+    user=Depends(require_admin_ops),
 ) -> AdminCircuitBreakerResetResponse:
     """STORY-416 AC5: Reset all segregated Supabase CBs to CLOSED.
 
@@ -236,7 +236,7 @@ async def reset_circuit_breakers(
     response_model=AdminSchemaContractStatusResponse,
 )
 async def get_schema_contract_status(
-    user=Depends(require_admin),
+    user=Depends(require_admin_ops),
 ) -> AdminSchemaContractStatusResponse:
     """STORY-414 AC4: Expose the last schema-contract validation result.
 

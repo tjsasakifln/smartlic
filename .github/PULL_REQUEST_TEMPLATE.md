@@ -45,6 +45,15 @@ Closes #
 
 ---
 
+### Accessibility Checklist (WCAG AA)
+- [ ] Keyboard navigation works for new/changed components
+- [ ] ARIA labels added for screen readers (icon-only buttons, dynamic regions)
+- [ ] Color contrast meets WCAG AA (4.5:1 text, 3:1 large text, 3:1 UI components)
+- [ ] Forms have associated labels (htmlFor/id or aria-labelledby) and error messages (aria-describedby)
+- [ ] Focus management works for modals/drawers (focus trap, focus return)
+- [ ] axe-core CI gate passes (zero critical/serious violations)
+- [ ] Information not conveyed by color alone
+
 ## Checklist (Não remover)
 
 - [ ] PR title follows Conventional Commits format (`feat:`, `fix:`, `docs:`, etc.)

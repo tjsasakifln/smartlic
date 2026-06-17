@@ -34,7 +34,7 @@ from typing import Any, Optional
 from fastapi import APIRouter, Body, Depends, HTTPException, Query
 from pydantic import BaseModel, ConfigDict, Field
 
-from admin import require_admin
+from admin import require_admin_ops
 from pipeline.budget import _run_with_budget
 from supabase_client import get_supabase, sb_execute
 from utils.app_config import (
@@ -330,7 +330,7 @@ async def _fetch_recent_surveys(range_days: int) -> list[dict[str, Any]]:
 )
 async def list_export_surveys_aggregate(
     range_days: int = Query(default=90, ge=1, le=365),
-    admin: dict = Depends(require_admin),
+    admin: dict = Depends(require_admin_ops),
 ) -> SurveyAggregateResponse:
     """Aggregated histogram + summary stats for the calibration dashboard."""
     rows = await _fetch_recent_surveys(range_days)
@@ -372,7 +372,7 @@ async def list_export_surveys_aggregate(
 async def patch_app_config(
     key: str,
     body: AppConfigPatchRequest = Body(...),
-    admin: dict = Depends(require_admin),
+    admin: dict = Depends(require_admin_ops),
 ) -> AppConfigRow:
     """Update one row in ``app_config``. Whitelist enforced.
 
@@ -441,7 +441,7 @@ async def patch_app_config(
 )
 async def recalibrate(
     body: RecalibrateRequest = Body(default_factory=RecalibrateRequest),
-    admin: dict = Depends(require_admin),
+    admin: dict = Depends(require_admin_ops),
 ) -> RecalibrateResponse:
     """Compute new ``hours_saved_per_search`` from survey distribution.
 

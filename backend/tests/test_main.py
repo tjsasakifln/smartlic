@@ -21,7 +21,7 @@ class TestApplicationSetup:
     def test_app_version(self):
         """Verify app version matches expected."""
         import os
-        expected = os.getenv("APP_VERSION", "dev")
+        expected = os.getenv("APP_VERSION", "v1")
         assert app.version == expected
 
     def test_app_has_docs_endpoint(self):
@@ -62,7 +62,7 @@ class TestRootEndpoint:
         import os
         response = client.get("/")
         data = response.json()
-        assert data["version"] == os.getenv("APP_VERSION", "dev")
+        assert data["version"] == os.getenv("APP_VERSION", "v1")
 
     def test_root_endpoints_links(self, client):
         """Root endpoint should include documentation links."""
@@ -109,7 +109,7 @@ class TestHealthEndpoint:
         import os
         response = client.get("/health")
         data = response.json()
-        assert data["version"] == os.getenv("APP_VERSION", "dev")
+        assert data["version"] == os.getenv("APP_VERSION", "v1")
 
     def test_health_response_time(self, client):
         """Health endpoint should respond (within reasonable time)."""
@@ -185,7 +185,7 @@ class TestOpenAPIDocumentation:
         import os
         info = schema["info"]
         assert info["title"] == "SmartLic API"
-        assert info["version"] == os.getenv("APP_VERSION", "dev")
+        assert info["version"] == os.getenv("APP_VERSION", "v1")
 
     def test_openapi_has_health_endpoint(self, client):
         """OpenAPI schema should document /health endpoint."""

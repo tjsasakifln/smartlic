@@ -15,7 +15,9 @@ from fastapi.responses import JSONResponse
 
 from config import get_cors_origins, METRICS_TOKEN
 from config.pipeline import REQUEST_SLOW_THRESHOLD_S, ROUTE_TIMEOUT_S
-from middleware import CorrelationIDMiddleware, SecurityHeadersMiddleware, DeprecationMiddleware, RateLimitMiddleware
+from middleware import (CorrelationIDMiddleware, SecurityHeadersMiddleware,
+                         DeprecationMiddleware, RateLimitMiddleware,
+                         APIVersionHeaderMiddleware)
 from seo_404_middleware import SEO404MetricsMiddleware
 
 logger = logging.getLogger(__name__)
@@ -88,6 +90,9 @@ def setup_middleware(app: FastAPI) -> None:
     app.add_middleware(SecurityHeadersMiddleware)
     app.add_middleware(DeprecationMiddleware)
     app.add_middleware(RateLimitMiddleware)
+    # Issue #1918: X-API-Version header on all responses — outermost layer
+    # so ALL responses (including 429 rate-limit errors) get version headers.
+    app.add_middleware(APIVersionHeaderMiddleware)
 
     # RBAC-SEC-002: Inject rate limit headers stored in request.state by
     # require_rate_limit / rate_limit_public dependencies into every response.

@@ -64,7 +64,7 @@ export default function ObservatorioPage() {
         dangerouslySetInnerHTML={{ __html: JSON.stringify(datasetSchema) }}
       />
 
-      <main className="max-w-4xl mx-auto px-4 py-12">
+      <main id="main-content" className="max-w-4xl mx-auto px-4 py-12">
         <div className="mb-10">
           <h1 className="text-3xl font-bold text-gray-900 mb-3">
             Observatório de Licitações Públicas

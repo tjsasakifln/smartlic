@@ -15,7 +15,7 @@ import logging
 
 from fastapi import APIRouter, Depends
 
-from admin import require_admin
+from admin import require_admin_ops
 from llm_budget import get_cost_snapshot
 from schemas.admin import AdminLlmCostResponse
 
@@ -25,7 +25,7 @@ router = APIRouter(prefix="/v1/admin", tags=["admin"])
 
 
 @router.get("/llm-cost", response_model=AdminLlmCostResponse)
-async def admin_llm_cost(user: dict = Depends(require_admin)) -> AdminLlmCostResponse:
+async def admin_llm_cost(user: dict = Depends(require_admin_ops)) -> AdminLlmCostResponse:
     """Return LLM cost snapshot para o mês corrente (admin-only).
 
     Response shape::

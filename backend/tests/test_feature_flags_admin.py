@@ -19,7 +19,7 @@ ADMIN_USER = {"id": ADMIN_UUID, "email": "admin@test.com", "role": "authenticate
 def client():
     """Create test client with admin auth override using standalone app."""
     from routes.feature_flags import router
-    from admin import require_admin
+    from admin import require_admin_ops
 
     app = FastAPI()
     app.include_router(router)
@@ -27,7 +27,7 @@ def client():
     async def mock_require_admin():
         return ADMIN_USER
 
-    app.dependency_overrides[require_admin] = mock_require_admin
+    app.dependency_overrides[require_admin_ops] = mock_require_admin
 
     return TestClient(app)
 

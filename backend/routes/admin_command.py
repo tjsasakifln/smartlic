@@ -19,7 +19,7 @@ import os
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
 
-from admin import require_admin
+from admin import require_admin_ops
 
 logger = logging.getLogger(__name__)
 
@@ -62,7 +62,7 @@ class CommandProvisionResponse(BaseModel):
 @router.post("/command", response_model=CommandProvisionResponse)
 async def provision_command_subscription(
     req: CommandProvisionRequest,
-    admin: dict = Depends(require_admin),
+    admin: dict = Depends(require_admin_ops),
 ) -> CommandProvisionResponse:
     """Create a Stripe Checkout session for the SmartLic Command (enterprise) tier.
 

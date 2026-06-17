@@ -13,7 +13,7 @@ from pipeline.budget import _run_with_budget
 from utils.postgrest_paginate import paginate_full
 
 from auth import require_auth
-from admin import require_admin
+from admin import require_admin_seo
 
 logger = logging.getLogger(__name__)
 router = APIRouter(tags=["seo_admin"])
@@ -43,7 +43,7 @@ class SEOMetricsResponse(BaseModel):
 async def get_seo_metrics(
     days: int = Query(default=90, ge=1, le=365),
     user=Depends(require_auth),
-    _admin=Depends(require_admin),
+    _admin=Depends(require_admin_seo),
 ):
     """Return SEO metrics for the last N days (legacy S14 daily rollup). Admin-only."""
     try:
@@ -126,7 +126,7 @@ def _fallback_gsc_summary(days: int, reason: str) -> GSCSummaryResponse:
 async def get_gsc_summary(
     days: int = Query(default=30, ge=7, le=90),
     user=Depends(require_auth),
-    _admin=Depends(require_admin),
+    _admin=Depends(require_admin_seo),
 ):
     """Return aggregated GSC analytics from gsc_metrics cache. Admin-only.
 
@@ -321,7 +321,7 @@ class RevalidateSEOResponse(BaseModel):
 async def admin_revalidate_seo(
     body: RevalidateSEORequest,
     user=Depends(require_auth),
-    _admin=Depends(require_admin),
+    _admin=Depends(require_admin_seo),
 ):
     """Manually trigger ISR revalidation for the given frontend paths.
 

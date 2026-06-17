@@ -15,7 +15,7 @@ from fastapi import Depends, FastAPI
 from schemas import RootResponse, SetoresResponse, DebugPNCPResponse
 from sectors import list_sectors
 
-APP_VERSION = os.getenv("APP_VERSION", "dev")
+APP_VERSION = os.getenv("APP_VERSION", "v1")
 
 
 def register_endpoints(app: FastAPI) -> None:
