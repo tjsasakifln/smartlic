@@ -25359,6 +25359,98 @@
         ]
       }
     },
+    "/v1/admin/webhook-deliveries": {
+      "get": {
+        "description": "List outgoing webhook deliveries.\n\nSupports optional filtering by ``status`` and/or ``channel``.\nResults are sorted by ``created_at`` descending (most recent first).\n\nReturns::\n\n    {\n        \"status\": \"ok\",\n        \"queried_at\": \"2026-06-17T12:00:00+00:00\",\n        \"count\": N,\n        \"entries\": [...]\n    }\n\nWhen Supabase is unreachable the response carries ``status=\"error\"``\nand an empty ``entries`` list.",
+        "operationId": "get_webhook_deliveries_v1_admin_webhook_deliveries_get",
+        "parameters": [
+          {
+            "description": "Filter by status: pending, delivered, failed, cancelled",
+            "in": "query",
+            "name": "status",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Filter by status: pending, delivered, failed, cancelled",
+              "title": "Status"
+            }
+          },
+          {
+            "description": "Filter by channel: slack, teams, email",
+            "in": "query",
+            "name": "channel",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Filter by channel: slack, teams, email",
+              "title": "Channel"
+            }
+          },
+          {
+            "description": "Max entries to return",
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 50,
+              "description": "Max entries to return",
+              "maximum": 500,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Get Webhook Deliveries V1 Admin Webhook Deliveries Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Get Webhook Deliveries",
+        "tags": [
+          "admin",
+          "webhooks"
+        ]
+      }
+    },
     "/v1/alertas/{setor_id}/uf/{uf}": {
       "get": {
         "description": "Return latest 20 bids for sector \u00d7 UF from datalake (public, no auth).",
