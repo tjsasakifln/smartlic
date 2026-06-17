@@ -136,9 +136,10 @@ class TestCreateExcel:
             # Verificar formatação de moeda
             assert "R$" in ws["F2"].number_format
 
-            # Verificar hyperlink (coluna K) - agora usando linkSistemaOrigem
+            # Verificar hyperlink (coluna K) - HOTFIX 2026-06-17: PNCP URL from
+            # numeroControlePNCP takes priority over linkSistemaOrigem (ComprasNet)
             assert ws["K2"].value == "Abrir"
-            assert ws["K2"].hyperlink.target == "https://sistema.compras.gov.br/edital/12345"
+            assert ws["K2"].hyperlink.target == "https://pncp.gov.br/app/editais/12345678000100/2024/123"
             assert ws["K2"].font.color.rgb == "000563C1"  # Azul (openpyxl ARGB format)
             assert ws["K2"].font.underline == "single"
 
@@ -207,7 +208,8 @@ class TestCreateExcel:
         assert ws["I2"].value is None
 
     def test_create_excel_with_link_sistema_origem(self):
-        """Deve usar linkSistemaOrigem quando disponível (prioridade 1)."""
+        """HOTFIX 2026-06-17: PNCP URL from numeroControlePNCP takes priority
+        over linkSistemaOrigem (which points to ComprasNet, not PNCP)."""
         licitacao = {
             "numeroControlePNCP": "12345678000100-1-000001/2025",
             "linkSistemaOrigem": "https://sistema.compras.gov.br/edital/123",
@@ -219,11 +221,12 @@ class TestCreateExcel:
         with open_workbook(buffer) as wb:
             ws = wb["Licitações Uniformes"]
 
-        # Deve usar linkSistemaOrigem (prioridade)
-        assert ws["K2"].hyperlink.target == "https://sistema.compras.gov.br/edital/123"
+        # PNCP URL from numeroControlePNCP wins (priority 1)
+        assert ws["K2"].hyperlink.target == "https://pncp.gov.br/app/editais/12345678000100/2025/1"
 
     def test_create_excel_with_link_processo_eletronico(self):
-        """Deve usar linkProcessoEletronico quando linkSistemaOrigem não existe (prioridade 2)."""
+        """HOTFIX 2026-06-17: PNCP URL from numeroControlePNCP takes priority
+        over linkProcessoEletronico."""
         licitacao = {
             "numeroControlePNCP": "12345678000100-1-000001/2025",
             "linkProcessoEletronico": "https://processo.gov.br/456",
@@ -234,8 +237,8 @@ class TestCreateExcel:
         with open_workbook(buffer) as wb:
             ws = wb["Licitações Uniformes"]
 
-        # Deve usar linkProcessoEletronico (segunda prioridade)
-        assert ws["K2"].hyperlink.target == "https://processo.gov.br/456"
+        # PNCP URL from numeroControlePNCP wins (priority 1)
+        assert ws["K2"].hyperlink.target == "https://pncp.gov.br/app/editais/12345678000100/2025/1"
 
     def test_create_excel_with_fallback_link(self):
         """Deve gerar link padrão PNCP parseando numeroControlePNCP quando nenhum link específico existe."""

@@ -525,6 +525,11 @@ class PNCPClient:
         item["municipio"] = unidade.get("municipioNome", "")
         item["nomeOrgao"] = orgao.get("razaoSocial", "") or unidade.get("nomeUnidade", "")
         item["codigoCompra"] = item.get("numeroControlePNCP", "")
+        # HOTFIX 2026-06-17: Flatten orgaoEntidade.cnpj → cnpjOrgao for PNCP link fallback.
+        # _build_pncp_link and excel.py need cnpjOrgao at top level to construct
+        # https://pncp.gov.br/app/editais/{cnpj}/{ano}/{seq} when linkSistemaOrigem
+        # is missing or points to ComprasNet.
+        item["cnpjOrgao"] = orgao.get("cnpj", "")
 
         # Preserve link fields (already in root level from API)
         # CRIT-FLT-008: linkSistemaOrigem is the primary link (86% populated).

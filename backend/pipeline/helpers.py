@@ -35,34 +35,51 @@ def _sanitize_item_valor(valor) -> float | None:
 def _build_pncp_link(lic: dict) -> str | None:
     """Build PNCP link from bid data.
 
-    Priority: linkSistemaOrigem > linkProcessoEletronico > constructed URL
-    from numeroControlePNCP > cnpjOrgao/anoCompra/sequencialCompra.
+    Priority: constructed PNCP URL from numeroControlePNCP >
+    cnpjOrgao/anoCompra/sequencialCompra > linkSistemaOrigem >
+    linkProcessoEletronico.
+
+    HOTFIX 2026-06-17: PNCP API's linkSistemaOrigem points to ComprasNet
+    (cnetmobile.estaleiro.serpro.gov.br), NOT pncp.gov.br. ComprasNet links
+    often fail or require auth. We now prioritize constructing the PNCP URL
+    from structured fields, falling back to linkSistemaOrigem only when
+    we cannot build a PNCP URL.
+
     Returns None when no link can be constructed.
     """
-    link = lic.get("linkSistemaOrigem") or lic.get("linkProcessoEletronico")
+    link = None
 
-    if not link:
-        numero_controle = lic.get("numeroControlePNCP", "")
-        if numero_controle:
-            try:
-                partes = numero_controle.split("/")
-                if len(partes) == 2:
-                    ano = partes[1]
-                    cnpj_tipo_seq = partes[0].split("-")
-                    if len(cnpj_tipo_seq) >= 3:
-                        cnpj = cnpj_tipo_seq[0]
-                        sequencial = cnpj_tipo_seq[2].lstrip("0")
-                        if cnpj and ano and sequencial:
-                            link = f"https://pncp.gov.br/app/editais/{cnpj}/{ano}/{sequencial}"
-            except Exception as e:
-                logger.debug(f"PNCP link extraction failed for {numero_controle}: {e}")
+    # Priority 1: Construct PNCP URL from numeroControlePNCP
+    numero_controle = lic.get("numeroControlePNCP", "")
+    if numero_controle:
+        try:
+            partes = numero_controle.split("/")
+            if len(partes) == 2:
+                ano = partes[1]
+                cnpj_tipo_seq = partes[0].split("-")
+                if len(cnpj_tipo_seq) >= 3:
+                    cnpj = cnpj_tipo_seq[0]
+                    sequencial = cnpj_tipo_seq[2].lstrip("0")
+                    if cnpj and ano and sequencial:
+                        link = f"https://pncp.gov.br/app/editais/{cnpj}/{ano}/{sequencial}"
+        except Exception as e:
+            logger.debug(f"PNCP link extraction failed for {numero_controle}: {e}")
 
+    # Priority 2: Construct PNCP URL from cnpjOrgao/anoCompra/sequencialCompra
     if not link:
         cnpj = lic.get("cnpjOrgao", "")
         ano = lic.get("anoCompra", "")
         seq = lic.get("sequencialCompra", "")
         if cnpj and ano and seq:
             link = f"https://pncp.gov.br/app/editais/{cnpj}/{ano}/{seq}"
+
+    # Priority 3: Fallback to linkSistemaOrigem (may point to ComprasNet or other sources)
+    if not link:
+        link = lic.get("linkSistemaOrigem")
+
+    # Priority 4: Fallback to linkProcessoEletronico
+    if not link:
+        link = lic.get("linkProcessoEletronico")
 
     return link or None
 
