@@ -327,7 +327,7 @@ export default function PlanosPage() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-[var(--canvas)]">
+    <main id="main-content" className="min-h-screen bg-[var(--canvas)]">
       <ProductSchema />
       <LandingNavbar />
 
@@ -550,6 +550,6 @@ export default function PlanosPage() {
           </Link>
         </div>
       </div>
-    </div>
+    </main>
   );
 }

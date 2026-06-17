@@ -241,7 +241,7 @@ function LoginContent() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col md:flex-row">
+    <main id="main-content" className="min-h-screen flex flex-col md:flex-row">
       <InstitutionalSidebar variant="login" className="w-full md:w-1/2" scrollTargetId="login-form" />
 
       <div id="login-form" className="w-full md:w-1/2 flex items-center justify-center bg-[var(--canvas)] p-4 py-4 md:py-8 scroll-mt-4">
@@ -261,6 +261,6 @@ function LoginContent() {
           />
         </div>
       </div>
-    </div>
+    </main>
   );
 }
