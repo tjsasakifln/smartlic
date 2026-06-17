@@ -319,6 +319,31 @@ class AdminDigestMetricsResponse(BaseModel):
     queried_at: str
 
 
+
+# --- admin_db_pool.py (Issue #1916) -------------------------------------------
+
+
+class DbPoolStatusResponse(BaseModel):
+    """Response for GET /v1/admin/db-pool (Issue #1916).
+
+    Returns a snapshot of the current Supabase PostgreSQL connection pool
+    state. status is one of healthy, degraded, or critical
+    based on the current utilization ratio.
+    """
+    status: str
+    active: int = 0
+    idle: int = 0
+    idle_in_transaction: int = 0
+    total: int = 0
+    max: int = 0
+    waiting: int = 0
+    utilization: float = 0.0
+    utilization_pct: float = 0.0
+    source: str = 'unknown'
+    threshold_warning_pct: int = 80
+    threshold_critical_pct: int = 85
+
+
 # --- admin_synthetic.py (Issue #1869) ----------------------------------------
 
 
