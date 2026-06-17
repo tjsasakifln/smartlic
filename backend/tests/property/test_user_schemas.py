@@ -351,8 +351,8 @@ class TestPerfilContexto:
     @_SETTINGS
     def test_invariants(self, obj):
         assert len(obj.ufs_atuacao) >= 1
-        assert obj.porte_empresa in PorteEmpresa
-        assert obj.experiencia_licitacoes in ExperienciaLicitacoes
+        assert isinstance(obj.porte_empresa, PorteEmpresa)
+        assert isinstance(obj.experiencia_licitacoes, ExperienciaLicitacoes)
         if obj.faixa_valor_min is not None:
             assert obj.faixa_valor_min >= 0
         if obj.faixa_valor_max is not None:
