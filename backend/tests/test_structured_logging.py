@@ -44,21 +44,24 @@ class TestJSONStructuredLogging:
             lg.setLevel(logging.NOTSET)
             lg.propagate = True
 
-    def _setup_and_capture(self, env_overrides: dict) -> tuple:
-        """Setup logging with env vars and return (buffer, logger).
+    class _ListHandler(logging.Handler):
+        """Handler that collects formatted records in a list (no I/O)."""
+        def __init__(self):
+            super().__init__()
+            self.formatted = []
+        def emit(self, record):
+            self.formatted.append(self.format(record))
 
-        Creates a dedicated StreamHandler writing to a StringIO buffer and
-        attaches it directly to the test logger.  Does NOT call the global
-        setup_logging or touch sys.stdout, so the test is immune to
-        environment differences (observed on Python 3.12.13 in CI where
-        the handler created by setup_logging never writes to a redirected
-        stream).
+    def _setup_and_capture(self, env_overrides: dict) -> tuple:
+        """Setup logging with env vars and return (formatted_lines, logger).
+
+        Uses _ListHandler (pure in-memory) instead of StreamHandler +
+        StringIO.  Coverage instrumentation can intercept io.StringIO.write
+        on some Python versions; _ListHandler avoids I/O classes entirely.
         """
         self._clean_root_logger()
-        buffer = io.StringIO()
 
-        # Wire up format + filters the same way setup_logging does, but
-        # keep everything scoped to our own handler.
+        # Wire up format + filters the same way setup_logging does.
         env = os.environ.copy()
         env.update(env_overrides)
         is_production = env.get("ENVIRONMENT", env.get("ENV", "development")).lower() in ("production", "prod")
@@ -84,7 +87,7 @@ class TestJSONStructuredLogging:
                 datefmt="%Y-%m-%d %H:%M:%S",
             )
 
-        handler = logging.StreamHandler(buffer)
+        handler = self._ListHandler()
         handler.addFilter(request_id_filter)
         handler.setFormatter(formatter)
         handler.setLevel(logging.DEBUG)
@@ -93,7 +96,7 @@ class TestJSONStructuredLogging:
         root.setLevel(logging.DEBUG)
         root.handlers = [handler]
 
-        return buffer, logging.getLogger("test_structured")
+        return handler.formatted, logging.getLogger("test_structured")
 
     # ── AC10: JSON format produces valid JSON ────────────────────────
 
@@ -103,7 +106,7 @@ class TestJSONStructuredLogging:
 
         logger.info("Test JSON validity")
 
-        output = buffer.getvalue().strip()
+        output = buffer[0]
         parsed = json.loads(output)  # Must not raise
         assert parsed["message"] == "Test JSON validity"
 
@@ -115,7 +118,7 @@ class TestJSONStructuredLogging:
 
         logger.info("Field check")
 
-        output = buffer.getvalue().strip()
+        output = buffer[0]
         parsed = json.loads(output)
 
         required = [
@@ -138,7 +141,7 @@ class TestJSONStructuredLogging:
         token = request_id_var.set("req-abc-123")
         try:
             logger.info("Request scoped log")
-            output = buffer.getvalue().strip()
+            output = buffer[0]
             parsed = json.loads(output)
             assert parsed["request_id"] == "req-abc-123"
         finally:
@@ -152,7 +155,7 @@ class TestJSONStructuredLogging:
 
         logger.info("No request context")
 
-        output = buffer.getvalue().strip()
+        output = buffer[0]
         parsed = json.loads(output)
         assert parsed["request_id"] == "-"
 
@@ -166,7 +169,7 @@ class TestJSONStructuredLogging:
 
         logger.info("Dev mode message")
 
-        output = buffer.getvalue().strip()
+        output = buffer[0]
 
         # Must NOT be valid JSON
         with pytest.raises(json.JSONDecodeError):
@@ -187,7 +190,7 @@ class TestJSONStructuredLogging:
 
         logger.info("Production default")
 
-        output = buffer.getvalue().strip()
+        output = buffer[0]
         parsed = json.loads(output)
         assert parsed["message"] == "Production default"
 
@@ -199,7 +202,7 @@ class TestJSONStructuredLogging:
 
         logger.info("Dev default")
 
-        output = buffer.getvalue().strip()
+        output = buffer[0]
 
         with pytest.raises(json.JSONDecodeError):
             json.loads(output)
@@ -215,8 +218,8 @@ class TestJSONStructuredLogging:
         logger.warning("Warning with %s", "interpolation")
         logger.error("Error: %s", Exception("test error"))
 
-        output = buffer.getvalue().strip()
-        lines = [line for line in output.split("\n") if line.strip()]
+        output = buffer  # list of formatted strings
+        lines = output
 
         assert len(lines) == 3
         for line in lines:
@@ -233,7 +236,7 @@ class TestJSONStructuredLogging:
         logger.warning("Warning with %s", "interpolation")
         logger.error("Error: %s", Exception("test error"))
 
-        output = buffer.getvalue()
+        output = "\n".join(buffer)
         assert "Simple message" in output
         assert "Warning with interpolation" in output
         assert "Error: test error" in output
