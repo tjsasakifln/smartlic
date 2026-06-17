@@ -79,6 +79,10 @@ function addSecurityHeaders(response: NextResponse): NextResponse {
   const nonce = crypto.randomUUID();
   response.headers.set("x-nonce", nonce);
 
+  // Issue #1913: CSP Enforced Mode — controlled by CSP_ENFORCE_MODE env var.
+  // When true: Content-Security-Policy (enforce), when false: Content-Security-Policy-Report-Only.
+  const cspEnforceMode = process.env.CSP_ENFORCE_MODE === "true";
+
   // AC1+AC4: Content Security Policy — enforcing mode with unsafe-inline (Phase 1).
   // ISSUE-1798 Phase 1: The enforcing CSP retains 'unsafe-inline' in script-src.
   // Phase 2 will replace this with the nonce-based policy from CSP-Report-Only.
@@ -107,8 +111,12 @@ function addSecurityHeaders(response: NextResponse): NextResponse {
     "report-to csp-endpoint",
   ].join("; ");
 
-  // AC1: Enforcing CSP
-  response.headers.set("Content-Security-Policy", csp);
+  // Issue #1913: CSP header with enforce/report-only toggle
+  if (cspEnforceMode) {
+    response.headers.set("Content-Security-Policy", csp);
+  } else {
+    response.headers.set("Content-Security-Policy-Report-Only", csp);
+  }
 
   // ISSUE-1798: CSP-Report-Only — strict nonce-based policy without 'unsafe-inline'.
   // Mirrors the enforcing CSP but replaces 'unsafe-inline' in script-src with a

@@ -116,6 +116,7 @@ from routes.admin_circuit_breakers import router as admin_circuit_breakers_route
 from routes.admin_data_retention import router as admin_data_retention_router
 from routes.integrations import router as integrations_router
 from routes.admin_db_pool import router as admin_db_pool_router
+from routes.csp_report import router as csp_report_router
 _v1_routers = [
     admin_router, subscriptions_router, upgrade_to_lifetime_router,
     features_router, messages_router,
@@ -183,6 +184,7 @@ _v1_routers = [
     subcontract_intel_router,
     data_deletion_router,
     integrations_router,
+    csp_report_router,
 ]
 def register_routes(app: FastAPI) -> None:
     """Register all application routers onto *app*."""

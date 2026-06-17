@@ -1,4 +1,5 @@
 """Request correlation, observability, and security middleware."""
+import json
 import logging
 import re
 import time
@@ -219,7 +220,7 @@ class DeprecationMiddleware(BaseHTTPMiddleware):
 
 class SecurityHeadersMiddleware(BaseHTTPMiddleware):
     """
-    STORY-210 AC10 + STORY-311 AC9/AC11/AC16: Security headers for all responses.
+    STORY-210 AC10 + STORY-311 AC9/AC11/AC16 + Issue #1913: Security headers for all responses.
 
     Headers applied:
     - X-Content-Type-Options: nosniff — prevent MIME type sniffing
@@ -229,6 +230,15 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
     - Permissions-Policy: camera=(), microphone=(), geolocation=() — disable unused APIs (AC11)
     - Strict-Transport-Security: max-age=31536000; includeSubDomains; preload (AC16)
     - Cache-Control: no-store on authenticated endpoints (AC9)
+    - Content-Security-Policy / Content-Security-Policy-Report-Only (Issue #1913)
+    - Report-To group for CSP violation reporting (Issue #1913)
+
+    The CSP header is controlled by the CSP_ENFORCE_MODE env var:
+    - true  -> Content-Security-Policy (enforce mode)  -- default in production
+    - false -> Content-Security-Policy-Report-Only      -- default in dev/staging
+
+    The report-uri points to /v1/csp-report for violation collection.
+    A Report-To header with group "csp-endpoint" supports the Reporting API v1.
     """
 
     async def dispatch(self, request: Request, call_next) -> Response:
@@ -245,6 +255,38 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
         # AC9: Prevent caching of authenticated responses
         if request.headers.get("authorization"):
             response.headers["Cache-Control"] = "no-store"
+
+        # Issue #1913: CSP header with enforce/report-only toggle
+        # Backend API responses get a restrictive default-src 'none' policy
+        # since this is a JSON API, not a browser-rendered page.
+        enforce = False
+        try:
+            from config.features import CSP_ENFORCE_MODE
+            enforce = CSP_ENFORCE_MODE
+        except Exception:
+            pass
+
+        csp_directives = (
+            "default-src 'none'; "
+            "frame-ancestors 'none'; "
+            "base-uri 'none'; "
+            "form-action 'none'; "
+            "report-uri /v1/csp-report; "
+            "report-to csp-endpoint"
+        )
+
+        if enforce:
+            response.headers["Content-Security-Policy"] = csp_directives
+        else:
+            response.headers["Content-Security-Policy-Report-Only"] = csp_directives
+
+        # Reporting API v1 -- report-to group definition for CSP violations
+        response.headers["Report-To"] = json.dumps({
+            "group": "csp-endpoint",
+            "max_age": 86400,
+            "endpoints": [{"url": "/v1/csp-report"}],
+        })
+
         return response
 
 

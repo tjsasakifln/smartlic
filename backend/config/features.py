@@ -170,6 +170,11 @@ ATESTADOS_DISPONIVEIS: list[dict] = [
 # Plano Fundadores v2 (epic:fundadores) — kill switch for the lifetime offer
 FOUNDERS_OFFER_ENABLED: bool = str_to_bool(os.getenv("FOUNDERS_OFFER_ENABLED", "true"))
 
+# Issue #1913: CSP Enforced Mode — controls Content-Security-Policy header
+# When true (default in production): sends Content-Security-Policy (enforce)
+# When false (default in dev/staging): sends Content-Security-Policy-Report-Only
+CSP_ENFORCE_MODE: bool = str_to_bool(os.getenv("CSP_ENFORCE_MODE", "false"))
+
 # NETINT-007 (EPIC-NETINT #1263): network_events cleanup job retention config
 NETWORK_EVENTS_RETENTION_DAYS: int = int(os.getenv("NETWORK_EVENTS_RETENTION_DAYS", "365"))
 NETWORK_EVENTS_AGG_WINDOW_DAYS: int = int(os.getenv("NETWORK_EVENTS_AGG_WINDOW_DAYS", "7"))
