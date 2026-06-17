@@ -4440,6 +4440,74 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/integrations/webhooks": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Webhooks
+         * @description List all webhooks for the authenticated user.
+         */
+        get: operations["list_webhooks_v1_integrations_webhooks_get"];
+        put?: never;
+        /**
+         * Create Webhook
+         * @description Create a new webhook integration (Slack, Teams, or Email).
+         */
+        post: operations["create_webhook_v1_integrations_webhooks_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/integrations/webhooks/{webhook_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Delete Webhook
+         * @description Delete a webhook integration.
+         */
+        delete: operations["delete_webhook_v1_integrations_webhooks__webhook_id__delete"];
+        options?: never;
+        head?: never;
+        /**
+         * Update Webhook
+         * @description Update a webhook configuration.
+         */
+        patch: operations["update_webhook_v1_integrations_webhooks__webhook_id__patch"];
+        trace?: never;
+    };
+    "/v1/integrations/webhooks/{webhook_id}/test": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Test Webhook
+         * @description Send a test notification to verify the webhook configuration.
+         */
+        post: operations["test_webhook_v1_integrations_webhooks__webhook_id__test_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/intel-concorrente/benchmarks": {
         parameters: {
             query?: never;
@@ -16827,6 +16895,95 @@ export interface components {
             /** Success */
             success: boolean;
         };
+        /**
+         * WebhookChannel
+         * @description Supported notification channels.
+         * @enum {string}
+         */
+        WebhookChannel: "slack" | "teams" | "email";
+        /**
+         * WebhookCreate
+         * @description Request body for POST /v1/integrations/webhooks.
+         */
+        WebhookCreate: {
+            channel: components["schemas"]["WebhookChannel"];
+            /**
+             * Email Target
+             * @description Email address (required for email channel)
+             */
+            email_target?: string | null;
+            /**
+             * Events
+             * @default []
+             */
+            events: components["schemas"]["WebhookEvent"][];
+            /** Label */
+            label?: string | null;
+            /**
+             * Webhook Url
+             * @description Incoming webhook URL (required for slack/teams)
+             */
+            webhook_url?: string | null;
+        };
+        /**
+         * WebhookEvent
+         * @description Notification event types for webhook dispatch.
+         * @enum {string}
+         */
+        WebhookEvent: "new_edital" | "deadline_24h" | "deadline_6h" | "deadline_1h" | "pregao_started" | "result_published";
+        /**
+         * WebhookResponse
+         * @description Public webhook representation returned by the API.
+         */
+        WebhookResponse: {
+            channel: components["schemas"]["WebhookChannel"];
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Email Target */
+            email_target?: string | null;
+            /** Events */
+            events: components["schemas"]["WebhookEvent"][];
+            /** Id */
+            id: string;
+            /** Is Active */
+            is_active: boolean;
+            /** Label */
+            label?: string | null;
+            /** Last Triggered At */
+            last_triggered_at?: string | null;
+            /** Webhook Url */
+            webhook_url?: string | null;
+        };
+        /**
+         * WebhookTestResponse
+         * @description Response from the test notification endpoint.
+         */
+        WebhookTestResponse: {
+            channel: components["schemas"]["WebhookChannel"];
+            /** Message */
+            message: string;
+            /** Target */
+            target?: string | null;
+        };
+        /**
+         * WebhookUpdate
+         * @description Request body for PATCH /v1/integrations/webhooks/{id}.
+         */
+        WebhookUpdate: {
+            /** Email Target */
+            email_target?: string | null;
+            /** Events */
+            events?: components["schemas"]["WebhookEvent"][] | null;
+            /** Is Active */
+            is_active?: boolean | null;
+            /** Label */
+            label?: string | null;
+            /** Webhook Url */
+            webhook_url?: string | null;
+        };
         /** WeeklyDigestResponse */
         WeeklyDigestResponse: {
             /** Avg Value */
@@ -22690,6 +22847,154 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["IndiceResult"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_webhooks_v1_integrations_webhooks_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WebhookResponse"][];
+                };
+            };
+        };
+    };
+    create_webhook_v1_integrations_webhooks_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["WebhookCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WebhookResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_webhook_v1_integrations_webhooks__webhook_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                webhook_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_webhook_v1_integrations_webhooks__webhook_id__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                webhook_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["WebhookUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WebhookResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    test_webhook_v1_integrations_webhooks__webhook_id__test_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                webhook_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WebhookTestResponse"];
                 };
             };
             /** @description Validation Error */
