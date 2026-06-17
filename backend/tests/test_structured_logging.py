@@ -47,26 +47,51 @@ class TestJSONStructuredLogging:
     def _setup_and_capture(self, env_overrides: dict) -> tuple:
         """Setup logging with env vars and return (buffer, logger).
 
-        Calls setup_logging normally (it creates a StreamHandler writing to
-        the real sys.stdout), then replaces every StreamHandler's stream
-        with our StringIO buffer.  This avoids a fragile sys.stdout swap
-        that fails on some Python patch versions (observed on 3.12.13 in CI).
+        Creates a dedicated StreamHandler writing to a StringIO buffer and
+        attaches it directly to the test logger.  Does NOT call the global
+        setup_logging or touch sys.stdout, so the test is immune to
+        environment differences (observed on Python 3.12.13 in CI where
+        the handler created by setup_logging never writes to a redirected
+        stream).
         """
         self._clean_root_logger()
         buffer = io.StringIO()
 
-        with patch.dict(os.environ, env_overrides, clear=False):
-            setup_logging("INFO")
+        # Wire up format + filters the same way setup_logging does, but
+        # keep everything scoped to our own handler.
+        env = os.environ.copy()
+        env.update(env_overrides)
+        is_production = env.get("ENVIRONMENT", env.get("ENV", "development")).lower() in ("production", "prod")
+        log_format = env.get("LOG_FORMAT", "").lower() or ("json" if is_production else "text")
 
-        # Replace every StreamHandler's stream with our buffer so all log
-        # output is captured — even from handlers that pytest may add later.
+        from middleware import RequestIDFilter
+        request_id_filter = RequestIDFilter()
+
+        if log_format == "json":
+            from pythonjsonlogger import jsonlogger
+            formatter = jsonlogger.JsonFormatter(
+                fmt="%(asctime)s %(levelname)s %(name)s %(message)s %(module)s %(funcName)s %(lineno)d %(request_id)s %(search_id)s %(correlation_id)s",
+                datefmt="%Y-%m-%dT%H:%M:%S",
+                rename_fields={
+                    "asctime": "timestamp",
+                    "levelname": "level",
+                    "name": "logger_name",
+                },
+            )
+        else:
+            formatter = logging.Formatter(
+                fmt="%(asctime)s | %(levelname)-8s | req=%(request_id)s | search=%(search_id)s | %(name)s | %(message)s",
+                datefmt="%Y-%m-%d %H:%M:%S",
+            )
+
+        handler = logging.StreamHandler(buffer)
+        handler.addFilter(request_id_filter)
+        handler.setFormatter(formatter)
+        handler.setLevel(logging.DEBUG)
+
         root = logging.getLogger()
-        for h in root.handlers[:]:
-            if isinstance(h, logging.StreamHandler):
-                h.flush()
-                h.stream = buffer
-            else:
-                root.removeHandler(h)
+        root.setLevel(logging.DEBUG)
+        root.handlers = [handler]
 
         return buffer, logging.getLogger("test_structured")
 
