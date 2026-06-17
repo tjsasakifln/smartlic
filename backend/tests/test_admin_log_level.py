@@ -18,7 +18,7 @@ import time
 import pytest
 from fastapi.testclient import TestClient
 
-from admin import require_admin
+from admin import require_admin_ops
 from auth import require_auth
 from main import app
 
@@ -55,15 +55,15 @@ def admin_client():
     """
     fake_admin = {"id": "00000000-0000-0000-0000-00000000a001", "email": "admin@test"}
     app.dependency_overrides[require_auth] = lambda: fake_admin
-    app.dependency_overrides[require_admin] = lambda: fake_admin
+    app.dependency_overrides[require_admin_ops] = lambda: fake_admin
     yield TestClient(app)
     app.dependency_overrides.pop(require_auth, None)
-    app.dependency_overrides.pop(require_admin, None)
+    app.dependency_overrides.pop(require_admin_ops, None)
 
 
 @pytest.fixture
 def regular_client():
-    """Logged-in non-admin user — should get 403 from require_admin."""
+    """Logged-in non-admin user — should get 403 from require_admin_ops."""
     fake_user = {"id": "regular-user-id", "email": "user@test"}
     app.dependency_overrides[require_auth] = lambda: fake_user
     yield TestClient(app)
