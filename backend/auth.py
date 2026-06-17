@@ -598,7 +598,7 @@ def _force_until_active(force_until: Any) -> bool:
 async def require_mfa(
     user: dict = Depends(require_auth),
 ) -> dict:
-    """STORY-317 + MFA-EXT-001: Require MFA (aal2) for sensitive endpoints.
+    """STORY-317 + MFA-EXT-001 + #1882: Require MFA (aal2) for sensitive endpoints.
 
     Enforcement triggers (any -> MFA mandatory):
       1. admin or master role (STORY-317)
@@ -606,12 +606,22 @@ async def require_mfa(
       3. force_mfa_enrollment_until > NOW() — set by bruteforce trigger
          or consultoria backfill (MFA-EXT-001 AC4-AC5)
 
+    Controlled by ``MFA_ENFORCEMENT_ENABLED`` feature flag (#1882).
+    When disabled, enforcement triggers are logged but requests pass through.
+
     If aal2 is already on the JWT, pass through. Otherwise, if any
     enforcement trigger fires, raise 403 with X-MFA-Required +
     X-MFA-Reason headers (the banner reads X-MFA-Reason for variant text).
 
     Used on: /admin/*, /checkout, /billing-portal, /change-password
     """
+    # #1882: Feature flag gate.
+    from config.features import MFA_ENFORCEMENT_ENABLED
+
+    if not MFA_ENFORCEMENT_ENABLED:
+        logger.debug("MFA enforcement disabled by feature flag — skipping require_mfa")
+        return user
+
     aal = user.get("aal", "aal1")
     user_id = user["id"]
 
