@@ -118,4 +118,5 @@ async def get_data_retention_status(
             "tables": [],
             "total_rows_purged_last": 0,
             "last_cycle_duration_seconds": 0,
+            "detail": str(exc),
         }
