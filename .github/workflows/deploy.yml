@@ -163,20 +163,41 @@ jobs:
 
       - name: Check for pending migrations
         id: check
+        continue-on-error: true  # DEBT-123 AC9: check must not block apply step
         run: |
           echo "=== Checking migration status ==="
+          set +e  # supabase may exit non-zero on version mismatches
           OUTPUT=$(supabase migration list --linked 2>&1)
+          LIST_EXIT=$?
+          set -e
           echo "$OUTPUT"
 
+          # If supabase CLI failed entirely, assume pending so apply runs
+          if [ $LIST_EXIT -ne 0 ] && [ -z "$OUTPUT" ]; then
+            echo "::warning::supabase migration list failed with exit $LIST_EXIT — assuming migrations pending"
+            echo "has_pending=true" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+
+          # 2-pass scan: mark migration as applied if ANY row has non-empty Remote
           UNAPPLIED=$(echo "$OUTPUT" | awk -F'|' '
             NR > 2 {
               local = $1; gsub(/^[ \t]+|[ \t]+$/, "", local)
               remote = $2; gsub(/^[ \t]+|[ \t]+$/, "", remote)
-              if (local != "" && remote == "") print local
+              if (local == "") next
+              if (local ~ /\.down/) next
+              if (local !~ /^[0-9]{14}$/) next
+              seen[local] = 1
+              if (remote != "") applied[local] = 1
             }
-          ')
+            END {
+              for (m in seen) {
+                if (!applied[m]) print m
+              }
+            }
+          ' | sort)
 
-          if [ -n "$UNAPPLIED" ] || echo "$OUTPUT" | grep -q "Not applied"; then
+          if [ -n "$UNAPPLIED" ]; then
             echo "has_pending=true" >> $GITHUB_OUTPUT
             echo "Pending migrations found:"
             echo "$UNAPPLIED"
