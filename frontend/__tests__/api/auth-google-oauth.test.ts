@@ -208,7 +208,7 @@ describe("GET /api/auth/google/callback", () => {
     const fetchUrl = (global.fetch as jest.Mock).mock.calls[0][0] as string;
     expect(fetchUrl).toContain("code=4%2Fauth-code");
     expect(fetchUrl).toContain("state=nonce123");
-    expect(fetchUrl).toContain("test-backend:8000/api/auth/google/callback");
+    expect(fetchUrl).toContain("test-backend:8000/v1/api/auth/google/callback");
   });
 
   it("forwards error param when user denies OAuth", async () => {
