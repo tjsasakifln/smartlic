@@ -115,6 +115,7 @@ from routes.admin_alerts import router as admin_alerts_router
 from routes.admin_circuit_breakers import router as admin_circuit_breakers_router
 from routes.admin_data_retention import router as admin_data_retention_router
 from routes.integrations import router as integrations_router
+from routes.admin_db_pool import router as admin_db_pool_router
 _v1_routers = [
     admin_router, subscriptions_router, upgrade_to_lifetime_router,
     features_router, messages_router,
@@ -229,6 +230,8 @@ def register_routes(app: FastAPI) -> None:
     app.include_router(admin_data_retention_router)
     # Issue #1919: Circuit breaker states — self-prefixed at /v1/admin/circuit-breakers
     app.include_router(admin_circuit_breakers_router)
+    # Issue #1916: DB pool monitoring — self-prefixed at /v1/admin/db-pool
+    app.include_router(admin_db_pool_router)
     # Stripe webhook at root — DEBT-324: single registration only.
     # Removed from _v1_routers above to prevent duplicate at /v1/webhooks/stripe.
     # Stripe Dashboard must be configured with: POST /webhooks/stripe

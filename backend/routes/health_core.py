@@ -131,19 +131,47 @@ async def health_ready(response: Response):
             return {"status": "degraded", "error": str(e)[:100], "latency_ms": round((time.monotonic() - start) * 1000)}
 
     async def _check_pool() -> dict:
-        """#1790: Supabase connection pool utilization check (>85% → degraded)."""
+        """#1790 / #1916: Supabase connection pool utilization check (>85% → degraded).
+
+        Queries ``pg_stat_activity`` via the ``get_db_pool_stats`` RPC for
+        real-time connection counts. Falls back to in-process tracked counters
+        if the RPC is unavailable.
+        """
         try:
-            from supabase_client import _pool_active_count, _POOL_MAX_CONNECTIONS
-            pct = (_pool_active_count / _POOL_MAX_CONNECTIONS) * 100 if _POOL_MAX_CONNECTIONS > 0 else 0.0
+            from monitoring.db_pool_monitor import get_db_pool_stats
+            stats = await get_db_pool_stats()
+            active = stats.get("active", 0)
+            max_conn = stats.get("max", 0)
+            utilization = stats.get("utilization", 0.0)
+            pct = utilization * 100
+            source = stats.get("source", "unknown")
             status = "degraded" if pct > 85 else "ok"
             if pct > 85:
                 logger.warning(
-                    "#1790: Supabase pool utilization > 85%%: %d/%d active (%.1f%%)",
-                    _pool_active_count, _POOL_MAX_CONNECTIONS, pct,
+                    "#1916: Supabase pool utilization > 85%%: %d/%d active (%.1f%%, source=%s)",
+                    active, max_conn, pct, source,
                 )
-            return {"status": status, "utilization_pct": round(pct, 1)}
-        except Exception as e:
-            return {"status": "unknown", "error": str(e)[:100]}
+            return {
+                "status": status,
+                "active": active,
+                "max": max_conn,
+                "utilization_pct": round(pct, 1),
+                "source": source,
+            }
+        except Exception:
+            # Fallback: use tracked counters directly
+            try:
+                from supabase_client import _pool_active_count, _POOL_MAX_CONNECTIONS
+                pct = (_pool_active_count / _POOL_MAX_CONNECTIONS) * 100 if _POOL_MAX_CONNECTIONS > 0 else 0.0
+                status = "degraded" if pct > 85 else "ok"
+                if pct > 85:
+                    logger.warning(
+                        "#1790: Supabase pool utilization > 85%%: %d/%d active (%.1f%%)",
+                        _pool_active_count, _POOL_MAX_CONNECTIONS, pct,
+                    )
+                return {"status": status, "utilization_pct": round(pct, 1), "source": "tracked"}
+            except Exception as e2:
+                return {"status": "unknown", "error": str(e2)[:100]}
 
     async def _check_cache_hit_rate() -> dict:
         """#1790: Aggregate cache hit rate from Prometheus counters."""

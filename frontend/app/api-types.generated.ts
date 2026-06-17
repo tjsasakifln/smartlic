@@ -623,29 +623,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/v1/admin/circuit-breakers": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Get Circuit Breakers
-         * @description Return real-time state of all circuit breakers.
-         *
-         *     Returns a dict keyed by source name with per-CB state including
-         *     degraded status, failure count, open duration, and configuration.
-         */
-        get: operations["get_circuit_breakers_v1_admin_circuit_breakers_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/v1/admin/clear-contracts-checkpoints": {
         parameters: {
             query?: never;
@@ -790,7 +767,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/v1/admin/data-retention/status": {
+    "/v1/admin/db-pool": {
         parameters: {
             query?: never;
             header?: never;
@@ -798,31 +775,23 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * Get Data Retention Status
-         * @description Return the last purge status per table.
+         * Get Db Pool Status
+         * @description Return current Supabase connection pool snapshot.
          *
-         *     Reads data from Redis keys set by the data retention purge cycle.
-         *     Falls back gracefully when Redis is unavailable.
+         *     Queries ``pg_stat_activity`` via the ``get_db_pool_stats`` RPC function
+         *     (or falls back to in-process tracked counters). Includes:
          *
-         *     Returns::
+         *         - ``active``, ``idle``, ``idle_in_transaction``, ``total``, ``max``,
+         *           ``waiting`` connection counts
+         *         - ``utilization`` ratio (0-1)
+         *         - ``source`` indicator (``pg_stat_activity`` | ``tracked`` | ``error``)
+         *         - ``threshold`` — the configured alert threshold (80% warning, 85% alert)
+         *         - ``status`` — ``"healthy"`` / ``"degraded"`` / ``"critical"``
          *
-         *         {
-         *             "status": "ok",
-         *             "queried_at": "2026-06-16T12:00:00+00:00",
-         *             "tables": [
-         *                 {
-         *                     "name": "trial_email_log",
-         *                     "last_purge_at": "2026-06-16T12:00:00+00:00",
-         *                     "rows_purged_last": 42,
-         *                     "status": "success"
-         *                 },
-         *                 ...
-         *             ],
-         *             "total_rows_purged_last": 123,
-         *             "last_cycle_duration_seconds": 5.23
-         *         }
+         *     **Requires:** admin or master role.
+         *     **Target:** <200ms (single RPC call).
          */
-        get: operations["get_data_retention_status_v1_admin_data_retention_status_get"];
+        get: operations["get_db_pool_status_v1_admin_db_pool_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -4434,74 +4403,6 @@ export interface paths {
         get: operations["get_municipio_v1_indice_municipal__municipio_slug__get"];
         put?: never;
         post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/integrations/webhooks": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * List Webhooks
-         * @description List all webhooks for the authenticated user.
-         */
-        get: operations["list_webhooks_v1_integrations_webhooks_get"];
-        put?: never;
-        /**
-         * Create Webhook
-         * @description Create a new webhook integration (Slack, Teams, or Email).
-         */
-        post: operations["create_webhook_v1_integrations_webhooks_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/integrations/webhooks/{webhook_id}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post?: never;
-        /**
-         * Delete Webhook
-         * @description Delete a webhook integration.
-         */
-        delete: operations["delete_webhook_v1_integrations_webhooks__webhook_id__delete"];
-        options?: never;
-        head?: never;
-        /**
-         * Update Webhook
-         * @description Update a webhook configuration.
-         */
-        patch: operations["update_webhook_v1_integrations_webhooks__webhook_id__patch"];
-        trace?: never;
-    };
-    "/v1/integrations/webhooks/{webhook_id}/test": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Test Webhook
-         * @description Send a test notification to verify the webhook configuration.
-         */
-        post: operations["test_webhook_v1_integrations_webhooks__webhook_id__test_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -16895,95 +16796,6 @@ export interface components {
             /** Success */
             success: boolean;
         };
-        /**
-         * WebhookChannel
-         * @description Supported notification channels.
-         * @enum {string}
-         */
-        WebhookChannel: "slack" | "teams" | "email";
-        /**
-         * WebhookCreate
-         * @description Request body for POST /v1/integrations/webhooks.
-         */
-        WebhookCreate: {
-            channel: components["schemas"]["WebhookChannel"];
-            /**
-             * Email Target
-             * @description Email address (required for email channel)
-             */
-            email_target?: string | null;
-            /**
-             * Events
-             * @default []
-             */
-            events: components["schemas"]["WebhookEvent"][];
-            /** Label */
-            label?: string | null;
-            /**
-             * Webhook Url
-             * @description Incoming webhook URL (required for slack/teams)
-             */
-            webhook_url?: string | null;
-        };
-        /**
-         * WebhookEvent
-         * @description Notification event types for webhook dispatch.
-         * @enum {string}
-         */
-        WebhookEvent: "new_edital" | "deadline_24h" | "deadline_6h" | "deadline_1h" | "pregao_started" | "result_published";
-        /**
-         * WebhookResponse
-         * @description Public webhook representation returned by the API.
-         */
-        WebhookResponse: {
-            channel: components["schemas"]["WebhookChannel"];
-            /**
-             * Created At
-             * Format: date-time
-             */
-            created_at: string;
-            /** Email Target */
-            email_target?: string | null;
-            /** Events */
-            events: components["schemas"]["WebhookEvent"][];
-            /** Id */
-            id: string;
-            /** Is Active */
-            is_active: boolean;
-            /** Label */
-            label?: string | null;
-            /** Last Triggered At */
-            last_triggered_at?: string | null;
-            /** Webhook Url */
-            webhook_url?: string | null;
-        };
-        /**
-         * WebhookTestResponse
-         * @description Response from the test notification endpoint.
-         */
-        WebhookTestResponse: {
-            channel: components["schemas"]["WebhookChannel"];
-            /** Message */
-            message: string;
-            /** Target */
-            target?: string | null;
-        };
-        /**
-         * WebhookUpdate
-         * @description Request body for PATCH /v1/integrations/webhooks/{id}.
-         */
-        WebhookUpdate: {
-            /** Email Target */
-            email_target?: string | null;
-            /** Events */
-            events?: components["schemas"]["WebhookEvent"][] | null;
-            /** Is Active */
-            is_active?: boolean | null;
-            /** Label */
-            label?: string | null;
-            /** Webhook Url */
-            webhook_url?: string | null;
-        };
         /** WeeklyDigestResponse */
         WeeklyDigestResponse: {
             /** Avg Value */
@@ -17929,28 +17741,6 @@ export interface operations {
             };
         };
     };
-    get_circuit_breakers_v1_admin_circuit_breakers_get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
-                };
-            };
-        };
-    };
     clear_contracts_checkpoints_v1_admin_clear_contracts_checkpoints_post: {
         parameters: {
             query?: never;
@@ -18157,7 +17947,7 @@ export interface operations {
             };
         };
     };
-    get_data_retention_status_v1_admin_data_retention_status_get: {
+    get_db_pool_status_v1_admin_db_pool_get: {
         parameters: {
             query?: never;
             header?: never;
@@ -22847,154 +22637,6 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["IndiceResult"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    list_webhooks_v1_integrations_webhooks_get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["WebhookResponse"][];
-                };
-            };
-        };
-    };
-    create_webhook_v1_integrations_webhooks_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["WebhookCreate"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["WebhookResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    delete_webhook_v1_integrations_webhooks__webhook_id__delete: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                webhook_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            204: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    update_webhook_v1_integrations_webhooks__webhook_id__patch: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                webhook_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["WebhookUpdate"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["WebhookResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    test_webhook_v1_integrations_webhooks__webhook_id__test_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                webhook_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["WebhookTestResponse"];
                 };
             };
             /** @description Validation Error */

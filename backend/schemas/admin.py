@@ -327,7 +327,8 @@ class DbPoolStatusResponse(BaseModel):
     """Response for GET /v1/admin/db-pool (Issue #1916).
 
     Returns a snapshot of the current Supabase PostgreSQL connection pool
-    state. status is one of healthy, degraded, or critical
+<<<<<<< HEAD
+    state. ``status`` is one of ``healthy``, ``degraded``, or ``critical``
     based on the current utilization ratio.
     """
     status: str
@@ -339,12 +340,13 @@ class DbPoolStatusResponse(BaseModel):
     waiting: int = 0
     utilization: float = 0.0
     utilization_pct: float = 0.0
-    source: str = 'unknown'
+    source: str = "unknown"
     threshold_warning_pct: int = 80
     threshold_critical_pct: int = 85
 
 
 # --- admin_synthetic.py (Issue #1869) ----------------------------------------
+
 
 
 class SyntheticStageResult(BaseModel):
