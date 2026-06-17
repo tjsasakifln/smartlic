@@ -1,0 +1,221 @@
+{
+  "_meta": {
+    "description": "Contract test specs: expected responses per endpoint",
+    "version": "1.0.0",
+    "created": "2026-06-17",
+    "extend": "Add new endpoints here when routes are added or modified"
+  },
+  "endpoints": [
+    {
+      "id": "health-live",
+      "method": "GET",
+      "path": "/health/live",
+      "expected_status": 200,
+      "description": "Pure liveness probe — always returns 200",
+      "response_schema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "required": ["live", "ready", "uptime_seconds", "process_uptime_seconds"],
+        "properties": {
+          "live": {"type": "boolean"},
+          "ready": {"type": "boolean"},
+          "uptime_seconds": {"type": "number"},
+          "process_uptime_seconds": {"type": "number"}
+        }
+      }
+    },
+    {
+      "id": "health-ready",
+      "method": "GET",
+      "path": "/health/ready",
+      "description": "Readiness probe — checks deps, can return degraded/unhealthy",
+      "expected_status": [200, 503],
+      "response_schema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "required": ["status", "ready", "checks", "timestamp", "uptime_seconds"],
+        "properties": {
+          "status": {"type": "string", "enum": ["healthy", "degraded", "unhealthy"]},
+          "ready": {"type": "boolean"},
+          "checks": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "object",
+              "required": ["status"],
+              "properties": {
+                "status": {"type": "string"},
+                "error": {"type": ["string", "null"]}
+              }
+            }
+          },
+          "timestamp": {"type": "string"},
+          "uptime_seconds": {"type": "number"}
+        }
+      }
+    },
+    {
+      "id": "sectors",
+      "method": "GET",
+      "path": "/v1/sectors",
+      "description": "List all sectors — public, no auth, static data",
+      "expected_status": 200,
+      "response_schema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "array",
+        "items": {
+          "type": "object",
+          "required": ["id", "slug", "name", "description"],
+          "properties": {
+            "id": {"type": "string"},
+            "slug": {"type": "string"},
+            "name": {"type": "string"},
+            "description": {"type": "string"}
+          }
+        }
+      }
+    },
+    {
+      "id": "openapi-schema",
+      "method": "GET",
+      "path": "/api/openapi.json",
+      "description": "Public OpenAPI schema — filtered, no admin routes",
+      "expected_status": 200,
+      "response_schema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "required": ["openapi", "info", "paths"],
+        "properties": {
+          "openapi": {"type": "string"},
+          "info": {
+            "type": "object",
+            "required": ["title", "version"],
+            "properties": {
+              "title": {"type": "string"},
+              "version": {"type": "string"}
+            }
+          },
+          "paths": {"type": "object"}
+        }
+      }
+    },
+    {
+      "id": "plans",
+      "method": "GET",
+      "path": "/v1/api/plans",
+      "description": "List active plans — public, may degrade without DB",
+      "expected_status": [200, 500],
+      "response_schema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "oneOf": [
+          {
+            "title": "Success",
+            "type": "object",
+            "required": ["plans", "total"],
+            "properties": {
+              "plans": {"type": "array"},
+              "total": {"type": "integer"}
+            }
+          },
+          {
+            "title": "Error",
+            "type": "object",
+            "properties": {
+              "detail": {}
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "auth-status",
+      "method": "GET",
+      "path": "/v1/auth/status",
+      "params": {"email": "test@contract-test.smartlic.tech"},
+      "description": "Auth status check — public, no auth required",
+      "expected_status": 200,
+      "response_schema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "required": ["confirmed"],
+        "properties": {
+          "confirmed": {"type": "boolean"}
+        }
+      }
+    },
+    {
+      "id": "buscar-no-auth",
+      "method": "POST",
+      "path": "/v1/buscar",
+      "description": "POST /buscar without auth token — must return 401",
+      "expected_status": 401,
+      "response_schema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "detail": {}
+        }
+      }
+    },
+    {
+      "id": "buscar-invalid-token",
+      "method": "POST",
+      "path": "/v1/buscar",
+      "headers": {"Authorization": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwiZW1haWwiOiJjb250cmFjdC10ZXN0QHNtYXJ0bGljLnRlY2giLCJpYXQiOjE1MTYyMzkwMjJ9.invalid"},
+      "description": "POST /buscar with invalid token — must return 403",
+      "expected_status": [403, 401],
+      "response_schema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "detail": {}
+        }
+      }
+    },
+    {
+      "id": "root",
+      "method": "GET",
+      "path": "/",
+      "description": "API root — navigation and version info",
+      "expected_status": 200,
+      "response_schema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "required": ["name", "version", "status", "endpoints"],
+        "properties": {
+          "name": {"type": "string"},
+          "version": {"type": "string"},
+          "api_version": {"type": "string"},
+          "description": {"type": "string"},
+          "endpoints": {"type": "object"},
+          "status": {"type": "string"}
+        }
+      }
+    },
+    {
+      "id": "setores",
+      "method": "GET",
+      "path": "/v1/setores",
+      "description": "SETORES list — public, no auth, static data",
+      "expected_status": 200,
+      "response_schema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "required": ["setores"],
+        "properties": {
+          "setores": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["id", "name"],
+              "properties": {
+                "id": {"type": "string"},
+                "name": {"type": "string"},
+                "description": {"type": "string"}
+              }
+            }
+          }
+        }
+      }
+    }
+  ]
+}
