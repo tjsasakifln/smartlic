@@ -2113,6 +2113,137 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/alerts/b2gops": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Alerts
+         * @description List user alerts with pagination and optional filters.
+         *
+         *     Filters:
+         *       - type: event type (new_matching_edital, deadline_approaching, etc.)
+         *       - is_read: true/false to filter by read status
+         */
+        get: operations["list_alerts_v1_alerts_b2gops_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/alerts/b2gops/preferences": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Preferences
+         * @description Get the current user's alert notification preferences.
+         */
+        get: operations["get_preferences_v1_alerts_b2gops_preferences_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Update Preferences
+         * @description Update the current user's alert notification preferences.
+         *
+         *     Uses upsert — creates preferences row if it doesn't exist,
+         *     updates only the provided fields if it does.
+         */
+        patch: operations["update_preferences_v1_alerts_b2gops_preferences_patch"];
+        trace?: never;
+    };
+    "/v1/alerts/b2gops/read-all": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Mark All Read
+         * @description Mark all unread alerts as read for the current user.
+         */
+        post: operations["mark_all_read_v1_alerts_b2gops_read_all_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/alerts/b2gops/unread-count": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Unread Count
+         * @description Get the count of unread alerts for the badge in the UI.
+         */
+        get: operations["unread_count_v1_alerts_b2gops_unread_count_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/alerts/b2gops/{alert_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Delete Alert
+         * @description Delete a single alert by ID.
+         */
+        delete: operations["delete_alert_v1_alerts_b2gops__alert_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/alerts/b2gops/{alert_id}/read": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Mark Read
+         * @description Mark a single alert as read.
+         */
+        patch: operations["mark_read_v1_alerts_b2gops__alert_id__read_patch"];
+        trace?: never;
+    };
     "/v1/alerts/{alert_id}": {
         parameters: {
             query?: never;
@@ -7814,15 +7945,6 @@ export interface components {
              * @default daily
              */
             frequency: string;
-        };
-        /** AlertPreferencesResponse */
-        AlertPreferencesResponse: {
-            /** Enabled */
-            enabled: boolean;
-            /** Frequency */
-            frequency: string;
-            /** Last Digest Sent At */
-            last_digest_sent_at?: string | null;
         };
         /** AlertPreviewItem */
         AlertPreviewItem: {
@@ -16606,14 +16728,6 @@ export interface components {
             uf: string;
         };
         /**
-         * UnreadCountResponse
-         * @description Unread message count for badge display.
-         */
-        UnreadCountResponse: {
-            /** Unread Count */
-            unread_count: number;
-        };
-        /**
          * UnsubscribeRequest
          * @description Payload for POST /api/email/unsubscribe.
          */
@@ -16634,6 +16748,22 @@ export interface components {
             message: string;
             /** Status */
             status: string;
+        };
+        /**
+         * UpdateAlertPreferencesRequest
+         * @description Partial update for alert preferences — all fields optional.
+         */
+        UpdateAlertPreferencesRequest: {
+            /** Channels */
+            channels?: {
+                [key: string]: boolean;
+            } | null;
+            /** Enabled Types */
+            enabled_types?: string[] | null;
+            /** Quiet Hours */
+            quiet_hours?: {
+                [key: string]: string | null;
+            } | null;
         };
         /**
          * UpdateAlertRequest
@@ -16817,6 +16947,49 @@ export interface components {
             history: components["schemas"]["UptimeHistoryEntry"][];
         } & {
             [key: string]: unknown;
+        };
+        /**
+         * UserAlertListResponse
+         * @description Paginated list of user alerts.
+         */
+        UserAlertListResponse: {
+            /** Alerts */
+            alerts: components["schemas"]["UserAlertResponse"][];
+            /** Limit */
+            limit: number;
+            /** Offset */
+            offset: number;
+            /** Total */
+            total: number;
+        };
+        /**
+         * UserAlertResponse
+         * @description Single user alert record.
+         */
+        UserAlertResponse: {
+            /** Body */
+            body?: string | null;
+            /** Created At */
+            created_at: string;
+            /** Data */
+            data?: {
+                [key: string]: unknown;
+            };
+            /** Id */
+            id: string;
+            /**
+             * Is Read
+             * @default false
+             */
+            is_read: boolean;
+            /** Read At */
+            read_at?: string | null;
+            /** Title */
+            title: string;
+            /** Type */
+            type: string;
+            /** User Id */
+            user_id: string;
         };
         /**
          * UserFeaturesResponse
@@ -17363,6 +17536,56 @@ export interface components {
             uf: string;
             /** Valor */
             valor?: number | null;
+        };
+        /** AlertPreferencesResponse */
+        routes__user__AlertPreferencesResponse: {
+            /** Enabled */
+            enabled: boolean;
+            /** Frequency */
+            frequency: string;
+            /** Last Digest Sent At */
+            last_digest_sent_at?: string | null;
+        };
+        /**
+         * AlertPreferencesResponse
+         * @description User notification preferences.
+         */
+        schemas__alerts_b2gops__AlertPreferencesResponse: {
+            /**
+             * Channels
+             * @description Enabled channels (e.g. in_app, email).
+             */
+            channels?: {
+                [key: string]: boolean;
+            };
+            /**
+             * Enabled Types
+             * @description Whitelist of enabled alert types. Empty = all enabled.
+             */
+            enabled_types?: string[];
+            /**
+             * Quiet Hours
+             * @description Quiet hours config (HH:MM format or null).
+             */
+            quiet_hours?: {
+                [key: string]: string | null;
+            };
+        };
+        /**
+         * UnreadCountResponse
+         * @description Unread alert count for badge display.
+         */
+        schemas__alerts_b2gops__UnreadCountResponse: {
+            /** Unread Count */
+            unread_count: number;
+        };
+        /**
+         * UnreadCountResponse
+         * @description Unread message count for badge display.
+         */
+        schemas__messages__UnreadCountResponse: {
+            /** Unread Count */
+            unread_count: number;
         };
     };
     responses: never;
@@ -19931,6 +20154,199 @@ export interface operations {
             };
         };
     };
+    list_alerts_v1_alerts_b2gops_get: {
+        parameters: {
+            query?: {
+                /** @description Items per page */
+                limit?: number;
+                /** @description Offset for pagination */
+                offset?: number;
+                /** @description Filter by event type */
+                type?: string | null;
+                /** @description Filter by read/unread status */
+                is_read?: boolean | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UserAlertListResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_preferences_v1_alerts_b2gops_preferences_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["schemas__alerts_b2gops__AlertPreferencesResponse"];
+                };
+            };
+        };
+    };
+    update_preferences_v1_alerts_b2gops_preferences_patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateAlertPreferencesRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["schemas__alerts_b2gops__AlertPreferencesResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    mark_all_read_v1_alerts_b2gops_read_all_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SuccessMessageResponse"];
+                };
+            };
+        };
+    };
+    unread_count_v1_alerts_b2gops_unread_count_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["schemas__alerts_b2gops__UnreadCountResponse"];
+                };
+            };
+        };
+    };
+    delete_alert_v1_alerts_b2gops__alert_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                alert_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SuccessMessageResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    mark_read_v1_alerts_b2gops__alert_id__read_patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                alert_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UserAlertResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     delete_alert_v1_alerts__alert_id__delete: {
         parameters: {
             query?: never;
@@ -20813,7 +21229,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["UnreadCountResponse"];
+                    "application/json": components["schemas"]["schemas__messages__UnreadCountResponse"];
                 };
             };
         };
@@ -25172,7 +25588,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["AlertPreferencesResponse"];
+                    "application/json": components["schemas"]["routes__user__AlertPreferencesResponse"];
                 };
             };
         };
@@ -25196,7 +25612,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["AlertPreferencesResponse"];
+                    "application/json": components["schemas"]["routes__user__AlertPreferencesResponse"];
                 };
             };
             /** @description Validation Error */
