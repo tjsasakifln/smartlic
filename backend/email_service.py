@@ -56,6 +56,16 @@ def _is_configured() -> bool:
     return True
 
 
+def _track_email_degradation(exc: Exception) -> None:
+    """Issue #1921: Track email send degradation via unified metric."""
+    mode = "connection_error" if isinstance(exc, (ConnectionError, OSError)) else "unexpected_error"
+    try:
+        from degradation import track_degradation
+        track_degradation(source="resend", mode=mode)
+    except Exception:
+        pass
+
+
 def send_email(
     to: str,
     subject: str,
@@ -132,6 +142,8 @@ def send_email(
                     f"Email send failed after {MAX_RETRIES} attempts: to={to}, "
                     f"subject={subject}, error={last_error}"
                 )
+                # Issue #1921: Track email send degradation
+                _track_email_degradation(last_error)
 
     return None
 
