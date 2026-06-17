@@ -351,7 +351,7 @@ async def health():
         "ready": is_ready,
         "uptime_seconds": uptime,
         "timestamp": datetime.now(timezone.utc).isoformat(),
-        "version": os.getenv("APP_VERSION", "dev"),
+        "version": os.getenv("APP_VERSION", "v1"),
         "dependencies": dependencies,
         "sources": sources,
         "bulkheads": bulkhead_status,

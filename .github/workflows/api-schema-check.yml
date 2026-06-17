@@ -85,31 +85,32 @@ jobs:
           print(f'PR schema: {len(schema.get(\"paths\", {}))} paths, {len(schema.get(\"components\", {}).get(\"schemas\", {}))} schemas')
           "
 
+      - name: Checkout main branch for base schema
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+        with:
+          ref: origin/main
+          path: /tmp/main-tree
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: Install main branch dependencies
+        run: |
+          cd /tmp/main-tree/backend
+          pip install -r requirements.txt
+
       - name: Extract OpenAPI schema from main
         id: extract-base
         run: |
-          git fetch origin main --depth=1
-          cd backend
-          git stash  # Stash any local changes to check out main's main.py
-          git show origin/main:backend/main.py > /tmp/main_main.py 2>/dev/null || echo "no main.py on main"
-          echo "Extracting base schema from origin/main..."
+          cd /tmp/main-tree/backend
           python -c "
-          import json, sys, importlib.util
-          # Try to load main.py from origin/main
-          spec = importlib.util.spec_from_file_location('main_origin', '/tmp/main_main.py')
-          if spec and spec.loader:
-              mod = importlib.util.module_from_spec(spec)
-              # We need to hack PYTHONPATH to make imports work from the checkout
-              sys.path.insert(0, 'backend')
-              # Instead of a fragile import, use the committed openapi.json if available
-              pass
-          # Fallback: generate base schema from current checkout if origin/main version matches
-          # We'll use the git-show approach for schemas
-          " 2>/dev/null || true
-          # Best approach: generate from the PR's own code but tag as base for comparison
-          # The script check-api-breaking.sh already handles this gracefully
-          cp /tmp/openapi_head.json /tmp/openapi_base.json
-          echo "Base schema extracted (fallback: same as head)"
+          import json
+          from main import app
+          app.openapi_schema = None
+          schema = app.openapi()
+          with open('/tmp/openapi_base.json', 'w') as f:
+              json.dump(schema, f, indent=2, sort_keys=True)
+          print(f'Base (main) schema: {len(schema.get("paths", {}))} paths, {len(schema.get("components", {}).get("schemas", {}))} schemas')
+          "
 
       - name: Run breaking change detection
         id: check

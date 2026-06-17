@@ -24,7 +24,7 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter(tags=["openapi"])
 
-APP_VERSION = os.getenv("APP_VERSION", "dev")
+APP_VERSION = os.getenv("APP_VERSION", "v1")
 
 # Cache control: schema changes rarely (only on deploy).
 _CACHE_MAX_AGE = 3600  # 1 hour
