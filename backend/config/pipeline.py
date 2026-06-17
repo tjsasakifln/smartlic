@@ -55,6 +55,14 @@ DEFAULT_UF_PRIORITY: list[str] = [
 CACHE_LEGACY_KEY_FALLBACK: bool = str_to_bool(os.getenv("CACHE_LEGACY_KEY_FALLBACK", "true"))
 SHOW_CACHE_FALLBACK_BANNER: bool = str_to_bool(os.getenv("SHOW_CACHE_FALLBACK_BANNER", "true"))
 
+# Issue #1966: Deprecation plan — master kill-switch for ALL legacy fallback
+# modules (cache L3 local file, live API fetch, legacy PNCP client facade).
+# When true (Phase 1 default): legacy fallback paths active, deprecation
+# warnings emitted.
+# When false (Phase 2+): legacy paths skipped; DataLake is the ONLY data source.
+# Emergency rollback: set to true in Railway env (no deploy needed).
+LEGACY_FALLBACK_ENABLED: bool = str_to_bool(os.getenv("LEGACY_FALLBACK_ENABLED", "true"))
+
 # ============================================
 # CRIT-081: Serve expired cache on total outage
 # ============================================

@@ -270,6 +270,8 @@ _FEATURE_FLAG_REGISTRY: dict[str, tuple[str, str]] = {
     "CACHE_LEGACY_KEY_FALLBACK": ("CACHE_LEGACY_KEY_FALLBACK", "true"),
     "SHOW_CACHE_FALLBACK_BANNER": ("SHOW_CACHE_FALLBACK_BANNER", "true"),
     "SERVE_EXPIRED_CACHE_ON_TOTAL_OUTAGE": ("SERVE_EXPIRED_CACHE_ON_TOTAL_OUTAGE", "true"),
+    # Issue #1966: Kill-switch for legacy fallback modules (cache L3, live fetch, PNCP facade)
+    "LEGACY_FALLBACK_ENABLED": ("LEGACY_FALLBACK_ENABLED", "true"),
     # --- Search Pipeline ---
     # EXPIRY: 2026-09-01 — graduate async search or remove
     "SEARCH_ASYNC_ENABLED": ("SEARCH_ASYNC_ENABLED", "false"),
