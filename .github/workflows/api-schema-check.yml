@@ -85,33 +85,23 @@ jobs:
           print(f'PR schema: {len(schema.get(\"paths\", {}))} paths, {len(schema.get(\"components\", {}).get(\"schemas\", {}))} schemas')
           "
 
-      - name: Checkout main branch for base schema
-        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
-        with:
-          ref: origin/main
-          path: ../main-base
-          fetch-depth: 1
-          persist-credentials: false
-
-      - name: Install main branch dependencies
+      - name: Checkout main for base schema (git worktree)
         run: |
-          cd ../main-base/backend
-          pip install -r requirements.txt
-
-      - name: Extract OpenAPI schema from main
-        id: extract-base
-        run: |
-          cd ../main-base/backend
+          git fetch origin main
+          git worktree add ./main-base origin/main
+          cd ./main-base/backend
+          pip install -r requirements.txt -q
           python -c "
           import json
           from main import app
           app.openapi_schema = None
           schema = app.openapi()
-          with open('/tmp/openapi_base.json', 'w') as f:
+          with open('../../openapi_base.json', 'w') as f:
               json.dump(schema, f, indent=2, sort_keys=True)
           print(f'Base (main) schema: {len(schema.get("paths", {}))} paths, {len(schema.get("components", {}).get("schemas", {}))} schemas')
           "
-
+          cd ../..
+          git worktree remove ./main-base --force
       - name: Run breaking change detection
         id: check
         run: |
@@ -119,7 +109,7 @@ jobs:
           chmod +x scripts/check-api-breaking.sh
 
           # Run the breaking change detection script
-          output=$(bash scripts/check-api-breaking.sh --local /tmp/openapi_base.json /tmp/openapi_head.json 2>&1 || true)
+          output=$(bash scripts/check-api-breaking.sh --local ./openapi_base.json /tmp/openapi_head.json 2>&1 || true)
 
           has_breaking="false"
           summary=""
