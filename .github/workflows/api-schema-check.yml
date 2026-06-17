@@ -98,7 +98,7 @@ jobs:
           schema = app.openapi()
           with open('../../openapi_base.json', 'w') as f:
               json.dump(schema, f, indent=2, sort_keys=True)
-          print(f'Base (main) schema: {len(schema.get("paths", {}))} paths, {len(schema.get("components", {}).get("schemas", {}))} schemas')
+          print(f'Base (main) schema: {len(schema.get(\"paths\", {}))} paths, {len(schema.get(\"components\", {}).get(\"schemas\", {}))} schemas')
           "
           cd ../..
           git worktree remove ./main-base --force
