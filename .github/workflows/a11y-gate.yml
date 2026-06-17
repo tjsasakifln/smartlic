@@ -1,12 +1,20 @@
 # Accessibility CI Gate — axe-core Playwright Scan
 #
 # #1871 AC3: Runs `npm run test:a11y` on PRs that touch frontend components.
-# This workflow scans 10 critical pages for WCAG 2.1 AA violations and blocks
-# the PR if any critical or serious violations are detected.
+# This workflow scans 10 critical pages for WCAG 2.1 AA violations.
+#
+# #1972: Accessibility regression tests + keyboard nav + ARIA roles.
+# #1972 AC5: Non-blocking CI gate (continue-on-error: true) — reports
+#            violations via PR comment but does NOT block merges.
+# #1972 AC6: PR comment posted with violation summary for triage.
 #
 # #1871 AC4: Threshold — zero "critical" or "serious" violations.
 #            "moderate" violations are allowed with PR comment.
 # #1871 AC5: HTML report generated and uploaded as CI artifact.
+#
+# #1972 AC3-AC4: Complementary specs in e2e-tests/a11y/ verify keyboard
+# navigation (WCAG 2.1.1) and ARIA roles (WCAG 4.1.2) across 5 critical
+# pages: /, /login, /buscar, /pipeline, /planos.
 #
 # This gate is independent from the full E2E suite (e2e.yml) — it runs
 # faster (~5min vs ~15min) and focuses exclusively on accessibility regressions.
@@ -99,10 +107,14 @@ jobs:
           echo "Frontend failed to start"
           exit 1
 
+      # #1972 AC5: Non-blocking gate — `continue-on-error` prevents the
+      # workflow from failing the PR check, allowing violations to be reviewed
+      # via PR comment without blocking development velocity.
       - name: Run a11y scan
         id: a11y
+        continue-on-error: true
         working-directory: frontend
-        run: npm run test:a11y
+        run: npm run test:a11y 2>&1 | tee /tmp/a11y-output.txt
         env:
           CI: true
 
@@ -126,6 +138,96 @@ jobs:
           name: a11y-test-results
           path: frontend/test-results/
           retention-days: 30
+
+      # #1972 AC6: Post/update PR comment with a11y scan summary
+      - name: Post a11y results to PR
+        if: always() && github.event_name == 'pull_request'
+        uses: actions/github-script@v9
+        with:
+          script: |
+            const fs = require('fs');
+            const outcome = '${{ steps.a11y.outcome }}';
+            const conclusion = '${{ steps.a11y.conclusion }}';
+            const passed = outcome === 'success';
+
+            const sections = [];
+
+            if (passed) {
+              sections.push(
+                '## Accessibility Check Passed',
+                '',
+                'All WCAG 2.1 AA checks passed on the 5 critical pages:',
+                '- Keyboard navigation (WCAG 2.1.1) on /buscar',
+                '- ARIA roles (WCAG 4.1.2) on /, /login, /buscar, /pipeline, /planos',
+                '- axe-core scan: zero critical or serious violations',
+                '',
+                '**Result:** No accessibility regressions detected.',
+              );
+            } else {
+              sections.push(
+                '## Accessibility Check Found Issues',
+                '',
+                'The a11y scan detected potential WCAG 2.1 AA violations or test failures.',
+                'Download the **a11y-violation-details** artifact for raw axe JSON output.',
+              );
+
+              // Parse JUnit results for specific failure messages
+              try {
+                const junitPath = 'frontend/test-results/junit.xml';
+                if (fs.existsSync(junitPath)) {
+                  const junit = fs.readFileSync(junitPath, 'utf8');
+                  const failureMatches = junit.match(/<failure[^>]*>([\s\S]*?)<\/failure>/g);
+                  if (failureMatches && failureMatches.length > 0) {
+                    sections.push('', '### Failure Details');
+                    const seen = new Set();
+                    for (const f of failureMatches) {
+                      const msg = f.replace(/<[^>]+>/g, '').trim().slice(0, 500);
+                      if (msg && !seen.has(msg)) {
+                        seen.add(msg);
+                        sections.push('- ' + msg.replace(/\n/g, ' '));
+                      }
+                    }
+                  }
+                }
+              } catch (e) {
+                sections.push('', '_Could not parse detailed violation report._');
+              }
+
+              sections.push(
+                '',
+                '**Note:** This gate is non-blocking (`continue-on-error: true`). The PR can still be merged.',
+              );
+            }
+
+            sections.push('', '> _Powered by #1972 accessibility CI gate — Action ID: ${{ github.run_id }}_');
+
+            const body = sections.join('\n');
+
+            const { data: comments } = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+            });
+
+            const botComment = comments.find(c =>
+              c.body.includes('#1972 accessibility CI gate') && c.user.type === 'Bot'
+            );
+
+            if (botComment) {
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: botComment.id,
+                body,
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body,
+              });
+            }
 
       # #1871 AC5: Archive raw axe JSON attachments for offline triage
       - name: Upload axe raw violations
