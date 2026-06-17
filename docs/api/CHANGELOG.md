@@ -4,7 +4,7 @@
 **Format:** [Keep a Changelog](https://keepachangelog.com/)
 **Versioning:** Semantic versioning via URI prefix (`/v{N}/*`)
 
-## [v1] — Current (2026-06-16)
+## [v1] — Current (2026-06-17)
 
 ### Added
 
@@ -283,14 +283,15 @@
 ### Deprecation Notices
 
 - Legacy routes (without `/v1/` prefix) return `Deprecation: true` header.
-- Legacy routes sunset date: 2026-06-01.
+- Legacy routes sunset date: 2026-12-31.
+- Sunset date subject to extension; minimum 6-month deprecation window per `api-versioning.md` policy.
 - All legacy routes have a `Link: </v1{path}>; rel="successor-version"` header.
 
 ### Versioning History
 
 | Version | Release Date | Status |
 |---------|-------------|--------|
-| v1 | 2026-06-16 | Active |
+| v1 | 2026-06-17 | Active |
 
 ---
 
