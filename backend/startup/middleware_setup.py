@@ -89,10 +89,10 @@ def setup_middleware(app: FastAPI) -> None:
     app.add_middleware(CorrelationIDMiddleware)
     app.add_middleware(SecurityHeadersMiddleware)
     app.add_middleware(DeprecationMiddleware)
-    # Issue #1918: X-API-Version header on all responses — must be close to
-    # outermost so it covers even responses from other middlewares.
-    app.add_middleware(APIVersionHeaderMiddleware)
     app.add_middleware(RateLimitMiddleware)
+    # Issue #1918: X-API-Version header on all responses — outermost layer
+    # so ALL responses (including 429 rate-limit errors) get version headers.
+    app.add_middleware(APIVersionHeaderMiddleware)
 
     # RBAC-SEC-002: Inject rate limit headers stored in request.state by
     # require_rate_limit / rate_limit_public dependencies into every response.
