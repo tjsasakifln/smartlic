@@ -222,6 +222,7 @@ class WorkerSettings:
         generate_intel_report,
         send_post_purchase_step,
         send_founders_welcome,
+        send_outgoing_webhook,
     )
     from jobs.queue.search import search_job
 
@@ -315,6 +316,7 @@ class WorkerSettings:
         generate_intel_report,
         send_post_purchase_step,
         send_founders_welcome,
+        send_outgoing_webhook,
         *_ingestion_functions,
         *_predictive_functions,
         *_monitoring_functions,

@@ -1615,3 +1615,19 @@ DEGRADATION_COUNTER = _create_counter(
     "Graceful degradation events — fallback activated due to dependency failure",
     labelnames=["source", "mode"],
 )
+
+# ============================================================================
+# Issue #1959: Outgoing webhook metrics
+# ============================================================================
+
+WEBHOOK_OUTGOING_TOTAL = _create_counter(
+    "smartlic_webhook_outgoing_total",
+    "Outgoing webhook deliveries by channel and status",
+    labelnames=["channel", "status"],
+)
+
+WEBHOOK_OUTGOING_RETRIES_TOTAL = _create_counter(
+    "smartlic_webhook_outgoing_retries_total",
+    "Outgoing webhook retry attempts by channel",
+    labelnames=["channel"],
+)
