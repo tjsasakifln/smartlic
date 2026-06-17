@@ -440,8 +440,11 @@ jobs:
 
           # 1. Backend — observatorio endpoint must return total_editais > 0
           #    for the previous full month (guaranteed to have data under 400d retention).
-          PREV_MONTH=$(date -u -d '15 days ago' +'%-m')
-          PREV_YEAR=$(date -u -d '15 days ago' +'%Y')
+          # Use 45 days ago to guarantee we always target a fully-completed
+          # calendar month (15 days ago can land in the current month during
+          # days 1-15, which returns 404 for empty current period — AC11).
+          PREV_MONTH=$(date -u -d '45 days ago' +'%-m')
+          PREV_YEAR=$(date -u -d '45 days ago' +'%Y')
           echo "Checking /v1/observatorio/relatorio/${PREV_MONTH}/${PREV_YEAR}..."
 
           API_RESPONSE=$(curl -sfL "${BACKEND_URL}/v1/observatorio/relatorio/${PREV_MONTH}/${PREV_YEAR}")

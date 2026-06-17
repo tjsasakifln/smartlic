@@ -933,35 +933,6 @@
         "title": "AlertPreferencesRequest",
         "type": "object"
       },
-      "AlertPreferencesResponse": {
-        "properties": {
-          "enabled": {
-            "title": "Enabled",
-            "type": "boolean"
-          },
-          "frequency": {
-            "title": "Frequency",
-            "type": "string"
-          },
-          "last_digest_sent_at": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Last Digest Sent At"
-          }
-        },
-        "required": [
-          "frequency",
-          "enabled"
-        ],
-        "title": "AlertPreferencesResponse",
-        "type": "object"
-      },
       "AlertPreviewItem": {
         "properties": {
           "id": {
@@ -6044,6 +6015,75 @@
           "status"
         ],
         "title": "DataSourceStatus",
+        "type": "object"
+      },
+      "DbPoolStatusResponse": {
+        "description": "Response for GET /v1/admin/db-pool (Issue #1916).\n\nReturns a snapshot of the current Supabase PostgreSQL connection pool\nstate. ``status`` is one of ``healthy``, ``degraded``, or ``critical``\nbased on the current utilization ratio.",
+        "properties": {
+          "active": {
+            "default": 0,
+            "title": "Active",
+            "type": "integer"
+          },
+          "idle": {
+            "default": 0,
+            "title": "Idle",
+            "type": "integer"
+          },
+          "idle_in_transaction": {
+            "default": 0,
+            "title": "Idle In Transaction",
+            "type": "integer"
+          },
+          "max": {
+            "default": 0,
+            "title": "Max",
+            "type": "integer"
+          },
+          "source": {
+            "default": "unknown",
+            "title": "Source",
+            "type": "string"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          },
+          "threshold_critical_pct": {
+            "default": 85,
+            "title": "Threshold Critical Pct",
+            "type": "integer"
+          },
+          "threshold_warning_pct": {
+            "default": 80,
+            "title": "Threshold Warning Pct",
+            "type": "integer"
+          },
+          "total": {
+            "default": 0,
+            "title": "Total",
+            "type": "integer"
+          },
+          "utilization": {
+            "default": 0.0,
+            "title": "Utilization",
+            "type": "number"
+          },
+          "utilization_pct": {
+            "default": 0.0,
+            "title": "Utilization Pct",
+            "type": "number"
+          },
+          "waiting": {
+            "default": 0,
+            "title": "Waiting",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "status"
+        ],
+        "title": "DbPoolStatusResponse",
         "type": "object"
       },
       "DebugPNCPResponse": {
@@ -19624,20 +19664,6 @@
         "title": "UltimaVagaOptIn",
         "type": "object"
       },
-      "UnreadCountResponse": {
-        "description": "Unread message count for badge display.",
-        "properties": {
-          "unread_count": {
-            "title": "Unread Count",
-            "type": "integer"
-          }
-        },
-        "required": [
-          "unread_count"
-        ],
-        "title": "UnreadCountResponse",
-        "type": "object"
-      },
       "UnsubscribeRequest": {
         "description": "Payload for POST /api/email/unsubscribe.",
         "properties": {
@@ -19678,6 +19704,62 @@
           "message"
         ],
         "title": "UnsubscribeResponse",
+        "type": "object"
+      },
+      "UpdateAlertPreferencesRequest": {
+        "description": "Partial update for alert preferences \u2014 all fields optional.",
+        "properties": {
+          "channels": {
+            "anyOf": [
+              {
+                "additionalProperties": {
+                  "type": "boolean"
+                },
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Channels"
+          },
+          "enabled_types": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Enabled Types"
+          },
+          "quiet_hours": {
+            "anyOf": [
+              {
+                "additionalProperties": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Quiet Hours"
+          }
+        },
+        "title": "UpdateAlertPreferencesRequest",
         "type": "object"
       },
       "UpdateAlertRequest": {
@@ -20020,6 +20102,104 @@
           }
         },
         "title": "UptimeHistoryResponse",
+        "type": "object"
+      },
+      "UserAlertListResponse": {
+        "description": "Paginated list of user alerts.",
+        "properties": {
+          "alerts": {
+            "items": {
+              "$ref": "#/components/schemas/UserAlertResponse"
+            },
+            "title": "Alerts",
+            "type": "array"
+          },
+          "limit": {
+            "title": "Limit",
+            "type": "integer"
+          },
+          "offset": {
+            "title": "Offset",
+            "type": "integer"
+          },
+          "total": {
+            "title": "Total",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "alerts",
+          "total",
+          "limit",
+          "offset"
+        ],
+        "title": "UserAlertListResponse",
+        "type": "object"
+      },
+      "UserAlertResponse": {
+        "description": "Single user alert record.",
+        "properties": {
+          "body": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Body"
+          },
+          "created_at": {
+            "title": "Created At",
+            "type": "string"
+          },
+          "data": {
+            "additionalProperties": true,
+            "title": "Data",
+            "type": "object"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "is_read": {
+            "default": false,
+            "title": "Is Read",
+            "type": "boolean"
+          },
+          "read_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Read At"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          },
+          "type": {
+            "title": "Type",
+            "type": "string"
+          },
+          "user_id": {
+            "title": "User Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "user_id",
+          "type",
+          "title",
+          "created_at"
+        ],
+        "title": "UserAlertResponse",
         "type": "object"
       },
       "UserFeaturesResponse": {
@@ -20437,6 +20617,261 @@
           "success"
         ],
         "title": "VerifyRecoveryResponse",
+        "type": "object"
+      },
+      "WebhookChannel": {
+        "description": "Supported notification channels.",
+        "enum": [
+          "slack",
+          "teams",
+          "email"
+        ],
+        "title": "WebhookChannel",
+        "type": "string"
+      },
+      "WebhookCreate": {
+        "description": "Request body for POST /v1/integrations/webhooks.",
+        "properties": {
+          "channel": {
+            "$ref": "#/components/schemas/WebhookChannel"
+          },
+          "email_target": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Email address (required for email channel)",
+            "title": "Email Target"
+          },
+          "events": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/WebhookEvent"
+            },
+            "title": "Events",
+            "type": "array"
+          },
+          "label": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Label"
+          },
+          "webhook_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Incoming webhook URL (required for slack/teams)",
+            "title": "Webhook Url"
+          }
+        },
+        "required": [
+          "channel"
+        ],
+        "title": "WebhookCreate",
+        "type": "object"
+      },
+      "WebhookEvent": {
+        "description": "Notification event types for webhook dispatch.",
+        "enum": [
+          "new_edital",
+          "deadline_24h",
+          "deadline_6h",
+          "deadline_1h",
+          "pregao_started",
+          "result_published"
+        ],
+        "title": "WebhookEvent",
+        "type": "string"
+      },
+      "WebhookResponse": {
+        "description": "Public webhook representation returned by the API.",
+        "properties": {
+          "channel": {
+            "$ref": "#/components/schemas/WebhookChannel"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "email_target": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Email Target"
+          },
+          "events": {
+            "items": {
+              "$ref": "#/components/schemas/WebhookEvent"
+            },
+            "title": "Events",
+            "type": "array"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "is_active": {
+            "title": "Is Active",
+            "type": "boolean"
+          },
+          "label": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Label"
+          },
+          "last_triggered_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Triggered At"
+          },
+          "webhook_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Webhook Url"
+          }
+        },
+        "required": [
+          "id",
+          "channel",
+          "events",
+          "is_active",
+          "created_at"
+        ],
+        "title": "WebhookResponse",
+        "type": "object"
+      },
+      "WebhookTestResponse": {
+        "description": "Response from the test notification endpoint.",
+        "properties": {
+          "channel": {
+            "$ref": "#/components/schemas/WebhookChannel"
+          },
+          "message": {
+            "title": "Message",
+            "type": "string"
+          },
+          "target": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Target"
+          }
+        },
+        "required": [
+          "message",
+          "channel"
+        ],
+        "title": "WebhookTestResponse",
+        "type": "object"
+      },
+      "WebhookUpdate": {
+        "description": "Request body for PATCH /v1/integrations/webhooks/{id}.",
+        "properties": {
+          "email_target": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Email Target"
+          },
+          "events": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/WebhookEvent"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Events"
+          },
+          "is_active": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Is Active"
+          },
+          "label": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Label"
+          },
+          "webhook_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Webhook Url"
+          }
+        },
+        "title": "WebhookUpdate",
         "type": "object"
       },
       "WeeklyDigestResponse": {
@@ -21139,6 +21574,101 @@
           "data"
         ],
         "title": "SampleItem",
+        "type": "object"
+      },
+      "routes__user__AlertPreferencesResponse": {
+        "properties": {
+          "enabled": {
+            "title": "Enabled",
+            "type": "boolean"
+          },
+          "frequency": {
+            "title": "Frequency",
+            "type": "string"
+          },
+          "last_digest_sent_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Digest Sent At"
+          }
+        },
+        "required": [
+          "frequency",
+          "enabled"
+        ],
+        "title": "AlertPreferencesResponse",
+        "type": "object"
+      },
+      "schemas__alerts_b2gops__AlertPreferencesResponse": {
+        "description": "User notification preferences.",
+        "properties": {
+          "channels": {
+            "additionalProperties": {
+              "type": "boolean"
+            },
+            "description": "Enabled channels (e.g. in_app, email).",
+            "title": "Channels",
+            "type": "object"
+          },
+          "enabled_types": {
+            "description": "Whitelist of enabled alert types. Empty = all enabled.",
+            "items": {
+              "type": "string"
+            },
+            "title": "Enabled Types",
+            "type": "array"
+          },
+          "quiet_hours": {
+            "additionalProperties": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "description": "Quiet hours config (HH:MM format or null).",
+            "title": "Quiet Hours",
+            "type": "object"
+          }
+        },
+        "title": "AlertPreferencesResponse",
+        "type": "object"
+      },
+      "schemas__alerts_b2gops__UnreadCountResponse": {
+        "description": "Unread alert count for badge display.",
+        "properties": {
+          "unread_count": {
+            "title": "Unread Count",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "unread_count"
+        ],
+        "title": "UnreadCountResponse",
+        "type": "object"
+      },
+      "schemas__messages__UnreadCountResponse": {
+        "description": "Unread message count for badge display.",
+        "properties": {
+          "unread_count": {
+            "title": "Unread Count",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "unread_count"
+        ],
+        "title": "UnreadCountResponse",
         "type": "object"
       }
     },
@@ -22456,6 +22986,34 @@
         "tags": [
           "admin",
           "data_retention"
+        ]
+      }
+    },
+    "/v1/admin/db-pool": {
+      "get": {
+        "description": "Return current Supabase connection pool snapshot.\n\nQueries ``pg_stat_activity`` via the ``get_db_pool_stats`` RPC function\n(or falls back to in-process tracked counters). Includes:\n\n    - ``active``, ``idle``, ``idle_in_transaction``, ``total``, ``max``,\n      ``waiting`` connection counts\n    - ``utilization`` ratio (0-1)\n    - ``source`` indicator (``pg_stat_activity`` | ``tracked`` | ``error``)\n    - ``threshold`` \u2014 the configured alert threshold (80% warning, 85% alert)\n    - ``status`` \u2014 ``\"healthy\"`` / ``\"degraded\"`` / ``\"critical\"``\n\n**Requires:** admin or master role.\n**Target:** <200ms (single RPC call).",
+        "operationId": "get_db_pool_status_v1_admin_db_pool_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DbPoolStatusResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Get Db Pool Status",
+        "tags": [
+          "admin",
+          "db-pool"
         ]
       }
     },
@@ -24925,6 +25483,330 @@
         ]
       }
     },
+    "/v1/alerts/b2gops": {
+      "get": {
+        "description": "List user alerts with pagination and optional filters.\n\nFilters:\n  - type: event type (new_matching_edital, deadline_approaching, etc.)\n  - is_read: true/false to filter by read status",
+        "operationId": "list_alerts_v1_alerts_b2gops_get",
+        "parameters": [
+          {
+            "description": "Items per page",
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 20,
+              "description": "Items per page",
+              "maximum": 100,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Offset for pagination",
+            "in": "query",
+            "name": "offset",
+            "required": false,
+            "schema": {
+              "default": 0,
+              "description": "Offset for pagination",
+              "minimum": 0,
+              "title": "Offset",
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Filter by event type",
+            "in": "query",
+            "name": "type",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Filter by event type",
+              "title": "Type"
+            }
+          },
+          {
+            "description": "Filter by read/unread status",
+            "in": "query",
+            "name": "is_read",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "boolean"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Filter by read/unread status",
+              "title": "Is Read"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserAlertListResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "List Alerts",
+        "tags": [
+          "alerts-b2gops"
+        ]
+      }
+    },
+    "/v1/alerts/b2gops/preferences": {
+      "get": {
+        "description": "Get the current user's alert notification preferences.",
+        "operationId": "get_preferences_v1_alerts_b2gops_preferences_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/schemas__alerts_b2gops__AlertPreferencesResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Get Preferences",
+        "tags": [
+          "alerts-b2gops"
+        ]
+      },
+      "patch": {
+        "description": "Update the current user's alert notification preferences.\n\nUses upsert \u2014 creates preferences row if it doesn't exist,\nupdates only the provided fields if it does.",
+        "operationId": "update_preferences_v1_alerts_b2gops_preferences_patch",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateAlertPreferencesRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/schemas__alerts_b2gops__AlertPreferencesResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Update Preferences",
+        "tags": [
+          "alerts-b2gops"
+        ]
+      }
+    },
+    "/v1/alerts/b2gops/read-all": {
+      "post": {
+        "description": "Mark all unread alerts as read for the current user.",
+        "operationId": "mark_all_read_v1_alerts_b2gops_read_all_post",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SuccessMessageResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Mark All Read",
+        "tags": [
+          "alerts-b2gops"
+        ]
+      }
+    },
+    "/v1/alerts/b2gops/unread-count": {
+      "get": {
+        "description": "Get the count of unread alerts for the badge in the UI.",
+        "operationId": "unread_count_v1_alerts_b2gops_unread_count_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/schemas__alerts_b2gops__UnreadCountResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Unread Count",
+        "tags": [
+          "alerts-b2gops"
+        ]
+      }
+    },
+    "/v1/alerts/b2gops/{alert_id}": {
+      "delete": {
+        "description": "Delete a single alert by ID.",
+        "operationId": "delete_alert_v1_alerts_b2gops__alert_id__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "alert_id",
+            "required": true,
+            "schema": {
+              "title": "Alert Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SuccessMessageResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Delete Alert",
+        "tags": [
+          "alerts-b2gops"
+        ]
+      }
+    },
+    "/v1/alerts/b2gops/{alert_id}/read": {
+      "patch": {
+        "description": "Mark a single alert as read.",
+        "operationId": "mark_read_v1_alerts_b2gops__alert_id__read_patch",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "alert_id",
+            "required": true,
+            "schema": {
+              "title": "Alert Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserAlertResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Mark Read",
+        "tags": [
+          "alerts-b2gops"
+        ]
+      }
+    },
     "/v1/alerts/{alert_id}": {
       "delete": {
         "description": "Delete an alert and its sent-item history.\n\nAC4: Cascading delete removes associated alert_sent_items.\nValidates that the alert belongs to the authenticated user.",
@@ -26430,7 +27312,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/UnreadCountResponse"
+                  "$ref": "#/components/schemas/schemas__messages__UnreadCountResponse"
                 }
               }
             },
@@ -29693,6 +30575,230 @@
         ]
       }
     },
+    "/v1/integrations/webhooks": {
+      "get": {
+        "description": "List all webhooks for the authenticated user.",
+        "operationId": "list_webhooks_v1_integrations_webhooks_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/WebhookResponse"
+                  },
+                  "title": "Response List Webhooks V1 Integrations Webhooks Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "List Webhooks",
+        "tags": [
+          "integrations"
+        ]
+      },
+      "post": {
+        "description": "Create a new webhook integration (Slack, Teams, or Email).",
+        "operationId": "create_webhook_v1_integrations_webhooks_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WebhookCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WebhookResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Create Webhook",
+        "tags": [
+          "integrations"
+        ]
+      }
+    },
+    "/v1/integrations/webhooks/{webhook_id}": {
+      "delete": {
+        "description": "Delete a webhook integration.",
+        "operationId": "delete_webhook_v1_integrations_webhooks__webhook_id__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "webhook_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Webhook Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Delete Webhook",
+        "tags": [
+          "integrations"
+        ]
+      },
+      "patch": {
+        "description": "Update a webhook configuration.",
+        "operationId": "update_webhook_v1_integrations_webhooks__webhook_id__patch",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "webhook_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Webhook Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WebhookUpdate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WebhookResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Update Webhook",
+        "tags": [
+          "integrations"
+        ]
+      }
+    },
+    "/v1/integrations/webhooks/{webhook_id}/test": {
+      "post": {
+        "description": "Send a test notification to verify the webhook configuration.",
+        "operationId": "test_webhook_v1_integrations_webhooks__webhook_id__test_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "webhook_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Webhook Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WebhookTestResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Test Webhook",
+        "tags": [
+          "integrations"
+        ]
+      }
+    },
     "/v1/intel-concorrente/benchmarks": {
       "get": {
         "operationId": "get_competitor_benchmarks_v1_intel_concorrente_benchmarks_get",
@@ -32842,7 +33948,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/AlertPreferencesResponse"
+                  "$ref": "#/components/schemas/routes__user__AlertPreferencesResponse"
                 }
               }
             },
@@ -32877,7 +33983,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/AlertPreferencesResponse"
+                  "$ref": "#/components/schemas/routes__user__AlertPreferencesResponse"
                 }
               }
             },
@@ -35317,6 +36423,21 @@
         "summary": "Get Recommended Plan",
         "tags": [
           "user"
+        ]
+      }
+    },
+    "/v1/v1/csp-report": {
+      "post": {
+        "description": "Receive CSP violation reports from browsers.\n\nAccepts both legacy report-uri format (body wraps in \"csp-report\" key)\nand Reporting API v1 format (top-level fields). Returns 204 No Content\non success, 429 on rate limit, and logs all violations.",
+        "operationId": "csp_report_v1_v1_csp_report_post",
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Csp Report",
+        "tags": [
+          "csp"
         ]
       }
     },

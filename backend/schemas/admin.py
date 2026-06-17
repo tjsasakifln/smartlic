@@ -327,7 +327,6 @@ class DbPoolStatusResponse(BaseModel):
     """Response for GET /v1/admin/db-pool (Issue #1916).
 
     Returns a snapshot of the current Supabase PostgreSQL connection pool
-<<<<<<< HEAD
     state. ``status`` is one of ``healthy``, ``degraded``, or ``critical``
     based on the current utilization ratio.
     """

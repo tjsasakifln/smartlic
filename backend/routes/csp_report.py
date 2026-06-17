@@ -64,7 +64,7 @@ def _get_client_ip(request: Request) -> str:
     return "unknown"
 
 
-@router.post("/csp-report", status_code=204)
+@router.post("/csp-report", status_code=204, response_model=None)
 async def csp_report(request: Request):
     """Receive CSP violation reports from browsers.
 
