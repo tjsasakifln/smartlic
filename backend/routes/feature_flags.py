@@ -212,6 +212,7 @@ _FLAG_DESCRIPTIONS: dict[str, str] = {
     "DATALAKE_QUERY_ENABLED": "Query local datalake instead of live APIs",
     # Cache
     "CACHE_LEGACY_KEY_FALLBACK": "Fallback to legacy cache key format",
+    "LEGACY_FALLBACK_ENABLED": "Kill-switch for legacy fallback modules (cache L3, live fetch, PNCP facade) — Issue #1966",
     "SHOW_CACHE_FALLBACK_BANNER": "Show cache fallback banner in frontend",
     "SERVE_EXPIRED_CACHE_ON_TOTAL_OUTAGE": "Serve expired cache during total outage",
     # Search Pipeline
@@ -290,6 +291,7 @@ _FLAG_LIFECYCLE: dict[str, dict] = {
     "DATALAKE_QUERY_ENABLED": {"owner": "data", "category": "source", "lifecycle": "permanent", "created": "2026-01"},
     # Cache
     "CACHE_LEGACY_KEY_FALLBACK": {"owner": "infra", "category": "cache", "lifecycle": "deprecating", "created": "2026-02", "remove_after": "2026-06"},
+    "LEGACY_FALLBACK_ENABLED": {"owner": "infra", "category": "cache", "lifecycle": "deprecating", "created": "2026-06", "remove_after": "2026-09"},
     "SHOW_CACHE_FALLBACK_BANNER": {"owner": "frontend", "category": "cache", "lifecycle": "ops-toggle", "created": "2026-02"},
     "SERVE_EXPIRED_CACHE_ON_TOTAL_OUTAGE": {"owner": "infra", "category": "cache", "lifecycle": "permanent", "created": "2026-01"},
     # Search Pipeline
