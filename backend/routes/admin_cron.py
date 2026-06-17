@@ -13,7 +13,7 @@ from typing import Any
 
 from fastapi import APIRouter, Depends
 
-from admin import require_admin
+from admin import require_admin_ops
 from schemas.admin import AdminCronStatusResponse, CronJobHealthRow
 from supabase_client import get_supabase, sb_execute_direct
 
@@ -44,7 +44,7 @@ def _normalize_row(row: dict[str, Any]) -> dict[str, Any]:
 
 
 @router.get("/cron-status", response_model=AdminCronStatusResponse)
-async def get_cron_status(user=Depends(require_admin)) -> AdminCronStatusResponse:
+async def get_cron_status(user=Depends(require_admin_ops)) -> AdminCronStatusResponse:
     """Return the pg_cron health snapshot.
 
     Calls ``public.get_cron_health()`` (SECURITY DEFINER) via the backend's

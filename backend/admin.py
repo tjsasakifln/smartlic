@@ -38,6 +38,7 @@ from schemas import (
 )
 from log_sanitizer import sanitize_dict, log_admin_action
 from authorization import require_data_access, require_user_manager
+from rbac_granular import require_admin_role, require_admin_billing, require_admin_ops, require_admin_seo
 from filter.stats import filter_stats_tracker
 
 logger = logging.getLogger(__name__)
@@ -1164,7 +1165,7 @@ async def get_at_risk_trials(
 #   - ADR docs/adr/MEMORY-BUDGET.md (3-tier threshold + Combined restart policy)
 # =====================================================================
 @router.get("/memory-snapshot", response_model=MemorySnapshot)
-async def memory_snapshot(admin: dict = Depends(require_admin)) -> MemorySnapshot:
+async def memory_snapshot(admin: dict = Depends(require_admin_role("admin:ops"))) -> MemorySnapshot:
     """
     Return current process memory snapshot for leak investigation.
 

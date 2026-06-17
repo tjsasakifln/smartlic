@@ -18,7 +18,7 @@ import time
 from fastapi import APIRouter, Depends
 from pydantic import BaseModel, Field
 
-from admin import require_admin
+from admin import require_admin_ops
 from services.alert_manager import Severity, fire_alert
 
 logger = logging.getLogger(__name__)
@@ -64,7 +64,7 @@ class TestAlertResponse(BaseModel):
 @router.post("/test-alert", response_model=TestAlertResponse)
 async def trigger_test_alert(
     req: TestAlertRequest,
-    user: dict = Depends(require_admin),
+    user: dict = Depends(require_admin_ops),
 ) -> TestAlertResponse:
     """Fire a real alert through the full dispatch pipeline.
 

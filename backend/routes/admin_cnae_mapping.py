@@ -25,7 +25,7 @@ from typing import Any, Optional
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field
 
-from admin import require_admin
+from admin import require_admin_ops
 from supabase_client import get_supabase, sb_execute_direct
 from utils.cnae_mapping import invalidate_cnae_cache
 
@@ -96,7 +96,7 @@ def _serialize(row: dict[str, Any]) -> CnaeMappingRow:
 @router.get("/cnae-mapping", response_model=CnaeMappingListResponse)
 async def list_cnae_mappings(
     setor: Optional[str] = Query(default=None, description="Filter by setor_id"),
-    user: dict = Depends(require_admin),
+    user: dict = Depends(require_admin_ops),
 ) -> CnaeMappingListResponse:
     """List CNAE mappings, optionally filtered by ``setor``."""
     try:
@@ -118,7 +118,7 @@ async def list_cnae_mappings(
 @router.post("/cnae-mapping", response_model=CnaeMappingRow, status_code=201)
 async def create_cnae_mapping(
     payload: CnaeMappingCreate,
-    user: dict = Depends(require_admin),
+    user: dict = Depends(require_admin_ops),
 ) -> CnaeMappingRow:
     """Create a new CNAE -> setor mapping."""
     try:
@@ -155,7 +155,7 @@ async def create_cnae_mapping(
 async def update_cnae_mapping(
     cnae_code: str,
     payload: CnaeMappingUpdate,
-    user: dict = Depends(require_admin),
+    user: dict = Depends(require_admin_ops),
 ) -> CnaeMappingRow:
     """Patch an existing mapping. Fields not present in the body are untouched."""
     updates: dict[str, Any] = {}
@@ -192,7 +192,7 @@ async def update_cnae_mapping(
 @router.delete("/cnae-mapping/{cnae_code}", response_model=CnaeMappingRow)
 async def delete_cnae_mapping(
     cnae_code: str,
-    user: dict = Depends(require_admin),
+    user: dict = Depends(require_admin_ops),
 ) -> CnaeMappingRow:
     """Soft delete: marks ``notes='deleted'`` so audit trail is preserved.
 
