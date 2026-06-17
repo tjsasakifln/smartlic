@@ -144,7 +144,7 @@ class TestSchemaVersioning:
     def test_info_version_matches_expected(self, client):
         resp = client.get("/api/openapi.json")
         schema = resp.json()
-        expected = os.getenv("APP_VERSION", "dev")
+        expected = os.getenv("APP_VERSION", "v1")
         assert schema["info"]["version"] == expected
 
     def test_info_version_differs_from_internal(self, client):
@@ -154,7 +154,7 @@ class TestSchemaVersioning:
         public_version = public_resp.json()["info"]["version"]
         internal_version = internal_resp.json()["info"]["version"]
         # Both should reflect APP_VERSION.
-        expected = os.getenv("APP_VERSION", "dev")
+        expected = os.getenv("APP_VERSION", "v1")
         assert public_version == expected
         assert internal_version == expected
 

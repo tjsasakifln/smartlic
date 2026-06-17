@@ -1,9 +1,10 @@
 # Política de Versionamento de API — SmartLic
 
-**Issue:** [#1808](https://github.com/tjsasakifln/SmartLic/issues/1808)
-**Prioridade:** P2
+**Issues:** [#1808](https://github.com/tjsasakifln/SmartLic/issues/1808) |
+[#1918](https://github.com/tjsasakifln/SmartLic/issues/1918)
+**Prioridade:** P1 (API Hygiene — 1918) / P2 (Policy — 1808)
 **Versão Atual:** v1
-**Data:** 2026-06-15
+**Data:** 2026-06-16
 
 ## 1. Esquema de Versionamento
 
@@ -64,6 +65,26 @@ Deprecation: true
 Sunset: Sat, 31 Dec 2026 23:59:59 GMT
 ```
 
+### 3.1.1 X-API-Version Header (Issue #1918)
+
+Toda resposta da API inclui os seguintes headers para identificar a versão atual:
+
+```http
+HTTP/1.1 200 OK
+X-API-Version: v1
+X-API-Deprecated: false
+```
+
+- **`X-API-Version`**: Versão atual da API (`v1`). Reflete o prefixo URI (`/v1/*`).
+- **`X-API-Deprecated`**: `false` enquanto a versão está ativa. Torna-se `true` quando v(N+1) é lançada e v(N) entra na janela de depreciação.
+
+Quando v1 entrar em depreciação:
+- `X-API-Deprecated: true`
+- `Sunset: <ISO-8601>` adicionado
+- `Deprecation: true` adicionado (RFC 8594)
+
+Implementado por `APIVersionHeaderMiddleware` em `backend/middleware.py`.
+
 ### 3.2 Sunset Policy
 
 | Marco | Prazo | Ação |
@@ -94,19 +115,53 @@ Sunset: Sat, 31 Dec 2026 23:59:59 GMT
 
 Script compara campos removidos, tipos alterados, endpoints removidos.
 
-### 5.2 GitHub Actions
+### 5.2 GitHub Actions Workflow (`.github/workflows/api-schema-check.yml`)
 
-Incluir no CI para PRs que tocam `backend/schemas/` ou `backend/routes/`.
+Executa em PRs que tocam `backend/schemas/`, `backend/routes/`, ou `backend/main.py`:
+
+1. Extrai OpenAPI schema do branch do PR e do target (`main`).
+2. Compara schemas via `scripts/check-api-breaking.sh`.
+3. Se breaking change detectado:
+   - Posta comentário no PR com detalhes da mudança.
+   - Exige justificativa do autor (não bloqueante — warning).
+   - Verifica se novo router `/v2/*` foi criado (recomendação).
+4. Se sem breaking changes: ✅ aprovado.
+
+### 5.3 Migration Policy
+
+- **v1 → v2**: Novas funcionalidades SEMPRE em `/v1/*` primeiro. `/v2/*` só é criado quando há breaking change.
+- **Coexistência**: v1 e v2 podem coexistir. Clientes existentes continuam em v1 até migrarem.
+- **Remoção**: Endpoints removidos em v2 devem ser listados no changelog com justificativa.
 
 ## 6. Versionamento de Tipos Frontend
 
-Tipos TypeScript são gerados automaticamente:
+Tipos TypeScript são gerados automaticamente do schema OpenAPI:
 
 ```bash
 npm --prefix frontend run generate:api-types
 ```
 
 Arquivo gerado: `frontend/app/api-types.generated.ts` (NÃO editar manualmente)
+
+### 6.1 Version-Aware Types (Issue #1918)
+
+O schema OpenAPI inclui a versão no objeto `info`:
+
+```json
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "SmartLic API",
+    "version": "v1"
+  }
+}
+```
+
+Isso garante que os tipos gerados pelo `openapi-typescript` são associados à versão correta. Quando v2 for criada, um novo schema com `info.version: "v2"` será gerado.
+
+### 6.2 Verificação de Drift
+
+O CI gate `api-types-check.yml` verifica automaticamente se `api-types.generated.ts` está sincronizado com o schema OpenAPI. Breaking changes no schema são detectados pelo `api-schema-check.yml`.
 
 ## 7. Referências
 

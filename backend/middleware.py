@@ -248,6 +248,32 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
         return response
 
 
+class APIVersionHeaderMiddleware(BaseHTTPMiddleware):
+    """
+    Issue #1918 AC2: Add X-API-Version header to all responses.
+
+    Headers applied:
+    - X-API-Version: v1 -- current API version (URI-based /v{N}/* scheme)
+    - X-API-Deprecated: false -- future-proofing for RFC 8594 deprecation
+
+    This middleware is stateless with negligible overhead -- it appends
+    two headers to every outgoing response.
+
+    When v2 is released and v1 enters deprecation window, flip _DEPRECATED
+    to "true" and add a Sunset header. See docs/architecture/api-versioning.md
+    for the full deprecation policy.
+    """
+
+    API_VERSION = "v1"
+    _DEPRECATED = "false"
+
+    async def dispatch(self, request: Request, call_next) -> Response:
+        response = await call_next(request)
+        response.headers["X-API-Version"] = self.API_VERSION
+        response.headers["X-API-Deprecated"] = self._DEPRECATED
+        return response
+
+
 class RateLimitMiddleware(BaseHTTPMiddleware):
     """STORY-311 AC10: Per-IP rate limiting for public endpoints.
 

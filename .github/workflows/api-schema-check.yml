@@ -1,0 +1,205 @@
+# Issue #1918 — API Schema Breaking Change Detection Gate.
+#
+# Purpose: On every PR touching backend schemas/routes, compare the OpenAPI
+# schema against main to detect breaking changes. If found, post a PR comment
+# requiring justification — non-blocking (advisory) initially, can be made
+# blocking in future.
+#
+# References:
+#   - docs/architecture/api-versioning.md
+#   - scripts/check-api-breaking.sh
+
+name: "API Schema Check"
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'backend/schemas/**'
+      - 'backend/routes/**'
+      - 'backend/main.py'
+      - 'backend/startup/**'
+      - 'backend/models/**'
+      - 'backend/admin.py'
+      - 'scripts/check-api-breaking.sh'
+      - '.github/workflows/api-schema-check.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pull-requests: write
+
+concurrency:
+  group: api-schema-check-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  schema-check:
+    name: Detect breaking changes in OpenAPI schema
+    runs-on: ubuntu-latest
+    env:
+      SUPABASE_URL: https://test.supabase.co
+      SUPABASE_SERVICE_ROLE_KEY: test-service-role-key
+      OPENAI_API_KEY: sk-test-key
+      ENCRYPTION_KEY: bzc732A921Puw9JN4lrzMo1nw0EjlcUdAyR6Z6N7Sqc=
+      ENVIRONMENT: test
+      SENTRY_DSN: ""
+      REDIS_URL: ""
+      LOG_LEVEL: WARNING
+
+    outputs:
+      has_breaking: ${{ steps.check.outputs.has_breaking }}
+      summary: ${{ steps.check.outputs.summary }}
+      has_v2_router: ${{ steps.check.outputs.has_v2_router }}
+
+    steps:
+      - name: Checkout PR branch
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Setup Python 3.12
+        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
+        with:
+          python-version: '3.12'
+          cache: 'pip'
+          cache-dependency-path: backend/requirements.txt
+
+      - name: Install backend dependencies
+        run: |
+          cd backend
+          pip install -r requirements.txt
+
+      - name: Extract OpenAPI schema from PR branch
+        id: extract-head
+        run: |
+          cd backend
+          python -c "
+          import json
+          from main import app
+          app.openapi_schema = None
+          schema = app.openapi()
+          with open('/tmp/openapi_head.json', 'w') as f:
+              json.dump(schema, f, indent=2, sort_keys=True)
+          print(f'PR schema: {len(schema.get(\"paths\", {}))} paths, {len(schema.get(\"components\", {}).get(\"schemas\", {}))} schemas')
+          "
+
+      - name: Checkout main for base schema (git worktree)
+        run: |
+          git fetch origin main
+          git worktree add ./main-base origin/main
+          cd ./main-base/backend
+          pip install -r requirements.txt -q
+          python -c "
+          import json
+          from main import app
+          app.openapi_schema = None
+          schema = app.openapi()
+          with open('../../openapi_base.json', 'w') as f:
+              json.dump(schema, f, indent=2, sort_keys=True)
+          print(f'Base (main) schema: {len(schema.get(\"paths\", {}))} paths, {len(schema.get(\"components\", {}).get(\"schemas\", {}))} schemas')
+          "
+          cd ../..
+          git worktree remove ./main-base --force
+      - name: Run breaking change detection
+        id: check
+        run: |
+          set -euo pipefail
+          chmod +x scripts/check-api-breaking.sh
+
+          # Run the breaking change detection script
+          output=$(bash scripts/check-api-breaking.sh --local ./openapi_base.json /tmp/openapi_head.json 2>&1 || true)
+
+          has_breaking="false"
+          summary=""
+
+          if echo "$output" | grep -q "BREAKING CHANGES"; then
+            has_breaking="true"
+            summary=$(echo "$output" | grep "BREAKING" -A 50 | head -60)
+          fi
+
+          # Check if /v2/ router exists
+          has_v2_router="false"
+          if grep -r "prefix.*/v2/" backend/routes/ backend/startup/routes.py 2>/dev/null; then
+            has_v2_router="true"
+          fi
+
+          echo "has_breaking=$has_breaking" >> "$GITHUB_OUTPUT"
+          echo "summary<<EOF" >> "$GITHUB_OUTPUT"
+          echo "$output" >> "$GITHUB_OUTPUT"
+          echo "EOF" >> "$GITHUB_OUTPUT"
+          echo "has_v2_router=$has_v2_router" >> "$GITHUB_OUTPUT"
+
+          echo "--- Detection result ---"
+          echo "has_breaking=$has_breaking"
+          echo "has_v2_router=$has_v2_router"
+
+      - name: Post PR comment with results
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea # v7.0.1
+        env:
+          HAS_BREAKING: ${{ steps.check.outputs.has_breaking }}
+          HAS_V2_ROUTER: ${{ steps.check.outputs.has_v2_router }}
+          CHECK_SUMMARY: ${{ steps.check.outputs.summary }}
+        with:
+          script: |
+            const hasBreaking = process.env.HAS_BREAKING;
+            const hasV2Router = process.env.HAS_V2_ROUTER;
+            const summary = process.env.CHECK_SUMMARY;
+
+            const marker = '<!-- api-schema-check-comment -->';
+
+            let body = marker + '\n\n';
+            body += '## 🔍 API Schema Check\n\n';
+            body += '_Issue #1918 — Auto-detected from OpenAPI schema comparison._\n\n';
+
+            if (hasBreaking === 'true') {
+              body += '### ⚠️ Potential Breaking Changes Detected\n\n';
+              body += 'The following changes may break existing API consumers:\n\n';
+              body += '```\n' + summary.substring(0, 2000) + '\n```\n\n';
+              body += '**Action required:** If these are intentional breaking changes:\n';
+              body += '1. Justify in a PR comment why the break is necessary.\n';
+              if (hasV2Router === 'false') {
+                body += '2. ⚠️ Breaking change without `/v2/` router — consider if a new version is needed.\n';
+              } else {
+                body += '2. ✅ `/v2/` router detected — new version is being created.\n';
+              }
+              body += '\n> **Policy:** Breaking changes require a major version bump. ';
+              body += 'See [docs/architecture/api-versioning.md](https://github.com/tjsasakifln/SmartLic/blob/main/docs/architecture/api-versioning.md).\n';
+            } else {
+              body += '### ✅ No Breaking Changes Detected\n\n';
+              body += 'OpenAPI schema comparison passed — no removed fields, type changes, or required field additions.\n';
+            }
+
+            body += '\n---\n';
+            body += `<sub>Gate: \`api-schema-check.yml\` | Script: \`scripts/check-api-breaking.sh\`</sub>`;
+
+            const { data: comments } = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              per_page: 100,
+            });
+            const existing = comments.find((c) => c.body && c.body.includes(marker));
+
+            if (existing) {
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: existing.id,
+                body: body,
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body: body,
+              });
+            }
+
+      - name: Warning on breaking change (non-blocking)
+        if: steps.check.outputs.has_breaking == 'true'
+        run: |
+          echo "::warning::Breaking changes detected in OpenAPI schema. Review the PR comment for details and justify if intentional."
