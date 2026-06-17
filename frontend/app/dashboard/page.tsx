@@ -251,7 +251,7 @@ export default function DashboardPage() {
 
   return (
     <PageErrorBoundary pageName="dashboard">
-    <div className="min-h-screen bg-[var(--canvas)]">
+    <main id="main-content" className="min-h-screen bg-[var(--canvas)]">
       {error && hasExhaustedRetries && data && (
         <DashboardStaleBanner onRetry={manualRetry} />
       )}
@@ -363,7 +363,7 @@ export default function DashboardPage() {
 
         <DashboardQuickLinks />
       </div>
-    </div>
+    </main>
 
     <Tour
       tourId="dashboard"
