@@ -549,6 +549,19 @@ CIRCUIT_BREAKER_STATE = _create_gauge(
     labelnames=["source"],
 )
 
+# Issue #1919: Per-source CB state (0=closed, 1=open, 2=half_open) and open duration
+CB_STATE_GAUGE = _create_gauge(
+    "smartlic_cb_state",
+    "Circuit breaker state per source (0=closed, 1=open, 2=half_open)",
+    labelnames=["source"],
+)
+
+CB_OPEN_DURATION = _create_gauge(
+    "smartlic_cb_open_duration_seconds",
+    "Time in seconds the circuit breaker has been open",
+    labelnames=["source"],
+)
+
 ACTIVE_SEARCHES = _create_gauge(
     "smartlic_active_searches",
     "Number of currently running search pipelines",

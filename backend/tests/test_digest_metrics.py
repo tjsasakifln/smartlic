@@ -268,13 +268,13 @@ async def test_admin_digest_metrics_returns_zero_defaults():
     from routes.admin_digest_metrics import router
     from fastapi import FastAPI
     from starlette.testclient import TestClient
-    from admin import require_admin
+    from admin import require_admin_ops
 
     app = FastAPI()
     app.include_router(router)
 
     # Override auth for admin access
-    app.dependency_overrides[require_admin] = lambda: {"id": "admin-user", "email": "admin@test.com"}
+    app.dependency_overrides[require_admin_ops] = lambda: {"id": "admin-user", "email": "admin@test.com"}
 
     with patch("routes.admin_digest_metrics.sb_execute", new_callable=AsyncMock) as mock_sb, \
          patch("routes.admin_digest_metrics.get_supabase") as mock_get_sb:
@@ -306,12 +306,12 @@ async def test_admin_digest_metrics_computes_rates():
     from routes.admin_digest_metrics import router
     from fastapi import FastAPI
     from starlette.testclient import TestClient
-    from admin import require_admin
+    from admin import require_admin_ops
 
     app = FastAPI()
     app.include_router(router)
 
-    app.dependency_overrides[require_admin] = lambda: {"id": "admin-user", "email": "admin@test.com"}
+    app.dependency_overrides[require_admin_ops] = lambda: {"id": "admin-user", "email": "admin@test.com"}
 
     # Mock data: 100 sent, 35 opened, 12 clicked, 2 unsubscribed
     mock_rows = []
@@ -352,12 +352,12 @@ async def test_admin_digest_metrics_frequency_breakdown():
     from routes.admin_digest_metrics import router
     from fastapi import FastAPI
     from starlette.testclient import TestClient
-    from admin import require_admin
+    from admin import require_admin_ops
 
     app = FastAPI()
     app.include_router(router)
 
-    app.dependency_overrides[require_admin] = lambda: {"id": "admin-user", "email": "admin@test.com"}
+    app.dependency_overrides[require_admin_ops] = lambda: {"id": "admin-user", "email": "admin@test.com"}
 
     # Mix of frequencies
     mock_rows = [
@@ -396,12 +396,12 @@ async def test_admin_digest_metrics_fallback_on_db_error():
     from routes.admin_digest_metrics import router
     from fastapi import FastAPI
     from starlette.testclient import TestClient
-    from admin import require_admin
+    from admin import require_admin_ops
 
     app = FastAPI()
     app.include_router(router)
 
-    app.dependency_overrides[require_admin] = lambda: {"id": "admin-user", "email": "admin@test.com"}
+    app.dependency_overrides[require_admin_ops] = lambda: {"id": "admin-user", "email": "admin@test.com"}
 
     with patch("routes.admin_digest_metrics.sb_execute", side_effect=Exception("DB error")), \
          patch("routes.admin_digest_metrics.get_supabase") as mock_get_sb:

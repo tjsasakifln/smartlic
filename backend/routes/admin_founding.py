@@ -22,7 +22,7 @@ from typing import Any
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
 
-from admin import require_admin
+from admin import require_admin_billing
 from pipeline.budget import _run_with_budget
 from supabase_client import get_supabase, sb_execute
 
@@ -130,7 +130,7 @@ async def _count_completed(sb) -> int:
 
 
 @router.get("/policy", response_model=FoundingPolicySnapshot)
-async def get_founding_policy(_admin=Depends(require_admin)) -> Any:
+async def get_founding_policy(_admin=Depends(require_admin_billing)) -> Any:
     """Snapshot of the canonical policy + live seat usage."""
     sb = get_supabase()
     row = await _fetch_policy_row(sb)
@@ -162,7 +162,7 @@ async def get_founding_policy(_admin=Depends(require_admin)) -> Any:
 
 @router.get("/leads", response_model=FoundingLeadsListResponse)
 async def list_founding_leads(
-    _admin=Depends(require_admin),
+    _admin=Depends(require_admin_billing),
     limit: int = 100,
     status: str | None = None,
 ) -> Any:
@@ -232,7 +232,7 @@ async def list_founding_leads(
 @router.post("/pause", response_model=FoundingPolicyMutationResponse)
 async def pause_founding(
     payload: FoundingPauseRequest | None = None,
-    admin: dict = Depends(require_admin),
+    admin: dict = Depends(require_admin_billing),
 ) -> Any:
     """Soft-pause founding checkouts. Idempotent."""
     sb = get_supabase()
@@ -277,7 +277,7 @@ async def pause_founding(
 
 
 @router.post("/resume", response_model=FoundingPolicyMutationResponse)
-async def resume_founding(admin: dict = Depends(require_admin)) -> Any:
+async def resume_founding(admin: dict = Depends(require_admin_billing)) -> Any:
     """Resume founding checkouts (clear paused_at + paused_by + paused_reason)."""
     sb = get_supabase()
     update = {

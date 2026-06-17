@@ -623,6 +623,29 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/admin/circuit-breakers": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Circuit Breakers
+         * @description Return real-time state of all circuit breakers.
+         *
+         *     Returns a dict keyed by source name with per-CB state including
+         *     degraded status, failure count, open duration, and configuration.
+         */
+        get: operations["get_circuit_breakers_v1_admin_circuit_breakers_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/admin/clear-contracts-checkpoints": {
         parameters: {
             query?: never;
@@ -17745,6 +17768,28 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["AdminCircuitBreakerResetResponse"];
+                };
+            };
+        };
+    };
+    get_circuit_breakers_v1_admin_circuit_breakers_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
                 };
             };
         };

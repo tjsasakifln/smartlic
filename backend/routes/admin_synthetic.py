@@ -10,7 +10,7 @@ import logging
 
 from fastapi import APIRouter, Depends
 
-from admin import require_admin
+from admin import require_admin_ops
 from schemas.admin import AdminSyntheticResponse
 
 logger = logging.getLogger(__name__)
@@ -20,7 +20,7 @@ router = APIRouter(prefix="/v1/admin", tags=["admin"])
 
 @router.get("/synthetic/last-run", response_model=AdminSyntheticResponse)
 async def get_synthetic_last_run(
-    user=Depends(require_admin),
+    user=Depends(require_admin_ops),
 ) -> AdminSyntheticResponse:
     """Return the last synthetic monitor run result and consecutive failure count.
 

@@ -17,7 +17,7 @@ from typing import Any
 
 from fastapi import APIRouter, Depends, Path, Query
 
-from admin import require_admin
+from admin import require_admin_ops
 
 logger = logging.getLogger(__name__)
 
@@ -32,7 +32,7 @@ router = APIRouter(prefix="/v1/admin", tags=["admin", "dlq"])
 @router.get("/dlq", response_model=dict)
 async def get_dlq(
     limit: int = Query(50, ge=1, le=500, description="Max entries to return"),
-    user=Depends(require_admin),
+    user=Depends(require_admin_ops),
 ) -> dict[str, Any]:
     """List entries in the ARQ Dead Letter Queue.
 
@@ -88,7 +88,7 @@ async def get_dlq(
 @router.post("/dlq/{uuid}/retry", response_model=dict)
 async def retry_dlq_entry(
     uuid: str = Path(..., description="UUID of the DLQ entry to retry"),
-    user=Depends(require_admin),
+    user=Depends(require_admin_ops),
 ) -> dict[str, Any]:
     """Re-enqueue a single DLQ entry back into the ARQ job queue.
 
@@ -132,7 +132,7 @@ async def retry_dlq_entry(
 
 @router.delete("/dlq", response_model=dict)
 async def purge_dlq(
-    user=Depends(require_admin),
+    user=Depends(require_admin_ops),
 ) -> dict[str, Any]:
     """Delete **all** entries from the ARQ Dead Letter Queue.
 

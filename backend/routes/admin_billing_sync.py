@@ -27,7 +27,7 @@ from typing import Any, Optional
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, ConfigDict, Field
 
-from admin import require_admin
+from admin import require_admin_billing
 from pipeline.budget import _run_with_budget
 from supabase_client import get_supabase, sb_execute
 
@@ -202,7 +202,7 @@ def _stripe_recurring_for(billing_period: str) -> Any:
 # ---------------------------------------------------------------------------
 @router.get("/billing-sync", response_model=BillingSyncListResponse)
 async def list_billing_sync_rows(
-    admin: dict = Depends(require_admin),
+    admin: dict = Depends(require_admin_billing),
 ) -> BillingSyncListResponse:
     """Return every plan_billing_periods row enriched with drift_status."""
     sb = get_supabase()
@@ -248,7 +248,7 @@ async def list_billing_sync_rows(
 # ---------------------------------------------------------------------------
 @router.get("/reconciliation-runs", response_model=ReconciliationRunsResponse)
 async def list_reconciliation_runs(
-    admin: dict = Depends(require_admin),
+    admin: dict = Depends(require_admin_billing),
     limit: int = Query(default=30, ge=1, le=200),
 ) -> ReconciliationRunsResponse:
     sb = get_supabase()
@@ -297,7 +297,7 @@ async def list_reconciliation_runs(
 async def sync_to_stripe(
     plan_billing_period_id: str,
     body: ReverseSyncRequest,
-    admin: dict = Depends(require_admin),
+    admin: dict = Depends(require_admin_billing),
 ) -> ReverseSyncResponse:
     """AC8/AC9: Push DB price -> Stripe by creating a new Price + archiving old."""
     if not body.i_understand_this_modifies_stripe:
@@ -536,7 +536,7 @@ async def sync_to_stripe(
 # ---------------------------------------------------------------------------
 @router.post("/reconcile-now", response_model=ReconcileNowResponse)
 async def reconcile_now(
-    admin: dict = Depends(require_admin),
+    admin: dict = Depends(require_admin_billing),
     dry_run: bool = Query(default=False),
 ) -> ReconcileNowResponse:
     from jobs.cron.billing_reconciliation import reconcile_stripe_prices

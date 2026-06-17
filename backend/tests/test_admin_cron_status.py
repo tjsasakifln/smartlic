@@ -6,7 +6,7 @@ from fastapi.testclient import TestClient
 
 from main import app
 from auth import require_auth
-from admin import require_admin
+from rbac_granular import require_admin_ops
 
 
 # ---------------------------------------------------------------------------
@@ -17,12 +17,12 @@ from admin import require_admin
 def client():
     fake_user = {"id": "admin-user-uuid", "email": "admin@test.com"}
     app.dependency_overrides[require_auth] = lambda: fake_user
-    app.dependency_overrides[require_admin] = lambda: fake_user
+    app.dependency_overrides[require_admin_ops] = lambda: fake_user
 
     yield TestClient(app)
 
     app.dependency_overrides.pop(require_auth, None)
-    app.dependency_overrides.pop(require_admin, None)
+    app.dependency_overrides.pop(require_admin_ops, None)
 
 
 @pytest.fixture

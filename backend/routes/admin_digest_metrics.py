@@ -17,7 +17,7 @@ from datetime import datetime, timezone, timedelta
 
 from fastapi import APIRouter, Depends
 
-from admin import require_admin
+from admin import require_admin_ops
 from schemas.admin import AdminDigestMetricsResponse, DigestFrequencyBreakdown
 from supabase_client import get_supabase, sb_execute
 
@@ -33,7 +33,7 @@ VALID_FREQUENCIES = ("daily", "twice_weekly", "weekly")
     response_model=AdminDigestMetricsResponse,
 )
 async def get_digest_metrics(
-    user=Depends(require_admin),
+    user=Depends(require_admin_ops),
 ) -> AdminDigestMetricsResponse:
     """Return digest email engagement metrics for the last 30 days.
 

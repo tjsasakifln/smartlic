@@ -22,7 +22,7 @@ from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException, Path
 from pydantic import BaseModel, Field
 
-from admin import require_admin
+from admin import require_admin_ops
 from audit import audit_logger
 from auth import require_auth
 from config.base import str_to_bool
@@ -411,7 +411,7 @@ class FeatureFlagReloadResponse(BaseModel):
 
 @router.get("", response_model=FeatureFlagListResponse)
 async def list_feature_flags(
-    admin: dict = Depends(require_admin),
+    admin: dict = Depends(require_admin_ops),
 ):
     """List all registered feature flags with current values and sources.
 
@@ -452,7 +452,7 @@ async def list_feature_flags(
 async def update_feature_flag(
     body: FeatureFlagUpdateRequest,
     flag_name: str = Path(..., description="Feature flag name from the registry"),
-    admin: dict = Depends(require_admin),
+    admin: dict = Depends(require_admin_ops),
 ):
     """Update a feature flag value at runtime (admin only).
 
@@ -526,7 +526,7 @@ async def update_feature_flag(
 
 @router.post("/reload", response_model=FeatureFlagReloadResponse)
 async def reload_flags_endpoint(
-    admin: dict = Depends(require_admin),
+    admin: dict = Depends(require_admin_ops),
 ):
     """Reload all feature flags from environment variables (admin only).
 

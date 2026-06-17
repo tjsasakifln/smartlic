@@ -20,7 +20,7 @@ from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException
 
-from admin import require_admin
+from admin import require_admin_ops
 from analytics_events import track_event
 from audit import AuditLogger
 from pipeline.budget import _run_with_budget
@@ -277,7 +277,7 @@ async def _fetch_retention_d30(sb) -> float:
 
 @router.get("/metrics/revenue", response_model=RevenueMetricsResponse)
 async def get_revenue_metrics(
-    admin: dict = Depends(require_admin),
+    admin: dict = Depends(require_admin_ops),
 ) -> RevenueMetricsResponse:
     """Return financial and engagement metrics for the founder dashboard.
 

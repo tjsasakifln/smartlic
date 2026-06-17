@@ -311,7 +311,7 @@ class TestAdminTraceEndpoint:
     def setup_method(self):
         from main import app
         from auth import require_auth
-        from admin import require_admin
+        from admin import require_admin_ops
         admin_user = {
             "sub": "test-user-id",
             "id": "test-user-id",
@@ -320,17 +320,17 @@ class TestAdminTraceEndpoint:
             "is_master": True,
         }
         app.dependency_overrides[require_auth] = lambda: admin_user
-        # Route uses Depends(require_admin) — override that too so tests
+        # Route uses Depends(require_admin_ops) — override that too so tests
         # can hit /v1/admin/search-trace without a real admin token.
-        app.dependency_overrides[require_admin] = lambda: admin_user
+        app.dependency_overrides[require_admin_ops] = lambda: admin_user
         self.client = TestClient(app)
 
     def teardown_method(self):
         from main import app
         from auth import require_auth
-        from admin import require_admin
+        from admin import require_admin_ops
         app.dependency_overrides.pop(require_auth, None)
-        app.dependency_overrides.pop(require_admin, None)
+        app.dependency_overrides.pop(require_admin_ops, None)
 
     @patch("redis_pool.get_redis_pool", new_callable=AsyncMock, return_value=None)
     @patch("job_queue.get_job_result", new_callable=AsyncMock, return_value=None)
@@ -380,9 +380,9 @@ class TestAdminTraceEndpoint:
     def test_trace_endpoint_requires_auth(self):
         from main import app
         from auth import require_auth
-        from admin import require_admin
+        from admin import require_admin_ops
         app.dependency_overrides.pop(require_auth, None)
-        app.dependency_overrides.pop(require_admin, None)
+        app.dependency_overrides.pop(require_admin_ops, None)
 
         resp = self.client.get("/v1/admin/search-trace/no-auth")
         # Without auth override, should fail

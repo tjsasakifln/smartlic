@@ -12,7 +12,6 @@ from __future__ import annotations
 
 from unittest.mock import AsyncMock, MagicMock, patch
 
-import pytest
 from fastapi.testclient import TestClient
 
 
@@ -144,7 +143,7 @@ def test_arbiter_proceeds_when_budget_not_exceeded(monkeypatch):
 
 def test_admin_llm_cost_endpoint_returns_snapshot(monkeypatch):
     from main import app
-    from admin import require_admin
+    from admin import require_admin_ops
     from auth import require_auth
 
     admin_user = {
@@ -153,7 +152,7 @@ def test_admin_llm_cost_endpoint_returns_snapshot(monkeypatch):
         "role": "admin",
     }
     app.dependency_overrides[require_auth] = lambda: admin_user
-    app.dependency_overrides[require_admin] = lambda: admin_user
+    app.dependency_overrides[require_admin_ops] = lambda: admin_user
 
     fake_snap = {
         "month_to_date_usd": 12.34,
@@ -180,17 +179,17 @@ def test_admin_llm_cost_endpoint_returns_snapshot(monkeypatch):
         assert "month" in data
     finally:
         app.dependency_overrides.pop(require_auth, None)
-        app.dependency_overrides.pop(require_admin, None)
+        app.dependency_overrides.pop(require_admin_ops, None)
 
 
 def test_admin_llm_cost_endpoint_requires_admin():
     from main import app
-    from admin import require_admin
+    from admin import require_admin_ops
     from auth import require_auth
 
     # Sem overrides — deve bloquear
     app.dependency_overrides.pop(require_auth, None)
-    app.dependency_overrides.pop(require_admin, None)
+    app.dependency_overrides.pop(require_admin_ops, None)
 
     client = TestClient(app)
     r = client.get("/v1/admin/llm-cost")
