@@ -514,7 +514,7 @@ function SignupPageContent() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col md:flex-row">
+    <main id="main-content" className="min-h-screen flex flex-col md:flex-row">
       {/* Left: Institutional Sidebar */}
       <InstitutionalSidebar variant="signup" className="w-full md:w-1/2" scrollTargetId="signup-form" />
 
@@ -640,7 +640,7 @@ function SignupPageContent() {
           )}
         </div>
       </div>
-    </div>
+    </main>
   );
 }
 

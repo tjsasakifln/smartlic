@@ -349,7 +349,7 @@ export default function OnboardingPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[var(--surface-0)] flex items-center justify-center p-4">
+    <main id="main-content" className="min-h-screen bg-[var(--surface-0)] flex items-center justify-center p-4">
       <Suspense fallback={null}>
         <SearchParamsReader onCnpj={setCnpjParam} />
       </Suspense>
@@ -450,7 +450,7 @@ export default function OnboardingPage() {
           </div>
         </div>
       </div>
-    </div>
+    </main>
   );
 }
 
