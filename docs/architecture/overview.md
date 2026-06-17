@@ -50,15 +50,15 @@
 
 | Componente | Tecnologia | Versão | Função |
 |-----------|-----------|:---:|--------|
-| Framework | FastAPI | 0.136 | API REST + SSE |
+| Framework | FastAPI | 0.137 | API REST + SSE |
 | Runtime | Python | 3.12 | Linguagem |
-| Validação | Pydantic | 2.12 | Schemas e tipos |
+| Validação | Pydantic | 2.13 | Schemas e tipos |
 | HTTP Client | httpx | — | Chamadas externas |
 | IA | OpenAI SDK | 1.109 | GPT-4.1-nano |
 | Database | Supabase | — | PostgreSQL 17 + Auth + RLS |
 | Cache | Redis | — | L1 cache, SSE state, rate limiter |
 | Queue | ARQ | 0.26+ | Jobs assíncronos |
-| Billing | Stripe | 11.4 | Pagamentos (12 webhook events) |
+| Billing | Stripe | 11.6 | Pagamentos (12 webhook events) |
 | Email | Resend | — | Email transacional |
 | PDF | ReportLab | — | Geração de PDF |
 | Excel | openpyxl | — | Geração de Excel |
