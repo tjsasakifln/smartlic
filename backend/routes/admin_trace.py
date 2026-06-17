@@ -9,6 +9,8 @@ PARITY-BE-FE-001 (Pass 1): every route now declares ``response_model=`` so
 the OpenAPI schema is fully typed and ``frontend/app/api-types.generated.ts``
 exposes proper TypeScript shapes for the admin panel instead of
 ``{[k: string]: unknown}``.
+
+RBAC Phase 2 (#1954): all endpoints require ``admin:ops`` role.
 """
 
 import logging

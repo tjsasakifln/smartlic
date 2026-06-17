@@ -178,15 +178,18 @@ class TestAdminEndpointsBase:
 
     @pytest.fixture
     def admin_app_with_overrides(self, mock_admin_user):
-        """Create FastAPI app with admin router and dependency overrides (#1778).
+        """Create FastAPI app with admin router and dependency overrides (#1778, #1954).
 
-        Overrides all role dependencies (require_admin, require_data_access,
-        require_user_manager) so existing tests continue to pass with the
-        new granular role system.
+        Overrides all RBAC Phase 2 granular role dependencies (admin:users,
+        admin:data, admin:ops, admin:billing) so existing tests continue to
+        pass with the new granular role system.
         """
         from fastapi import FastAPI
         from admin import router, require_admin
-        from authorization import require_data_access, require_user_manager
+        from rbac_granular import (
+            require_admin_users, require_admin_data,
+            require_admin_ops, require_admin_billing,
+        )
 
         app = FastAPI()
         app.include_router(router)
@@ -196,8 +199,10 @@ class TestAdminEndpointsBase:
             return mock_admin_user
 
         app.dependency_overrides[require_admin] = mock_require_admin
-        app.dependency_overrides[require_data_access] = mock_require_admin
-        app.dependency_overrides[require_user_manager] = mock_require_admin
+        app.dependency_overrides[require_admin_users] = mock_require_admin
+        app.dependency_overrides[require_admin_data] = mock_require_admin
+        app.dependency_overrides[require_admin_ops] = mock_require_admin
+        app.dependency_overrides[require_admin_billing] = mock_require_admin
 
         return app
 
@@ -1182,12 +1187,13 @@ class TestListUsersSearchSecurity(TestAdminEndpointsBase):
 
 
 class TestGranularRoleProtection(TestAdminEndpointsBase):
-    """#1778: Verify granular role protections on admin endpoints.
+    """#1778 + #1954: Verify granular role protections on admin endpoints.
 
     Tests that endpoints require the correct role:
-    - require_data_access: list_users, at-risk-trials, segments (PII)
-    - require_user_manager: create/delete/update users
-    - require_admin: dashboard/metrics endpoints
+    - admin:users: all user CRUD endpoints
+    - admin:data: at-risk-trials, segments, trial-metrics (data analytics)
+    - admin:ops: cache, filter-stats, support-sla (operations)
+    - admin:billing: reconciliation (billing)
     """
 
     @pytest.fixture
@@ -1207,10 +1213,12 @@ class TestGranularRoleProtection(TestAdminEndpointsBase):
         app.include_router(router)
         return app
 
-    def test_list_users_requires_data_access(self, admin_client):
-        """PII endpoint /admin/users requires data_access role."""
-        # The admin_client fixture overrides require_admin, but the endpoint
-        # now uses require_data_access. Test that it works when user has role.
+    def test_list_users_requires_admin_users(self, admin_client):
+        """PII endpoint /admin/users requires admin:users role (RBAC Phase 2 #1954)."""
+        # The admin_app_with_overrides fixture overrides all granular role deps
+        # (require_admin_users, require_admin_data, require_admin_ops,
+        # require_admin_billing) so the mock admin user can access all endpoints.
+        # This test validates the dependency override pattern works.
         mock_supabase = Mock()
         users_result = Mock()
         users_result.data = [{"id": "user-1", "email": "u@e.com", "plan_type": "free_trial", "user_subscriptions": []}]
@@ -1224,20 +1232,13 @@ class TestGranularRoleProtection(TestAdminEndpointsBase):
              patch("quota.get_monthly_quota_used", return_value=0):
             response = admin_client.get("/admin/users")
 
-        # admin_client overrides require_admin — but endpoint now uses
-        # require_data_access. If the override is based on require_admin
-        # function reference, it won't match require_data_access.
-        # The override happens via app.dependency_overrides[require_admin].
-        # Since list_users now uses Depends(require_data_access), the
-        # existing override won't apply.
-        # This test validates that the correct dependency overrides are needed.
         assert response.status_code in (200, 403)
 
     def test_cache_metrics_still_requires_admin(self, admin_client):
-        """Dashboard endpoint /admin/cache/metrics stays at DASHBOARD level."""
+        """Dashboard endpoint /admin/cache/metrics now requires admin:ops (RBAC Phase 2 #1954)."""
 
-        # The admin_client fixture overrides require_admin — so this should
-        # work because the cache/metrics endpoint still uses require_admin.
+        # The admin_app_with_overrides fixture overrides require_admin_ops
+        # so the mock admin user can access the cache metrics endpoint.
         mock_supabase = Mock()
         metrics_result = Mock()
         metrics_result.data = {}

@@ -7,6 +7,8 @@ for all accesses.
 Originally FOUNDER-003 (#1416) + FOUNDER-004 (#1417):
 GET /admin/metrics/revenue with MRR, churn, trial-to-paid, activation,
 retention, ARPA, plus an MRR time series (mrr_history).
+
+RBAC Phase 2 (#1954): requires ``admin:observability`` role.
 """
 
 from __future__ import annotations

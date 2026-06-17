@@ -9,6 +9,9 @@ Redis keys:
 
 Fail-open: Redis unavailable → revocation flag NOT set → 503 to caller.
 Graceful degradation: Redis down → session checks in auth.py skip silently.
+
+RBAC Phase 2 (#1954): user session revocation requires ``admin:ops`` role.
+Global revocation additionally requires master access.
 """
 
 from __future__ import annotations
@@ -20,7 +23,7 @@ from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import BaseModel, Field
 
 from auth import require_auth
-from admin import require_admin
+from rbac_granular import require_admin_ops
 from authorization import has_master_access
 
 logger = logging.getLogger(__name__)
@@ -85,7 +88,7 @@ async def revoke_user_sessions(
     Admin-only. Sets a Redis blacklist key with 24h TTL.
     Auth middleware checks this key on every request.
     """
-    await require_admin(user)
+    await require_admin_ops(user=user)
 
     admin_id = user["id"]
 
@@ -129,7 +132,7 @@ async def revoke_all_sessions(
     Sets a global timestamp in Redis. All tokens issued before this
     timestamp are invalidated in the auth middleware.
     """
-    await require_admin(user)
+    await require_admin_ops(user=user)
     if not await has_master_access(user["id"]):
         raise HTTPException(status_code=403, detail="Apenas master pode revogar todas as sessoes")
 

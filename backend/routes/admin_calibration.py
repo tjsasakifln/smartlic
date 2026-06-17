@@ -6,6 +6,8 @@ Surfaces three admin-only endpoints:
         ``range_days`` (default 90). Powers the
         ``/admin/calibration`` dashboard.
 
+RBAC Phase 2 (#1954): all endpoints require ``admin:data`` role.
+
     PATCH /v1/admin/config/{key}
         Mutate one row in ``app_config`` (audit-logged via
         ``app_config.updated_by``). Drops the in-process TTL cache for

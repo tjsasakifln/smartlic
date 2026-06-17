@@ -2,6 +2,8 @@
 
 GET /v1/admin/synthetic/last-run — Returns the last synthetic monitor
 result and consecutive failure count from Redis.  Admin-only.
+
+RBAC Phase 2 (#1954): requires ``admin:observability`` role.
 """
 
 from __future__ import annotations

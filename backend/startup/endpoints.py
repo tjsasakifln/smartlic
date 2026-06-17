@@ -54,11 +54,11 @@ def register_endpoints(app: FastAPI) -> None:
         """Return available procurement sectors for frontend dropdown."""
         return {"setores": list_sectors()}
 
-    # STORY-210 AC9: Admin-only debug endpoint
-    from admin import require_admin as _require_admin
+    # STORY-210 AC9: Admin-only debug endpoint (RBAC Phase 2 #1954: admin:ops)
+    from rbac_granular import require_admin_ops as _debug_admin
 
     @app.get("/debug/pncp-test", response_model=DebugPNCPResponse)
-    async def debug_pncp_test(admin: dict = Depends(_require_admin)):
+    async def debug_pncp_test(admin: dict = Depends(_debug_admin)):
         """Diagnostic: test if PNCP API is reachable from this server. Admin only."""
         import time as t
         from datetime import date, timedelta

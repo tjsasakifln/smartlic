@@ -14,6 +14,8 @@ Endpoints:
 - GET  /admin/feature-flags          -- Admin: list all flags with metadata
 - PATCH /admin/feature-flags/{name}  -- Admin: toggle a flag at runtime
 - POST /admin/feature-flags/reload   -- Admin: reload all flags from env
+
+RBAC Phase 2 (#1954): admin flag management requires ``admin:ops`` role.
 """
 
 import logging

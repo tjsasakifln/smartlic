@@ -2,6 +2,8 @@
 
 GET /v1/admin/slo — Returns SLO compliance data for admin dashboard.
 GET /v1/admin/slo/alerts — Returns current alert evaluation results.
+
+RBAC Phase 2 (#1954): both endpoints require ``admin:observability`` role.
 """
 
 import logging

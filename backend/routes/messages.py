@@ -1,4 +1,7 @@
-"""InMail messaging router — threaded support conversations."""
+"""InMail messaging router — threaded support conversations.
+
+RBAC Phase 2 (#1954): conversation status update requires ``admin:data`` role.
+"""
 
 import logging
 from typing import Optional
@@ -6,7 +9,7 @@ from typing import Optional
 from fastapi import APIRouter, HTTPException, Depends, Query
 from auth import require_auth
 from config import MESSAGES_ENABLED
-from admin import require_admin, _is_admin_from_supabase
+from admin import require_admin_data, _is_admin_from_supabase
 from supabase_client import sb_execute
 from schemas import (
     validate_uuid,
@@ -325,7 +328,7 @@ async def reply_to_conversation(
 async def update_conversation_status(
     conversation_id: str,
     req: UpdateConversationStatusRequest,
-    admin: dict = Depends(require_admin),
+    admin: dict = Depends(require_admin_data),
 ):
     if not MESSAGES_ENABLED:
         raise HTTPException(status_code=404, detail="Feature not available")

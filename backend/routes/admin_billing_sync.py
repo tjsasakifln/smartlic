@@ -6,6 +6,8 @@ Endpoints (all admin-only):
     POST   /v1/admin/plans/{plan_billing_period_id}/sync-to-stripe -- reverse sync (DB -> Stripe)
     POST   /v1/admin/plans/reconcile-now                           -- ad-hoc reconciliation trigger
 
+RBAC Phase 2 (#1954): all endpoints require ``admin:billing`` role.
+
 Reverse sync semantics:
     Stripe Prices are immutable in `unit_amount`. To "update" a price we
     create a NEW Stripe Price (with the DB's price_cents) and archive the

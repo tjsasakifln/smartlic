@@ -7,6 +7,8 @@ Endpoints (all admin-only):
 
 Every endpoint degrades gracefully: Redis/ARQ unavailability returns a
 structured error response instead of 500-ing.
+
+RBAC Phase 2 (#1954): all endpoints require ``admin:ops`` role.
 """
 
 from __future__ import annotations

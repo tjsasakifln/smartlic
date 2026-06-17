@@ -4,7 +4,7 @@ Provides a read-only snapshot of the current Supabase PostgreSQL connection
 pool state, sampled every call. Designed for the system admin dashboard
 at ``/v1/admin/db-pool``.
 
-Admin-only (requires admin or master role).
+Admin-only (requires ``admin:ops`` role — RBAC Phase 2 #1954).
 """
 
 from __future__ import annotations
@@ -13,7 +13,7 @@ import logging
 
 from fastapi import APIRouter, Depends, HTTPException
 
-from admin import require_admin
+from admin import require_admin_ops
 from schemas.admin import DbPoolStatusResponse
 
 logger = logging.getLogger(__name__)
@@ -23,7 +23,7 @@ router = APIRouter(prefix="/v1/admin", tags=["admin", "db-pool"])
 
 @router.get("/db-pool", response_model=DbPoolStatusResponse)
 async def get_db_pool_status(
-    admin: dict = Depends(require_admin),
+    admin: dict = Depends(require_admin_ops),
 ) -> dict:
     """Return current Supabase connection pool snapshot.
 

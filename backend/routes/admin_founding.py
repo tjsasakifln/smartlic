@@ -10,6 +10,8 @@ The pause/resume toggle is intentionally separate from a ``PATCH`` over the
 whole row — operators should never edit ``seat_limit`` or ``deadline_at``
 through a generic update without going through the database (those values
 are encoded in the ADR; changing them is a product decision).
+
+RBAC Phase 2 (#1954): all endpoints require ``admin:billing`` role.
 """
 
 from __future__ import annotations
