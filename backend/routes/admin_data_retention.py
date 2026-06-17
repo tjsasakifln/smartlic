@@ -76,16 +76,16 @@ async def get_data_retention_status(
             try:
                 last_run_raw = await redis.get(f"data_retention:last_run:{tbl_name}")
                 if last_run_raw:
-                    table_info["last_purge_at"] = last_run_raw.decode()
+                    table_info["last_purge_at"] = last_run_raw
 
                 rows_raw = await redis.get(f"data_retention:last_rows:{tbl_name}")
                 if rows_raw:
-                    table_info["rows_purged_last"] = int(rows_raw.decode())
+                    table_info["rows_purged_last"] = int(rows_raw)
 
                 error_raw = await redis.get(f"data_retention:last_error:{tbl_name}")
                 if error_raw:
                     table_info["status"] = "error"
-                    table_info["error"] = error_raw.decode()
+                    table_info["error"] = error_raw
                 else:
                     table_info["status"] = "success"
             except Exception:
@@ -99,7 +99,7 @@ async def get_data_retention_status(
         try:
             duration_raw = await redis.get("data_retention:last_duration")
             if duration_raw:
-                duration = float(duration_raw.decode())
+                duration = float(duration_raw)
         except Exception:
             pass
 
@@ -118,5 +118,4 @@ async def get_data_retention_status(
             "tables": [],
             "total_rows_purged_last": 0,
             "last_cycle_duration_seconds": 0,
-            "detail": str(exc),
         }

@@ -125,13 +125,13 @@ def test_admin_status_endpoint_returns_expected_shape(admin_client):
     mock_redis = AsyncMock()
     # Simulate Redis with some data
     mock_redis.get = AsyncMock(side_effect=lambda key: {
-        "data_retention:last_run:trial_email_log": b"2026-06-15T12:00:00",
-        "data_retention:last_rows:trial_email_log": b"42",
-        "data_retention:last_run:messages": b"2026-06-15T12:00:00",
-        "data_retention:last_rows:messages": b"10",
-        "data_retention:last_run:ingestion_checkpoints": b"2026-06-15T12:00:00",
-        "data_retention:last_rows:ingestion_checkpoints": b"5",
-        "data_retention:last_duration": b"3.14",
+        "data_retention:last_run:trial_email_log": "2026-06-15T12:00:00",
+        "data_retention:last_rows:trial_email_log": "42",
+        "data_retention:last_run:messages": "2026-06-15T12:00:00",
+        "data_retention:last_rows:messages": "10",
+        "data_retention:last_run:ingestion_checkpoints": "2026-06-15T12:00:00",
+        "data_retention:last_rows:ingestion_checkpoints": "5",
+        "data_retention:last_duration": "3.14",
     }.get(key, None))
 
     with patch("redis_pool.get_redis_pool", new_callable=AsyncMock, return_value=mock_redis):
