@@ -22076,6 +22076,36 @@
         ]
       }
     },
+    "/v1/admin/circuit-breakers": {
+      "get": {
+        "description": "Return real-time state of all circuit breakers.\n\nReturns a dict keyed by source name with per-CB state including\ndegraded status, failure count, open duration, and configuration.",
+        "operationId": "get_circuit_breakers_v1_admin_circuit_breakers_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Get Circuit Breakers V1 Admin Circuit Breakers Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Get Circuit Breakers",
+        "tags": [
+          "admin",
+          "circuit-breakers"
+        ]
+      }
+    },
     "/v1/admin/clear-contracts-checkpoints": {
       "post": {
         "description": "Clear all Redis checkpoints for contracts crawler.\n\nUse before re-triggering a full crawl when stale checkpoints\ncause windows to be incorrectly skipped.",
