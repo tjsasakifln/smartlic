@@ -22,6 +22,7 @@ import io
 import pytest
 from httpx import AsyncClient, ASGITransport
 from fastapi import FastAPI
+from starlette.responses import JSONResponse
 
 from middleware import (RequestIDFilter, CorrelationIDMiddleware,
                          APIVersionHeaderMiddleware, request_id_var)
@@ -537,18 +538,21 @@ class TestAPIVersionHeaderMiddleware:
         async def error_endpoint():
             raise ValueError("Test error")
 
+        @app.exception_handler(ValueError)
+        async def value_error_handler(request, exc):
+            return JSONResponse(status_code=500, content={"error": "Test error"})
+
         transport = ASGITransport(app=app)
         async with AsyncClient(transport=transport, base_url="http://test") as client:
-            try:
-                await client.get("/error")
-            except Exception:
-                pass
+            response = await client.get("/error")
 
-        # We can't easily capture error response headers via httpx,
-        # but we verify the middleware class exists and is properly configured
-        middleware = APIVersionHeaderMiddleware(app)
-        assert middleware.API_VERSION == "v1"
-        assert middleware._DEPRECATED == "false"
+        assert response.status_code == 500
+        assert response.headers["x-api-version"] == "v1", (
+            "X-API-Version header must be present even on error responses"
+        )
+        assert response.headers["x-api-deprecated"] == "false", (
+            "X-API-Deprecated header must be present even on error responses"
+        )
 
     @pytest.mark.anyio
     async def test_headers_on_multiple_endpoints(self):
