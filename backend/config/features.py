@@ -17,6 +17,10 @@ ENABLE_NEW_PRICING: bool = str_to_bool(os.getenv("ENABLE_NEW_PRICING", "true"))
 # True, a contract violation raises SystemExit at lifespan boot time.
 SCHEMA_CONTRACT_STRICT: bool = str_to_bool(os.getenv("SCHEMA_CONTRACT_STRICT", "false"))
 
+# #1882: MFA Enforcement Policy — global kill switch.
+# Default true in production. Set to false to disable MFA enforcement.
+MFA_ENFORCEMENT_ENABLED: bool = str_to_bool(os.getenv("MFA_ENFORCEMENT_ENABLED", "true"))
+
 # ============================================
 # LLM Arbiter Configuration (STORY-179 AC6)
 # ============================================
@@ -308,6 +312,8 @@ _FEATURE_FLAG_REGISTRY: dict[str, tuple[str, str]] = {
     "COMPRASGOV_CB_ENABLED": ("COMPRASGOV_CB_ENABLED", "true"),
     # --- STORY-414: Schema contract gate (faseado 14d, default off in prod) ---
     "SCHEMA_CONTRACT_STRICT": ("SCHEMA_CONTRACT_STRICT", "false"),
+    # --- #1882: MFA Enforcement Policy ---
+    "MFA_ENFORCEMENT_ENABLED": ("MFA_ENFORCEMENT_ENABLED", "true"),
     # --- STORY-438: Semantic embeddings ---
     # EXPIRY: 2026-09-01 — graduate or remove
     # Note: EMBEDDING_THRESHOLD must be removed together if this graduates
