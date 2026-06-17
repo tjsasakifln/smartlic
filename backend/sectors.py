@@ -167,8 +167,9 @@ def _validate_sector_keywords(sectors_data: dict) -> list[str]:
         List of human-readable warning strings — one per duplicate found.
         Empty list means no duplicates detected.
     """
-    # Lazy import to avoid circular dependency: filter/ imports sectors.py
-    from filter.keywords import normalize_text  # noqa: PLC0415
+    # Lazy import kept for backward compatibility; cycle resolved in Issue #1965
+    # by moving normalize_text to utils/formatters.py.
+    from utils import normalize_text  # noqa: PLC0415
 
     warnings: list[str] = []
 

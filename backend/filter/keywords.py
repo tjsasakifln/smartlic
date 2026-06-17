@@ -6,9 +6,12 @@ and the core match_keywords() function.
 
 import logging
 import re
-import unicodedata
 from functools import lru_cache
 from typing import Set, Tuple, List, Dict, Optional
+
+# normalize_text moved to utils/formatters.py to break circular dependency
+# (Issue #1965). Re-imported here for backward compatibility.
+from utils.formatters import normalize_text  # noqa: F401
 
 # Configure logging
 logger = logging.getLogger(__name__)
@@ -572,30 +575,6 @@ KEYWORDS_EXCLUSAO: Set[str] = {
     "motor diesel estacionário",
     "motor diesel estacionario",
 }
-
-
-def normalize_text(text: str) -> str:
-    """Lowercase + strip accents + remove punctuation + normalize whitespace."""
-    if not text:
-        return ""
-
-    # Lowercase
-    text = text.lower()
-
-    # Remove accents using NFD normalization
-    # NFD = Canonical Decomposition (separates base chars from combining marks)
-    text = unicodedata.normalize("NFD", text)
-    # Remove combining characters (category "Mn" = Mark, nonspacing)
-    text = "".join(c for c in text if unicodedata.category(c) != "Mn")
-
-    # Remove punctuation (keep only word characters and spaces)
-    # Replace non-alphanumeric with spaces
-    text = re.sub(r"[^\w\s]", " ", text)
-
-    # Normalize multiple spaces to single space
-    text = re.sub(r"\s+", " ", text)
-
-    return text.strip()
 
 
 # =============================================================================
