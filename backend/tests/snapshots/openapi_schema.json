@@ -20439,6 +20439,261 @@
         "title": "VerifyRecoveryResponse",
         "type": "object"
       },
+      "WebhookChannel": {
+        "description": "Supported notification channels.",
+        "enum": [
+          "slack",
+          "teams",
+          "email"
+        ],
+        "title": "WebhookChannel",
+        "type": "string"
+      },
+      "WebhookCreate": {
+        "description": "Request body for POST /v1/integrations/webhooks.",
+        "properties": {
+          "channel": {
+            "$ref": "#/components/schemas/WebhookChannel"
+          },
+          "email_target": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Email address (required for email channel)",
+            "title": "Email Target"
+          },
+          "events": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/WebhookEvent"
+            },
+            "title": "Events",
+            "type": "array"
+          },
+          "label": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Label"
+          },
+          "webhook_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Incoming webhook URL (required for slack/teams)",
+            "title": "Webhook Url"
+          }
+        },
+        "required": [
+          "channel"
+        ],
+        "title": "WebhookCreate",
+        "type": "object"
+      },
+      "WebhookEvent": {
+        "description": "Notification event types for webhook dispatch.",
+        "enum": [
+          "new_edital",
+          "deadline_24h",
+          "deadline_6h",
+          "deadline_1h",
+          "pregao_started",
+          "result_published"
+        ],
+        "title": "WebhookEvent",
+        "type": "string"
+      },
+      "WebhookResponse": {
+        "description": "Public webhook representation returned by the API.",
+        "properties": {
+          "channel": {
+            "$ref": "#/components/schemas/WebhookChannel"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "email_target": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Email Target"
+          },
+          "events": {
+            "items": {
+              "$ref": "#/components/schemas/WebhookEvent"
+            },
+            "title": "Events",
+            "type": "array"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "is_active": {
+            "title": "Is Active",
+            "type": "boolean"
+          },
+          "label": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Label"
+          },
+          "last_triggered_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Triggered At"
+          },
+          "webhook_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Webhook Url"
+          }
+        },
+        "required": [
+          "id",
+          "channel",
+          "events",
+          "is_active",
+          "created_at"
+        ],
+        "title": "WebhookResponse",
+        "type": "object"
+      },
+      "WebhookTestResponse": {
+        "description": "Response from the test notification endpoint.",
+        "properties": {
+          "channel": {
+            "$ref": "#/components/schemas/WebhookChannel"
+          },
+          "message": {
+            "title": "Message",
+            "type": "string"
+          },
+          "target": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Target"
+          }
+        },
+        "required": [
+          "message",
+          "channel"
+        ],
+        "title": "WebhookTestResponse",
+        "type": "object"
+      },
+      "WebhookUpdate": {
+        "description": "Request body for PATCH /v1/integrations/webhooks/{id}.",
+        "properties": {
+          "email_target": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Email Target"
+          },
+          "events": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/WebhookEvent"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Events"
+          },
+          "is_active": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Is Active"
+          },
+          "label": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Label"
+          },
+          "webhook_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Webhook Url"
+          }
+        },
+        "title": "WebhookUpdate",
+        "type": "object"
+      },
       "WeeklyDigestResponse": {
         "properties": {
           "avg_value": {
@@ -22073,6 +22328,36 @@
         "summary": "Reset Circuit Breakers",
         "tags": [
           "admin"
+        ]
+      }
+    },
+    "/v1/admin/circuit-breakers": {
+      "get": {
+        "description": "Return real-time state of all circuit breakers.\n\nReturns a dict keyed by source name with per-CB state including\ndegraded status, failure count, open duration, and configuration.",
+        "operationId": "get_circuit_breakers_v1_admin_circuit_breakers_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Get Circuit Breakers V1 Admin Circuit Breakers Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Get Circuit Breakers",
+        "tags": [
+          "admin",
+          "circuit-breakers"
         ]
       }
     },
@@ -29660,6 +29945,230 @@
         "summary": "\u00cdndice de transpar\u00eancia de um munic\u00edpio (p\u00fablico)",
         "tags": [
           "indice-municipal"
+        ]
+      }
+    },
+    "/v1/integrations/webhooks": {
+      "get": {
+        "description": "List all webhooks for the authenticated user.",
+        "operationId": "list_webhooks_v1_integrations_webhooks_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/WebhookResponse"
+                  },
+                  "title": "Response List Webhooks V1 Integrations Webhooks Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "List Webhooks",
+        "tags": [
+          "integrations"
+        ]
+      },
+      "post": {
+        "description": "Create a new webhook integration (Slack, Teams, or Email).",
+        "operationId": "create_webhook_v1_integrations_webhooks_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WebhookCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WebhookResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Create Webhook",
+        "tags": [
+          "integrations"
+        ]
+      }
+    },
+    "/v1/integrations/webhooks/{webhook_id}": {
+      "delete": {
+        "description": "Delete a webhook integration.",
+        "operationId": "delete_webhook_v1_integrations_webhooks__webhook_id__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "webhook_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Webhook Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Delete Webhook",
+        "tags": [
+          "integrations"
+        ]
+      },
+      "patch": {
+        "description": "Update a webhook configuration.",
+        "operationId": "update_webhook_v1_integrations_webhooks__webhook_id__patch",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "webhook_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Webhook Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WebhookUpdate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WebhookResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Update Webhook",
+        "tags": [
+          "integrations"
+        ]
+      }
+    },
+    "/v1/integrations/webhooks/{webhook_id}/test": {
+      "post": {
+        "description": "Send a test notification to verify the webhook configuration.",
+        "operationId": "test_webhook_v1_integrations_webhooks__webhook_id__test_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "webhook_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Webhook Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WebhookTestResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Test Webhook",
+        "tags": [
+          "integrations"
         ]
       }
     },
