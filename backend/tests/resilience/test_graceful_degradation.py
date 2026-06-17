@@ -16,14 +16,9 @@ Run from backend/:
 import sys
 from unittest.mock import MagicMock
 
-# Pre-mock heavy third-party modules
-for _mod_name in ("openai", "arq", "stripe", "resend", "mixpanel"):
-    if _mod_name not in sys.modules:
-        sys.modules[_mod_name] = MagicMock()
-
-import asyncio  # noqa: E402
-import logging  # noqa: E402
-from unittest.mock import patch, AsyncMock, MagicMock  # noqa: E402
+import asyncio
+import logging
+from unittest.mock import patch, AsyncMock, MagicMock
 
 import pytest  # noqa: E402
 
