@@ -51,7 +51,7 @@ jobs:
         run: |
           cd backend
           pip install -r requirements.txt
-          pip install pytest pytest-cov pytest-asyncio httpx pytest-timeout
+          pip install hypothesis pytest pytest-cov pytest-asyncio httpx pytest-timeout
           pip install pip-audit ruff mypy
 
       # CI-002: Advisory security audit — shows detailed descriptions, non-blocking

@@ -93,8 +93,8 @@ export type ConversationDetail = components["schemas"]["ConversationDetail"];
 /** Paginated list of conversations */
 export type ConversationsListResponse = components["schemas"]["ConversationsListResponse"];
 
-/** Unread message count for badge display */
-export type UnreadCountResponse = components["schemas"]["UnreadCountResponse"];
+// UnreadCountResponse removed — the generated schemas use fully-qualified names:
+// schemas__alerts_b2gops__UnreadCountResponse / schemas__messages__UnreadCountResponse
 
 // ============================================================================
 // BuscaResult — frontend representation of backend BuscaResponse
