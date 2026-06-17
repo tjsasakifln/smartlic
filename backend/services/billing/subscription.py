@@ -1,0 +1,74 @@
+"""Stripe subscription billing period management (#1781)."""
+import os
+import logging
+from datetime import datetime
+from typing import Optional, Literal
+
+logger = logging.getLogger(__name__)
+
+
+def update_stripe_subscription_billing_period(
+    stripe_subscription_id: str,
+    new_billing_period: Literal["monthly", "semiannual", "annual"],
+    stripe_price_id_monthly: str,
+    stripe_price_id_semiannual: str = "",
+    stripe_price_id_annual: str = "",
+) -> dict:
+    """Update Stripe subscription billing period."""
+    import stripe
+
+    stripe_key = os.getenv("STRIPE_SECRET_KEY")
+    if not stripe_key:
+        raise ValueError("STRIPE_SECRET_KEY not configured")
+
+    price_map = {
+        "monthly": stripe_price_id_monthly,
+        "semiannual": stripe_price_id_semiannual,
+        "annual": stripe_price_id_annual,
+    }
+    target_price_id = price_map.get(new_billing_period, stripe_price_id_monthly)
+
+    if not target_price_id:
+        raise ValueError(f"No Stripe price ID configured for {new_billing_period}")
+
+    logger.info(
+        f"Updating Stripe subscription {stripe_subscription_id} to {new_billing_period}"
+    )
+
+    subscription = stripe.Subscription.retrieve(stripe_subscription_id, api_key=stripe_key)
+    updated_subscription = stripe.Subscription.modify(
+        stripe_subscription_id,
+        items=[{
+            "id": subscription["items"]["data"][0]["id"],
+            "price": target_price_id,
+        }],
+        proration_behavior="create_prorations",
+        api_key=stripe_key,
+    )
+
+    return updated_subscription
+
+
+def get_next_billing_date(user_id: str) -> Optional[datetime]:
+    """Get user's next billing date from Supabase."""
+    from supabase_client import get_supabase
+
+    result = (
+        get_supabase()
+        .table("user_subscriptions")
+        .select("expires_at, created_at, billing_period")
+        .eq("user_id", user_id)
+        .eq("is_active", True)
+        .order("created_at", desc=True)
+        .limit(1)
+        .execute()
+    )
+
+    if not result.data:
+        return None
+
+    expires_at_str = result.data[0].get("expires_at")
+    if not expires_at_str:
+        return None
+
+    return datetime.fromisoformat(expires_at_str.replace("Z", "+00:00"))
