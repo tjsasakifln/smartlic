@@ -1599,3 +1599,13 @@ SYNTHETIC_MONITOR_DURATION = _create_histogram(
     labelnames=["stage"],
     buckets=[100, 500, 1000, 2000, 5000, 10000, 20000, 30000, 60000],
 )
+
+# ============================================================================
+# Issue #1921: Graceful degradation metric
+# ============================================================================
+
+DEGRADATION_COUNTER = _create_counter(
+    "smartlic_degradation_total",
+    "Graceful degradation events — fallback activated due to dependency failure",
+    labelnames=["source", "mode"],
+)
