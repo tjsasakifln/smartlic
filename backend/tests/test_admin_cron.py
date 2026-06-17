@@ -4,13 +4,13 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 from types import SimpleNamespace
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 from fastapi.testclient import TestClient
 
 from main import app
-from admin import require_admin
+from rbac_granular import require_admin_ops
 from auth import require_auth
 
 
@@ -26,18 +26,18 @@ def client_as_admin(admin_user):
     IMPORTANT: never `patch('routes.X.require_auth')` — breaks on startup.
     """
     app.dependency_overrides[require_auth] = lambda: admin_user
-    app.dependency_overrides[require_admin] = lambda: admin_user
+    app.dependency_overrides[require_admin_ops] = lambda: admin_user
     client = TestClient(app)
     yield client
     app.dependency_overrides.pop(require_auth, None)
-    app.dependency_overrides.pop(require_admin, None)
+    app.dependency_overrides.pop(require_admin_ops, None)
 
 
 @pytest.fixture
 def client_no_auth():
     """TestClient without overrides — triggers real auth path (expected 401/403)."""
     app.dependency_overrides.pop(require_auth, None)
-    app.dependency_overrides.pop(require_admin, None)
+    app.dependency_overrides.pop(require_admin_ops, None)
     return TestClient(app)
 
 

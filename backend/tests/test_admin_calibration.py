@@ -16,7 +16,6 @@ require_admin and mock Supabase per-test.
 
 from __future__ import annotations
 
-import statistics
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -40,13 +39,13 @@ def admin_user():
 def client(admin_user):
     from main import app
     from auth import require_auth
-    from admin import require_admin
+    from rbac_granular import require_admin_ops
 
     app.dependency_overrides[require_auth] = lambda: admin_user
-    app.dependency_overrides[require_admin] = lambda: admin_user
+    app.dependency_overrides[require_admin_ops] = lambda: admin_user
     yield TestClient(app)
     app.dependency_overrides.pop(require_auth, None)
-    app.dependency_overrides.pop(require_admin, None)
+    app.dependency_overrides.pop(require_admin_ops, None)
 
 
 def _make_chain(rows: list[dict]) -> MagicMock:
