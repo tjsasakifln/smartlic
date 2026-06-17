@@ -266,6 +266,52 @@ class TestRequireMfaEnforcement:
             assert exc.value.status_code == 403
             assert exc.value.headers.get("X-MFA-Reason") == "bruteforce"
 
+    @pytest.mark.asyncio
+    async def test_feature_flag_disabled_admin_passes(self):
+        """MFA_ENFORCEMENT_ENABLED=False -> admin without MFA passes through (#1882)."""
+        from auth import require_mfa
+
+        user = {"id": "admin-ff", "email": "af@test.com", "role": "authenticated", "aal": "aal1"}
+
+        with patch("config.features.MFA_ENFORCEMENT_ENABLED", False), \
+             patch("auth._get_profile_mfa_state", new=AsyncMock(return_value={})), \
+             patch("authorization.check_user_roles", new=AsyncMock(return_value=(True, True))), \
+             patch("auth._user_has_verified_mfa", new=AsyncMock(return_value=False)):
+            result = await require_mfa(user)
+            assert result == user
+
+    @pytest.mark.asyncio
+    async def test_feature_flag_disabled_consultoria_passes(self):
+        """MFA_ENFORCEMENT_ENABLED=False -> consultoria without MFA passes (#1882)."""
+        from auth import require_mfa
+
+        user = {"id": "c-ff", "email": "cf@test.com", "role": "authenticated", "aal": "aal1"}
+
+        with patch("config.features.MFA_ENFORCEMENT_ENABLED", False), \
+             patch("auth._get_profile_mfa_state", new=AsyncMock(return_value={
+                 "plan_type": "consultoria",
+                 "force_mfa_enrollment_until": None,
+             })), patch("authorization.check_user_roles", new=AsyncMock(return_value=(False, False))), \
+             patch("auth._user_has_verified_mfa", new=AsyncMock(return_value=False)):
+            result = await require_mfa(user)
+            assert result == user
+
+    @pytest.mark.asyncio
+    async def test_feature_flag_enabled_still_enforces_admin(self):
+        """MFA_ENFORCEMENT_ENABLED=True -> admin without MFA is still blocked (#1882)."""
+        from fastapi import HTTPException
+        from auth import require_mfa
+
+        user = {"id": "admin-ff2", "email": "af2@test.com", "role": "authenticated", "aal": "aal1"}
+
+        with patch("config.features.MFA_ENFORCEMENT_ENABLED", True), \
+             patch("auth._get_profile_mfa_state", new=AsyncMock(return_value={})), \
+             patch("authorization.check_user_roles", new=AsyncMock(return_value=(True, True))), \
+             patch("auth._user_has_verified_mfa", new=AsyncMock(return_value=False)):
+            with pytest.raises(HTTPException) as exc:
+                await require_mfa(user)
+            assert exc.value.status_code == 403
+
 
 # ============================================================================
 # AC3: Recovery Codes — generation, verification, regeneration
