@@ -283,6 +283,7 @@ def main(argv: list[str] | None = None) -> int:
         print("::warning::Fetching staging vars via Railway CLI.  "
               "Override RAILWAY_TOKEN to staging token before calling.",
               file=sys.stderr)
+        production: dict[str, str] = {}
         # NOTE: Railway CLI uses whatever RAILWAY_TOKEN is in the env. To
         # compare staging vs production, call the script TWICE with different
         # tokens, save the output, and re-run with --staging-file / --prod-file.

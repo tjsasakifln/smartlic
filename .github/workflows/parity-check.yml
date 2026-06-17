@@ -60,7 +60,7 @@ jobs:
 
       - name: Install Railway CLI
         run: |
-          curl -fsSL https://railway.com/install.sh | sh
+          curl -fsSL https://railway.com/install.sh | bash
           echo "$HOME/.railway/bin" >> "$GITHUB_PATH"
 
       - name: Check Railway auth (staging)
@@ -208,7 +208,7 @@ jobs:
       - name: Setup Supabase CLI
         uses: supabase/setup-cli@v2
         with:
-          version: v2.15.8
+          version: v2.100.0
 
       - name: Link project & check unapplied migrations
         id: migration-check
