@@ -184,13 +184,15 @@ class TestSetupLoggingGracefulDegradationAC3:
         assert callable(RequestIDFilter)
 
         # Verify setup_logging works when middleware is available — use a
-        # dedicated handler (not sys.stdout swap) for cross-version stability.
+        # dedicated handler on a specific logger (propagate=False) to avoid
+        # pytest LogCaptureHandler interference on the root logger.
         buffer = io.StringIO()
         handler = logging.StreamHandler(buffer)
         handler.setLevel(logging.DEBUG)
-        root = logging.getLogger()
-        root.setLevel(logging.DEBUG)
-        root.handlers = [handler]
+        test_log = logging.getLogger("test_middleware_ac2")
+        test_log.propagate = False
+        test_log.setLevel(logging.DEBUG)
+        test_log.handlers = [handler]
 
         # If we wanted to TEST graceful failure, we'd need to modify config.py first.
         # For now, this test documents that middleware is a required dependency.
@@ -201,12 +203,13 @@ class TestSetupLoggingGracefulDegradationAC3:
         buffer = io.StringIO()
         handler = logging.StreamHandler(buffer)
         handler.setLevel(logging.DEBUG)
-        root = logging.getLogger()
-        root.setLevel(logging.DEBUG)
-        root.handlers = [handler]
+        test_log = logging.getLogger("test_middleware_baseline")
+        test_log.propagate = False
+        test_log.setLevel(logging.DEBUG)
+        test_log.handlers = [handler]
 
         # Verify logging actually works
-        test_logger = logging.getLogger("test_baseline")
+        test_logger = test_log
         test_logger.info("Baseline test message")
 
         output = buffer.getvalue()
@@ -223,6 +226,8 @@ class TestSetupLoggingGracefulDegradationAC3:
             if isinstance(h, logging.StreamHandler):
                 h.flush()
                 h.stream = buffer
+
+        root = logging.getLogger()
 
         # Check that RequestIDFilter is on root logger (config.py line 135)
         has_root_filter = any(

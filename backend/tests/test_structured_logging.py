@@ -92,11 +92,16 @@ class TestJSONStructuredLogging:
         handler.setFormatter(formatter)
         handler.setLevel(logging.DEBUG)
 
-        root = logging.getLogger()
-        root.setLevel(logging.DEBUG)
-        root.handlers = [handler]
+        # Attach handler directly to test logger with propagate=False.
+        # This avoids pytest's LogCaptureHandler on the root logger,
+        # which can intercept records before our handler sees them
+        # (observed on Python 3.12.13 in GitHub Actions runners).
+        logger = logging.getLogger("test_structured")
+        logger.propagate = False
+        logger.setLevel(logging.DEBUG)
+        logger.handlers = [handler]
 
-        return handler.formatted, logging.getLogger("test_structured")
+        return handler.formatted, logger
 
     # ── AC10: JSON format produces valid JSON ────────────────────────
 
