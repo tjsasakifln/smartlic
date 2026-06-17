@@ -195,6 +195,159 @@ class TestWebhookCreate:
         assert body.events == []
 
 
+
+class TestValidateWebhookUrl:
+    """Tests for SSRF validation on webhook_url."""
+
+    def test_valid_https_passes(self):
+        """Valid HTTPS URLs pass validation."""
+        from schemas.integrations import validate_webhook_url
+
+        urls = [
+            "https://hooks.slack.com/services/T00/B00/xxx",
+            "https://outlook.office.com/webhook/xxx",
+            "https://example.com/webhook",
+            "https://sub.domain.com/path?query=1",
+        ]
+        for url in urls:
+            assert validate_webhook_url(url) == url
+
+    def test_none_passes(self):
+        """None is allowed (field is optional)."""
+        from schemas.integrations import validate_webhook_url
+
+        assert validate_webhook_url(None) is None
+
+    def test_http_rejected(self):
+        """HTTP URLs are rejected."""
+        from schemas.integrations import validate_webhook_url
+
+        with pytest.raises(ValueError, match="scheme must be 'https'"):
+            validate_webhook_url("http://hooks.slack.com/xxx")
+
+    def test_localhost_rejected(self):
+        """localhost is blocked."""
+        from schemas.integrations import validate_webhook_url
+
+        with pytest.raises(ValueError, match="host not allowed"):
+            validate_webhook_url("https://localhost:5432/webhook")
+
+    def test_loopback_rejected(self):
+        """127.0.0.1 is blocked."""
+        from schemas.integrations import validate_webhook_url
+
+        with pytest.raises(ValueError, match="host not allowed"):
+            validate_webhook_url("https://127.0.0.1:8000/webhook")
+
+    def test_metadata_ip_rejected(self):
+        """Cloud metadata IP 169.254.169.254 is blocked."""
+        from schemas.integrations import validate_webhook_url
+
+        with pytest.raises(ValueError, match="host not allowed"):
+            validate_webhook_url("https://169.254.169.254/latest/meta-data/")
+
+    def test_private_10_rejected(self):
+        """10.x.x.x private range is blocked."""
+        from schemas.integrations import validate_webhook_url
+
+        with pytest.raises(ValueError, match="private IP range"):
+            validate_webhook_url("https://10.0.0.1/webhook")
+
+    def test_private_192_168_rejected(self):
+        """192.168.x.x private range is blocked."""
+        from schemas.integrations import validate_webhook_url
+
+        with pytest.raises(ValueError, match="private IP range"):
+            validate_webhook_url("https://192.168.1.1/webhook")
+
+    def test_private_172_16_rejected(self):
+        """172.16-31.x.x private range is blocked."""
+        from schemas.integrations import validate_webhook_url
+
+        with pytest.raises(ValueError, match="private IP range"):
+            validate_webhook_url("https://172.16.0.1/webhook")
+
+    def test_private_172_31_rejected(self):
+        """172.31.x.x private range is blocked (upper bound)."""
+        from schemas.integrations import validate_webhook_url
+
+        with pytest.raises(ValueError, match="private IP range"):
+            validate_webhook_url("https://172.31.255.255/webhook")
+
+    def test_public_172_allowed(self):
+        """172.32.x.x (public) is allowed."""
+        from schemas.integrations import validate_webhook_url
+
+        assert validate_webhook_url("https://172.32.0.1/webhook") == "https://172.32.0.1/webhook"
+
+    def test_link_local_rejected(self):
+        """169.254.x.x (link-local) is blocked."""
+        from schemas.integrations import validate_webhook_url
+
+        with pytest.raises(ValueError, match="link-local"):
+            validate_webhook_url("https://169.254.1.1/webhook")
+
+    def test_webhook_create_rejects_localhost(self):
+        """WebhookCreate schema rejects localhost webhook_url via field_validator."""
+        with pytest.raises(ValueError, match="host not allowed"):
+            WebhookCreate(
+                channel=WebhookChannel.slack,
+                webhook_url="https://localhost:5432/webhook",
+                events=[WebhookEvent.new_edital],
+            )
+
+    def test_webhook_update_rejects_private_ip(self):
+        """WebhookUpdate schema rejects private IP webhook_url via field_validator."""
+        with pytest.raises(ValueError, match="private IP range"):
+            WebhookUpdate(
+                webhook_url="https://10.0.0.1/webhook",
+            )
+
+    def test_api_create_rejects_http(self, client):
+        """API endpoint returns 422 for HTTP webhook URLs."""
+        sb = MagicMock()
+        chain = MagicMock()
+
+        check_result = MagicMock()
+        check_result.data = []
+
+        chain.select.return_value = chain
+        chain.insert.return_value = chain
+        chain.update.return_value = chain
+        chain.delete.return_value = chain
+        chain.eq.return_value = chain
+        chain.order.return_value = chain
+        chain.limit.return_value = chain
+        chain.is_.return_value = chain
+        chain.execute.return_value = check_result
+
+        sb.table.return_value = chain
+
+        with patch("supabase_client.get_supabase", return_value=sb):
+            resp = client.post(
+                "/v1/integrations/webhooks",
+                json={
+                    "channel": "slack",
+                    "label": "SSRF Test",
+                    "webhook_url": "http://hooks.slack.com/xxx",
+                    "events": ["new_edital"],
+                },
+                headers={"Authorization": "Bearer fake"},
+            )
+
+        # Should fail validation at Pydantic level -> 422
+        assert resp.status_code == 422
+
+    def test_dispatcher_blocks_ssrf(self):
+        """_send_webhook_post returns False for blocked URLs (defense-in-depth)."""
+        from services.webhook_dispatcher import _send_webhook_post
+
+        import asyncio
+        result = asyncio.run(
+            _send_webhook_post("https://169.254.169.254/latest/meta-data/", {"test": True})
+        )
+        assert result is False
+
 class TestWebhookResponse:
     def test_fields(self):
         resp = WebhookResponse(

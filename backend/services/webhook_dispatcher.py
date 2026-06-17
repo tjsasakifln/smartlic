@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import logging
 from datetime import datetime, timedelta, timezone
+from urllib.parse import urlparse
 
 logger = logging.getLogger(__name__)
 
@@ -16,6 +17,54 @@ RATE_LIMIT_WINDOW = timedelta(hours=1)
 # ---------------------------------------------------------------------------
 # Rate limiting
 # ---------------------------------------------------------------------------
+
+
+
+# ---------------------------------------------------------------------------
+# SSRF defense-in-depth
+# ---------------------------------------------------------------------------
+
+
+def _validate_ssrf(url: str) -> None:
+    """Defense-in-depth SSRF check before making any outbound HTTP call.
+
+    This duplicates the Pydantic-level validation as a safety net at the
+    HTTP dispatch boundary, so that even if a webhook_url bypasses schema
+    validation (e.g. direct DB write, future code path), the request is
+    still blocked before hitting the network.
+
+    Raises ValueError if the URL targets an internal/private host.
+    """
+    parsed = urlparse(url)
+    hostname = (parsed.hostname or "").lower()
+
+    # Block known internal/metadata hosts
+    blocked_hosts = {
+        "localhost",
+        "127.0.0.1",
+        "0.0.0.0",
+        "169.254.169.254",
+        "metadata.google.internal",
+        "100.100.100.200",
+    }
+    if hostname in blocked_hosts:
+        raise ValueError(f"Webhook URL host not allowed: {hostname}")
+
+    # Block private IP ranges
+    if hostname.startswith("10.") or hostname.startswith("192.168."):
+        raise ValueError(f"Webhook URL host is a private IP range: {hostname}")
+
+    if hostname.startswith("172."):
+        try:
+            second = int(hostname.split(".")[1])
+        except (IndexError, ValueError):
+            second = -1
+        if 16 <= second <= 31:
+            raise ValueError(f"Webhook URL host is a private IP range: {hostname}")
+
+    if hostname.startswith("169.254."):
+        raise ValueError(f"Webhook URL host is a link-local address: {hostname}")
+
 
 
 def _is_rate_limited(webhook: dict) -> bool:
@@ -175,7 +224,20 @@ def _format_email_subject(event: str, payload: dict) -> str:
 
 
 async def _send_webhook_post(url: str, json_data: dict) -> bool:
-    """Send a POST request to a webhook URL. Returns True on success."""
+    """Send a POST request to a webhook URL. Returns True on success.
+
+    SSRF guard: validates the URL against internal/private targets before
+    making any outbound HTTP call (defense-in-depth layer on top of
+    Pydantic schema validation).
+    """
+    try:
+        from schemas.integrations import validate_webhook_url
+
+        validate_webhook_url(url)
+    except ValueError:
+        logger.error("SSRF block: webhook URL %s rejected", url[:50])
+        return False
+
     try:
         import httpx
 
