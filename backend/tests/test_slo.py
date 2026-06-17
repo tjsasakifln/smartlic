@@ -17,7 +17,7 @@ from fastapi.testclient import TestClient
 
 from main import app
 from auth import require_auth
-from admin import require_admin
+from admin import require_admin_ops
 
 
 # ============================================================================
@@ -34,18 +34,18 @@ def admin_user():
 def client_as_admin(admin_user):
     """TestClient with admin auth override."""
     app.dependency_overrides[require_auth] = lambda: admin_user
-    app.dependency_overrides[require_admin] = lambda: admin_user
+    app.dependency_overrides[require_admin_ops] = lambda: admin_user
     client = TestClient(app)
     yield client
     app.dependency_overrides.pop(require_auth, None)
-    app.dependency_overrides.pop(require_admin, None)
+    app.dependency_overrides.pop(require_admin_ops, None)
 
 
 @pytest.fixture
 def client_no_auth():
     """TestClient without any auth."""
     app.dependency_overrides.pop(require_auth, None)
-    app.dependency_overrides.pop(require_admin, None)
+    app.dependency_overrides.pop(require_admin_ops, None)
     client = TestClient(app)
     yield client
 

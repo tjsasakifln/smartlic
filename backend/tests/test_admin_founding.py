@@ -20,7 +20,7 @@ os.environ.setdefault("STRIPE_SECRET_KEY", "sk_test_fake")
 
 from main import app  # noqa: E402
 from auth import require_auth  # noqa: E402
-from admin import require_admin  # noqa: E402
+from admin import require_admin_billing  # noqa: E402
 
 
 # ---------------------------------------------------------------------------
@@ -32,10 +32,10 @@ from admin import require_admin  # noqa: E402
 def admin_client():
     fake_admin = {"id": "00000000-0000-0000-0000-00000000a001", "email": "admin@test"}
     app.dependency_overrides[require_auth] = lambda: fake_admin
-    app.dependency_overrides[require_admin] = lambda: fake_admin
+    app.dependency_overrides[require_admin_billing] = lambda: fake_admin
     yield TestClient(app)
     app.dependency_overrides.pop(require_auth, None)
-    app.dependency_overrides.pop(require_admin, None)
+    app.dependency_overrides.pop(require_admin_billing, None)
 
 
 @pytest.fixture
