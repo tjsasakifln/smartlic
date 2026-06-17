@@ -13,7 +13,6 @@ when sentry_sdk is not configured.
 """
 
 import pytest
-from unittest.mock import patch
 
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
@@ -96,9 +95,9 @@ class TestSecurityHeadersMiddleware:
             "Report-To must point to /v1/csp-report endpoint"
         )
 
-    @patch("config.features.CSP_ENFORCE_MODE", True)
-    def test_csp_enforce_mode_true(self, client: TestClient):
+    def test_csp_enforce_mode_true(self, client: TestClient, monkeypatch: pytest.MonkeyPatch):
         """AC: When CSP_ENFORCE_MODE=true, header is Content-Security-Policy."""
+        monkeypatch.setenv("CSP_ENFORCE_MODE", "true")
         resp = client.get("/health")
         assert "Content-Security-Policy" in resp.headers, (
             "Must use Content-Security-Policy (enforce) when CSP_ENFORCE_MODE=true"
@@ -112,9 +111,9 @@ class TestSecurityHeadersMiddleware:
             "Report-Only should not be present in enforce mode"
         )
 
-    @patch("config.features.CSP_ENFORCE_MODE", False)
-    def test_csp_report_only_mode(self, client: TestClient):
+    def test_csp_report_only_mode(self, client: TestClient, monkeypatch: pytest.MonkeyPatch):
         """AC: When CSP_ENFORCE_MODE=false, header is Content-Security-Policy-Report-Only."""
+        monkeypatch.setenv("CSP_ENFORCE_MODE", "false")
         resp = client.get("/health")
         csp_ro = resp.headers.get("Content-Security-Policy-Report-Only", "")
         assert csp_ro, (
