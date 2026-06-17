@@ -121,15 +121,15 @@ async def _check_deadlines(db) -> List[AlertEventPayload]:
         # Checks editais where deadline is within the next 24 hours
         result = await sb_execute(
             db.table("pncp_raw_bids")
-            .select("id, user_id, titulo, data_hora_finalizacao, orgao_nome, modalidade_nome")
-            .gte("data_hora_finalizacao", now.isoformat())
-            .lte("data_hora_finalizacao", (now + timedelta(hours=DEADLINE_APPROACHING_HOURS)).isoformat())
+            .select("pncp_id, user_id, objeto_compra, data_encerramento, orgao_razao_social, modalidade_nome")
+            .gte("data_encerramento", now.isoformat())
+            .lte("data_encerramento", (now + timedelta(hours=DEADLINE_APPROACHING_HOURS)).isoformat())
             .limit(200)
         )
 
         rows = result.data or []
         for row in rows:
-            deadline_str = row.get("data_hora_finalizacao", "")
+            deadline_str = row.get("data_encerramento", "")
             if not deadline_str:
                 continue
 
@@ -140,8 +140,8 @@ async def _check_deadlines(db) -> List[AlertEventPayload]:
 
             hours_until = (deadline - now).total_seconds() / 3600
             user_id = row.get("user_id")
-            titulo = row.get("titulo", "Edital sem titulo")
-            orgao = row.get("orgao_nome", "Orgao nao informado")
+            titulo = row.get("objeto_compra", "Edital sem titulo")
+            orgao = row.get("orgao_razao_social", "Orgao nao informado")
 
             # Determine urgency level
             if hours_until <= DEADLINE_URGENT_HOURS:
@@ -165,7 +165,7 @@ async def _check_deadlines(db) -> List[AlertEventPayload]:
                     f"Orgao: {orgao}."
                 ),
                 data={
-                    "edital_id": row["id"],
+                    "edital_id": row["pncp_id"],
                     "deadline": deadline_str,
                     "hours_until": round(hours_until, 1),
                     "urgency": urgency,
@@ -291,15 +291,15 @@ async def _check_result_published(db) -> List[AlertEventPayload]:
     try:
         result = await sb_execute(
             db.table("pncp_raw_bids")
-            .select("id, user_id, titulo, orgao_nome, resultado, data_resultado")
+            .select("pncp_id, user_id, objeto_compra, orgao_razao_social, resultado, data_resultado")
             .not_.is_("resultado", "null")
             .gte("data_resultado", since)
             .limit(100)
         )
 
         for row in (result.data or []):
-            titulo = row.get("titulo", "Edital sem titulo")
-            orgao = row.get("orgao_nome", "")
+            titulo = row.get("objeto_compra", "Edital sem titulo")
+            orgao = row.get("orgao_razao_social", "")
             resultado = row.get("resultado", "Resultado publicado")
 
             payloads.append(AlertEventPayload(
@@ -308,7 +308,7 @@ async def _check_result_published(db) -> List[AlertEventPayload]:
                 title=f"Resultado publicado: {titulo[:80]}",
                 body=f"O resultado do edital {titulo} foi publicado. {resultado[:200]}",
                 data={
-                    "edital_id": row["id"],
+                    "edital_id": row["pncp_id"],
                     "resultado": resultado,
                     "orgao": orgao,
                 },
@@ -338,14 +338,14 @@ async def _check_contrato_firmado(db) -> List[AlertEventPayload]:
         # Check for recently signed contracts
         result = await sb_execute(
             db.table("pncp_raw_bids")
-            .select("id, user_id, titulo, orgao_nome, contrato_valor, data_contrato")
+            .select("pncp_id, user_id, objeto_compra, orgao_razao_social, contrato_valor, data_contrato")
             .not_.is_("contrato_valor", "null")
             .gte("data_contrato", since)
             .limit(100)
         )
 
         for row in (result.data or []):
-            titulo = row.get("titulo", "Edital sem titulo")
+            titulo = row.get("objeto_compra", "Edital sem titulo")
             valor = row.get("contrato_valor", 0)
 
             try:
@@ -359,9 +359,9 @@ async def _check_contrato_firmado(db) -> List[AlertEventPayload]:
                 title=f"Contrato firmado: {titulo[:80]}",
                 body=f"O contrato referente a {titulo} foi firmado no valor de {valor_fmt}.",
                 data={
-                    "edital_id": row["id"],
+                    "edital_id": row["pncp_id"],
                     "valor": valor,
-                    "orgao": row.get("orgao_nome", ""),
+                    "orgao": row.get("orgao_razao_social", ""),
                 },
             ))
 
@@ -389,7 +389,7 @@ async def _check_pregao_starting(db) -> List[AlertEventPayload]:
     try:
         result = await sb_execute(
             db.table("pncp_raw_bids")
-            .select("id, user_id, titulo, orgao_nome, data_abertura")
+            .select("pncp_id, user_id, objeto_compra, orgao_razao_social, data_abertura")
             .eq("modalidade_nome", "pregao")
             .gte("data_abertura", now.isoformat())
             .lte("data_abertura", one_hour_later)
@@ -397,7 +397,7 @@ async def _check_pregao_starting(db) -> List[AlertEventPayload]:
         )
 
         for row in (result.data or []):
-            titulo = row.get("titulo", "Pregao sem titulo")
+            titulo = row.get("objeto_compra", "Pregao sem titulo")
             data_abertura = row.get("data_abertura", "")
 
             payloads.append(AlertEventPayload(
@@ -406,9 +406,9 @@ async def _check_pregao_starting(db) -> List[AlertEventPayload]:
                 title=f"Pregao iniciando: {titulo[:80]}",
                 body=f"A sessao de pregao para {titulo} esta prestes a comecar. Data: {data_abertura}.",
                 data={
-                    "edital_id": row["id"],
+                    "edital_id": row["pncp_id"],
                     "data_abertura": data_abertura,
-                    "orgao": row.get("orgao_nome", ""),
+                    "orgao": row.get("orgao_razao_social", ""),
                 },
             ))
 

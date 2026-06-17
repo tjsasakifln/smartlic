@@ -611,11 +611,11 @@ class TestAlertEngine:
         future_deadline = (now + timedelta(hours=12)).isoformat()
 
         mock_data = [{
-            "id": "edital-001",
+            "pncp_id": "edital-001",
             "user_id": MOCK_USER["id"],
-            "titulo": "Pregao para aquisicao de computadores",
-            "data_hora_finalizacao": future_deadline,
-            "orgao_nome": "Prefeitura de Sao Paulo",
+            "objeto_compra": "Pregao para aquisicao de computadores",
+            "data_encerramento": future_deadline,
+            "orgao_razao_social": "Prefeitura de Sao Paulo",
             "modalidade_nome": "pregao",
         }]
 
@@ -639,11 +639,11 @@ class TestAlertEngine:
         # Test with urgent deadline (30 min away)
         urgent_deadline = (now + timedelta(minutes=30)).isoformat()
         mock_data = [{
-            "id": "edital-urgent",
+            "pncp_id": "edital-urgent",
             "user_id": MOCK_USER["id"],
-            "titulo": "Edital urgente",
-            "data_hora_finalizacao": urgent_deadline,
-            "orgao_nome": "Orgao Teste",
+            "objeto_compra": "Edital urgente",
+            "data_encerramento": urgent_deadline,
+            "orgao_razao_social": "Orgao Teste",
             "modalidade_nome": "pregao",
         }]
 
