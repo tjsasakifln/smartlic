@@ -89,19 +89,19 @@ jobs:
         uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
         with:
           ref: origin/main
-          path: /tmp/main-tree
+          path: ../main-base
           fetch-depth: 1
           persist-credentials: false
 
       - name: Install main branch dependencies
         run: |
-          cd /tmp/main-tree/backend
+          cd ../main-base/backend
           pip install -r requirements.txt
 
       - name: Extract OpenAPI schema from main
         id: extract-base
         run: |
-          cd /tmp/main-tree/backend
+          cd ../main-base/backend
           python -c "
           import json
           from main import app
