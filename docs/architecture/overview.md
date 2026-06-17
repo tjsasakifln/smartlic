@@ -192,6 +192,13 @@ Usuário faz busca
 - **Log:** Sanitização de dados sensíveis (log_sanitizer.py)
 - **CORS:** Configurável via `CORS_ORIGINS`
 - **Admin:** Rotas admin requerem `is_admin` ou `is_master`
+- **Content-Security-Policy (Issue #1913):**
+  - Backend: `default-src 'none'` com `report-uri /v1/csp-report` para todas as respostas
+  - Frontend: CSP completa com `default-src 'self'`, whitelists para Stripe/Sentry/Supabase/Mixpanel/Cloudflare
+  - Controle: `CSP_ENFORCE_MODE` env var — `true` envia `Content-Security-Policy` (enforce), `false` envia `Content-Security-Policy-Report-Only`
+  - Violações coletadas via `POST /v1/csp-report` (backend) e `/api/csp-report` (frontend proxy)
+  - Report-To header configurado para Reporting API v1 com grupo `csp-endpoint`
+  - Rate limit: 30 reports/min/IP (backend), 100 reports/min/IP (frontend)
 
 ## 7. Referências
 
