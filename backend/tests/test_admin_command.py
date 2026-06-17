@@ -21,7 +21,7 @@ os.environ.setdefault("FRONTEND_URL", "http://localhost:3000")
 
 from main import app  # noqa: E402
 from auth import require_auth  # noqa: E402
-from admin import require_admin  # noqa: E402
+from rbac_granular import require_admin_ops  # noqa: E402
 
 
 # ---------------------------------------------------------------------------
@@ -33,10 +33,10 @@ from admin import require_admin  # noqa: E402
 def admin_client():
     fake_admin = {"id": "00000000-0000-0000-0000-00000000a001", "email": "admin@test"}
     app.dependency_overrides[require_auth] = lambda: fake_admin
-    app.dependency_overrides[require_admin] = lambda: fake_admin
+    app.dependency_overrides[require_admin_ops] = lambda: fake_admin
     yield TestClient(app)
     app.dependency_overrides.pop(require_auth, None)
-    app.dependency_overrides.pop(require_admin, None)
+    app.dependency_overrides.pop(require_admin_ops, None)
 
 
 @pytest.fixture

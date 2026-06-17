@@ -69,17 +69,17 @@ def _make_supabase(*, row: dict | None = None, audit_id: str = "audit-1"):
 
 
 def _build_app(admin_user: dict | None = None) -> FastAPI:
-    from admin import require_admin
+    from rbac_granular import require_admin_billing
     from routes.admin_billing_sync import router
 
     app = FastAPI()
     app.include_router(router)
 
     if admin_user is not None:
-        async def fake_require_admin():
+        async def fake_require_admin_billing():
             return admin_user
 
-        app.dependency_overrides[require_admin] = fake_require_admin
+        app.dependency_overrides[require_admin_billing] = fake_require_admin_billing
     return app
 
 
