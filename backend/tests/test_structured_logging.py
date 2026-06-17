@@ -101,6 +101,16 @@ class TestJSONStructuredLogging:
         logger.setLevel(logging.DEBUG)
         logger.handlers = [handler]
 
+        # CI debug: verify handler is properly attached
+        import sys as _sys
+        _sys.stderr.write(f"DEBUG handlers={logger.handlers}\n")
+        _sys.stderr.write(f"DEBUG propagate={logger.propagate}\n")
+        _sys.stderr.write(f"DEBUG level={logger.level}\n")
+        _sys.stderr.write(f"DEBUG root_handlers={logging.getLogger().handlers}\n")
+        logger.info("__SETUP_VERIFY__")
+        _sys.stderr.write(f"DEBUG setup_verify_len={len(handler.formatted)}\n")
+        handler.formatted.clear()
+
         return handler.formatted, logger
 
     # ── AC10: JSON format produces valid JSON ────────────────────────
