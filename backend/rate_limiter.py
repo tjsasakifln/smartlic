@@ -496,6 +496,159 @@ async def release_sse_connection(user_id: str) -> None:
 
 
 # ============================================================================
+# Issue #1973: User tier resolution for granular rate limiting
+# ============================================================================
+
+
+def _get_admin_user_ids() -> set[str]:
+    """Get admin user IDs from ADMIN_USER_IDS env var.
+
+    Returns a set of lowercased user IDs for fast membership checks.
+    This is a lightweight version that avoids circular imports with
+    admin.py / roles.py — sufficient for rate limit tier resolution.
+    """
+    raw = os.getenv("ADMIN_USER_IDS", "")
+    if not raw:
+        return set()
+    return {uid.strip().lower() for uid in raw.split(",") if uid.strip()}
+
+
+def resolve_user_tier(request: Request) -> str:
+    """Resolve user tier from request context for granular rate limiting.
+
+    Returns one of: "anonymous", "pro", "admin"
+    (trial/pro distinction requires plan_type lookup — deferred to future.)
+
+    Resolution order:
+    1. No Authorization header -> anonymous
+    2. JWT present -> extract user_id
+    3. user_id in ADMIN_USER_IDS -> admin
+    4. Authenticated, not admin -> pro
+    """
+    auth_header = request.headers.get("authorization", "")
+    user_id = _extract_user_id_from_jwt(auth_header)
+    if not user_id:
+        return "anonymous"
+
+    admin_ids = _get_admin_user_ids()
+    if user_id.lower() in admin_ids:
+        return "admin"
+
+    # Authenticated but not admin — default to pro
+    # Future: check plan_type for trial vs pro distinction
+    return "pro"
+
+
+# ============================================================================
+# Issue #1973: Granular rate limit check (per-endpoint + per-tier)
+# ============================================================================
+
+
+async def _check_granular_rate_limit(request: Request) -> None:
+    """Granular rate limit check — resolves tier + endpoint limits dynamically.
+
+    Called by ``require_rate_limit`` when RATE_LIMIT_PER_ENDPOINT_ENABLED=true.
+    Uses ``rate_limiter_config`` for limit definitions and
+    ``FlexibleRateLimiter`` for the underlying token bucket.
+
+    Injects X-RateLimit-* headers via ``request.state._rate_limit_headers``
+    on success; raises ``HTTPException(429)`` on failure.
+    """
+    from rate_limiter_config import get_endpoint_max_requests, get_endpoint_window, is_exempt
+
+    endpoint = request.url.path
+
+    # Check if endpoint is exempt
+    if is_exempt(endpoint):
+        return
+
+    # Resolve tier
+    tier = resolve_user_tier(request)
+
+    # Resolve limit for (tier, endpoint)
+    max_requests = get_endpoint_max_requests(tier, endpoint)
+    if max_requests is None:
+        # Endpoint is exempt
+        return
+
+    window_seconds = get_endpoint_window(endpoint)
+
+    # Build compound key: {tier}:{endpoint}:{user_id_or_ip}
+    auth_header = request.headers.get("authorization", "")
+    user_id = _extract_user_id_from_jwt(auth_header)
+    if user_id:
+        identifier = f"user:{user_id}"
+    else:
+        identifier = f"ip:{_get_client_ip(request)}"
+
+    compound_key = f"{tier}:{endpoint}:{identifier}"
+
+    allowed, retry_after, remaining = await _flexible_limiter.check_rate_limit(
+        compound_key, max_requests, window_seconds
+    )
+
+    # Record granular metric
+    try:
+        from metrics import GRANULAR_RATE_LIMIT_DECISIONS_TOTAL
+        decision = "allow" if allowed else "throttle"
+        GRANULAR_RATE_LIMIT_DECISIONS_TOTAL.labels(
+            tier=tier, endpoint=endpoint, decision=decision
+        ).inc()
+    except Exception:
+        pass
+
+    if not allowed:
+        correlation_id = request.headers.get(
+            "x-correlation-id", str(_uuid.uuid4())
+        )
+
+        logger.warning(
+            "Granular rate limit exceeded: tier=%s endpoint=%s %s "
+            "limit=%d/%ds correlation_id=%s",
+            tier,
+            endpoint,
+            user_id if user_id else _get_client_ip(request),
+            max_requests,
+            window_seconds,
+            correlation_id,
+        )
+
+        # Increment exceeded counter
+        try:
+            from metrics import GRANULAR_RATE_LIMIT_EXCEEDED_TOTAL
+            GRANULAR_RATE_LIMIT_EXCEEDED_TOTAL.labels(
+                tier=tier, endpoint=endpoint
+            ).inc()
+        except Exception:
+            pass
+
+        now_ts = int(_time.time())
+        raise HTTPException(
+            status_code=429,
+            detail={
+                "detail": f"Limite de requisições excedido. Tente novamente em {retry_after} segundos.",
+                "retry_after_seconds": retry_after,
+                "correlation_id": correlation_id,
+                "tier": tier,
+            },
+            headers={
+                "Retry-After": str(retry_after),
+                "X-RateLimit-Limit": str(max_requests),
+                "X-RateLimit-Remaining": "0",
+                "X-RateLimit-Reset": str(now_ts + window_seconds),
+            },
+        )
+
+    # Inject rate limit headers on success
+    now_ts = int(_time.time())
+    request.state._rate_limit_headers = {
+        "X-RateLimit-Limit": str(max_requests),
+        "X-RateLimit-Remaining": str(remaining),
+        "X-RateLimit-Reset": str(now_ts + window_seconds),
+    }
+
+
+# ============================================================================
 # GTM-GO-002: require_rate_limit — FastAPI Depends for per-user/per-IP limiting
 # ============================================================================
 
@@ -569,6 +722,12 @@ def require_rate_limit(max_requests: int, window_seconds: int):
         if not get_feature_flag("RATE_LIMITING_ENABLED"):
             return
 
+        # Issue #1973: Granular mode — per-endpoint + per-tier limits
+        if get_feature_flag("RATE_LIMIT_PER_ENDPOINT_ENABLED"):
+            await _check_granular_rate_limit(request)
+            return
+
+        # Legacy mode: use passed max_requests and window_seconds
         # Determine rate limit key: user_id or IP (AC9)
         auth_header = request.headers.get("authorization", "")
         user_id = _extract_user_id_from_jwt(auth_header)

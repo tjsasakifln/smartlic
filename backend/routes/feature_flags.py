@@ -237,6 +237,7 @@ _FLAG_DESCRIPTIONS: dict[str, str] = {
     # Infra
     "METRICS_ENABLED": "Prometheus metrics collection",
     "RATE_LIMITING_ENABLED": "Redis token-bucket rate limiting",
+    "RATE_LIMIT_PER_ENDPOINT_ENABLED": "Granular rate limiting per endpoint and tier (Issue #1973)",
     "USER_FEEDBACK_ENABLED": "User feedback collection on search results",
     "USE_REDIS_CIRCUIT_BREAKER": "Redis-backed circuit breaker (vs in-memory)",
     "COMPRASGOV_CB_ENABLED": "ComprasGov circuit breaker enabled",
@@ -311,6 +312,7 @@ _FLAG_LIFECYCLE: dict[str, dict] = {
     "PARTNERS_ENABLED": {"owner": "product", "category": "gate", "lifecycle": "gate", "created": "2026-01"},
     # Infra
     "METRICS_ENABLED": {"owner": "infra", "category": "infra", "lifecycle": "permanent", "created": "2025-11"},
+    "RATE_LIMIT_PER_ENDPOINT_ENABLED": {"owner": "infra", "category": "infra", "lifecycle": "experimental", "created": "2026-06"},
     "RATE_LIMITING_ENABLED": {"owner": "infra", "category": "infra", "lifecycle": "permanent", "created": "2025-11"},
     "USER_FEEDBACK_ENABLED": {"owner": "product", "category": "infra", "lifecycle": "permanent", "created": "2025-12"},
     "USE_REDIS_CIRCUIT_BREAKER": {"owner": "infra", "category": "infra", "lifecycle": "permanent", "created": "2025-12"},
