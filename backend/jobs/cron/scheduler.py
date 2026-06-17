@@ -23,6 +23,7 @@ from jobs.cron.metrics_refresh import start_metrics_refresh_task  # noqa: F401
 from jobs.cron.data_retention import (  # noqa: F401
     start_data_retention_task,
 )
+from jobs.cron.db_pool_monitor_job import start_db_pool_monitor_task  # noqa: F401
 
 
 def register_all_cron_tasks() -> list:
@@ -45,4 +46,5 @@ def register_all_cron_tasks() -> list:
         start_lead_magnet_batch_task,  # LEAD-MAGNET-001: lead magnet PDF delivery batch
         start_metrics_refresh_task,  # FOUNDER-002: daily metrics cache refresh at 02:00 BRT
         start_data_retention_task,   # GAP-005 (#1877): data retention purge orchestrator
+        start_db_pool_monitor_task,  # Issue #1916: DB pool monitoring (hourly)
     ]
