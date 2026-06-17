@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # ==============================================================================
 # SmartLic Secrets Rotation Script
-# Issue #1915 — Automation of secret rotation with dry-run + rollback + audit
+# Issue #1915 + #1975 — Automation of secret rotation with dry-run + rollback +
+#                        audit, post-rotation smoke tests, and auto-rollback
 # ==============================================================================
 # Usage:
 #   ./scripts/rotate-secrets.sh <secret-name>          # Rotate a specific secret
@@ -379,6 +380,108 @@ verify_endpoint() {
   fi
 }
 
+# ── Per-Provider Smoke Tests (Issue #1975) ────────────────────────────────
+
+smoke_test_openai() {
+  local new_key="$1"
+
+  DRY_RUN && log_dry "Would verify OpenAI API key" && return 0
+
+  log_step "Verifying OpenAI API key..."
+
+  local http_code
+  http_code=$(curl -s -o /dev/null -w "%{http_code}" \
+    --max-time 15 \
+    -H "Authorization: Bearer ${new_key}" \
+    "https://api.openai.com/v1/models" 2>&1 || echo "000")
+
+  if [ "$http_code" = "200" ]; then
+    log_info "  PASS (HTTP ${http_code})"
+    return 0
+  else
+    log_error "  FAIL — expected 200, got HTTP ${http_code}"
+    return 1
+  fi
+}
+
+smoke_test_stripe() {
+  local new_key="$1"
+
+  DRY_RUN && log_dry "Would verify Stripe API key" && return 0
+
+  log_step "Verifying Stripe API key..."
+
+  local http_code
+  http_code=$(curl -s -o /dev/null -w "%{http_code}" \
+    --max-time 15 \
+    -u "${new_key}:" \
+    "https://api.stripe.com/v1/balance" 2>&1 || echo "000")
+
+  if [ "$http_code" = "200" ]; then
+    log_info "  PASS (HTTP ${http_code})"
+    return 0
+  else
+    log_error "  FAIL — expected 200, got HTTP ${http_code}"
+    return 1
+  fi
+}
+
+smoke_test_resend() {
+  local new_key="$1"
+
+  DRY_RUN && log_dry "Would verify Resend API key" && return 0
+
+  log_step "Verifying Resend API key..."
+
+  local http_code
+  http_code=$(curl -s -o /dev/null -w "%{http_code}" \
+    --max-time 15 \
+    -H "Authorization: Bearer ${new_key}" \
+    "https://api.resend.com/emails" 2>&1 || echo "000")
+
+  # Resend returns 422 for GET /emails (requires POST) — still means API is alive
+  if [ "$http_code" = "200" ] || [ "$http_code" = "422" ]; then
+    log_info "  PASS (HTTP ${http_code})"
+    return 0
+  else
+    log_error "  FAIL — expected 200 or 422, got HTTP ${http_code}"
+    return 1
+  fi
+}
+
+smoke_test_supabase() {
+  local new_key="$1"
+
+  DRY_RUN && log_dry "Would verify Supabase key" && return 0
+
+  log_step "Verifying Supabase key..."
+
+  # Get SUPABASE_URL from Railway to make a direct REST API call with the new key
+  local supabase_url
+  supabase_url=$(railway variables get SUPABASE_URL 2>/dev/null || echo "")
+
+  if [ -z "$supabase_url" ]; then
+    log_warn "  Cannot get SUPABASE_URL — skipping direct supabase smoke test"
+    log_warn "  Verify manually after rotation"
+    return 0  # Non-blocking: cannot test without URL
+  fi
+
+  local http_code
+  http_code=$(curl -s -o /dev/null -w "%{http_code}" \
+    --max-time 15 \
+    -H "apikey: ${new_key}" \
+    -H "Authorization: Bearer ${new_key}" \
+    "${supabase_url}/rest/v1/" 2>&1 || echo "000")
+
+  if [ "$http_code" = "200" ]; then
+    log_info "  PASS (HTTP ${http_code})"
+    return 0
+  else
+    log_error "  FAIL — expected 200, got HTTP ${http_code}"
+    return 1
+  fi
+}
+
 update_rotation_tracker() {
   local secret_name="$1"
   local ts
@@ -515,34 +618,78 @@ rotate_secret() {
     log_error "Primary smoke test failed"
   fi
 
-  # Run additional service-specific tests
+  # Run provider-specific smoke tests using the new value
   case "$secret_name" in
     OPENAI_API_KEY)
-      if ! verify_endpoint "Health endpoint" "$SMOKE_TEST_URL"; then
+      if ! smoke_test_openai "$new_value"; then
         smoke_ok=false
       fi
       ;;
     SUPABASE_SERVICE_ROLE_KEY|SUPABASE_ANON_KEY)
-      if ! verify_endpoint "Health ready" "$SMOKE_TEST_URL"; then
+      if ! smoke_test_supabase "$new_value"; then
         smoke_ok=false
       fi
       ;;
-    STRIPE_SECRET_KEY|STRIPE_WEBHOOK_SECRET)
-      if ! verify_endpoint "Health ready" "$SMOKE_TEST_URL"; then
+    STRIPE_SECRET_KEY)
+      if ! smoke_test_stripe "$new_value"; then
         smoke_ok=false
       fi
       ;;
-    RESEND_API_KEY|TRIAL_EMAILS_WEBHOOK_SECRET)
-      if ! verify_endpoint "Health ready" "$SMOKE_TEST_URL"; then
+    RESEND_API_KEY)
+      if ! smoke_test_resend "$new_value"; then
         smoke_ok=false
       fi
       ;;
-    REVALIDATE_SECRET)
-      if ! verify_endpoint "Health ready" "$SMOKE_TEST_URL"; then
-        smoke_ok=false
-      fi
+    # Webhook secrets and DB URLs are not testable via REST API calls
+    # Skip provider-specific test (generic smoke_test still runs above)
+    STRIPE_WEBHOOK_SECRET|TRIAL_EMAILS_WEBHOOK_SECRET|SUPABASE_DB_URL|SUPABASE_ACCESS_TOKEN)
+      log_info "Skipping provider-specific smoke test for ${secret_name} (not an API key)"
       ;;
   esac
+
+  # ── Auto-rollback on smoke test failure ─────────────────────────────────────
+  if [ "$smoke_ok" = false ]; then
+    echo ""
+    log_error "================================================"
+    log_error "  POST-ROTATION SMOKE TESTS FAILED"
+    log_error "  Secret: ${secret_name}"
+    log_error "  Initiating automatic rollback..."
+    log_error "================================================"
+    echo ""
+
+    audit_log "$secret_name" "ROTATE" "ROLLING_BACK" "Smoke tests failed — initiating auto-rollback"
+
+    if ! DRY_RUN; then
+      # Restore old value on backend service
+      if restore_backup "$secret_name"; then
+        # Also restore frontend service if needed
+        if [ -n "${FRONTEND_SECRETS[$secret_name]:-}" ]; then
+          local old_value
+          old_value=$(grep "^${secret_name}=" "${BACKUP_DIR}/${secret_name}.env" | cut -d'=' -f2-)
+          if [ -n "$old_value" ] && [ "$old_value" != "UNKNOWN" ]; then
+            update_railway "$secret_name" "$old_value" "$RAILWAY_FRONTEND_SERVICE" || true
+          fi
+        fi
+        audit_log "$secret_name" "AUTO_ROLLBACK" "COMPLETED" "Rolled back to previous value after smoke test failure"
+        log_info "Auto-rollback completed. ${secret_name} restored to previous value."
+      else
+        log_error "AUTO-ROLLBACK FAILED — manual intervention REQUIRED"
+        audit_log "$secret_name" "AUTO_ROLLBACK" "FAILED" "restore_backup failed — manual intervention required"
+      fi
+    else
+      log_dry "Would auto-rollback ${secret_name}"
+    fi
+
+    echo ""
+    echo -e "${RED}╔══════════════════════════════════════════════════════════╗${NC}"
+    echo -e "${RED}║  ROTATION FAILED — AUTO-ROLLBACK ${DRY_RUN:+SIMULATED}${RED}        ║${NC}"
+    echo -e "${RED}║  Check the audit log for details:                       ║${NC}"
+    echo -e "${RED}║    ${AUDIT_LOG}  ║${NC}"
+    echo -e "${RED}╚══════════════════════════════════════════════════════════╝${NC}"
+    echo ""
+
+    return 1
+  fi
 
   # ── Step 6: Update rotation tracker ─────────────────────────────────────────
   log_step "Step 6: Updating rotation tracker..."
