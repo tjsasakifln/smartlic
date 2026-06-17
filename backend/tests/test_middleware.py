@@ -464,7 +464,14 @@ class TestCorrelationIDMiddlewareAC5:
 
 
 class TestAPIVersionHeaderMiddleware:
-    """Issue #1918 AC2: Test that APIVersionHeaderMiddleware adds version headers."""
+    """Issue #1918 AC2: Test that APIVersionHeaderMiddleware adds version headers.
+
+    Note: these tests create isolated FastAPI apps so middleware registration
+    order within each test method is arbitrary. In production
+    (middleware_setup.py), APIVersionHeaderMiddleware is registered LAST
+    (= outermost) to ensure ALL responses — including 429 from
+    RateLimitMiddleware — receive X-API-Version and X-API-Deprecated headers.
+    """
 
     @pytest.mark.anyio
     async def test_api_version_header_present(self):
