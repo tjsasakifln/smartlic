@@ -18,6 +18,7 @@ const PROTECTED_ROUTES = [
   "/historico",
   "/conta",
   "/admin",
+  "/workspace",
 ];
 
 function isProtectedRoute(pathname: string): boolean {

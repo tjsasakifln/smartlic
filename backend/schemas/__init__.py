@@ -19,6 +19,7 @@ from schemas.contract import *  # noqa: F401,F403
 from schemas.checkout import *  # noqa: F401,F403
 from schemas.api_keys import *  # noqa: F401,F403
 from schemas.viability import *  # noqa: F401,F403
+from schemas.workspace import *  # noqa: F401,F403
 
 # Re-export private names used by external code
 from schemas.common import (  # noqa: F401

@@ -121,6 +121,7 @@ from routes.alerts_b2gops import router as alerts_b2gops_router
 from routes.admin_outgoing_webhooks import router as admin_outgoing_webhooks_router
 from routes.admin_audit_log import router as admin_audit_log_router
 from routes.admin_rate_limits import router as admin_rate_limits_router
+from routes.workspace import router as workspace_router
 _v1_routers = [
     admin_router, admin_rate_limits_router, subscriptions_router, upgrade_to_lifetime_router,
     features_router, messages_router,
@@ -190,6 +191,7 @@ _v1_routers = [
     integrations_router,
     csp_report_router,
     alerts_b2gops_router,
+    workspace_router,
 ]
 def register_routes(app: FastAPI) -> None:
     """Register all application routers onto *app*."""

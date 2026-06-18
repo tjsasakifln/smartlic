@@ -6870,6 +6870,154 @@
         "title": "EditaisAmostra",
         "type": "object"
       },
+      "EditaisHojeItem": {
+        "description": "A single procurement opportunity published today.",
+        "properties": {
+          "data_encerramento": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Closing date (ISO 8601)",
+            "title": "Data Encerramento"
+          },
+          "data_publicacao": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Publication date (ISO 8601)",
+            "title": "Data Publicacao"
+          },
+          "link_pncp": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Full URL to PNCP page",
+            "title": "Link Pncp"
+          },
+          "modalidade": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Procurement modality code",
+            "title": "Modalidade"
+          },
+          "numero_compra": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Procurement number / edital number",
+            "title": "Numero Compra"
+          },
+          "objeto": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Procurement object description",
+            "title": "Objeto"
+          },
+          "orgao": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Issuing government agency name",
+            "title": "Orgao"
+          },
+          "pncp_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "PNCP identifier",
+            "title": "Pncp Id"
+          },
+          "uf": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "State abbreviation (UF)",
+            "title": "Uf"
+          },
+          "valor_estimado": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Estimated value",
+            "title": "Valor Estimado"
+          }
+        },
+        "title": "EditaisHojeItem",
+        "type": "object"
+      },
+      "EditaisHojeResponse": {
+        "description": "Response wrapper for today's procurement opportunities.",
+        "properties": {
+          "items": {
+            "description": "List of today's opportunities",
+            "items": {
+              "$ref": "#/components/schemas/EditaisHojeItem"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "total": {
+            "default": 0,
+            "description": "Total count of items returned",
+            "title": "Total",
+            "type": "integer"
+          }
+        },
+        "title": "EditaisHojeResponse",
+        "type": "object"
+      },
       "EmpresaInfo": {
         "properties": {
           "cnae_principal": {
@@ -21266,6 +21414,37 @@
           }
         },
         "title": "WinMetrics",
+        "type": "object"
+      },
+      "WorkspaceResumo": {
+        "description": "Aggregated summary for the workspace dashboard.",
+        "properties": {
+          "alerts_unread_count": {
+            "default": 0,
+            "description": "Number of unread user alerts",
+            "title": "Alerts Unread Count",
+            "type": "integer"
+          },
+          "editais_hoje_count": {
+            "default": 0,
+            "description": "Number of procurement opportunities published today",
+            "title": "Editais Hoje Count",
+            "type": "integer"
+          },
+          "pipeline_count": {
+            "default": 0,
+            "description": "Number of items in the user's pipeline",
+            "title": "Pipeline Count",
+            "type": "integer"
+          },
+          "pipeline_prazo_proximo": {
+            "default": 0,
+            "description": "Number of pipeline items with deadlines within 7 days",
+            "title": "Pipeline Prazo Proximo",
+            "type": "integer"
+          }
+        },
+        "title": "WorkspaceResumo",
         "type": "object"
       },
       "_LivenessResponse": {
@@ -36900,6 +37079,60 @@
         "summary": "Widget Competitive Intel Options",
         "tags": [
           "widget_compint"
+        ]
+      }
+    },
+    "/v1/workspace/editais-hoje": {
+      "get": {
+        "description": "Fetch up to 10 procurement opportunities published today.\n\nQueries `pncp_raw_bids` filtered by current date (UTC) via the\n`search_datalake` RPC. Returns an empty list on transient errors\n(fail-open) instead of blocking the workspace page.",
+        "operationId": "get_editais_hoje_v1_workspace_editais_hoje_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EditaisHojeResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Get Editais Hoje",
+        "tags": [
+          "workspace"
+        ]
+      }
+    },
+    "/v1/workspace/resumo": {
+      "get": {
+        "description": "Aggregated counts for the workspace dashboard widgets.\n\nReturns the number of:\n  - editais published today\n  - pipeline items belonging to the user\n  - pipeline items with deadlines within 7 days\n  - unread alerts\n\nAll sources fail-open: transient errors return 0 for that counter\ninstead of failing the entire response.",
+        "operationId": "get_workspace_resumo_v1_workspace_resumo_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkspaceResumo"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Get Workspace Resumo",
+        "tags": [
+          "workspace"
         ]
       }
     },
