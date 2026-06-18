@@ -24,6 +24,7 @@ from schemas.workspace_timeline import *  # noqa: F401,F403
 from schemas.workspace_alertas import *  # noqa: F401,F403
 from schemas.workspace_centro_guerra import *  # noqa: F401,F403
 from schemas.workspace_integracoes import *  # noqa: F401,F403
+from schemas.workspace_documentos import *  # noqa: F401,F403
 
 # Re-export private names used by external code
 from schemas.common import (  # noqa: F401

@@ -200,13 +200,12 @@ async def create_timeline_evento(
             "created_at": datetime.now(timezone.utc).isoformat(),
         }
 
-        query = (
+        result = await sb_execute(
             supabase.table("workspace_timeline_eventos")
             .insert(insert_data)
-            .execute()
         )
 
-        if not query.data:
+        if not result.data:
             raise HTTPException(
                 status_code=500,
                 detail={
