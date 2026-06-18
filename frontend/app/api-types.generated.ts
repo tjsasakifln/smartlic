@@ -7592,6 +7592,46 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/workspace/timeline/{edital_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Listar eventos da timeline de um edital
+         * @description Retorna eventos cronológicos de um edital em ordem DESC. Suporta filtros por tipo_evento, data_inicio, data_fim, critico. Paginação via limit (default 50, max 200) e offset.
+         */
+        get: operations["list_timeline_eventos_v1_workspace_timeline__edital_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/workspace/timeline/{edital_id}/evento": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Criar evento manual na timeline
+         * @description Cria um evento manual na timeline do edital. Apenas tipos 'nota_manual' e 'lembrete' são permitidos.
+         */
+        post: operations["create_timeline_evento_v1_workspace_timeline__edital_id__evento_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/webhooks/stripe": {
         parameters: {
             query?: never;
@@ -16701,6 +16741,72 @@ export interface components {
             searches: number;
             /** Value */
             value: number;
+        };
+        /**
+         * TimelineEvento
+         * @description A single timeline event for an edital.
+         */
+        TimelineEvento: {
+            /** Created At */
+            created_at: string;
+            /**
+             * Critico
+             * @default false
+             */
+            critico: boolean;
+            /** Descricao */
+            descricao?: string | null;
+            /** Edital Id */
+            edital_id: string;
+            /** Id */
+            id: string;
+            /** Metadata */
+            metadata?: {
+                [key: string]: unknown;
+            };
+            /** Tipo */
+            tipo: string;
+            /** Titulo */
+            titulo: string;
+            /** User Id */
+            user_id: string;
+        };
+        /**
+         * TimelineEventoCreate
+         * @description Request body to create a manual timeline event.
+         *
+         *     Only 'nota_manual' and 'lembrete' tipos are allowed via user creation.
+         */
+        TimelineEventoCreate: {
+            /**
+             * Descricao
+             * @description Descrição detalhada do evento (opcional)
+             */
+            descricao?: string | null;
+            /**
+             * Tipo
+             * @description Tipo do evento: nota_manual ou lembrete
+             */
+            tipo: string;
+            /**
+             * Titulo
+             * @description Título descritivo do evento
+             */
+            titulo: string;
+        };
+        /**
+         * TimelineResponse
+         * @description Paginated timeline event list.
+         */
+        TimelineResponse: {
+            /** Eventos */
+            eventos: components["schemas"]["TimelineEvento"][];
+            /** Limit */
+            limit: number;
+            /** Offset */
+            offset: number;
+            /** Total */
+            total: number;
         };
         /** TopComprador */
         TopComprador: {
@@ -27784,6 +27890,87 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["WorkspaceResumo"];
+                };
+            };
+        };
+    };
+    list_timeline_eventos_v1_workspace_timeline__edital_id__get: {
+        parameters: {
+            query?: {
+                /** @description Filtrar por tipo de evento (ex: publicacao, alteracao) */
+                tipo_evento?: string | null;
+                /** @description Filtrar eventos a partir desta data (ISO 8601) */
+                data_inicio?: string | null;
+                /** @description Filtrar eventos até esta data (ISO 8601) */
+                data_fim?: string | null;
+                /** @description Filtrar apenas eventos críticos */
+                critico?: boolean | null;
+                /** @description Número máximo de eventos por página */
+                limit?: number;
+                /** @description Offset para paginação */
+                offset?: number;
+            };
+            header?: never;
+            path: {
+                edital_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TimelineResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_timeline_evento_v1_workspace_timeline__edital_id__evento_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                edital_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TimelineEventoCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };
