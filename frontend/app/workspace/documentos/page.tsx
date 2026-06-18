@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "../../components/AuthProvider";
-import { AuthLoadingScreen } from "../../components/AuthLoadingScreen";
+import { AuthLoadingScreen } from "../../../components/AuthLoadingScreen";
 
 // ---------------------------------------------------------------------------
 // Types
