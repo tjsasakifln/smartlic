@@ -147,21 +147,23 @@ class TestBuildPncpLink:
     """Tests for _build_pncp_link helper function."""
 
     def test_returns_link_sistema_origem_when_present(self):
-        """linkSistemaOrigem has highest priority."""
+        """HOTFIX 2026-06-17: PNCP URL from numeroControlePNCP now takes priority
+        over linkSistemaOrigem (which points to ComprasNet, not PNCP)."""
         lic = {
             "linkSistemaOrigem": "https://compras.gov.br/123",
             "linkProcessoEletronico": "https://outro.gov.br/456",
             "numeroControlePNCP": "12345678000100-1-00001/2026",
         }
-        assert _build_pncp_link(lic) == "https://compras.gov.br/123"
+        assert _build_pncp_link(lic) == "https://pncp.gov.br/app/editais/12345678000100/2026/1"
 
     def test_falls_back_to_link_processo_eletronico(self):
-        """When linkSistemaOrigem is absent, uses linkProcessoEletronico."""
+        """HOTFIX 2026-06-17: PNCP URL from numeroControlePNCP now takes priority
+        over linkProcessoEletronico."""
         lic = {
             "linkProcessoEletronico": "https://processo.gov.br/456",
             "numeroControlePNCP": "12345678000100-1-00001/2026",
         }
-        assert _build_pncp_link(lic) == "https://processo.gov.br/456"
+        assert _build_pncp_link(lic) == "https://pncp.gov.br/app/editais/12345678000100/2026/1"
 
     def test_constructs_url_from_numero_controle(self):
         """When no direct links, constructs URL from numeroControlePNCP."""
@@ -256,7 +258,8 @@ class TestConvertToLicitacaoItems:
     """Tests for _convert_to_licitacao_items helper function."""
 
     def test_basic_conversion(self):
-        """Converts a dict with all fields to a LicitacaoItem."""
+        """HOTFIX 2026-06-17: PNCP URL from numeroControlePNCP takes priority
+        over linkSistemaOrigem (ComprasNet)."""
         lic = make_licitacao()
         result = _convert_to_licitacao_items([lic])
         assert len(result) == 1
@@ -267,7 +270,7 @@ class TestConvertToLicitacaoItems:
         assert item.orgao == "Prefeitura Municipal de Florianopolis"
         assert item.uf == "SC"
         assert item.valor == 50000.0
-        assert item.link == "https://pncp.gov.br/app/editais/123"
+        assert item.link == "https://pncp.gov.br/app/editais/12345678000100/2026/1"
 
     def test_missing_optional_fields(self):
         """Handles missing optional fields with graceful defaults.
