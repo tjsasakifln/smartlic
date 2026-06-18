@@ -7539,6 +7539,59 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/workspace/editais-hoje": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Editais Hoje
+         * @description Fetch up to 10 procurement opportunities published today.
+         *
+         *     Queries `pncp_raw_bids` filtered by current date (UTC) via the
+         *     `search_datalake` RPC. Returns an empty list on transient errors
+         *     (fail-open) instead of blocking the workspace page.
+         */
+        get: operations["get_editais_hoje_v1_workspace_editais_hoje_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/workspace/resumo": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Workspace Resumo
+         * @description Aggregated counts for the workspace dashboard widgets.
+         *
+         *     Returns the number of:
+         *       - editais published today
+         *       - pipeline items belonging to the user
+         *       - pipeline items with deadlines within 7 days
+         *       - unread alerts
+         *
+         *     All sources fail-open: transient errors return 0 for that counter
+         *     instead of failing the entire response.
+         */
+        get: operations["get_workspace_resumo_v1_workspace_resumo_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/webhooks/stripe": {
         parameters: {
             query?: never;
@@ -10915,6 +10968,79 @@ export interface components {
             uf?: string | null;
             /** Valor Estimado */
             valor_estimado?: number | null;
+        };
+        /**
+         * EditaisHojeItem
+         * @description A single procurement opportunity published today.
+         */
+        EditaisHojeItem: {
+            /**
+             * Data Encerramento
+             * @description Closing date (ISO 8601)
+             */
+            data_encerramento?: string | null;
+            /**
+             * Data Publicacao
+             * @description Publication date (ISO 8601)
+             */
+            data_publicacao?: string | null;
+            /**
+             * Link Pncp
+             * @description Full URL to PNCP page
+             */
+            link_pncp?: string | null;
+            /**
+             * Modalidade
+             * @description Procurement modality code
+             */
+            modalidade?: string | null;
+            /**
+             * Numero Compra
+             * @description Procurement number / edital number
+             */
+            numero_compra?: string | null;
+            /**
+             * Objeto
+             * @description Procurement object description
+             */
+            objeto?: string | null;
+            /**
+             * Orgao
+             * @description Issuing government agency name
+             */
+            orgao?: string | null;
+            /**
+             * Pncp Id
+             * @description PNCP identifier
+             */
+            pncp_id?: string | null;
+            /**
+             * Uf
+             * @description State abbreviation (UF)
+             */
+            uf?: string | null;
+            /**
+             * Valor Estimado
+             * @description Estimated value
+             */
+            valor_estimado?: number | null;
+        };
+        /**
+         * EditaisHojeResponse
+         * @description Response wrapper for today's procurement opportunities.
+         */
+        EditaisHojeResponse: {
+            /**
+             * Items
+             * @description List of today's opportunities
+             */
+            items?: components["schemas"]["EditaisHojeItem"][];
+            /**
+             * Total
+             * @description Total count of items returned
+             * @default 0
+             */
+            total: number;
         };
         /** EmpresaInfo */
         EmpresaInfo: {
@@ -17541,6 +17667,36 @@ export interface components {
             ticket_p90?: number | null;
             /** Velocidade Crescimento */
             velocidade_crescimento?: number | null;
+        };
+        /**
+         * WorkspaceResumo
+         * @description Aggregated summary for the workspace dashboard.
+         */
+        WorkspaceResumo: {
+            /**
+             * Alerts Unread Count
+             * @description Number of unread user alerts
+             * @default 0
+             */
+            alerts_unread_count: number;
+            /**
+             * Editais Hoje Count
+             * @description Number of procurement opportunities published today
+             * @default 0
+             */
+            editais_hoje_count: number;
+            /**
+             * Pipeline Count
+             * @description Number of items in the user's pipeline
+             * @default 0
+             */
+            pipeline_count: number;
+            /**
+             * Pipeline Prazo Proximo
+             * @description Number of pipeline items with deadlines within 7 days
+             * @default 0
+             */
+            pipeline_prazo_proximo: number;
         };
         /**
          * _LivenessResponse
@@ -27588,6 +27744,46 @@ export interface operations {
                 };
                 content: {
                     "application/json": unknown;
+                };
+            };
+        };
+    };
+    get_editais_hoje_v1_workspace_editais_hoje_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EditaisHojeResponse"];
+                };
+            };
+        };
+    };
+    get_workspace_resumo_v1_workspace_resumo_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WorkspaceResumo"];
                 };
             };
         };
