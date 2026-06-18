@@ -52,9 +52,9 @@ const MAIN_ITEMS: BottomNavItem[] = [
   { href: "/dashboard", label: "Painel", ariaLabel: "Dashboard", icon: icons.dashboard },
 ];
 
-// SHIP-002 AC9: Alertas hidden — feature-gated
+// B2GOPS-011 (#2021): Alertas un-gated for workspace alerts
 const DRAWER_ITEMS: { href: string; label: string; icon: React.ReactNode }[] = [
-  // { href: "/alertas", label: "Alertas", icon: icons.alerts },
+  { href: "/workspace/alertas", label: "Alertas", icon: icons.alerts },
   { href: "/conta", label: "Minha Conta", icon: icons.account },
   { href: "/ajuda", label: "Ajuda", icon: icons.help },
 ];

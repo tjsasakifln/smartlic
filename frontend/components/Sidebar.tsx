@@ -18,6 +18,7 @@ import {
   PanelLeftClose,
   Menu,
   Shield,
+  Bell,
 } from "lucide-react";
 import { QuotaBadge } from "../app/components/QuotaBadge";
 
@@ -30,24 +31,44 @@ interface NavItem {
   badge?: number;
 }
 
-const PRIMARY_NAV: NavItem[] = [
-  { href: "/buscar", label: "Buscar", icon: <Search className="w-5 h-5" aria-hidden="true" /> },
-  { href: "/dashboard", label: "Dashboard", icon: <LayoutDashboard className="w-5 h-5" aria-hidden="true" /> },
-  { href: "/pipeline", label: "Pipeline", icon: <ClipboardList className="w-5 h-5" aria-hidden="true" /> },
-  { href: "/historico", label: "Histórico", icon: <Clock className="w-5 h-5" aria-hidden="true" /> },
-  { href: "/mensagens", label: "Mensagens", icon: <MessageSquare className="w-5 h-5" aria-hidden="true" /> },
-];
-
-const SECONDARY_NAV: NavItem[] = [
-  { href: "/conta", label: "Minha Conta", icon: <User className="w-5 h-5" aria-hidden="true" /> },
-  { href: "/ajuda", label: "Ajuda", icon: <HelpCircle className="w-5 h-5" aria-hidden="true" /> },
-];
-
 export function Sidebar() {
   const pathname = usePathname();
   const { signOut, isAdmin } = useAuth();
   const { planInfo } = usePlan();
   const [collapsed, setCollapsed] = useState(false);
+  const [alertaCount, setAlertaCount] = useState(0);
+
+  // B2GOPS-011 (#2021): Fetch unread alert count for badge
+  useEffect(() => {
+    const fetchCount = async () => {
+      try {
+        const res = await fetch("/api/workspace/alertas/unread-count");
+        if (res.ok) {
+          const data = await res.json();
+          setAlertaCount(data.unread_count ?? 0);
+        }
+      } catch {
+        // Silently fail
+      }
+    };
+    fetchCount();
+    const interval = setInterval(fetchCount, 60_000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const PRIMARY_NAV: NavItem[] = [
+    { href: "/buscar", label: "Buscar", icon: <Search className="w-5 h-5" aria-hidden="true" /> },
+    { href: "/dashboard", label: "Dashboard", icon: <LayoutDashboard className="w-5 h-5" aria-hidden="true" /> },
+    { href: "/pipeline", label: "Pipeline", icon: <ClipboardList className="w-5 h-5" aria-hidden="true" /> },
+    { href: "/historico", label: "Histórico", icon: <Clock className="w-5 h-5" aria-hidden="true" /> },
+    { href: "/mensagens", label: "Mensagens", icon: <MessageSquare className="w-5 h-5" aria-hidden="true" /> },
+    { href: "/workspace/alertas", label: "Alertas", icon: <Bell className="w-5 h-5" aria-hidden="true" />, badge: alertaCount },
+  ];
+
+  const SECONDARY_NAV: NavItem[] = [
+    { href: "/conta", label: "Minha Conta", icon: <User className="w-5 h-5" aria-hidden="true" /> },
+    { href: "/ajuda", label: "Ajuda", icon: <HelpCircle className="w-5 h-5" aria-hidden="true" /> },
+  ];
 
   // Load persisted state
   useEffect(() => {

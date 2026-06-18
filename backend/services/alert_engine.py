@@ -1,4 +1,4 @@
-"""B2GOPS-011 (#1281): Alert generation engine.
+"""B2GOPS-011 (#1281, #2021): Alert generation engine.
 
 Detects events that should trigger user alerts:
   - Deadline approaching: editais with deadlines within 24h/6h/1h
@@ -9,11 +9,12 @@ Detects events that should trigger user alerts:
   - Documento vencendo: user documents/certidoes expiring
 
 Wave 1 of EPIC-B2GOPS (#1262) — Intelligent Alert System.
+Wave 2 (#2021): Workspace watchlist-based detection.
 """
 
 import logging
 from datetime import datetime, timezone, timedelta
-from typing import List, Optional
+from typing import Any, Dict, List, Optional
 
 from schemas.alerts_b2gops import ALERT_TYPES, AlertEventPayload, AlertGenerationResult
 from supabase_client import get_supabase, sb_execute
@@ -488,3 +489,202 @@ async def cleanup_old_alerts(days: int = ALERT_RETENTION_DAYS, db=None) -> int:
     except Exception as e:
         logger.error("Failed to cleanup old alerts: %s", e)
         return 0
+
+
+# ---------------------------------------------------------------------------
+# B2GOPS-011 (#2021): Watchlist-based detection
+# ---------------------------------------------------------------------------
+
+
+async def detect_new_alerts(db=None) -> List[AlertEventPayload]:
+    """Detect new matching editais from the user's workspace watchlist.
+
+    For each user's workspace_watchlist entries, queries recent PNCP data
+    (pncp_raw_bids) and matches by UF + setor + keywords. Generates an alert
+    for each new match that hasn't been alerted yet.
+
+    Args:
+        db: Supabase client (fetched if None).
+
+    Returns:
+        List of AlertEventPayload to insert.
+    """
+    if db is None:
+        db = get_supabase()
+
+    payloads: List[AlertEventPayload] = []
+    since = (datetime.now(timezone.utc) - timedelta(hours=24)).isoformat()
+
+    try:
+        # Get all active watchlist entries grouped by user
+        watchlist_result = await sb_execute(
+            db.table("workspace_watchlist")
+            .select("id, user_id, edital_id, uf, setor, keywords")
+            .limit(500)
+        )
+
+        watchlist_entries = watchlist_result.data or []
+        if not watchlist_entries:
+            return []
+
+        # Get recent PNCP data to match against
+        bids_result = await sb_execute(
+            db.table("pncp_raw_bids")
+            .select("pncp_id, uf, setor, objeto_compra, orgao_razao_social, modalidade_nome, data_publicacao")
+            .gte("created_at", since)
+            .limit(200)
+        )
+
+        recent_bids = bids_result.data or []
+        if not recent_bids:
+            return []
+
+        # Build lookup: set of already-watchlisted edital_ids per user
+        from collections import defaultdict
+        user_watchlist: Dict[str, List[dict]] = defaultdict(list)
+        for entry in watchlist_entries:
+            user_watchlist[entry["user_id"]].append(entry)
+
+        # Track already-generated alerts to avoid duplicates in this run
+        # Key: (user_id, edital_id) -> True means already processed
+        processed: set = set()
+
+        for user_id, entries in user_watchlist.items():
+            for entry in entries:
+                dedup_key = (user_id, entry["edital_id"])
+                if dedup_key in processed:
+                    continue
+                processed.add(dedup_key)
+
+                entry_uf = (entry.get("uf") or "").strip().upper()
+                entry_setor = (entry.get("setor") or "").strip()
+                entry_keywords = entry.get("keywords") or []
+
+                for bid in recent_bids:
+                    bid_id = bid.get("pncp_id") or ""
+                    if not bid_id:
+                        continue
+
+                    bid_uf = (bid.get("uf") or "").strip().upper()
+                    bid_setor = (bid.get("setor") or "").strip()
+                    bid_titulo = bid.get("objeto_compra") or ""
+                    bid_orgao = bid.get("orgao_razao_social") or ""
+
+                    match_score = 0.0
+                    match_type = ""
+
+                    # UF match
+                    uf_match = entry_uf and bid_uf and entry_uf == bid_uf
+                    # Setor match
+                    setor_match = entry_setor and bid_setor and entry_setor == bid_setor
+                    # Keyword match (case-insensitive substring)
+                    kw_match = False
+                    if entry_keywords and bid_titulo:
+                        titulo_lower = bid_titulo.lower()
+                        kw_match = any(
+                            kw.lower() in titulo_lower
+                            for kw in entry_keywords
+                            if kw.strip()
+                        )
+
+                    # Determine match type and score
+                    if uf_match and setor_match:
+                        match_type = "uf_setor"
+                        match_score = 1.0
+                    elif uf_match and kw_match:
+                        match_type = "uf_keyword"
+                        match_score = 0.85
+                    elif setor_match and kw_match:
+                        match_type = "setor_keyword"
+                        match_score = 0.75
+                    elif uf_match:
+                        match_type = "uf"
+                        match_score = 0.5
+                    elif setor_match:
+                        match_type = "setor"
+                        match_score = 0.5
+                    elif kw_match:
+                        match_type = "keyword"
+                        match_score = 0.6
+
+                    if not match_type:
+                        continue
+
+                    # Skip if match score too low
+                    if match_score < 0.4:
+                        continue
+
+                    # Don't alert for the exact same edital_id as in watchlist
+                    if bid_id == entry["edital_id"]:
+                        continue
+
+                    payloads.append(AlertEventPayload(
+                        user_id=user_id,
+                        type="new_matching_edital",
+                        title=f"Novo edital encontrado: {bid_titulo[:80]}",
+                        body=(
+                            f"Um novo edital corresponde aos seus filtros de monitoramento "
+                            f"(UF: {entry_uf}, Setor: {entry_setor}). "
+                            f"Orgao: {bid_orgao}. "
+                            f"Tipo de match: {match_type}."
+                        ),
+                        data={
+                            "edital_id": bid_id,
+                            "titulo": bid_titulo,
+                            "orgao": bid_orgao,
+                            "uf": bid_uf,
+                            "setor": bid_setor,
+                            "match_type": match_type,
+                            "match_score": match_score,
+                            "watchlist_entry_id": entry["id"],
+                        },
+                    ))
+
+        logger.info(
+            "Watchlist detection complete: %d alerts generated from %d entries",
+            len(payloads), len(watchlist_entries),
+        )
+
+    except Exception as e:
+        logger.error("Watchlist detection failed: %s", e)
+
+    return payloads
+
+
+async def generate_alert(
+    user_id: str,
+    tipo: str,
+    titulo: str,
+    descricao: str,
+    edital_id: Optional[str] = None,
+    metadata: Optional[Dict[str, Any]] = None,
+    db=None,
+) -> bool:
+    """Generate a single alert for a user and insert into user_alerts.
+
+    This is a convenience wrapper around _insert_alert that constructs
+    the AlertEventPayload from individual fields.
+
+    Args:
+        user_id: User UUID.
+        tipo: Alert event type (e.g. 'new_matching_edital', 'deadline_approaching').
+        titulo: Alert title.
+        descricao: Alert body/description.
+        edital_id: Optional related edital ID (stored in metadata).
+        metadata: Optional dict of additional metadata.
+        db: Supabase client (fetched if None).
+
+    Returns:
+        True if inserted successfully, False otherwise.
+    """
+    payload = AlertEventPayload(
+        user_id=user_id,
+        type=tipo,
+        title=titulo,
+        body=descricao,
+        data={
+            "edital_id": edital_id or "",
+            **(metadata or {}),
+        },
+    )
+    return await _insert_alert(payload, db)

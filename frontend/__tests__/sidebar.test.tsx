@@ -64,8 +64,7 @@ describe("Sidebar", () => {
     expect(screen.getByTestId("sidebar")).toBeInTheDocument();
   });
 
-  // AC2: Shows 6 items (SHIP-002: Alertas and Suporte/Mensagens removed — feature-gated)
-  // Remaining: Buscar, Dashboard, Pipeline, Histórico, Minha Conta, Ajuda
+  // AC2: Shows navigation items (B2GOPS-011 #2021: Alertas now active)
   it("shows all navigation items", () => {
     render(<Sidebar />);
     expect(screen.getByText("Buscar")).toBeInTheDocument();
@@ -74,8 +73,8 @@ describe("Sidebar", () => {
     expect(screen.getByText("Histórico")).toBeInTheDocument();
     expect(screen.getByText("Minha Conta")).toBeInTheDocument();
     expect(screen.getByText("Ajuda")).toBeInTheDocument();
-    // SHIP-002: removed
-    expect(screen.queryByText("Alertas")).not.toBeInTheDocument();
+    // B2GOPS-011 (#2021): Alertas is active
+    expect(screen.getByText("Alertas")).toBeInTheDocument();
     expect(screen.queryByText("Suporte")).not.toBeInTheDocument();
   });
 
@@ -107,11 +106,12 @@ describe("Sidebar", () => {
     expect(dashboardLink).toHaveAttribute("aria-current", "page");
   });
 
-  // SAB-004 AC2: Alertas removed (SHIP-002 feature-gated) — verify it's absent
-  it("does not show Alertas link (SHIP-002 feature-gated)", () => {
-    mockPathname.mockReturnValue("/alertas");
+  // B2GOPS-011 (#2021): Alertas now active — highlights when on /alertas
+  it("highlights Alertas when on /alertas page", () => {
+    mockPathname.mockReturnValue("/workspace/alertas");
     render(<Sidebar />);
-    expect(screen.queryByText("Alertas")).not.toBeInTheDocument();
+    const alertasLink = screen.getByText("Alertas").closest("a");
+    expect(alertasLink).toHaveAttribute("aria-current", "page");
   });
 
   // AC4: Collapse toggle

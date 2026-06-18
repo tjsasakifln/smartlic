@@ -19,6 +19,7 @@ const PROTECTED_ROUTES = [
   "/conta",
   "/admin",
   "/workspace",
+  "/workspace/alertas",
 ];
 
 function isProtectedRoute(pathname: string): boolean {

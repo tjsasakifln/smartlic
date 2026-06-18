@@ -7539,7 +7539,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/v1/workspace/editais-hoje": {
+    "/v1/workspace/alertas": {
         parameters: {
             query?: never;
             header?: never;
@@ -7547,14 +7547,15 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * Get Editais Hoje
-         * @description Fetch up to 10 procurement opportunities published today.
+         * List Alertas
+         * @description List workspace alerts with pagination and optional filters.
          *
-         *     Queries `pncp_raw_bids` filtered by current date (UTC) via the
-         *     `search_datalake` RPC. Returns an empty list on transient errors
-         *     (fail-open) instead of blocking the workspace page.
+         *     Filters:
+         *       - tipo: event type (new_matching_edital, deadline_approaching, etc.)
+         *       - data_inicio / data_fim: date range filter
+         *       - lido: true/false to filter by read status
          */
-        get: operations["get_editais_hoje_v1_workspace_editais_hoje_get"];
+        get: operations["list_alertas_v1_workspace_alertas_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -7563,7 +7564,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/v1/workspace/resumo": {
+    "/v1/workspace/alertas/unread-count": {
         parameters: {
             query?: never;
             header?: never;
@@ -7571,19 +7572,10 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * Get Workspace Resumo
-         * @description Aggregated counts for the workspace dashboard widgets.
-         *
-         *     Returns the number of:
-         *       - editais published today
-         *       - pipeline items belonging to the user
-         *       - pipeline items with deadlines within 7 days
-         *       - unread alerts
-         *
-         *     All sources fail-open: transient errors return 0 for that counter
-         *     instead of failing the entire response.
+         * Unread Count
+         * @description Get the count of unread alerts for the badge in the UI.
          */
-        get: operations["get_workspace_resumo_v1_workspace_resumo_get"];
+        get: operations["unread_count_v1_workspace_alertas_unread_count_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -7592,27 +7584,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/v1/workspace/timeline/{edital_id}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Listar eventos da timeline de um edital
-         * @description Retorna eventos cronológicos de um edital em ordem DESC. Suporta filtros por tipo_evento, data_inicio, data_fim, critico. Paginação via limit (default 50, max 200) e offset.
-         */
-        get: operations["list_timeline_eventos_v1_workspace_timeline__edital_id__get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/workspace/timeline/{edital_id}/evento": {
+    "/v1/workspace/alertas/{alert_id}/read": {
         parameters: {
             query?: never;
             header?: never;
@@ -7621,12 +7593,59 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /**
-         * Criar evento manual na timeline
-         * @description Cria um evento manual na timeline do edital. Apenas tipos 'nota_manual' e 'lembrete' são permitidos.
-         */
-        post: operations["create_timeline_evento_v1_workspace_timeline__edital_id__evento_post"];
+        post?: never;
         delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Mark Read
+         * @description Mark a single alert as read.
+         */
+        patch: operations["mark_read_v1_workspace_alertas__alert_id__read_patch"];
+        trace?: never;
+    };
+    "/v1/workspace/watchlist": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Watchlist
+         * @description List all editais in the user's workspace watchlist.
+         */
+        get: operations["list_watchlist_v1_workspace_watchlist_get"];
+        put?: never;
+        /**
+         * Add To Watchlist
+         * @description Add an edital to the user's workspace watchlist.
+         *
+         *     If the same edital_id already exists for this user, returns
+         *     the existing entry (idempotent).
+         */
+        post: operations["add_to_watchlist_v1_workspace_watchlist_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/workspace/watchlist/{watchlist_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Remove From Watchlist
+         * @description Remove an edital from the user's workspace watchlist.
+         */
+        delete: operations["remove_from_watchlist_v1_workspace_watchlist__watchlist_id__delete"];
         options?: never;
         head?: never;
         patch?: never;
@@ -8245,6 +8264,35 @@ export interface components {
             valor?: number | null;
         };
         /**
+         * AlertaItem
+         * @description A single alerta item (mirrors user_alerts table).
+         */
+        AlertaItem: {
+            /** Body */
+            body?: string | null;
+            /** Created At */
+            created_at: string;
+            /** Data */
+            data?: {
+                [key: string]: unknown;
+            };
+            /** Id */
+            id: string;
+            /**
+             * Is Read
+             * @default false
+             */
+            is_read: boolean;
+            /** Read At */
+            read_at?: string | null;
+            /** Title */
+            title: string;
+            /** Type */
+            type: string;
+            /** User Id */
+            user_id: string;
+        };
+        /**
          * AlertaPosicionamento
          * @description Derived positioning alert.
          */
@@ -8258,6 +8306,20 @@ export interface components {
             severidade: string;
             /** Tipo */
             tipo: string;
+        };
+        /**
+         * AlertaResponse
+         * @description Paginated response for workspace alertas.
+         */
+        AlertaResponse: {
+            /** Alertas */
+            alertas: components["schemas"]["AlertaItem"][];
+            /** Limit */
+            limit: number;
+            /** Offset */
+            offset: number;
+            /** Total */
+            total: number;
         };
         /** AlertasResponse */
         AlertasResponse: {
@@ -11008,79 +11070,6 @@ export interface components {
             uf?: string | null;
             /** Valor Estimado */
             valor_estimado?: number | null;
-        };
-        /**
-         * EditaisHojeItem
-         * @description A single procurement opportunity published today.
-         */
-        EditaisHojeItem: {
-            /**
-             * Data Encerramento
-             * @description Closing date (ISO 8601)
-             */
-            data_encerramento?: string | null;
-            /**
-             * Data Publicacao
-             * @description Publication date (ISO 8601)
-             */
-            data_publicacao?: string | null;
-            /**
-             * Link Pncp
-             * @description Full URL to PNCP page
-             */
-            link_pncp?: string | null;
-            /**
-             * Modalidade
-             * @description Procurement modality code
-             */
-            modalidade?: string | null;
-            /**
-             * Numero Compra
-             * @description Procurement number / edital number
-             */
-            numero_compra?: string | null;
-            /**
-             * Objeto
-             * @description Procurement object description
-             */
-            objeto?: string | null;
-            /**
-             * Orgao
-             * @description Issuing government agency name
-             */
-            orgao?: string | null;
-            /**
-             * Pncp Id
-             * @description PNCP identifier
-             */
-            pncp_id?: string | null;
-            /**
-             * Uf
-             * @description State abbreviation (UF)
-             */
-            uf?: string | null;
-            /**
-             * Valor Estimado
-             * @description Estimated value
-             */
-            valor_estimado?: number | null;
-        };
-        /**
-         * EditaisHojeResponse
-         * @description Response wrapper for today's procurement opportunities.
-         */
-        EditaisHojeResponse: {
-            /**
-             * Items
-             * @description List of today's opportunities
-             */
-            items?: components["schemas"]["EditaisHojeItem"][];
-            /**
-             * Total
-             * @description Total count of items returned
-             * @default 0
-             */
-            total: number;
         };
         /** EmpresaInfo */
         EmpresaInfo: {
@@ -16742,72 +16731,6 @@ export interface components {
             /** Value */
             value: number;
         };
-        /**
-         * TimelineEvento
-         * @description A single timeline event for an edital.
-         */
-        TimelineEvento: {
-            /** Created At */
-            created_at: string;
-            /**
-             * Critico
-             * @default false
-             */
-            critico: boolean;
-            /** Descricao */
-            descricao?: string | null;
-            /** Edital Id */
-            edital_id: string;
-            /** Id */
-            id: string;
-            /** Metadata */
-            metadata?: {
-                [key: string]: unknown;
-            };
-            /** Tipo */
-            tipo: string;
-            /** Titulo */
-            titulo: string;
-            /** User Id */
-            user_id: string;
-        };
-        /**
-         * TimelineEventoCreate
-         * @description Request body to create a manual timeline event.
-         *
-         *     Only 'nota_manual' and 'lembrete' tipos are allowed via user creation.
-         */
-        TimelineEventoCreate: {
-            /**
-             * Descricao
-             * @description Descrição detalhada do evento (opcional)
-             */
-            descricao?: string | null;
-            /**
-             * Tipo
-             * @description Tipo do evento: nota_manual ou lembrete
-             */
-            tipo: string;
-            /**
-             * Titulo
-             * @description Título descritivo do evento
-             */
-            titulo: string;
-        };
-        /**
-         * TimelineResponse
-         * @description Paginated timeline event list.
-         */
-        TimelineResponse: {
-            /** Eventos */
-            eventos: components["schemas"]["TimelineEvento"][];
-            /** Limit */
-            limit: number;
-            /** Offset */
-            offset: number;
-            /** Total */
-            total: number;
-        };
         /** TopComprador */
         TopComprador: {
             /** Cnpj */
@@ -17591,6 +17514,70 @@ export interface components {
             success: boolean;
         };
         /**
+         * WatchlistCreate
+         * @description Request body for adding an edital to the watchlist.
+         */
+        WatchlistCreate: {
+            /**
+             * Edital Id
+             * @description PNCP ID or source identifier
+             */
+            edital_id: string;
+            /**
+             * Keywords
+             * @description Keywords extras
+             */
+            keywords?: string[];
+            /**
+             * Setor
+             * @description Setor para alert matching
+             * @default
+             */
+            setor: string;
+            /**
+             * Uf
+             * @description Estado (UF) da licitação
+             * @default
+             */
+            uf: string;
+        };
+        /**
+         * WatchlistItem
+         * @description A single watchlist entry.
+         */
+        WatchlistItem: {
+            /** Created At */
+            created_at: string;
+            /** Edital Id */
+            edital_id: string;
+            /** Id */
+            id: string;
+            /** Keywords */
+            keywords?: string[];
+            /**
+             * Setor
+             * @default
+             */
+            setor: string;
+            /**
+             * Uf
+             * @default
+             */
+            uf: string;
+            /** User Id */
+            user_id: string;
+        };
+        /**
+         * WatchlistResponse
+         * @description List of watchlist items.
+         */
+        WatchlistResponse: {
+            /** Items */
+            items: components["schemas"]["WatchlistItem"][];
+            /** Total */
+            total: number;
+        };
+        /**
          * WebhookChannel
          * @description Supported notification channels.
          * @enum {string}
@@ -17773,36 +17760,6 @@ export interface components {
             ticket_p90?: number | null;
             /** Velocidade Crescimento */
             velocidade_crescimento?: number | null;
-        };
-        /**
-         * WorkspaceResumo
-         * @description Aggregated summary for the workspace dashboard.
-         */
-        WorkspaceResumo: {
-            /**
-             * Alerts Unread Count
-             * @description Number of unread user alerts
-             * @default 0
-             */
-            alerts_unread_count: number;
-            /**
-             * Editais Hoje Count
-             * @description Number of procurement opportunities published today
-             * @default 0
-             */
-            editais_hoje_count: number;
-            /**
-             * Pipeline Count
-             * @description Number of items in the user's pipeline
-             * @default 0
-             */
-            pipeline_count: number;
-            /**
-             * Pipeline Prazo Proximo
-             * @description Number of pipeline items with deadlines within 7 days
-             * @default 0
-             */
-            pipeline_prazo_proximo: number;
         };
         /**
          * _LivenessResponse
@@ -27854,66 +27811,24 @@ export interface operations {
             };
         };
     };
-    get_editais_hoje_v1_workspace_editais_hoje_get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["EditaisHojeResponse"];
-                };
-            };
-        };
-    };
-    get_workspace_resumo_v1_workspace_resumo_get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["WorkspaceResumo"];
-                };
-            };
-        };
-    };
-    list_timeline_eventos_v1_workspace_timeline__edital_id__get: {
+    list_alertas_v1_workspace_alertas_get: {
         parameters: {
             query?: {
-                /** @description Filtrar por tipo de evento (ex: publicacao, alteracao) */
-                tipo_evento?: string | null;
-                /** @description Filtrar eventos a partir desta data (ISO 8601) */
-                data_inicio?: string | null;
-                /** @description Filtrar eventos até esta data (ISO 8601) */
-                data_fim?: string | null;
-                /** @description Filtrar apenas eventos críticos */
-                critico?: boolean | null;
-                /** @description Número máximo de eventos por página */
+                /** @description Items per page */
                 limit?: number;
-                /** @description Offset para paginação */
+                /** @description Offset for pagination */
                 offset?: number;
+                /** @description Filter by event type */
+                type?: string | null;
+                /** @description Start date filter (ISO 8601) */
+                data_inicio?: string | null;
+                /** @description End date filter (ISO 8601) */
+                data_fim?: string | null;
+                /** @description Filter by read status (true=read, false=unread) */
+                status?: boolean | null;
             };
             header?: never;
-            path: {
-                edital_id: string;
-            };
+            path?: never;
             cookie?: never;
         };
         requestBody?: never;
@@ -27924,7 +27839,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["TimelineResponse"];
+                    "application/json": components["schemas"]["AlertaResponse"];
                 };
             };
             /** @description Validation Error */
@@ -27938,30 +27853,128 @@ export interface operations {
             };
         };
     };
-    create_timeline_evento_v1_workspace_timeline__edital_id__evento_post: {
+    unread_count_v1_workspace_alertas_unread_count_get: {
         parameters: {
             query?: never;
             header?: never;
-            path: {
-                edital_id: string;
-            };
+            path?: never;
             cookie?: never;
         };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["TimelineEventoCreate"];
-            };
-        };
+        requestBody?: never;
         responses: {
             /** @description Successful Response */
-            201: {
+            200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["schemas__alerts_b2gops__UnreadCountResponse"];
+                };
+            };
+        };
+    };
+    mark_read_v1_workspace_alertas__alert_id__read_patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                alert_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AlertaItem"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_watchlist_v1_workspace_watchlist_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WatchlistResponse"];
+                };
+            };
+        };
+    };
+    add_to_watchlist_v1_workspace_watchlist_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["WatchlistCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WatchlistItem"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    remove_from_watchlist_v1_workspace_watchlist__watchlist_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                watchlist_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SuccessMessageResponse"];
                 };
             };
             /** @description Validation Error */
