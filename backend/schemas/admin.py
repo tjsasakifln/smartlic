@@ -380,3 +380,31 @@ class AdminSyntheticResponse(BaseModel):
     timings: dict[str, int] = {}
     consecutive_failures: int = 0
     detail: Optional[str] = None
+
+
+# --- admin_audit.py (#1974) --------------------------------------------------
+
+
+class AdminAuditLogEntry(BaseModel):
+    """Single entry from the admin_audit_log table."""
+    id: str
+    admin_id: str
+    action: str
+    entity_type: str
+    entity_id: Optional[str] = None
+    details: dict[str, Any] = {}
+    ip: Optional[str] = None
+    created_at: str
+
+
+class AdminAuditLogResponse(BaseModel):
+    """Response for GET /v1/admin/audit-log (#1974).
+
+    Returns a paginated list of audit entries sorted by created_at DESC.
+    ``total`` reflects the total matching entries (for pagination),
+    while ``entries`` contains the current page.
+    """
+    entries: list[AdminAuditLogEntry] = []
+    total: int = 0
+    limit: int = 100
+    offset: int = 0

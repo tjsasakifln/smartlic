@@ -64,7 +64,7 @@ from log_sanitizer import sanitize_dict, log_admin_action
 from authorization import require_data_access, require_user_manager  # noqa: F401 — kept for backward compat
 from rbac_granular import (
     require_admin_role, require_admin_users, require_admin_billing,
-    require_admin_data, require_admin_ops, require_admin_seo,
+    require_admin_data, require_admin_ops, require_admin_seo,  # noqa: F401
 )
 from filter.stats import filter_stats_tracker
 
@@ -543,6 +543,7 @@ async def assign_plan(
     user_id: str = Path(..., description="User UUID to assign plan to"),
     plan_id: str = Query(..., description="Plan ID to assign"),
     admin: dict = Depends(require_admin_users),
+    request: Request = None,
 ):
     """Manually assign a plan to a user (bypasses payment)."""
     # SECURITY: Validate user_id and plan_id (Issue #203)
@@ -586,6 +587,18 @@ async def assign_plan(
         target_user_id=user_id,
         details={"plan_id": plan_id},
     )
+
+    # ADMIN-AUDIT (#1974): Log to immutable audit trail
+    from admin_audit import log_admin_action as log_admin_audit
+    await log_admin_audit(
+        admin_id=admin["id"],
+        action="user.assign-plan",
+        entity_type="user",
+        entity_id=user_id,
+        details={"plan_id": plan_id},
+        request=request,
+    )
+
     return {"assigned": True, "user_id": user_id, "plan_id": plan_id}
 
 
