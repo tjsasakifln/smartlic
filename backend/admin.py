@@ -16,6 +16,30 @@ Security hardened in Issue #168:
 - PII sanitized in logs (emails masked)
 - User IDs partially masked in logs
 - No sensitive data in plain text logs
+
+RBAC Phase 2 (#1954) — endpoint -> granular role matrix:
+    GET    /admin/users                          admin:users      (users CRUD)
+    POST   /admin/users                          admin:users
+    DELETE /admin/users/{user_id}                admin:users
+    PUT    /admin/users/{user_id}                admin:users
+    POST   /admin/users/{user_id}/reset-password admin:users
+    POST   /admin/users/{user_id}/assign-plan    admin:users
+    PUT    /admin/users/{user_id}/credits        admin:users
+    GET    /admin/users/segments                 admin:data       (user data analytics)
+    GET    /admin/at-risk-trials                 admin:data
+    GET    /admin/trial-metrics                  admin:data
+    GET    /admin/admin/filter-stats             admin:ops        (cache/ops)
+    GET    /admin/cache/metrics                  admin:ops
+    GET    /admin/cache/{params_hash}            admin:ops
+    DELETE /admin/cache/{params_hash}            admin:ops
+    DELETE /admin/cache                          admin:ops
+    GET    /admin/support-sla                    admin:ops
+    GET    /admin/reconciliation/history         admin:billing    (billing/reconciliation)
+    POST   /admin/reconciliation/trigger         admin:billing
+    GET    /admin/memory-snapshot                admin:ops
+
+All endpoints also accept ``admin:super`` (backward compat).
+The legacy ``require_admin`` function is preserved for backward compatibility.
 """
 
 import asyncio
@@ -37,8 +61,11 @@ from schemas import (
     UserSegmentsResponse,
 )
 from log_sanitizer import sanitize_dict, log_admin_action
-from authorization import require_data_access, require_user_manager
-from rbac_granular import require_admin_role, require_admin_billing, require_admin_ops, require_admin_seo
+from authorization import require_data_access, require_user_manager  # noqa: F401 — kept for backward compat
+from rbac_granular import (
+    require_admin_role, require_admin_users, require_admin_billing,
+    require_admin_data, require_admin_ops, require_admin_seo,
+)
 from filter.stats import filter_stats_tracker
 
 logger = logging.getLogger(__name__)
@@ -273,7 +300,7 @@ class UpdateUserRequest(BaseModel):
 
 @router.get("/users", response_model=AdminUsersListResponse)
 async def list_users(
-    admin: dict = Depends(require_data_access),
+    admin: dict = Depends(require_admin_users),
     limit: int = Query(default=50, ge=1, le=200),
     offset: int = Query(default=0, ge=0),
     search: Optional[str] = Query(default=None, max_length=100),
@@ -341,7 +368,7 @@ async def list_users(
 @router.post("/users", response_model=AdminCreateUserResponse)
 async def create_user(
     req: CreateUserRequest,
-    admin: dict = Depends(require_user_manager),
+    admin: dict = Depends(require_admin_users),
 ):
     """Create a new user with optional plan assignment."""
     # STORY-226 AC17: Validate password policy
@@ -396,7 +423,7 @@ async def create_user(
 @router.delete("/users/{user_id}", response_model=AdminDeleteUserResponse)
 async def delete_user(
     user_id: str = Path(..., description="User UUID to delete"),
-    admin: dict = Depends(require_user_manager),
+    admin: dict = Depends(require_admin_users),
 ):
     """Delete a user and all their data."""
     # SECURITY: Validate user_id as UUID v4 (Issue #203)
@@ -434,7 +461,7 @@ async def delete_user(
 async def update_user(
     req: UpdateUserRequest,
     user_id: str = Path(..., description="User UUID to update"),
-    admin: dict = Depends(require_user_manager),
+    admin: dict = Depends(require_admin_users),
 ):
     """Update user profile or plan."""
     # SECURITY: Validate user_id as UUID v4 (Issue #203)
@@ -480,7 +507,7 @@ async def update_user(
 async def reset_user_password(
     request: Request,
     user_id: str = Path(..., description="User UUID to reset password for"),
-    admin: dict = Depends(require_user_manager),
+    admin: dict = Depends(require_admin_users),
 ):
     """Reset a user's password (admin only)."""
     # SECURITY: Validate user_id as UUID v4 (Issue #203)
@@ -515,7 +542,7 @@ async def reset_user_password(
 async def assign_plan(
     user_id: str = Path(..., description="User UUID to assign plan to"),
     plan_id: str = Query(..., description="Plan ID to assign"),
-    admin: dict = Depends(require_user_manager),
+    admin: dict = Depends(require_admin_users),
 ):
     """Manually assign a plan to a user (bypasses payment)."""
     # SECURITY: Validate user_id and plan_id (Issue #203)
@@ -571,7 +598,7 @@ class UpdateCreditsRequest(BaseModel):
 async def update_user_credits(
     req: UpdateCreditsRequest,
     user_id: str = Path(..., description="User UUID to update credits for"),
-    admin: dict = Depends(require_user_manager),
+    admin: dict = Depends(require_admin_users),
 ):
     """
     Manually adjust a user's credits (admin only).
@@ -690,7 +717,7 @@ async def update_user_credits(
 async def get_filter_stats(
     request: Request,
     days: int = Query(default=7, ge=1, le=90, description="Number of days to look back"),
-    admin: dict = Depends(require_admin),
+    admin: dict = Depends(require_admin_ops),
 ):
     """
     STORY-248 AC10: Filter rejection statistics.
@@ -721,7 +748,7 @@ async def get_filter_stats(
 
 @router.get("/cache/metrics")
 async def get_cache_metrics_endpoint(
-    admin: dict = Depends(require_admin),
+    admin: dict = Depends(require_admin_ops),
 ):
     """B-05 AC3: Return aggregated cache metrics for admin dashboard.
 
@@ -747,7 +774,7 @@ async def get_cache_metrics_endpoint(
 @router.get("/cache/{params_hash}")
 async def inspect_cache_entry_endpoint(
     params_hash: str = Path(..., min_length=8, max_length=128, description="Cache entry hash"),
-    admin: dict = Depends(require_admin),
+    admin: dict = Depends(require_admin_ops),
 ):
     """B-05 AC7: Return full details of a specific cache entry.
 
@@ -779,7 +806,7 @@ async def inspect_cache_entry_endpoint(
 @router.delete("/cache/{params_hash}")
 async def delete_cache_entry_endpoint(
     params_hash: str = Path(..., min_length=8, max_length=128, description="Cache entry hash"),
-    admin: dict = Depends(require_admin),
+    admin: dict = Depends(require_admin_ops),
 ):
     """B-05 AC5: Invalidate a specific cache entry across all levels.
 
@@ -807,7 +834,7 @@ async def delete_cache_entry_endpoint(
 @router.delete("/cache")
 async def delete_all_cache_endpoint(
     request: Request,
-    admin: dict = Depends(require_admin),
+    admin: dict = Depends(require_admin_ops),
 ):
     """B-05 AC6: Invalidate ALL cache entries (nuclear option).
 
@@ -842,7 +869,7 @@ async def delete_all_cache_endpoint(
 
 @router.get("/reconciliation/history")
 async def get_reconciliation_history(
-    admin: dict = Depends(require_admin),
+    admin: dict = Depends(require_admin_billing),
     limit: int = Query(default=30, ge=1, le=100),
 ):
     """AC10: Get last N reconciliation runs.
@@ -868,7 +895,7 @@ async def get_reconciliation_history(
 
 @router.post("/reconciliation/trigger")
 async def trigger_reconciliation(
-    admin: dict = Depends(require_admin),
+    admin: dict = Depends(require_admin_billing),
 ):
     """AC13: Manually trigger a reconciliation run.
 
@@ -901,7 +928,7 @@ async def trigger_reconciliation(
 
 @router.get("/support-sla")
 async def get_support_sla(
-    admin: dict = Depends(require_admin),
+    admin: dict = Depends(require_admin_ops),
 ):
     """STORY-353 AC6: Return support SLA metrics.
 
@@ -983,7 +1010,7 @@ async def get_support_sla(
 
 @router.get("/trial-metrics")
 async def get_trial_metrics(
-    admin: dict = Depends(require_admin),
+    admin: dict = Depends(require_admin_data),
 ):
     """Trial conversion metrics dashboard.
 
@@ -1090,7 +1117,7 @@ async def get_trial_metrics(
 
 @router.get("/at-risk-trials")
 async def get_at_risk_trials(
-    admin: dict = Depends(require_data_access),
+    admin: dict = Depends(require_admin_data),
     page: int = Query(default=0, ge=0),
     limit: int = Query(default=20, ge=1, le=100),
     risk_category: Optional[str] = Query(default=None),
@@ -1319,7 +1346,7 @@ async def _set_segments_cache(data: dict) -> None:
 
 @router.get("/users/segments", response_model=UserSegmentsResponse)
 async def get_user_segments(
-    admin: dict = Depends(require_data_access),
+    admin: dict = Depends(require_admin_data),
 ) -> UserSegmentsResponse:
     """LIFECYCLE-003: Return user lifecycle segment counts, transitions,
     and power user details.

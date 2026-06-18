@@ -268,12 +268,14 @@ class TestSupportSlaEndpoint:
     def _create_client(self, admin_user=None):
         from fastapi import FastAPI
         from fastapi.testclient import TestClient
-        from admin import router, require_admin
+        from admin import router, require_admin_ops
+        from auth import require_auth
 
         app = FastAPI()
         app.include_router(router)
         if admin_user:
-            app.dependency_overrides[require_admin] = lambda: admin_user
+            app.dependency_overrides[require_admin_ops] = lambda: admin_user
+            app.dependency_overrides[require_auth] = lambda: admin_user
         return TestClient(app)
 
     @patch("business_hours.calculate_business_hours", return_value=4.5)

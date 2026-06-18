@@ -3,6 +3,8 @@
 GET /v1/admin/cron-status — admin-only JSON snapshot of scheduled
 Supabase pg_cron jobs. Backed by the ``public.get_cron_health()`` RPC
 created in ``supabase/migrations/20260414120000_cron_job_health.sql``.
+
+RBAC Phase 2 (#1954): requires ``admin:ops`` role.
 """
 
 from __future__ import annotations

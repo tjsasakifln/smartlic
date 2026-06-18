@@ -13,7 +13,7 @@ Routes (all under ``/v1/admin``):
 * ``PATCH  /v1/admin/cnae-mapping/{cnae_code}``    update entry.
 * ``DELETE /v1/admin/cnae-mapping/{cnae_code}``    soft delete.
 
-All endpoints require ``profiles.is_admin = true`` via :func:`admin.require_admin`.
+All endpoints require ``admin:data`` role (RBAC Phase 2 #1954).
 """
 
 from __future__ import annotations

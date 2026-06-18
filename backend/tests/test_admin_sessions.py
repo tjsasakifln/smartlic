@@ -81,7 +81,7 @@ def mock_redis():
 
 def test_admin_revoke_user_sessions(admin_client, mock_redis):
     """Admin revokes sessions for a specific user returns 200 OK."""
-    with patch("routes.admin_sessions.require_admin", new_callable=AsyncMock):
+    with patch("routes.admin_sessions.require_admin_ops", new_callable=AsyncMock):
         with patch("redis_pool.get_redis_pool", new_callable=AsyncMock, return_value=mock_redis):
             r = admin_client.post(f"/v1/admin/users/{TARGET_USER_ID}/revoke-sessions")
 
@@ -96,7 +96,7 @@ def test_admin_revoke_user_sessions(admin_client, mock_redis):
 def test_non_admin_revoke_user_sessions_403(regular_client):
     """Non-admin user gets 403 when trying to revoke sessions."""
     with patch(
-        "routes.admin_sessions.require_admin",
+        "routes.admin_sessions.require_admin_ops",
         new_callable=AsyncMock,
         side_effect=HTTPException(status_code=403, detail="Acesso restrito a administradores"),
     ):
@@ -107,7 +107,7 @@ def test_non_admin_revoke_user_sessions_403(regular_client):
 
 def test_revoke_user_sessions_redis_unavailable_503(admin_client):
     """Redis unavailable returns 503 (fail-open behavior)."""
-    with patch("routes.admin_sessions.require_admin", new_callable=AsyncMock):
+    with patch("routes.admin_sessions.require_admin_ops", new_callable=AsyncMock):
         with patch("redis_pool.get_redis_pool", new_callable=AsyncMock, return_value=None):
             r = admin_client.post(f"/v1/admin/users/{TARGET_USER_ID}/revoke-sessions")
 
@@ -118,7 +118,7 @@ def test_revoke_user_sessions_redis_unavailable_503(admin_client):
 
 def test_revoke_user_sessions_redis_key_set_correctly(admin_client, mock_redis):
     """Redis session_revoke key is set with correct prefix, TTL and value."""
-    with patch("routes.admin_sessions.require_admin", new_callable=AsyncMock):
+    with patch("routes.admin_sessions.require_admin_ops", new_callable=AsyncMock):
         with patch("redis_pool.get_redis_pool", new_callable=AsyncMock, return_value=mock_redis):
             r = admin_client.post(f"/v1/admin/users/{TARGET_USER_ID}/revoke-sessions")
 
@@ -146,7 +146,7 @@ def test_revoke_user_sessions_redis_key_set_correctly(admin_client, mock_redis):
 
 def test_master_revoke_all_sessions(admin_client, mock_redis):
     """Master revokes all sessions globally returns 200 OK with reason."""
-    with patch("routes.admin_sessions.require_admin", new_callable=AsyncMock):
+    with patch("routes.admin_sessions.require_admin_ops", new_callable=AsyncMock):
         with patch("routes.admin_sessions.has_master_access", new_callable=AsyncMock, return_value=True):
             with patch("redis_pool.get_redis_pool", new_callable=AsyncMock, return_value=mock_redis):
                 r = admin_client.post(
@@ -168,7 +168,7 @@ def test_master_revoke_all_sessions(admin_client, mock_redis):
 
 def test_master_revoke_all_sessions_default_reason(admin_client, mock_redis):
     """Master revokes all sessions without explicit reason uses default."""
-    with patch("routes.admin_sessions.require_admin", new_callable=AsyncMock):
+    with patch("routes.admin_sessions.require_admin_ops", new_callable=AsyncMock):
         with patch("routes.admin_sessions.has_master_access", new_callable=AsyncMock, return_value=True):
             with patch("redis_pool.get_redis_pool", new_callable=AsyncMock, return_value=mock_redis):
                 r = admin_client.post("/v1/admin/revoke-all-sessions", json={})
@@ -182,7 +182,7 @@ def test_master_revoke_all_sessions_default_reason(admin_client, mock_redis):
 
 def test_non_master_admin_global_revoke_403(admin_client):
     """Non-master admin trying global revocation gets 403."""
-    with patch("routes.admin_sessions.require_admin", new_callable=AsyncMock):
+    with patch("routes.admin_sessions.require_admin_ops", new_callable=AsyncMock):
         with patch("routes.admin_sessions.has_master_access", new_callable=AsyncMock, return_value=False):
             r = admin_client.post("/v1/admin/revoke-all-sessions", json={})
 
@@ -193,7 +193,7 @@ def test_non_master_admin_global_revoke_403(admin_client):
 
 def test_global_revoke_redis_unavailable_503(admin_client):
     """Redis unavailable during global revocation returns 503."""
-    with patch("routes.admin_sessions.require_admin", new_callable=AsyncMock):
+    with patch("routes.admin_sessions.require_admin_ops", new_callable=AsyncMock):
         with patch("routes.admin_sessions.has_master_access", new_callable=AsyncMock, return_value=True):
             with patch("redis_pool.get_redis_pool", new_callable=AsyncMock, return_value=None):
                 r = admin_client.post("/v1/admin/revoke-all-sessions", json={})
@@ -207,7 +207,7 @@ def test_global_revoke_clears_l2_auth_cache(admin_client, mock_redis):
     """Global revocation clears L2 auth cache entries (smartlic:auth:* keys)."""
     mock_redis.keys = AsyncMock(return_value=["smartlic:auth:abc123", "smartlic:auth:def456"])
 
-    with patch("routes.admin_sessions.require_admin", new_callable=AsyncMock):
+    with patch("routes.admin_sessions.require_admin_ops", new_callable=AsyncMock):
         with patch("routes.admin_sessions.has_master_access", new_callable=AsyncMock, return_value=True):
             with patch("redis_pool.get_redis_pool", new_callable=AsyncMock, return_value=mock_redis):
                 r = admin_client.post("/v1/admin/revoke-all-sessions", json={})

@@ -30,21 +30,26 @@ class TestAdminUserCreationDefaultPlan:
 
     @pytest.fixture
     def admin_app_with_overrides(self, mock_admin_user):
-        """Create FastAPI app with admin router and dependency overrides."""
+        """Create FastAPI app with admin router and dependency overrides (#1778, #1954)."""
         from fastapi import FastAPI
         from admin import router, require_admin
-        from authorization import require_data_access, require_user_manager
+        from rbac_granular import (
+            require_admin_users, require_admin_data,
+            require_admin_ops, require_admin_billing,
+        )
 
         app = FastAPI()
         app.include_router(router)
 
-        # Override all role dependencies (#1778)
+        # Override all role dependencies (#1778, #1954)
         async def mock_require_admin():
             return mock_admin_user
 
         app.dependency_overrides[require_admin] = mock_require_admin
-        app.dependency_overrides[require_data_access] = mock_require_admin
-        app.dependency_overrides[require_user_manager] = mock_require_admin
+        app.dependency_overrides[require_admin_users] = mock_require_admin
+        app.dependency_overrides[require_admin_data] = mock_require_admin
+        app.dependency_overrides[require_admin_ops] = mock_require_admin
+        app.dependency_overrides[require_admin_billing] = mock_require_admin
 
         return app
 

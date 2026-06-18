@@ -8,7 +8,7 @@ from fastapi.testclient import TestClient
 
 from main import app
 from auth import require_auth
-from admin import require_admin
+from admin import require_admin_ops as require_admin
 
 
 # --- Fixtures ---

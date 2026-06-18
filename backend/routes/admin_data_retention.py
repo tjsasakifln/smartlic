@@ -9,6 +9,8 @@ errors from the most recent purge cycle.
 
 Data is read from Redis keys written by ``run_data_retention_purge()``.
 Falls back gracefully when Redis is unavailable.
+
+RBAC Phase 2 (#1954): requires ``admin:ops`` role.
 """
 
 from __future__ import annotations
@@ -19,7 +21,7 @@ from typing import Any
 
 from fastapi import APIRouter, Depends
 
-from admin import require_admin
+from admin import require_admin_ops
 
 logger = logging.getLogger(__name__)
 
@@ -30,7 +32,7 @@ _REDIS_TTL = 7 * 86400  # 7 days — must match data_retention.py
 
 @router.get("/data-retention/status", response_model=dict)
 async def get_data_retention_status(
-    user=Depends(require_admin),
+    user=Depends(require_admin_ops),
 ) -> dict[str, Any]:
     """Return the last purge status per table.
 

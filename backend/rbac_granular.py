@@ -1,7 +1,28 @@
-"""RBAC Granular Phase 1 (#1912)."""
+"""RBAC Granular Phase 1 (#1912) + Phase 2 (#1954).
+
+Phase 2 adds ``admin:data`` and ``admin:observability`` roles to support
+migration of legacy ``require_admin`` (boolean) endpoints.
+
+Role mapping (Phase 2):
+    users/profiles endpoints       -> admin:users
+    billing/reconciliation         -> admin:billing
+    cache/cron/db/ops              -> admin:ops
+    data/calibration/cnae/founding -> admin:data
+    metrics/traces/llm_cost/slo    -> admin:observability
+    partner/seo                    -> admin:partner / admin:seo
+    super admin                    -> admin:super (full access, backward compat)
+
+``admin:super`` always passes ``require_admin_role`` for any role — legacy
+admins backfilled via migration (``is_admin=true AND admin_roles IS NULL``
+-> ``admin_roles = ARRAY['admin:super']``).
+"""
 from fastapi import Depends, HTTPException
 
-_ALL_ADMIN_ROLES = {"admin:users","admin:billing","admin:cache","admin:partners","admin:seo","admin:ops","admin:compliance","admin:super"}
+_ALL_ADMIN_ROLES = {
+    "admin:users","admin:billing","admin:cache","admin:partners",
+    "admin:seo","admin:ops","admin:compliance","admin:super",
+    "admin:data","admin:observability",
+}
 
 async def get_profile_admin_roles(user_id):
     try:
@@ -31,6 +52,8 @@ require_admin_seo = require_admin_role("admin:seo")
 require_admin_ops = require_admin_role("admin:ops")
 require_admin_compliance = require_admin_role("admin:compliance")
 require_admin_super = require_admin_role("admin:super")
+require_admin_data = require_admin_role("admin:data")
+require_admin_observability = require_admin_role("admin:observability")
 
 def has_admin_role(roles, role):
     return "admin:super" in roles or role in roles

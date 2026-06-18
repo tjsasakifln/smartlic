@@ -606,14 +606,14 @@ class TestAdminEndpoints:
         """Create test client with admin auth overridden."""
         from fastapi.testclient import TestClient
         from main import app
-        from admin import require_admin
+        from admin import require_admin_billing
 
         async def mock_admin(user=None):
             return {"id": "admin-uuid", "email": "admin@test.com"}
 
-        app.dependency_overrides[require_admin] = mock_admin
+        app.dependency_overrides[require_admin_billing] = mock_admin
         yield TestClient(app)
-        app.dependency_overrides.pop(require_admin, None)
+        app.dependency_overrides.pop(require_admin_billing, None)
 
     @patch("supabase_client.get_supabase")
     def test_reconciliation_history_endpoint(self, mock_get_sb, client):

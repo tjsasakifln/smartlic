@@ -9,6 +9,8 @@ webhooks/handlers/checkout.py) and activates the subscription via the generic
 subscription-activation path — no webhook changes needed for Fase 1.
 
 Fase 2 (future issue) will implement the self-serve Command checkout flow.
+
+RBAC Phase 2 (#1954): requires ``admin:ops`` role.
 """
 
 from __future__ import annotations

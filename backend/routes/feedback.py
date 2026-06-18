@@ -4,6 +4,8 @@ Endpoints:
 - POST /v1/feedback — Submit feedback on a search result (AC1)
 - DELETE /v1/feedback/{feedback_id} — Delete own feedback (AC9)
 - GET /v1/admin/feedback/patterns — Admin pattern analysis (AC6)
+
+RBAC Phase 2 (#1954): feedback patterns endpoint requires ``admin:data`` role.
 """
 
 import logging
@@ -13,7 +15,7 @@ from typing import Optional
 from fastapi import APIRouter, HTTPException, Depends, Query
 
 from auth import require_auth
-from admin import require_admin
+from admin import require_admin_data
 from config import USER_FEEDBACK_RATE_LIMIT, get_feature_flag
 from schemas import (
     FeedbackRequest, FeedbackResponse, FeedbackDeleteResponse,
@@ -153,7 +155,7 @@ async def delete_feedback(
 async def feedback_patterns(
     setor_id: Optional[str] = Query(None, description="Filter by sector ID"),
     days: int = Query(30, ge=1, le=365, description="Look-back period in days"),
-    admin=Depends(require_admin),
+    admin=Depends(require_admin_data),
 ):
     """AC6: Admin endpoint for feedback pattern analysis.
 

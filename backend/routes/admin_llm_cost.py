@@ -7,6 +7,8 @@ GET /v1/admin/llm-cost — admin-only JSON snapshot do gasto LLM do mês:
     - projected_end_of_month_usd
     - month (chave Redis usada)
     - exceeded (bool — flag de hard-reject está ativa?)
+
+RBAC Phase 2 (#1954): requires ``admin:observability`` role.
 """
 
 from __future__ import annotations

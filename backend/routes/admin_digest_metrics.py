@@ -10,6 +10,8 @@ so the dashboard works independently of external analytics providers.
 
 Endpoint:
     GET /v1/admin/metrics/digest
+
+RBAC Phase 2 (#1954): requires ``admin:observability`` role.
 """
 
 import logging

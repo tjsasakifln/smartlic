@@ -6,6 +6,8 @@ Retorna a união de dois conjuntos:
 
 Usado por sitemap.ts para excluir thin content do sitemap.
 Público (sem auth). Cache InMemory 24h.
+
+RBAC Phase 2 (#1954): sitemap cache refresh requires ``admin:ops`` role.
 """
 
 import asyncio
@@ -20,7 +22,7 @@ from fastapi import APIRouter, Depends, Response
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 
-from admin import require_admin
+from admin import require_admin_ops
 from metrics import record_sitemap_count
 from routes._sitemap_cache_headers import SITEMAP_CACHE_HEADERS
 from schemas.parity import SitemapCacheRefreshResponse
@@ -135,7 +137,7 @@ async def get_licitacoes_indexable(response: Response):
     summary="Force-refresh sitemap combos cache (admin only)",
     response_model=SitemapCacheRefreshResponse,
 )
-async def refresh_sitemap_cache(_admin=Depends(require_admin)):
+async def refresh_sitemap_cache(_admin=Depends(require_admin_ops)):
     """Clears the 24h in-memory sitemap cache and recomputes indexable combos immediately."""
     global _cache
     _cache = None

@@ -36,10 +36,10 @@ def client():
 def client_with_admin(client):
     """Client com override de admin auth."""
     from startup.app_factory import create_app
-    from admin import require_admin
+    from admin import require_admin_ops
 
     app = create_app()
-    app.dependency_overrides[require_admin] = lambda: {"sub": "admin-user"}
+    app.dependency_overrides[require_admin_ops] = lambda: {"sub": "admin-user"}
     return TestClient(app)
 
 
