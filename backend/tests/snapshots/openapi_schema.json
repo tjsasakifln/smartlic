@@ -7144,6 +7144,172 @@
         "title": "DistribuicaoItem",
         "type": "object"
       },
+      "DocumentoCreate": {
+        "description": "Request body for POST /v1/workspace/documentos.",
+        "properties": {
+          "edital_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Edital Id"
+          },
+          "template_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Template Id"
+          },
+          "tipo": {
+            "title": "Tipo",
+            "type": "string"
+          },
+          "titulo": {
+            "title": "Titulo",
+            "type": "string"
+          }
+        },
+        "required": [
+          "titulo",
+          "tipo"
+        ],
+        "title": "DocumentoCreate",
+        "type": "object"
+      },
+      "DocumentoListResponse": {
+        "description": "Paginated list of user documents.",
+        "properties": {
+          "documentos": {
+            "items": {
+              "$ref": "#/components/schemas/DocumentoResponse"
+            },
+            "title": "Documentos",
+            "type": "array"
+          },
+          "total": {
+            "title": "Total",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "documentos",
+          "total"
+        ],
+        "title": "DocumentoListResponse",
+        "type": "object"
+      },
+      "DocumentoResponse": {
+        "description": "Full document model returned to the frontend.",
+        "properties": {
+          "conteudo": {
+            "title": "Conteudo",
+            "type": "string"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "edital_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Edital Id"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "template_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Template Id"
+          },
+          "tipo": {
+            "title": "Tipo",
+            "type": "string"
+          },
+          "titulo": {
+            "title": "Titulo",
+            "type": "string"
+          },
+          "updated_at": {
+            "format": "date-time",
+            "title": "Updated At",
+            "type": "string"
+          },
+          "user_id": {
+            "title": "User Id",
+            "type": "string"
+          },
+          "variaveis": {
+            "additionalProperties": true,
+            "default": {},
+            "title": "Variaveis",
+            "type": "object"
+          }
+        },
+        "required": [
+          "id",
+          "user_id",
+          "titulo",
+          "conteudo",
+          "tipo",
+          "created_at",
+          "updated_at"
+        ],
+        "title": "DocumentoResponse",
+        "type": "object"
+      },
+      "DocumentoUpdate": {
+        "description": "Request body for PATCH /v1/workspace/documentos/{id}.",
+        "properties": {
+          "conteudo": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Conteudo"
+          },
+          "titulo": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Titulo"
+          }
+        },
+        "title": "DocumentoUpdate",
+        "type": "object"
+      },
       "DossieRequest": {
         "description": "Request parameters for dossie generation.",
         "properties": {
@@ -15630,6 +15796,20 @@
         "title": "RelatorioResponse",
         "type": "object"
       },
+      "RenderDocumentoRequest": {
+        "description": "Request body for POST /v1/workspace/documentos/{id}/render.\n\nFetch edital data from pncp_raw_bids by edital_id and substitute\n{{variavel}} patterns in the document conteudo.",
+        "properties": {
+          "edital_id": {
+            "title": "Edital Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "edital_id"
+        ],
+        "title": "RenderDocumentoRequest",
+        "type": "object"
+      },
       "RenewalAlertItem": {
         "description": "A single contract approaching renewal.",
         "properties": {
@@ -19314,6 +19494,52 @@
           "contracts_count"
         ],
         "title": "TastingWinner",
+        "type": "object"
+      },
+      "TemplateResponse": {
+        "description": "Read-only template model returned to the frontend.",
+        "properties": {
+          "conteudo": {
+            "title": "Conteudo",
+            "type": "string"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "descricao": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Descricao"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "nome": {
+            "title": "Nome",
+            "type": "string"
+          },
+          "tipo": {
+            "title": "Tipo",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "nome",
+          "tipo",
+          "conteudo",
+          "created_at"
+        ],
+        "title": "TemplateResponse",
         "type": "object"
       },
       "TerritorioEntry": {
@@ -38283,6 +38509,363 @@
         ]
       }
     },
+    "/v1/workspace/documentos": {
+      "get": {
+        "description": "List the current user's documents with optional filters.",
+        "operationId": "list_documentos_v1_workspace_documentos_get",
+        "parameters": [
+          {
+            "description": "Filter by document type",
+            "in": "query",
+            "name": "tipo",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Filter by document type",
+              "title": "Tipo"
+            }
+          },
+          {
+            "description": "Filter by edital ID",
+            "in": "query",
+            "name": "edital_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Filter by edital ID",
+              "title": "Edital Id"
+            }
+          },
+          {
+            "description": "Items per page",
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 50,
+              "description": "Items per page",
+              "maximum": 200,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Offset for pagination",
+            "in": "query",
+            "name": "offset",
+            "required": false,
+            "schema": {
+              "default": 0,
+              "description": "Offset for pagination",
+              "minimum": 0,
+              "title": "Offset",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DocumentoListResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Listar documentos do usu\u00e1rio",
+        "tags": [
+          "workspace-documentos"
+        ]
+      },
+      "post": {
+        "description": "Create a new document for the current user.\n\nIf template_id is provided, copies the template content into the new document.\nIf edital_id is provided, pre-populates variaveis from pncp_raw_bids data.",
+        "operationId": "create_documento_v1_workspace_documentos_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DocumentoCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DocumentoResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Criar novo documento",
+        "tags": [
+          "workspace-documentos"
+        ]
+      }
+    },
+    "/v1/workspace/documentos/{documento_id}": {
+      "delete": {
+        "description": "Delete a document by ID (must be owned by the current user).",
+        "operationId": "delete_documento_v1_workspace_documentos__documento_id__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "documento_id",
+            "required": true,
+            "schema": {
+              "title": "Documento Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Delete Documento V1 Workspace Documentos  Documento Id  Delete",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Excluir documento",
+        "tags": [
+          "workspace-documentos"
+        ]
+      },
+      "get": {
+        "description": "Get a single document by ID (must be owned by the current user).",
+        "operationId": "get_documento_v1_workspace_documentos__documento_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "documento_id",
+            "required": true,
+            "schema": {
+              "title": "Documento Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DocumentoResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Obter documento por ID",
+        "tags": [
+          "workspace-documentos"
+        ]
+      },
+      "patch": {
+        "description": "Update document title and/or content (must be owned by the current user).",
+        "operationId": "update_documento_v1_workspace_documentos__documento_id__patch",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "documento_id",
+            "required": true,
+            "schema": {
+              "title": "Documento Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DocumentoUpdate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DocumentoResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Atualizar documento",
+        "tags": [
+          "workspace-documentos"
+        ]
+      }
+    },
+    "/v1/workspace/documentos/{documento_id}/render": {
+      "post": {
+        "description": "Re-render document variables from edital data.\n\nFetches the edital from pncp_raw_bids and substitutes {{variavel}}\npatterns in the document content using the fetched data plus user profile.\nThe updated content is saved to the document.",
+        "operationId": "render_documento_v1_workspace_documentos__documento_id__render_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "documento_id",
+            "required": true,
+            "schema": {
+              "title": "Documento Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RenderDocumentoRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DocumentoResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Renderizar vari\u00e1veis do documento",
+        "tags": [
+          "workspace-documentos"
+        ]
+      }
+    },
     "/v1/workspace/editais-hoje": {
       "get": {
         "description": "Fetch up to 10 procurement opportunities published today.\n\nQueries `pncp_raw_bids` filtered by current date (UTC) via the\n`search_datalake` RPC. Returns an empty list on transient errors\n(fail-open) instead of blocking the workspace page.",
@@ -38334,6 +38917,37 @@
         "summary": "Get Workspace Resumo",
         "tags": [
           "workspace"
+        ]
+      }
+    },
+    "/v1/workspace/templates": {
+      "get": {
+        "description": "List all built-in document templates.\n\nTemplates are read-only and available to all authenticated users.",
+        "operationId": "list_templates_v1_workspace_templates_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/TemplateResponse"
+                  },
+                  "title": "Response List Templates V1 Workspace Templates Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Listar templates de documentos",
+        "tags": [
+          "workspace-documentos"
         ]
       }
     },
