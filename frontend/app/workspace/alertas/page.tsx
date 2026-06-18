@@ -170,6 +170,8 @@ export default function WorkspaceAlertasPage() {
               ? "Tente alterar os filtros para ver mais resultados."
               : "Você ainda não tem alertas. Adicione editais à sua watchlist para começar a receber notificações."
           }
+          ctaLabel="Buscar oportunidades"
+          ctaHref="/buscar"
         />
       )}
 

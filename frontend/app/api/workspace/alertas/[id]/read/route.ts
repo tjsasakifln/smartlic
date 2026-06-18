@@ -3,7 +3,7 @@
  * PATCH /api/workspace/alertas/[id]/read -> PATCH BACKEND_URL/v1/workspace/alertas/{id}/read
  */
 import { NextRequest } from "next/server";
-import { createProxyRoute } from "../../../../../lib/create-proxy-route";
+import { createProxyRoute } from "../../../../../../lib/create-proxy-route";
 
 export const { PATCH } = createProxyRoute({
   backendPath: (request: NextRequest) => {

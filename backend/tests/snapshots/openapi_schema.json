@@ -1158,6 +1158,72 @@
         "title": "AlertaBid",
         "type": "object"
       },
+      "AlertaItem": {
+        "description": "A single alerta item (mirrors user_alerts table).",
+        "properties": {
+          "body": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Body"
+          },
+          "created_at": {
+            "title": "Created At",
+            "type": "string"
+          },
+          "data": {
+            "additionalProperties": true,
+            "title": "Data",
+            "type": "object"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "is_read": {
+            "default": false,
+            "title": "Is Read",
+            "type": "boolean"
+          },
+          "read_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Read At"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          },
+          "type": {
+            "title": "Type",
+            "type": "string"
+          },
+          "user_id": {
+            "title": "User Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "user_id",
+          "type",
+          "title",
+          "created_at"
+        ],
+        "title": "AlertaItem",
+        "type": "object"
+      },
       "AlertaPosicionamento": {
         "description": "Derived positioning alert.",
         "properties": {
@@ -1180,6 +1246,38 @@
           "mensagem"
         ],
         "title": "AlertaPosicionamento",
+        "type": "object"
+      },
+      "AlertaResponse": {
+        "description": "Paginated response for workspace alertas.",
+        "properties": {
+          "alertas": {
+            "items": {
+              "$ref": "#/components/schemas/AlertaItem"
+            },
+            "title": "Alertas",
+            "type": "array"
+          },
+          "limit": {
+            "title": "Limit",
+            "type": "integer"
+          },
+          "offset": {
+            "title": "Offset",
+            "type": "integer"
+          },
+          "total": {
+            "title": "Total",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "alertas",
+          "total",
+          "limit",
+          "offset"
+        ],
+        "title": "AlertaResponse",
         "type": "object"
       },
       "AlertasResponse": {
@@ -6868,154 +6966,6 @@
           "descricao"
         ],
         "title": "EditaisAmostra",
-        "type": "object"
-      },
-      "EditaisHojeItem": {
-        "description": "A single procurement opportunity published today.",
-        "properties": {
-          "data_encerramento": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "description": "Closing date (ISO 8601)",
-            "title": "Data Encerramento"
-          },
-          "data_publicacao": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "description": "Publication date (ISO 8601)",
-            "title": "Data Publicacao"
-          },
-          "link_pncp": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "description": "Full URL to PNCP page",
-            "title": "Link Pncp"
-          },
-          "modalidade": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "description": "Procurement modality code",
-            "title": "Modalidade"
-          },
-          "numero_compra": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "description": "Procurement number / edital number",
-            "title": "Numero Compra"
-          },
-          "objeto": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "description": "Procurement object description",
-            "title": "Objeto"
-          },
-          "orgao": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "description": "Issuing government agency name",
-            "title": "Orgao"
-          },
-          "pncp_id": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "description": "PNCP identifier",
-            "title": "Pncp Id"
-          },
-          "uf": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "description": "State abbreviation (UF)",
-            "title": "Uf"
-          },
-          "valor_estimado": {
-            "anyOf": [
-              {
-                "type": "number"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "description": "Estimated value",
-            "title": "Valor Estimado"
-          }
-        },
-        "title": "EditaisHojeItem",
-        "type": "object"
-      },
-      "EditaisHojeResponse": {
-        "description": "Response wrapper for today's procurement opportunities.",
-        "properties": {
-          "items": {
-            "description": "List of today's opportunities",
-            "items": {
-              "$ref": "#/components/schemas/EditaisHojeItem"
-            },
-            "title": "Items",
-            "type": "array"
-          },
-          "total": {
-            "default": 0,
-            "description": "Total count of items returned",
-            "title": "Total",
-            "type": "integer"
-          }
-        },
-        "title": "EditaisHojeResponse",
         "type": "object"
       },
       "EmpresaInfo": {
@@ -19128,134 +19078,6 @@
         "title": "TimeSeriesDataPoint",
         "type": "object"
       },
-      "TimelineEvento": {
-        "description": "A single timeline event for an edital.",
-        "properties": {
-          "created_at": {
-            "title": "Created At",
-            "type": "string"
-          },
-          "critico": {
-            "default": false,
-            "title": "Critico",
-            "type": "boolean"
-          },
-          "descricao": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Descricao"
-          },
-          "edital_id": {
-            "title": "Edital Id",
-            "type": "string"
-          },
-          "id": {
-            "title": "Id",
-            "type": "string"
-          },
-          "metadata": {
-            "additionalProperties": true,
-            "title": "Metadata",
-            "type": "object"
-          },
-          "tipo": {
-            "title": "Tipo",
-            "type": "string"
-          },
-          "titulo": {
-            "title": "Titulo",
-            "type": "string"
-          },
-          "user_id": {
-            "title": "User Id",
-            "type": "string"
-          }
-        },
-        "required": [
-          "id",
-          "edital_id",
-          "user_id",
-          "tipo",
-          "titulo",
-          "created_at"
-        ],
-        "title": "TimelineEvento",
-        "type": "object"
-      },
-      "TimelineEventoCreate": {
-        "description": "Request body to create a manual timeline event.\n\nOnly 'nota_manual' and 'lembrete' tipos are allowed via user creation.",
-        "properties": {
-          "descricao": {
-            "anyOf": [
-              {
-                "maxLength": 5000,
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "description": "Descri\u00e7\u00e3o detalhada do evento (opcional)",
-            "title": "Descricao"
-          },
-          "tipo": {
-            "description": "Tipo do evento: nota_manual ou lembrete",
-            "title": "Tipo",
-            "type": "string"
-          },
-          "titulo": {
-            "description": "T\u00edtulo descritivo do evento",
-            "maxLength": 500,
-            "minLength": 1,
-            "title": "Titulo",
-            "type": "string"
-          }
-        },
-        "required": [
-          "tipo",
-          "titulo"
-        ],
-        "title": "TimelineEventoCreate",
-        "type": "object"
-      },
-      "TimelineResponse": {
-        "description": "Paginated timeline event list.",
-        "properties": {
-          "eventos": {
-            "items": {
-              "$ref": "#/components/schemas/TimelineEvento"
-            },
-            "title": "Eventos",
-            "type": "array"
-          },
-          "limit": {
-            "title": "Limit",
-            "type": "integer"
-          },
-          "offset": {
-            "title": "Offset",
-            "type": "integer"
-          },
-          "total": {
-            "title": "Total",
-            "type": "integer"
-          }
-        },
-        "required": [
-          "eventos",
-          "total",
-          "limit",
-          "offset"
-        ],
-        "title": "TimelineResponse",
-        "type": "object"
-      },
       "TopComprador": {
         "properties": {
           "cnpj": {
@@ -20994,6 +20816,109 @@
         "title": "VerifyRecoveryResponse",
         "type": "object"
       },
+      "WatchlistCreate": {
+        "description": "Request body for adding an edital to the watchlist.",
+        "properties": {
+          "edital_id": {
+            "description": "PNCP ID or source identifier",
+            "title": "Edital Id",
+            "type": "string"
+          },
+          "keywords": {
+            "description": "Keywords extras",
+            "items": {
+              "type": "string"
+            },
+            "title": "Keywords",
+            "type": "array"
+          },
+          "setor": {
+            "default": "",
+            "description": "Setor para alert matching",
+            "title": "Setor",
+            "type": "string"
+          },
+          "uf": {
+            "default": "",
+            "description": "Estado (UF) da licita\u00e7\u00e3o",
+            "title": "Uf",
+            "type": "string"
+          }
+        },
+        "required": [
+          "edital_id"
+        ],
+        "title": "WatchlistCreate",
+        "type": "object"
+      },
+      "WatchlistItem": {
+        "description": "A single watchlist entry.",
+        "properties": {
+          "created_at": {
+            "title": "Created At",
+            "type": "string"
+          },
+          "edital_id": {
+            "title": "Edital Id",
+            "type": "string"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "keywords": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Keywords",
+            "type": "array"
+          },
+          "setor": {
+            "default": "",
+            "title": "Setor",
+            "type": "string"
+          },
+          "uf": {
+            "default": "",
+            "title": "Uf",
+            "type": "string"
+          },
+          "user_id": {
+            "title": "User Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "user_id",
+          "edital_id",
+          "created_at"
+        ],
+        "title": "WatchlistItem",
+        "type": "object"
+      },
+      "WatchlistResponse": {
+        "description": "List of watchlist items.",
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/WatchlistItem"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "total": {
+            "title": "Total",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "items",
+          "total"
+        ],
+        "title": "WatchlistResponse",
+        "type": "object"
+      },
       "WebhookChannel": {
         "description": "Supported notification channels.",
         "enum": [
@@ -21542,37 +21467,6 @@
           }
         },
         "title": "WinMetrics",
-        "type": "object"
-      },
-      "WorkspaceResumo": {
-        "description": "Aggregated summary for the workspace dashboard.",
-        "properties": {
-          "alerts_unread_count": {
-            "default": 0,
-            "description": "Number of unread user alerts",
-            "title": "Alerts Unread Count",
-            "type": "integer"
-          },
-          "editais_hoje_count": {
-            "default": 0,
-            "description": "Number of procurement opportunities published today",
-            "title": "Editais Hoje Count",
-            "type": "integer"
-          },
-          "pipeline_count": {
-            "default": 0,
-            "description": "Number of items in the user's pipeline",
-            "title": "Pipeline Count",
-            "type": "integer"
-          },
-          "pipeline_prazo_proximo": {
-            "default": 0,
-            "description": "Number of pipeline items with deadlines within 7 days",
-            "title": "Pipeline Prazo Proximo",
-            "type": "integer"
-          }
-        },
-        "title": "WorkspaceResumo",
         "type": "object"
       },
       "_LivenessResponse": {
@@ -37210,78 +37104,42 @@
         ]
       }
     },
-    "/v1/workspace/editais-hoje": {
+    "/v1/workspace/alertas": {
       "get": {
-        "description": "Fetch up to 10 procurement opportunities published today.\n\nQueries `pncp_raw_bids` filtered by current date (UTC) via the\n`search_datalake` RPC. Returns an empty list on transient errors\n(fail-open) instead of blocking the workspace page.",
-        "operationId": "get_editais_hoje_v1_workspace_editais_hoje_get",
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/EditaisHojeResponse"
-                }
-              }
-            },
-            "description": "Successful Response"
-          }
-        },
-        "security": [
-          {
-            "HTTPBearer": []
-          }
-        ],
-        "summary": "Get Editais Hoje",
-        "tags": [
-          "workspace"
-        ]
-      }
-    },
-    "/v1/workspace/resumo": {
-      "get": {
-        "description": "Aggregated counts for the workspace dashboard widgets.\n\nReturns the number of:\n  - editais published today\n  - pipeline items belonging to the user\n  - pipeline items with deadlines within 7 days\n  - unread alerts\n\nAll sources fail-open: transient errors return 0 for that counter\ninstead of failing the entire response.",
-        "operationId": "get_workspace_resumo_v1_workspace_resumo_get",
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/WorkspaceResumo"
-                }
-              }
-            },
-            "description": "Successful Response"
-          }
-        },
-        "security": [
-          {
-            "HTTPBearer": []
-          }
-        ],
-        "summary": "Get Workspace Resumo",
-        "tags": [
-          "workspace"
-        ]
-      }
-    },
-    "/v1/workspace/timeline/{edital_id}": {
-      "get": {
-        "description": "Retorna eventos cronol\u00f3gicos de um edital em ordem DESC. Suporta filtros por tipo_evento, data_inicio, data_fim, critico. Pagina\u00e7\u00e3o via limit (default 50, max 200) e offset.",
-        "operationId": "list_timeline_eventos_v1_workspace_timeline__edital_id__get",
+        "description": "List workspace alerts with pagination and optional filters.\n\nFilters:\n  - tipo: event type (new_matching_edital, deadline_approaching, etc.)\n  - data_inicio / data_fim: date range filter\n  - lido: true/false to filter by read status",
+        "operationId": "list_alertas_v1_workspace_alertas_get",
         "parameters": [
           {
-            "in": "path",
-            "name": "edital_id",
-            "required": true,
+            "description": "Items per page",
+            "in": "query",
+            "name": "limit",
+            "required": false,
             "schema": {
-              "title": "Edital Id",
-              "type": "string"
+              "default": 20,
+              "description": "Items per page",
+              "maximum": 100,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
             }
           },
           {
-            "description": "Filtrar por tipo de evento (ex: publicacao, alteracao)",
+            "description": "Offset for pagination",
             "in": "query",
-            "name": "tipo_evento",
+            "name": "offset",
+            "required": false,
+            "schema": {
+              "default": 0,
+              "description": "Offset for pagination",
+              "minimum": 0,
+              "title": "Offset",
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Filter by event type",
+            "in": "query",
+            "name": "type",
             "required": false,
             "schema": {
               "anyOf": [
@@ -37292,12 +37150,12 @@
                   "type": "null"
                 }
               ],
-              "description": "Filtrar por tipo de evento (ex: publicacao, alteracao)",
-              "title": "Tipo Evento"
+              "description": "Filter by event type",
+              "title": "Type"
             }
           },
           {
-            "description": "Filtrar eventos a partir desta data (ISO 8601)",
+            "description": "Start date filter (ISO 8601)",
             "in": "query",
             "name": "data_inicio",
             "required": false,
@@ -37310,12 +37168,12 @@
                   "type": "null"
                 }
               ],
-              "description": "Filtrar eventos a partir desta data (ISO 8601)",
+              "description": "Start date filter (ISO 8601)",
               "title": "Data Inicio"
             }
           },
           {
-            "description": "Filtrar eventos at\u00e9 esta data (ISO 8601)",
+            "description": "End date filter (ISO 8601)",
             "in": "query",
             "name": "data_fim",
             "required": false,
@@ -37328,14 +37186,14 @@
                   "type": "null"
                 }
               ],
-              "description": "Filtrar eventos at\u00e9 esta data (ISO 8601)",
+              "description": "End date filter (ISO 8601)",
               "title": "Data Fim"
             }
           },
           {
-            "description": "Filtrar apenas eventos cr\u00edticos",
+            "description": "Filter by read status (true=read, false=unread)",
             "in": "query",
-            "name": "critico",
+            "name": "status",
             "required": false,
             "schema": {
               "anyOf": [
@@ -37346,35 +37204,8 @@
                   "type": "null"
                 }
               ],
-              "description": "Filtrar apenas eventos cr\u00edticos",
-              "title": "Critico"
-            }
-          },
-          {
-            "description": "N\u00famero m\u00e1ximo de eventos por p\u00e1gina",
-            "in": "query",
-            "name": "limit",
-            "required": false,
-            "schema": {
-              "default": 50,
-              "description": "N\u00famero m\u00e1ximo de eventos por p\u00e1gina",
-              "maximum": 200,
-              "minimum": 1,
-              "title": "Limit",
-              "type": "integer"
-            }
-          },
-          {
-            "description": "Offset para pagina\u00e7\u00e3o",
-            "in": "query",
-            "name": "offset",
-            "required": false,
-            "schema": {
-              "default": 0,
-              "description": "Offset para pagina\u00e7\u00e3o",
-              "minimum": 0,
-              "title": "Offset",
-              "type": "integer"
+              "description": "Filter by read status (true=read, false=unread)",
+              "title": "Status"
             }
           }
         ],
@@ -37383,7 +37214,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/TimelineResponse"
+                  "$ref": "#/components/schemas/AlertaResponse"
                 }
               }
             },
@@ -37405,45 +37236,132 @@
             "HTTPBearer": []
           }
         ],
-        "summary": "Listar eventos da timeline de um edital",
+        "summary": "List Alertas",
         "tags": [
-          "workspace-timeline"
+          "workspace"
         ]
       }
     },
-    "/v1/workspace/timeline/{edital_id}/evento": {
-      "post": {
-        "description": "Cria um evento manual na timeline do edital. Apenas tipos 'nota_manual' e 'lembrete' s\u00e3o permitidos.",
-        "operationId": "create_timeline_evento_v1_workspace_timeline__edital_id__evento_post",
+    "/v1/workspace/alertas/unread-count": {
+      "get": {
+        "description": "Get the count of unread alerts for the badge in the UI.",
+        "operationId": "unread_count_v1_workspace_alertas_unread_count_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/schemas__alerts_b2gops__UnreadCountResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Unread Count",
+        "tags": [
+          "workspace"
+        ]
+      }
+    },
+    "/v1/workspace/alertas/{alert_id}/read": {
+      "patch": {
+        "description": "Mark a single alert as read.",
+        "operationId": "mark_read_v1_workspace_alertas__alert_id__read_patch",
         "parameters": [
           {
             "in": "path",
-            "name": "edital_id",
+            "name": "alert_id",
             "required": true,
             "schema": {
-              "title": "Edital Id",
+              "title": "Alert Id",
               "type": "string"
             }
           }
         ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AlertaItem"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Mark Read",
+        "tags": [
+          "workspace"
+        ]
+      }
+    },
+    "/v1/workspace/watchlist": {
+      "get": {
+        "description": "List all editais in the user's workspace watchlist.",
+        "operationId": "list_watchlist_v1_workspace_watchlist_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WatchlistResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "List Watchlist",
+        "tags": [
+          "workspace"
+        ]
+      },
+      "post": {
+        "description": "Add an edital to the user's workspace watchlist.\n\nIf the same edital_id already exists for this user, returns\nthe existing entry (idempotent).",
+        "operationId": "add_to_watchlist_v1_workspace_watchlist_post",
         "requestBody": {
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/TimelineEventoCreate"
+                "$ref": "#/components/schemas/WatchlistCreate"
               }
             }
           },
           "required": true
         },
         "responses": {
-          "201": {
+          "200": {
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "title": "Response Create Timeline Evento V1 Workspace Timeline  Edital Id  Evento Post",
-                  "type": "object"
+                  "$ref": "#/components/schemas/WatchlistItem"
                 }
               }
             },
@@ -37465,9 +37383,57 @@
             "HTTPBearer": []
           }
         ],
-        "summary": "Criar evento manual na timeline",
+        "summary": "Add To Watchlist",
         "tags": [
-          "workspace-timeline"
+          "workspace"
+        ]
+      }
+    },
+    "/v1/workspace/watchlist/{watchlist_id}": {
+      "delete": {
+        "description": "Remove an edital from the user's workspace watchlist.",
+        "operationId": "remove_from_watchlist_v1_workspace_watchlist__watchlist_id__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "watchlist_id",
+            "required": true,
+            "schema": {
+              "title": "Watchlist Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SuccessMessageResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Remove From Watchlist",
+        "tags": [
+          "workspace"
         ]
       }
     },
