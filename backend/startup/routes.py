@@ -120,8 +120,9 @@ from routes.csp_report import router as csp_report_router
 from routes.alerts_b2gops import router as alerts_b2gops_router
 from routes.admin_outgoing_webhooks import router as admin_outgoing_webhooks_router
 from routes.admin_audit_log import router as admin_audit_log_router
+from routes.admin_rate_limits import router as admin_rate_limits_router
 _v1_routers = [
-    admin_router, subscriptions_router, upgrade_to_lifetime_router,
+    admin_router, admin_rate_limits_router, subscriptions_router, upgrade_to_lifetime_router,
     features_router, messages_router,
     analytics_router, oauth_router, export_sheets_router,
     search_router, user_router, billing_router, sessions_router, plans_router,

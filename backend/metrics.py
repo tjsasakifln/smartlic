@@ -268,6 +268,20 @@ RATE_LIMIT_DECISIONS_TOTAL = _create_counter(
     labelnames=["tier", "decision"],
 )
 
+# Issue #1973: Granular rate limit decisions per tier + endpoint + outcome
+GRANULAR_RATE_LIMIT_DECISIONS_TOTAL = _create_counter(
+    "smartlic_granular_rate_limit_decisions_total",
+    "Issue #1973: Granular rate limit decisions by tier, endpoint, and outcome (allow|throttle)",
+    labelnames=["tier", "endpoint", "decision"],
+)
+
+# Issue #1973: Granular rate limit exceeded events per tier + endpoint
+GRANULAR_RATE_LIMIT_EXCEEDED_TOTAL = _create_counter(
+    "smartlic_granular_rate_limit_exceeded_total",
+    "Issue #1973: Granular rate limit exceeded (429) by tier and endpoint",
+    labelnames=["tier", "endpoint"],
+)
+
 # STORY-2.11 (EPIC-TD-2026Q2 P0): LLM monthly budget metrics
 LLM_BUDGET_USD_MTD = _create_gauge(
     "smartlic_llm_budget_usd_mtd",

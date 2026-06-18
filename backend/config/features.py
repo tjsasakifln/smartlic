@@ -313,6 +313,10 @@ _FEATURE_FLAG_REGISTRY: dict[str, tuple[str, str]] = {
     # --- Infra ---
     "METRICS_ENABLED": ("METRICS_ENABLED", "true"),
     "RATE_LIMITING_ENABLED": ("RATE_LIMITING_ENABLED", "true"),
+    # Issue #1973: Granular rate limiting per endpoint and tier
+    # When enabled, replaces global token bucket with per-endpoint + per-tier limits.
+    # Default: false for progressive rollout.
+    "RATE_LIMIT_PER_ENDPOINT_ENABLED": ("RATE_LIMIT_PER_ENDPOINT_ENABLED", "false"),
     "USER_FEEDBACK_ENABLED": ("USER_FEEDBACK_ENABLED", "true"),
     "USE_REDIS_CIRCUIT_BREAKER": ("USE_REDIS_CIRCUIT_BREAKER", "true"),
     "COMPRASGOV_CB_ENABLED": ("COMPRASGOV_CB_ENABLED", "true"),
