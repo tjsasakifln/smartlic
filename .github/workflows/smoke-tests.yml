@@ -47,7 +47,7 @@ jobs:
       - name: Liveness probe
         run: |
           echo "=== GET /health/live ==="
-          HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" "${BACKEND_URL}/health/live" 2>&1 || echo "000")
+          HTTP_CODE=$(curl -s --max-time 90 --connect-timeout 30 -o /dev/null -w "%{http_code}" "${BACKEND_URL}/health/live" 2>&1 || echo "000")
           echo "HTTP $HTTP_CODE"
           if [ "$HTTP_CODE" != "200" ]; then
             echo "::error::Liveness probe failed (HTTP $HTTP_CODE)"
@@ -57,7 +57,7 @@ jobs:
       - name: Readiness probe
         run: |
           echo "=== GET /health/ready ==="
-          HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" "${BACKEND_URL}/health/ready" 2>&1 || echo "000")
+          HTTP_CODE=$(curl -s --max-time 90 --connect-timeout 30 -o /dev/null -w "%{http_code}" "${BACKEND_URL}/health/ready" 2>&1 || echo "000")
           echo "HTTP $HTTP_CODE"
           if [ "$HTTP_CODE" != "200" ]; then
             echo "::warning::Readiness probe returned HTTP $HTTP_CODE (may be degraded, not blocking)"
@@ -66,7 +66,7 @@ jobs:
       - name: OpenAPI schema accessible
         run: |
           echo "=== GET /openapi.json ==="
-          HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" "${BACKEND_URL}/openapi.json" 2>&1 || echo "000")
+          HTTP_CODE=$(curl -s --max-time 90 --connect-timeout 30 -o /dev/null -w "%{http_code}" "${BACKEND_URL}/openapi.json" 2>&1 || echo "000")
           echo "HTTP $HTTP_CODE"
           if [ "$HTTP_CODE" != "200" ]; then
             echo "::error::OpenAPI schema not accessible (HTTP $HTTP_CODE)"
@@ -76,7 +76,7 @@ jobs:
       - name: POST buscar endpoint — not returning 5xx
         run: |
           echo "=== POST /v1/buscar (smoke) ==="
-          HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" -X POST \
+          HTTP_CODE=$(curl -s --max-time 90 --connect-timeout 30 -o /dev/null -w "%{http_code}" -X POST \
             "${BACKEND_URL}/v1/buscar" \
             -H "Content-Type: application/json" \
             -d '{"ufs":["SP"],"data_inicial":"2026-01-20","data_final":"2026-01-27"}' \
