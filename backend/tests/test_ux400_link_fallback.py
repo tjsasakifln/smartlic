@@ -52,7 +52,8 @@ class TestBuildPncpLink:
         assert result == "https://pncp.gov.br/app/editais/99999999000100/2025/3"
 
     def test_prefers_link_sistema_origem_over_fallbacks(self):
-        """linkSistemaOrigem takes priority over all fallbacks."""
+        """HOTFIX 2026-06-17: PNCP URL from numeroControlePNCP now takes priority
+        over linkSistemaOrigem (which points to ComprasNet, not PNCP)."""
         lic = {
             "linkSistemaOrigem": "https://original.com/edital",
             "numeroControlePNCP": "11111111000100-1-000001/2026",
@@ -60,7 +61,8 @@ class TestBuildPncpLink:
             "anoCompra": "2026",
             "sequencialCompra": "1",
         }
-        assert _build_pncp_link(lic) == "https://original.com/edital"
+        # Priority 1 (numeroControlePNCP) wins over priority 3 (linkSistemaOrigem)
+        assert _build_pncp_link(lic) == "https://pncp.gov.br/app/editais/11111111000100/2026/1"
 
     def test_prefers_numero_controle_over_cnpj_fields(self):
         """numeroControlePNCP takes priority over cnpjOrgao/anoCompra/sequencialCompra."""

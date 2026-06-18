@@ -212,41 +212,56 @@ def create_excel(licitacoes: list[dict], paywall_preview: bool = False, total_be
         ws.cell(row=row_idx, column=10, value=sanitize_for_excel(lic.get("situacaoCompraNome")))
 
         # K: Link (hyperlink)
-        # CRIT-FLT-008: linkSistemaOrigem (86% populated) > linkProcessoEletronico (0% — dead field) > fallback PNCP
-        link = lic.get("linkSistemaOrigem") or lic.get("linkProcessoEletronico")
+        # HOTFIX 2026-06-17: PNCP API's linkSistemaOrigem points to ComprasNet
+        # (cnetmobile.estaleiro.serpro.gov.br), NOT pncp.gov.br. ComprasNet links
+        # often fail or require auth. We now prioritize constructing the PNCP URL
+        # from structured fields.
+        # Priority: numeroControlePNCP > cnpjOrgao/anoCompra/sequencialCompra >
+        # linkSistemaOrigem > linkProcessoEletronico
+        link = None
 
-        # Fallback: construir URL do PNCP a partir do numeroControlePNCP
+        # Priority 1: Construir URL do PNCP a partir do numeroControlePNCP
         # Formato numeroControlePNCP: {CNPJ}-{TIPO}-{SEQUENCIAL}/{ANO}
         # Formato URL PNCP: /editais/{CNPJ}/{ANO}/{SEQUENCIAL_SEM_ZEROS}
-        if not link:
-            numero_controle = lic.get("numeroControlePNCP", "")
-            if numero_controle:
-                try:
-                    # Parse: "67366310000103-1-000189/2025" -> cnpj=67366310000103, ano=2025, seq=189
-                    partes = numero_controle.split("/")
-                    if len(partes) != 2:
-                        raise ValueError("Formato inválido: esperado 'xxx/ano'")
-
+        numero_controle = lic.get("numeroControlePNCP", "")
+        q_fallback = None  # last-resort search URL when parsing fails
+        if numero_controle:
+            try:
+                # Parse: "67366310000103-1-000189/2025" -> cnpj=67366310000103, ano=2025, seq=189
+                partes = numero_controle.split("/")
+                if len(partes) == 2:
                     ano = partes[1]
                     cnpj_tipo_seq = partes[0].split("-")
 
-                    if len(cnpj_tipo_seq) < 3:
-                        raise ValueError("Formato inválido: esperado 'cnpj-tipo-seq'")
+                    if len(cnpj_tipo_seq) >= 3:
+                        cnpj = cnpj_tipo_seq[0]
+                        sequencial = cnpj_tipo_seq[2].lstrip("0")
 
-                    cnpj = cnpj_tipo_seq[0]
-                    sequencial = cnpj_tipo_seq[2].lstrip("0")
+                        if cnpj and ano and sequencial:
+                            link = f"https://pncp.gov.br/app/editais/{cnpj}/{ano}/{sequencial}"
+                if not link:
+                    q_fallback = f"https://pncp.gov.br/app/editais?q={numero_controle}"
+            except (IndexError, AttributeError, ValueError):
+                q_fallback = f"https://pncp.gov.br/app/editais?q={numero_controle}"
 
-                    if cnpj and ano and sequencial:
-                        link = f"https://pncp.gov.br/app/editais/{cnpj}/{ano}/{sequencial}"
-                    else:
-                        raise ValueError("Componentes vazios após parsing")
+        # Priority 2: Construir URL do PNCP a partir de cnpjOrgao/anoCompra/sequencialCompra
+        if not link:
+            cnpj = lic.get("cnpjOrgao", "")
+            ano = lic.get("anoCompra", "")
+            seq = lic.get("sequencialCompra", "")
+            if cnpj and ano and seq:
+                link = f"https://pncp.gov.br/app/editais/{cnpj}/{ano}/{seq}"
 
-                except (IndexError, AttributeError, ValueError):
-                    # Se parsing falhar, usar busca genérica
-                    link = f"https://pncp.gov.br/app/editais?q={numero_controle}"
+        # Priority 3: Fallback para linkSistemaOrigem (pode apontar para ComprasNet)
+        if not link:
+            link = lic.get("linkSistemaOrigem")
+
+        # Priority 4: Fallback para linkProcessoEletronico
+        if not link:
+            link = lic.get("linkProcessoEletronico")
 
         link_cell = ws.cell(row=row_idx, column=11, value="Abrir")
-        link_cell.hyperlink = link or "https://pncp.gov.br/app/editais"
+        link_cell.hyperlink = link or q_fallback or "https://pncp.gov.br/app/editais"
         link_cell.font = Font(color="0563C1", underline="single")
 
         # Aplicar bordas e alinhamento em todas as células da linha
