@@ -13,7 +13,7 @@
 #   (a) GET  /health/live      → 200 (liveness)
 #   (b) GET  /health/ready     → 200 (readiness)
 #   (c) GET  /v1/sectors       → 200 (public sectors)
-#   (d) GET  /observatorio     → 200 (frontend ISR page)
+#   (d) GET  /observatorio/    → 200 (frontend ISR page)
 #   (e) GET  /v1/plans         → 200 (plans)
 #   (f) Redis ping             → PONG (if redis-cli or python3+redis available)
 #   (g) Supabase connect       → OK (if supabase CLI available)
@@ -203,8 +203,9 @@ check_http_200 "(b) Readiness probe" "${API_URL}/health/ready"
 # (c) /v1/sectors
 check_http_200 "(c) Public sectors"  "${API_URL}/v1/sectors"
 
-# (d) /observatorio (frontend ISR page)
-check_http_200 "(d) ISR page"        "${FRONTEND_URL}/observatorio"
+# (d) /observatorio/ (frontend ISR page)
+# Trailing slash required — Next.js redirects /observatorio → /observatorio/ (301)
+check_http_200 "(d) ISR page"        "${FRONTEND_URL}/observatorio/"
 
 # (e) /v1/plans
 check_http_200 "(e) Plans"           "${API_URL}/v1/plans"
