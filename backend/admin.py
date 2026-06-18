@@ -64,7 +64,7 @@ from log_sanitizer import sanitize_dict, log_admin_action, log_admin_action_db
 from authorization import require_data_access, require_user_manager  # noqa: F401 — kept for backward compat
 from rbac_granular import (
     require_admin_role, require_admin_users, require_admin_billing,
-    require_admin_data, require_admin_ops, require_admin_seo,
+    require_admin_data, require_admin_ops, require_admin_seo,  # noqa: F401 — kept for backward compat
 )
 from filter.stats import filter_stats_tracker
 
