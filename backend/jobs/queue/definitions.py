@@ -12,6 +12,7 @@ from jobs.queue.jobs import (  # noqa: F401
     daily_digest_job, email_alerts_job,
     reclassify_pending_bids_job, classify_zero_match_job,
     send_founders_welcome,
+    send_outgoing_webhook,
 )
 from jobs.cron.send_lead_magnet import (  # noqa: F401
     send_lead_magnet_job,

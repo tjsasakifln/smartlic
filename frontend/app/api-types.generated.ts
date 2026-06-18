@@ -2064,6 +2064,41 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/admin/webhook-deliveries": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Webhook Deliveries
+         * @description List outgoing webhook deliveries.
+         *
+         *     Supports optional filtering by ``status`` and/or ``channel``.
+         *     Results are sorted by ``created_at`` descending (most recent first).
+         *
+         *     Returns::
+         *
+         *         {
+         *             "status": "ok",
+         *             "queried_at": "2026-06-17T12:00:00+00:00",
+         *             "count": N,
+         *             "entries": [...]
+         *         }
+         *
+         *     When Supabase is unreachable the response carries ``status="error"``
+         *     and an empty ``entries`` list.
+         */
+        get: operations["get_webhook_deliveries_v1_admin_webhook_deliveries_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/alertas/{setor_id}/uf/{uf}": {
         parameters: {
             query?: never;
@@ -20055,6 +20090,44 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["RevokeSessionsResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_webhook_deliveries_v1_admin_webhook_deliveries_get: {
+        parameters: {
+            query?: {
+                /** @description Filter by status: pending, delivered, failed, cancelled */
+                status?: string | null;
+                /** @description Filter by channel: slack, teams, email */
+                channel?: string | null;
+                /** @description Max entries to return */
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
                 };
             };
             /** @description Validation Error */

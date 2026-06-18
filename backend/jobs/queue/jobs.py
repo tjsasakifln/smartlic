@@ -1274,3 +1274,61 @@ async def send_post_purchase_step(ctx: dict, sequence_id: str, step_index: int) 
         "sequence_status": new_status,
         "duration_s": round(duration, 2),
     }
+
+
+# ============================================================================
+# Issue #1959: Outgoing webhook delivery job
+# ============================================================================
+
+
+@traced_job()
+async def send_outgoing_webhook(ctx: dict, *args, **kwargs) -> dict:
+    """ARQ job: Process pending outgoing webhook deliveries.
+
+    Queries the ``outgoing_webhook_deliveries`` table for pending records
+    whose ``next_retry_at <= now()`` and attempts delivery with exponential
+    backoff (1s, 5s, 25s, 125s, max 3 retries).
+
+    This job is designed to run on every ARQ worker tick (no cron schedule)
+    by enqueuing it from a lightweight cron or from the webhook enqueue path.
+
+    Returns summary dict with ``processed``, ``delivered``, ``failed``,
+    ``exhausted`` counts.
+    """
+    import time as _time
+    start = _time.monotonic()
+
+    try:
+        from webhooks.outgoing import process_pending_deliveries
+
+        summary = await process_pending_deliveries(limit=50)
+        duration = _time.monotonic() - start
+
+        logger.info(
+            "send_outgoing_webhook: processed=%d delivered=%d failed=%d "
+            "exhausted=%d duration=%.2fs",
+            summary.get("processed", 0),
+            summary.get("delivered", 0),
+            summary.get("failed", 0),
+            summary.get("exhausted", 0),
+            duration,
+        )
+
+        return {
+            "status": "completed",
+            **summary,
+            "duration_s": round(duration, 2),
+        }
+
+    except Exception as exc:
+        duration = _time.monotonic() - start
+        logger.error("send_outgoing_webhook failed after %.2fs: %s", duration, exc)
+        return {
+            "status": "error",
+            "processed": 0,
+            "delivered": 0,
+            "failed": 0,
+            "exhausted": 0,
+            "error": str(exc)[:500],
+            "duration_s": round(duration, 2),
+        }
