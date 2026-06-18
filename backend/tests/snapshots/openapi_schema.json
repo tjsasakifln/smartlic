@@ -3545,6 +3545,234 @@
         "title": "CapacitySignals",
         "type": "object"
       },
+      "CentroGuerraConcorrente": {
+        "description": "A competitor supplier that has contracts with the same orgao.",
+        "properties": {
+          "cnpj": {
+            "default": "",
+            "title": "Cnpj",
+            "type": "string"
+          },
+          "nome": {
+            "default": "N/D",
+            "title": "Nome",
+            "type": "string"
+          },
+          "numero_contratos": {
+            "default": 0,
+            "title": "Numero Contratos",
+            "type": "integer"
+          },
+          "valor_total_contratado": {
+            "default": 0.0,
+            "title": "Valor Total Contratado",
+            "type": "number"
+          }
+        },
+        "title": "CentroGuerraConcorrente",
+        "type": "object"
+      },
+      "CentroGuerraPassosResponse": {
+        "description": "Response after updating/customizing next steps.",
+        "properties": {
+          "edital_id": {
+            "title": "Edital Id",
+            "type": "string"
+          },
+          "passos": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Passos",
+            "type": "array"
+          }
+        },
+        "required": [
+          "edital_id",
+          "passos"
+        ],
+        "title": "CentroGuerraPassosResponse",
+        "type": "object"
+      },
+      "CentroGuerraProximoPassoRequest": {
+        "description": "User customization of next steps for a bid.",
+        "properties": {
+          "passos": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Passos",
+            "type": "array"
+          }
+        },
+        "required": [
+          "passos"
+        ],
+        "title": "CentroGuerraProximoPassoRequest",
+        "type": "object"
+      },
+      "CentroGuerraResponse": {
+        "description": "Consolidated view of a single procurement opportunity.",
+        "properties": {
+          "concorrentes": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/CentroGuerraConcorrente"
+            },
+            "title": "Concorrentes",
+            "type": "array"
+          },
+          "data_abertura": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Data Abertura"
+          },
+          "data_publicacao": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Data Publicacao"
+          },
+          "edital_id": {
+            "title": "Edital Id",
+            "type": "string"
+          },
+          "modalidade": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Modalidade"
+          },
+          "na_watchlist": {
+            "default": false,
+            "title": "Na Watchlist",
+            "type": "boolean"
+          },
+          "numero": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Numero"
+          },
+          "objeto": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Objeto"
+          },
+          "orgao_nome": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Orgao Nome"
+          },
+          "proximos_passos": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Proximos Passos",
+            "type": "array"
+          },
+          "status": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Status"
+          },
+          "uf": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Uf"
+          },
+          "valor_estimado": {
+            "anyOf": [
+              {
+                "minimum": 0.0,
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Valor Estimado"
+          },
+          "viabilidade_fatores": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Viabilidade Fatores"
+          },
+          "viabilidade_score": {
+            "anyOf": [
+              {
+                "maximum": 100.0,
+                "minimum": 0.0,
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Viabilidade Score"
+          }
+        },
+        "required": [
+          "edital_id"
+        ],
+        "title": "CentroGuerraResponse",
+        "type": "object"
+      },
       "CheckEmailResponse": {
         "additionalProperties": true,
         "description": "STORY-258 AC15: Pre-signup email validation response.",
@@ -6966,6 +7194,154 @@
           "descricao"
         ],
         "title": "EditaisAmostra",
+        "type": "object"
+      },
+      "EditaisHojeItem": {
+        "description": "A single procurement opportunity published today.",
+        "properties": {
+          "data_encerramento": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Closing date (ISO 8601)",
+            "title": "Data Encerramento"
+          },
+          "data_publicacao": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Publication date (ISO 8601)",
+            "title": "Data Publicacao"
+          },
+          "link_pncp": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Full URL to PNCP page",
+            "title": "Link Pncp"
+          },
+          "modalidade": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Procurement modality code",
+            "title": "Modalidade"
+          },
+          "numero_compra": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Procurement number / edital number",
+            "title": "Numero Compra"
+          },
+          "objeto": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Procurement object description",
+            "title": "Objeto"
+          },
+          "orgao": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Issuing government agency name",
+            "title": "Orgao"
+          },
+          "pncp_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "PNCP identifier",
+            "title": "Pncp Id"
+          },
+          "uf": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "State abbreviation (UF)",
+            "title": "Uf"
+          },
+          "valor_estimado": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Estimated value",
+            "title": "Valor Estimado"
+          }
+        },
+        "title": "EditaisHojeItem",
+        "type": "object"
+      },
+      "EditaisHojeResponse": {
+        "description": "Response wrapper for today's procurement opportunities.",
+        "properties": {
+          "items": {
+            "description": "List of today's opportunities",
+            "items": {
+              "$ref": "#/components/schemas/EditaisHojeItem"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "total": {
+            "default": 0,
+            "description": "Total count of items returned",
+            "title": "Total",
+            "type": "integer"
+          }
+        },
+        "title": "EditaisHojeResponse",
         "type": "object"
       },
       "EmpresaInfo": {
@@ -19078,6 +19454,134 @@
         "title": "TimeSeriesDataPoint",
         "type": "object"
       },
+      "TimelineEvento": {
+        "description": "A single timeline event for an edital.",
+        "properties": {
+          "created_at": {
+            "title": "Created At",
+            "type": "string"
+          },
+          "critico": {
+            "default": false,
+            "title": "Critico",
+            "type": "boolean"
+          },
+          "descricao": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Descricao"
+          },
+          "edital_id": {
+            "title": "Edital Id",
+            "type": "string"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "metadata": {
+            "additionalProperties": true,
+            "title": "Metadata",
+            "type": "object"
+          },
+          "tipo": {
+            "title": "Tipo",
+            "type": "string"
+          },
+          "titulo": {
+            "title": "Titulo",
+            "type": "string"
+          },
+          "user_id": {
+            "title": "User Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "edital_id",
+          "user_id",
+          "tipo",
+          "titulo",
+          "created_at"
+        ],
+        "title": "TimelineEvento",
+        "type": "object"
+      },
+      "TimelineEventoCreate": {
+        "description": "Request body to create a manual timeline event.\n\nOnly 'nota_manual' and 'lembrete' tipos are allowed via user creation.",
+        "properties": {
+          "descricao": {
+            "anyOf": [
+              {
+                "maxLength": 5000,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Descri\u00e7\u00e3o detalhada do evento (opcional)",
+            "title": "Descricao"
+          },
+          "tipo": {
+            "description": "Tipo do evento: nota_manual ou lembrete",
+            "title": "Tipo",
+            "type": "string"
+          },
+          "titulo": {
+            "description": "T\u00edtulo descritivo do evento",
+            "maxLength": 500,
+            "minLength": 1,
+            "title": "Titulo",
+            "type": "string"
+          }
+        },
+        "required": [
+          "tipo",
+          "titulo"
+        ],
+        "title": "TimelineEventoCreate",
+        "type": "object"
+      },
+      "TimelineResponse": {
+        "description": "Paginated timeline event list.",
+        "properties": {
+          "eventos": {
+            "items": {
+              "$ref": "#/components/schemas/TimelineEvento"
+            },
+            "title": "Eventos",
+            "type": "array"
+          },
+          "limit": {
+            "title": "Limit",
+            "type": "integer"
+          },
+          "offset": {
+            "title": "Offset",
+            "type": "integer"
+          },
+          "total": {
+            "title": "Total",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "eventos",
+          "total",
+          "limit",
+          "offset"
+        ],
+        "title": "TimelineResponse",
+        "type": "object"
+      },
       "TopComprador": {
         "properties": {
           "cnpj": {
@@ -21467,6 +21971,37 @@
           }
         },
         "title": "WinMetrics",
+        "type": "object"
+      },
+      "WorkspaceResumo": {
+        "description": "Aggregated summary for the workspace dashboard.",
+        "properties": {
+          "alerts_unread_count": {
+            "default": 0,
+            "description": "Number of unread user alerts",
+            "title": "Alerts Unread Count",
+            "type": "integer"
+          },
+          "editais_hoje_count": {
+            "default": 0,
+            "description": "Number of procurement opportunities published today",
+            "title": "Editais Hoje Count",
+            "type": "integer"
+          },
+          "pipeline_count": {
+            "default": 0,
+            "description": "Number of items in the user's pipeline",
+            "title": "Pipeline Count",
+            "type": "integer"
+          },
+          "pipeline_prazo_proximo": {
+            "default": 0,
+            "description": "Number of pipeline items with deadlines within 7 days",
+            "title": "Pipeline Prazo Proximo",
+            "type": "integer"
+          }
+        },
+        "title": "WorkspaceResumo",
         "type": "object"
       },
       "_LivenessResponse": {
@@ -37314,6 +37849,375 @@
         "summary": "Mark Read",
         "tags": [
           "workspace"
+        ]
+      }
+    },
+    "/v1/workspace/centro-guerra/{edital_id}": {
+      "get": {
+        "description": "Full 360-degree view of a procurement opportunity.\n\nAggregates data from pncp_raw_bids (basic info), pipeline_items (viability),\nworkspace_watchlist_matches (watchlist status), and pncp_supplier_contracts\n(top 10 suppliers for the same orgao).",
+        "operationId": "get_centro_guerra_v1_workspace_centro_guerra__edital_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "edital_id",
+            "required": true,
+            "schema": {
+              "title": "Edital Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CentroGuerraResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Get Centro Guerra",
+        "tags": [
+          "workspace",
+          "centro-guerra"
+        ]
+      }
+    },
+    "/v1/workspace/centro-guerra/{edital_id}/proximos-passos": {
+      "post": {
+        "description": "Update/customize the next steps for a bid.\n\nThis is an in-memory operation for the reduced scope \u2014 no DB persistence.\nSimply echoes back the provided passos.",
+        "operationId": "update_proximos_passos_v1_workspace_centro_guerra__edital_id__proximos_passos_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "edital_id",
+            "required": true,
+            "schema": {
+              "title": "Edital Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CentroGuerraProximoPassoRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CentroGuerraPassosResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Update Proximos Passos",
+        "tags": [
+          "workspace",
+          "centro-guerra"
+        ]
+      }
+    },
+    "/v1/workspace/editais-hoje": {
+      "get": {
+        "description": "Fetch up to 10 procurement opportunities published today.\n\nQueries `pncp_raw_bids` filtered by current date (UTC) via the\n`search_datalake` RPC. Returns an empty list on transient errors\n(fail-open) instead of blocking the workspace page.",
+        "operationId": "get_editais_hoje_v1_workspace_editais_hoje_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EditaisHojeResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Get Editais Hoje",
+        "tags": [
+          "workspace"
+        ]
+      }
+    },
+    "/v1/workspace/resumo": {
+      "get": {
+        "description": "Aggregated counts for the workspace dashboard widgets.\n\nReturns the number of:\n  - editais published today\n  - pipeline items belonging to the user\n  - pipeline items with deadlines within 7 days\n  - unread alerts\n\nAll sources fail-open: transient errors return 0 for that counter\ninstead of failing the entire response.",
+        "operationId": "get_workspace_resumo_v1_workspace_resumo_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkspaceResumo"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Get Workspace Resumo",
+        "tags": [
+          "workspace"
+        ]
+      }
+    },
+    "/v1/workspace/timeline/{edital_id}": {
+      "get": {
+        "description": "Retorna eventos cronol\u00f3gicos de um edital em ordem DESC. Suporta filtros por tipo_evento, data_inicio, data_fim, critico. Pagina\u00e7\u00e3o via limit (default 50, max 200) e offset.",
+        "operationId": "list_timeline_eventos_v1_workspace_timeline__edital_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "edital_id",
+            "required": true,
+            "schema": {
+              "title": "Edital Id",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Filtrar por tipo de evento (ex: publicacao, alteracao)",
+            "in": "query",
+            "name": "tipo_evento",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Filtrar por tipo de evento (ex: publicacao, alteracao)",
+              "title": "Tipo Evento"
+            }
+          },
+          {
+            "description": "Filtrar eventos a partir desta data (ISO 8601)",
+            "in": "query",
+            "name": "data_inicio",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Filtrar eventos a partir desta data (ISO 8601)",
+              "title": "Data Inicio"
+            }
+          },
+          {
+            "description": "Filtrar eventos at\u00e9 esta data (ISO 8601)",
+            "in": "query",
+            "name": "data_fim",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Filtrar eventos at\u00e9 esta data (ISO 8601)",
+              "title": "Data Fim"
+            }
+          },
+          {
+            "description": "Filtrar apenas eventos cr\u00edticos",
+            "in": "query",
+            "name": "critico",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "boolean"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Filtrar apenas eventos cr\u00edticos",
+              "title": "Critico"
+            }
+          },
+          {
+            "description": "N\u00famero m\u00e1ximo de eventos por p\u00e1gina",
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 50,
+              "description": "N\u00famero m\u00e1ximo de eventos por p\u00e1gina",
+              "maximum": 200,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Offset para pagina\u00e7\u00e3o",
+            "in": "query",
+            "name": "offset",
+            "required": false,
+            "schema": {
+              "default": 0,
+              "description": "Offset para pagina\u00e7\u00e3o",
+              "minimum": 0,
+              "title": "Offset",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TimelineResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Listar eventos da timeline de um edital",
+        "tags": [
+          "workspace-timeline"
+        ]
+      }
+    },
+    "/v1/workspace/timeline/{edital_id}/evento": {
+      "post": {
+        "description": "Cria um evento manual na timeline do edital. Apenas tipos 'nota_manual' e 'lembrete' s\u00e3o permitidos.",
+        "operationId": "create_timeline_evento_v1_workspace_timeline__edital_id__evento_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "edital_id",
+            "required": true,
+            "schema": {
+              "title": "Edital Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TimelineEventoCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Create Timeline Evento V1 Workspace Timeline  Edital Id  Evento Post",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Criar evento manual na timeline",
+        "tags": [
+          "workspace-timeline"
         ]
       }
     },
