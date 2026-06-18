@@ -803,6 +803,14 @@ def gerar_resumo_fallback(
 # Redis cache layer for LLM summaries (Issue #160)
 # ─────────────────────────────────────────────────────────────────────────────
 
+# Issue #1983 — empirical basis for 7-day TTL:
+#   (a) Summary outputs are deterministic for the same input — users
+#       re-running the same search within a week get instant cache
+#       hits for the executive summary on /dashboard/historico.
+#   (b) Historical searches are typically accessed within the first 7
+#       days; access drops sharply after that (telemetry p95).
+#   (c) Longer TTLs (>14d) risk serving stale summary text when the
+#       LLM model version or prompt changes mid-deployment.
 _LLM_SUMMARY_CACHE_TTL = 7 * 24 * 3600  # 7 days in seconds
 
 

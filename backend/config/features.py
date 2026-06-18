@@ -41,6 +41,10 @@ LLM_FUTURE_TIMEOUT_S: float = float(os.getenv("LLM_FUTURE_TIMEOUT_S", "20"))
 # STORY-4.1 (TD-SYS-014): Async runtime + Batch API.
 # LLM_MAX_CONCURRENT caps the number of LLM calls in flight at any given
 # time (previously hardcoded to ThreadPoolExecutor(max_workers=10)).
+# The legacy max_workers=10 (documented in issue #1983 as "LLM_BATCH_SIZE
+# = 10") was chosen empirically: GPT-4.1-nano p99 ~1s, 10 concurrent calls
+# kept total batch latency under 15s without saturating the API rate limit.
+# Replaced by configurable LLM_MAX_CONCURRENT=50 in STORY-4.1.
 LLM_MAX_CONCURRENT: int = int(os.getenv("LLM_MAX_CONCURRENT", "50"))
 # Offline Batch API gate — 24h SLA so not viable for /buscar, only for
 # reclassify_pending_bids_job. Set to false to revert to live classification.
