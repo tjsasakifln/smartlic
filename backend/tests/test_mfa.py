@@ -699,7 +699,7 @@ class TestVerifyTotpEndpoint:
 
     @patch("routes.mfa._get_user_supabase_for_auth")
     @patch("routes.mfa._get_supabase")
-    @patch("config.get_feature_flag", return_value=True)
+    @patch("config.get_feature_flag", side_effect=lambda flag: flag != "RATE_LIMIT_PER_ENDPOINT_ENABLED")
     def test_verify_brute_force_returns_429(self, mock_flag, mock_sb, mock_user_sb, client_with_token):
         """Issue #639 AC4: 6th attempt within 15min → 429.
 

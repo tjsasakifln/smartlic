@@ -77,7 +77,7 @@ def mock_redis_unavailable():
 
 @pytest.mark.asyncio
 @patch("rate_limiter.get_redis_pool", new_callable=AsyncMock, return_value=None)
-@patch("config.get_feature_flag", return_value=True)
+@patch("config.get_feature_flag", side_effect=lambda flag: flag != "RATE_LIMIT_PER_ENDPOINT_ENABLED")
 async def test_t1_buscar_rate_limit_10_per_minute(mock_ff, mock_redis, app_with_rate_limit):
     """T1: 10 requests → 200. 11th → 429."""
     transport = ASGITransport(app=app_with_rate_limit)
@@ -100,7 +100,7 @@ async def test_t1_buscar_rate_limit_10_per_minute(mock_ff, mock_redis, app_with_
 
 @pytest.mark.asyncio
 @patch("rate_limiter.get_redis_pool", new_callable=AsyncMock, return_value=None)
-@patch("config.get_feature_flag", return_value=True)
+@patch("config.get_feature_flag", side_effect=lambda flag: flag != "RATE_LIMIT_PER_ENDPOINT_ENABLED")
 async def test_t2_429_response_schema(mock_ff, mock_redis, app_with_rate_limit):
     """T2: 429 body includes detail, retry_after_seconds, correlation_id."""
     transport = ASGITransport(app=app_with_rate_limit)
@@ -127,7 +127,7 @@ async def test_t2_429_response_schema(mock_ff, mock_redis, app_with_rate_limit):
 
 @pytest.mark.asyncio
 @patch("rate_limiter.get_redis_pool", new_callable=AsyncMock, return_value=None)
-@patch("config.get_feature_flag", return_value=True)
+@patch("config.get_feature_flag", side_effect=lambda flag: flag != "RATE_LIMIT_PER_ENDPOINT_ENABLED")
 async def test_t3_retry_after_header(mock_ff, mock_redis, app_with_rate_limit):
     """T3: Retry-After header present and numeric."""
     transport = ASGITransport(app=app_with_rate_limit)
@@ -151,7 +151,7 @@ async def test_t3_retry_after_header(mock_ff, mock_redis, app_with_rate_limit):
 
 @pytest.mark.asyncio
 @patch("rate_limiter.get_redis_pool", new_callable=AsyncMock, return_value=None)
-@patch("config.get_feature_flag", return_value=True)
+@patch("config.get_feature_flag", side_effect=lambda flag: flag != "RATE_LIMIT_PER_ENDPOINT_ENABLED")
 async def test_t4_user_isolation(mock_ff, mock_redis, app_with_rate_limit):
     """T4: User A at limit does not block user B."""
     transport = ASGITransport(app=app_with_rate_limit)
@@ -178,7 +178,7 @@ async def test_t4_user_isolation(mock_ff, mock_redis, app_with_rate_limit):
 
 @pytest.mark.asyncio
 @patch("rate_limiter.get_redis_pool", new_callable=AsyncMock, return_value=None)
-@patch("config.get_feature_flag", return_value=True)
+@patch("config.get_feature_flag", side_effect=lambda flag: flag != "RATE_LIMIT_PER_ENDPOINT_ENABLED")
 async def test_t5_redis_unavailable_fallback(mock_ff, mock_redis, app_with_rate_limit):
     """T5: Rate limiting works via InMemory when Redis is unavailable."""
     transport = ASGITransport(app=app_with_rate_limit)
@@ -202,7 +202,7 @@ async def test_t5_redis_unavailable_fallback(mock_ff, mock_redis, app_with_rate_
 # -----------------------------------------------------------------------
 
 @pytest.mark.asyncio
-@patch("config.get_feature_flag", return_value=True)
+@patch("config.get_feature_flag", side_effect=lambda flag: flag != "RATE_LIMIT_PER_ENDPOINT_ENABLED")
 async def test_t6_window_expiration(mock_ff):
     """T6: After window expires, requests are allowed again."""
     from rate_limiter import _flexible_limiter, require_rate_limit
@@ -271,7 +271,7 @@ async def test_t7_sse_connection_limit():
 
 @pytest.mark.asyncio
 @patch("rate_limiter.get_redis_pool", new_callable=AsyncMock, return_value=None)
-@patch("config.get_feature_flag", return_value=True)
+@patch("config.get_feature_flag", side_effect=lambda flag: flag != "RATE_LIMIT_PER_ENDPOINT_ENABLED")
 async def test_t8_prometheus_counter(mock_ff, mock_redis, app_with_rate_limit):
     """T8: Prometheus counter smartlic_rate_limit_exceeded_total increments on 429."""
     with patch("rate_limiter.RATE_LIMIT_EXCEEDED", create=True):
@@ -304,7 +304,7 @@ async def test_t8_prometheus_counter(mock_ff, mock_redis, app_with_rate_limit):
 
 @pytest.mark.asyncio
 @patch("rate_limiter.get_redis_pool", new_callable=AsyncMock, return_value=None)
-@patch("config.get_feature_flag", return_value=True)
+@patch("config.get_feature_flag", side_effect=lambda flag: flag != "RATE_LIMIT_PER_ENDPOINT_ENABLED")
 async def test_t9_warning_log(mock_ff, mock_redis, app_with_rate_limit, caplog):
     """T9: WARNING log includes user_id, endpoint, limit, correlation_id."""
     transport = ASGITransport(app=app_with_rate_limit)
@@ -332,7 +332,7 @@ async def test_t9_warning_log(mock_ff, mock_redis, app_with_rate_limit, caplog):
 # -----------------------------------------------------------------------
 
 @pytest.mark.asyncio
-@patch("config.get_feature_flag", return_value=True)
+@patch("config.get_feature_flag", side_effect=lambda flag: flag != "RATE_LIMIT_PER_ENDPOINT_ENABLED")
 async def test_t10_env_var_override(mock_ff):
     """T10: SEARCH_RATE_LIMIT_PER_MINUTE env var changes the limit."""
     from rate_limiter import require_rate_limit
@@ -368,7 +368,7 @@ async def test_t10_env_var_override(mock_ff):
 
 @pytest.mark.asyncio
 @patch("rate_limiter.get_redis_pool", new_callable=AsyncMock, return_value=None)
-@patch("config.get_feature_flag", return_value=True)
+@patch("config.get_feature_flag", side_effect=lambda flag: flag != "RATE_LIMIT_PER_ENDPOINT_ENABLED")
 async def test_t11_ip_based_rate_limit(mock_ff, mock_redis, app_with_rate_limit):
     """T11: Without auth header, rate limit uses IP as key."""
     transport = ASGITransport(app=app_with_rate_limit)
@@ -388,7 +388,7 @@ async def test_t11_ip_based_rate_limit(mock_ff, mock_redis, app_with_rate_limit)
 
 @pytest.mark.asyncio
 @patch("rate_limiter.get_redis_pool", new_callable=AsyncMock, return_value=None)
-@patch("config.get_feature_flag", return_value=True)
+@patch("config.get_feature_flag", side_effect=lambda flag: flag != "RATE_LIMIT_PER_ENDPOINT_ENABLED")
 async def test_t12_ip_isolation(mock_ff, mock_redis):
     """T12: Different IPs have independent rate limit counters."""
     from rate_limiter import require_rate_limit
@@ -431,7 +431,7 @@ async def test_t12_ip_isolation(mock_ff, mock_redis):
 
 @pytest.mark.asyncio
 @patch("rate_limiter.get_redis_pool", new_callable=AsyncMock, return_value=None)
-@patch("config.get_feature_flag", return_value=True)
+@patch("config.get_feature_flag", side_effect=lambda flag: flag != "RATE_LIMIT_PER_ENDPOINT_ENABLED")
 async def test_t16_burst_isolation(mock_ff, mock_redis, app_with_rate_limit):
     """T16: Burst of 50 requests from 1 user → 429 for excedents.
     User B still gets 200."""
@@ -460,7 +460,7 @@ async def test_t16_burst_isolation(mock_ff, mock_redis, app_with_rate_limit):
 
 @pytest.mark.asyncio
 @patch("rate_limiter.get_redis_pool", new_callable=AsyncMock, return_value=None)
-@patch("config.get_feature_flag", return_value=True)
+@patch("config.get_feature_flag", side_effect=lambda flag: flag != "RATE_LIMIT_PER_ENDPOINT_ENABLED")
 async def test_t17_circuit_breaker_stays_closed(mock_ff, mock_redis, app_with_rate_limit):
     """T17: Rate limit prevents abusive requests from reaching the pipeline.
     The endpoint returns 429 BEFORE any pipeline/PNCP call, so the circuit
@@ -502,7 +502,7 @@ async def test_t17_circuit_breaker_stays_closed(mock_ff, mock_redis, app_with_ra
 
 @pytest.mark.asyncio
 @patch("rate_limiter.get_redis_pool", new_callable=AsyncMock, return_value=None)
-@patch("config.get_feature_flag", return_value=True)
+@patch("config.get_feature_flag", side_effect=lambda flag: flag != "RATE_LIMIT_PER_ENDPOINT_ENABLED")
 async def test_t18_legit_user_unaffected_during_burst(mock_ff, mock_redis, app_with_rate_limit):
     """T18: While user A is rate-limited, user B gets normal 200 response."""
     transport = ASGITransport(app=app_with_rate_limit)
