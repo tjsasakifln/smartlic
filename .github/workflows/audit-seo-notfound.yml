@@ -1,7 +1,7 @@
 name: "Audit SEO notFound (ADR-SEO-001)"
 
 # Operationalises ADR-SEO-001 (`docs/adr/ADR-SEO-001-programmatic-routes-no-notfound-on-data-gap.md`):
-# programmatic SEO routes (16 path prefixes, ~10k URLs) MUST NOT call
+# programmatic SEO routes (18 path prefixes, ~10k URLs) MUST NOT call
 # `notFound()` on empty data or transient fetch failure. ISR caches
 # `notFound()` for up to 24h with no auto-recovery — Googlebot drops the
 # URL and de-indexation cascades to siblings.
@@ -33,10 +33,8 @@ on:
       - 'frontend/app/masterclass/**'
       - 'frontend/app/perguntas/**'
       - 'frontend/app/compliance/**'
-      # Intentionally NOT including this workflow's own path: the gate
-      # exists to guard route files. Modifying the workflow itself
-      # should not retroactively scan the legacy `notFound()` call
-      # sites that the in-flight 17-route sweep (#1035) is removing.
+      - 'frontend/app/indice-municipal/**'
+      - 'frontend/app/analise/**'
 
 permissions:
   contents: read
@@ -54,138 +52,42 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v6
 
-      - name: Scan for unmarked notFound() calls
+      - name: Run standalone audit script
         id: scan
         shell: bash
         run: |
           set -euo pipefail
+          OUTPUT=$(bash .github/scripts/audit-seo-notfound.sh 2>&1) || true
+          echo "$OUTPUT"
 
-          PROTECTED_DIRS=(
-            frontend/app/observatorio
-            frontend/app/cnpj
-            frontend/app/fornecedores
-            frontend/app/orgaos
-            frontend/app/municipios
-            frontend/app/licitacoes
-            frontend/app/contratos
-            frontend/app/alertas-publicos
-            frontend/app/itens
-            frontend/app/blog
-            frontend/app/casos
-            frontend/app/glossario
-            frontend/app/guia
-            frontend/app/masterclass
-            frontend/app/perguntas
-            frontend/app/compliance
-          )
+          # Parse output for CI summary
+          if echo "$OUTPUT" | grep -q "^violations_found=true"; then
+            echo "violations_found=true" >> "$GITHUB_OUTPUT"
+            COUNT=$(echo "$OUTPUT" | grep "^violation_count=" | cut -d= -f2)
+            echo "violation_count=$COUNT" >> "$GITHUB_OUTPUT"
+            echo "::error::Found $COUNT unmarked notFound() call(s) in protected SEO routes."
 
-          EXISTING_DIRS=()
-          for d in "${PROTECTED_DIRS[@]}"; do
-            if [ -d "$d" ]; then
-              EXISTING_DIRS+=("$d")
-            fi
-          done
-
-          if [ "${#EXISTING_DIRS[@]}" -eq 0 ]; then
-            echo "No protected directories present in this checkout — nothing to audit."
+            # Annotate each violation line in the GitHub UI
+            while IFS= read -r line; do
+              case "$line" in
+                VIOLATION:*)
+                  vfile="${line#VIOLATION: }"
+                  vfile="${vfile%%:*}"
+                  vrest="${line#*: }"
+                  vlineno="${vrest%%:*}"
+                  echo "::error file=${vfile},line=${vlineno}::Unmarked notFound() in protected SEO route. See ADR-SEO-001 for the allowed-marker convention."
+                  ;;
+              esac
+            done <<< "$OUTPUT"
+          else
             echo "violations_found=false" >> "$GITHUB_OUTPUT"
             echo "violation_count=0" >> "$GITHUB_OUTPUT"
-            : > /tmp/seo_notfound_violations.txt
-            exit 0
           fi
 
-          # Collect all notFound() / notFound ( occurrences with file:line:content.
-          # Restrict to .ts/.tsx/.js/.jsx so we don't flag markdown/comments in unrelated files.
-          : > /tmp/seo_notfound_hits.txt
-          grep -RHn -E "notFound\s*\(" \
-            --include="*.ts" --include="*.tsx" --include="*.js" --include="*.jsx" \
-            "${EXISTING_DIRS[@]}" >> /tmp/seo_notfound_hits.txt || true
-
-          # Also scan sitemap.ts / sitemap/[id].ts — they share the same antipattern.
-          if [ -f frontend/app/sitemap.ts ]; then
-            grep -Hn -E "notFound\s*\(" frontend/app/sitemap.ts >> /tmp/seo_notfound_hits.txt || true
+          # Only fail after all output is fully captured and posted
+          if echo "$OUTPUT" | grep -q "^violations_found=true"; then
+            exit 1
           fi
-          if [ -d frontend/app/sitemap ]; then
-            grep -RHn -E "notFound\s*\(" \
-              --include="*.ts" --include="*.tsx" --include="*.js" --include="*.jsx" \
-              frontend/app/sitemap >> /tmp/seo_notfound_hits.txt || true
-          fi
-
-          if [ ! -s /tmp/seo_notfound_hits.txt ]; then
-            echo "No notFound() calls found in protected SEO routes."
-            echo "violations_found=false" >> "$GITHUB_OUTPUT"
-            echo "violation_count=0" >> "$GITHUB_OUTPUT"
-            : > /tmp/seo_notfound_violations.txt
-            exit 0
-          fi
-
-          echo "Hits to classify:"
-          cat /tmp/seo_notfound_hits.txt
-          echo ""
-
-          # Classify each hit: allowed if `adr-seo-001-allow:` is on the same
-          # line OR on the immediately preceding line.
-          # Comment-only lines (trimmed starts with // /* or *) are skipped —
-          # they appear in JSDoc descriptions referencing notFound() in prose.
-          : > /tmp/seo_notfound_violations.txt
-          while IFS= read -r hit; do
-            [ -z "$hit" ] && continue
-            file="${hit%%:*}"
-            rest="${hit#*:}"
-            lineno="${rest%%:*}"
-            content="${rest#*:}"
-
-            # Skip pure comment lines (JSDoc / inline comments that mention notFound() in prose).
-            trimmed="$(printf '%s' "$content" | sed 's/^[[:space:]]*//')"
-            case "$trimmed" in
-              "//"*|"/*"*|"*"*) continue ;;
-            esac
-
-            # Same-line marker?
-            if printf '%s' "$content" | grep -q "adr-seo-001-allow:"; then
-              continue
-            fi
-
-            # Preceding-line marker?
-            prev_line=$((lineno - 1))
-            if [ "$prev_line" -ge 1 ] && [ -f "$file" ]; then
-              prev_content=$(sed -n "${prev_line}p" "$file" || true)
-              if printf '%s' "$prev_content" | grep -q "adr-seo-001-allow:"; then
-                continue
-              fi
-            fi
-
-            # Unmarked — record the violation.
-            printf '%s:%s: %s\n' "$file" "$lineno" "$content" >> /tmp/seo_notfound_violations.txt
-          done < /tmp/seo_notfound_hits.txt
-
-          if [ ! -s /tmp/seo_notfound_violations.txt ]; then
-            echo "All notFound() calls carry the adr-seo-001-allow: marker."
-            echo "violations_found=false" >> "$GITHUB_OUTPUT"
-            echo "violation_count=0" >> "$GITHUB_OUTPUT"
-            exit 0
-          fi
-
-          COUNT=$(wc -l < /tmp/seo_notfound_violations.txt | tr -d ' ')
-          echo "violations_found=true" >> "$GITHUB_OUTPUT"
-          echo "violation_count=$COUNT" >> "$GITHUB_OUTPUT"
-
-          echo ""
-          echo "::error::Found $COUNT unmarked notFound() call(s) in protected SEO routes."
-          echo "Violations:"
-          cat /tmp/seo_notfound_violations.txt
-
-          # Annotate each violation line in the GitHub UI.
-          while IFS= read -r v; do
-            [ -z "$v" ] && continue
-            file="${v%%:*}"
-            rest="${v#*:}"
-            lineno="${rest%%:*}"
-            echo "::error file=${file},line=${lineno}::Unmarked notFound() in protected SEO route. See ADR-SEO-001 for the allowed-marker convention."
-          done < /tmp/seo_notfound_violations.txt
-
-          # Do NOT exit non-zero yet — let the comment step run first; final
-          # gate decision is enforced in the "Fail if violations" step below.
 
       - name: Post / update sticky PR comment
         if: always() && github.event_name == 'pull_request'
