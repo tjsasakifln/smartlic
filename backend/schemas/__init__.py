@@ -23,11 +23,8 @@ from schemas.workspace import *  # noqa: F401,F403
 from schemas.workspace_timeline import *  # noqa: F401,F403
 from schemas.workspace_alertas import *  # noqa: F401,F403
 from schemas.workspace_centro_guerra import *  # noqa: F401,F403
-<<<<<<< HEAD
 from schemas.workspace_integracoes import *  # noqa: F401,F403
-=======
 from schemas.workspace_documentos import *  # noqa: F401,F403
->>>>>>> 9998921a (feat: documentos colaborativos — editor + templates + variáveis (#2023))
 
 # Re-export private names used by external code
 from schemas.common import (  # noqa: F401

@@ -197,21 +197,13 @@ _v1_routers = [
     integrations_router,
     csp_report_router,
     alerts_b2gops_router,
-<<<<<<< HEAD
-	    workspace_router,
-	    workspace_timeline_router,
-	    workspace_watchlist_router,
-	    workspace_alertas_router,
-	    workspace_centro_guerra_router,
-	    workspace_integracoes_router,
-=======
     workspace_router,
     workspace_timeline_router,
     workspace_watchlist_router,
     workspace_alertas_router,
     workspace_centro_guerra_router,
+    workspace_integracoes_router,
     workspace_documentos_router,
->>>>>>> 9998921a (feat: documentos colaborativos — editor + templates + variáveis (#2023))
 ]
 def register_routes(app: FastAPI) -> None:
     """Register all application routers onto *app*."""
