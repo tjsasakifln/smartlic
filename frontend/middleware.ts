@@ -186,6 +186,7 @@ const PROTECTED_ROUTES = [
   "/pipeline",   // Opportunity pipeline requires auth
   "/mensagens",  // Message center
   "/planos/obrigado", // Post-purchase thank you page
+  "/workspace",  // Workspace hub + Centro de Guerra
 ];
 
 const PUBLIC_ROUTES = [
