@@ -1427,6 +1427,31 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/admin/rate-limits": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Rate Limits Config
+         * @description Return the current granular rate limit configuration.
+         *
+         *     Includes tier definitions, endpoint-specific overrides, exempt prefixes,
+         *     window size, and whether the granular rate limiter feature is enabled.
+         *
+         *     Requires admin authentication.
+         */
+        get: operations["get_rate_limits_config_v1_admin_rate_limits_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/admin/reconciliation/history": {
         parameters: {
             query?: never;
@@ -19414,6 +19439,26 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_rate_limits_config_v1_admin_rate_limits_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
                 };
             };
         };
