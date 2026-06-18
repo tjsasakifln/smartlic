@@ -25,6 +25,10 @@ module.exports = [
     name: 'First Load JS (total)',
     path: '.next/static/chunks/**/*.js',
     gzip: true,
+<<<<<<< HEAD
     limit: '2000000 B',
+=======
+    limit: '1980000 B',
+>>>>>>> 1c9624d9 (fix(frontend): increase size-limit budget to 1.98 MB for documentos workspace)
   },
 ];
