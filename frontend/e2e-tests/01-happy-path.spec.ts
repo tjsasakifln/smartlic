@@ -24,8 +24,8 @@ test.describe('Happy Path User Journey', () => {
       },
     ]);
 
-    // Mock client-side auth so React components believe the user is logged in.
-    // This sets localStorage + intercepts /me and supabase auth endpoints.
+    // Mock client-side auth + catch-all API mocks.
+    // Sets localStorage + intercepts /me, /auth/**, /api/**, /v1/**
     await mockAuthAPI(page);
 
     // Navigate directly to the search page (protected route, bypassed by cookie)

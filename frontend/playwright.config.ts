@@ -23,8 +23,8 @@ export default defineConfig({
   /* Retry on CI only */
   retries: process.env.CI ? 2 : 0,
 
-  /* Opt out of parallel tests on CI */
-  workers: process.env.CI ? 1 : undefined,
+  /* Parallel workers: 4 in CI (used with matrix sharding for 16-way parallelism) */
+  workers: process.env.CI ? 4 : undefined,
 
   /* Expect timeout for assertions (default was 5s, too short for CI latency) */
   expect: {
@@ -59,6 +59,12 @@ export default defineConfig({
 
     /* Viewport */
     viewport: { width: 1280, height: 720 },
+
+    /* Extra headers/env for Supabase SSR initialization in E2E tests.
+       Without these, @supabase/ssr creates a broken client and page may crash. */
+    extraHTTPHeaders: {
+      'x-e2e-test': '1',
+    },
   },
 
   /* Configure projects for major browsers */

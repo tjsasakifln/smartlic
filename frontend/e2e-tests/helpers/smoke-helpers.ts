@@ -569,22 +569,44 @@ export async function mockTrialUser(page: Page, opts: MockUserOptions = {}): Pro
     });
   });
 
-  // Mock /me for trial user
+  // Mock /me for trial user — must match backend UserProfileResponse schema
   await page.route('**/me', async (route: Route) => {
     await route.fulfill({
       status: 200,
       contentType: 'application/json',
       body: JSON.stringify({
-        id: user.id,
+        user_id: user.id,
         email: user.email,
-        full_name: user.user_metadata.full_name,
-        is_admin: opts.isAdmin || false,
         plan_id: opts.planId || 'free_trial',
         plan_name: opts.planName || 'Trial Gratuito',
-        credits_remaining: opts.creditsRemaining ?? 3,
-        subscription_status: opts.subscriptionStatus || 'trialing',
+        capabilities: { max_history_days: 30, allow_excel: true, allow_pipeline: true },
+        quota_used: 0,
+        quota_remaining: opts.creditsRemaining ?? 3,
+        quota_reset_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
         trial_expires_at: opts.trialExpiresAt || new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+        subscription_status: opts.subscriptionStatus || 'trialing',
+        is_admin: opts.isAdmin || false,
+        dunning_phase: 'healthy',
+        days_since_failure: null,
+        subscription_end_date: null,
+        is_founder: false,
+        founder_since: null,
+        founder_offer_version: null,
+        founder_checkout_source: null,
+        consulting_discount_pct: null,
+        last_login_at: new Date().toISOString(),
+        login_count: 1,
+        allow_network_analytics: null,
       }),
+    });
+  });
+
+  // Mock /api/health — BackendStatusIndicator polls this
+  await page.route('**/api/health', async (route: Route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ status: 'ok', backend: 'healthy' }),
     });
   });
 
@@ -636,19 +658,34 @@ export async function mockPaidUser(page: Page): Promise<void> {
     });
   });
 
+  // Mock /me for paid user — must match backend UserProfileResponse schema
   await page.route('**/me', async (route: Route) => {
     await route.fulfill({
       status: 200,
       contentType: 'application/json',
       body: JSON.stringify({
-        id: user.id,
+        user_id: user.id,
         email: user.email,
-        full_name: user.user_metadata.full_name,
-        is_admin: false,
         plan_id: 'smartlic_pro',
         plan_name: 'SmartLic Pro',
-        credits_remaining: null,
+        capabilities: { max_history_days: 90, allow_excel: true, allow_pipeline: true },
+        quota_used: 15,
+        quota_remaining: null,
+        quota_reset_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+        trial_expires_at: null,
         subscription_status: 'active',
+        is_admin: false,
+        dunning_phase: 'healthy',
+        days_since_failure: null,
+        subscription_end_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+        is_founder: false,
+        founder_since: null,
+        founder_offer_version: null,
+        founder_checkout_source: null,
+        consulting_discount_pct: null,
+        last_login_at: new Date().toISOString(),
+        login_count: 42,
+        allow_network_analytics: null,
       }),
     });
   });

@@ -43,3 +43,4 @@ next-env.d.ts
 jest.config.js.swp
 junit.xml
 storybook-static/
+.env.local

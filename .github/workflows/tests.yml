@@ -1,14 +1,8 @@
-# Unit + Integration tests on push to main. Complements backend-tests.yml
+# Unit + Integration + E2E tests on push to main. Complements backend-tests.yml
 # (quality gates: pip-audit, ruff, mypy, schema validation) and frontend-tests.yml
-# (PR gate). E2E coverage on main is provided by e2e-critical-flows.yml (path-triggered
-# on PR) and e2e.yml (smoke + full suite, path-triggered on PR). The E2E job was
-# removed from this workflow in 2026-06-18 because:
-#   1. 1810 tests × 1 worker × 2 retries = 30h+ theoretical runtime
-#   2. Every run cancelled at the GHA 360-min default timeout (62 cancelled in a row)
-#   3. Almost all tests failing since RBAC + OAuth + doc PRs — suite structurally broken
-#   4. Branch protection never required this job (only Backend + Frontend Tests)
-#   5. Zero safety-net value: cancelled jobs don't block deploys
-#   Re-enable when: E2E suite passes locally, sharding implemented (4×4), timeout-minutes: 20.
+# (PR gate). E2E job re-enabled 2026-06-18 after mock schema fix (RBAC UserProfileResponse
+# alignment) + 4×4 sharding (4 workers × 4 matrix shards = 16-way parallelism, ~15 min).
+# Historical: 62 consecutive cancellations prior to fix (1810 tests × 1 worker = 30h+).
 #
 # mission sparkling-patterson 2026-04-24: deferred to post-merge. PR gate
 # is backend-tests.yml + frontend-tests.yml (those are what branch
@@ -263,8 +257,122 @@ jobs:
           path: backend/tests/integration/
           retention-days: 7
 
-  # NOTE: E2E tests were removed from this workflow on 2026-06-18.
-  # See workflow header comment for rationale. Coverage preserved by:
-  #   - e2e.yml (PR path-triggered, smoke + full suite)
-  #   - e2e-critical-flows.yml (PR path-triggered, 6 critical business flows)
-  # Re-enable here when: suite passes locally, sharding implemented, timeout-minutes: 20.
+  e2e-tests:
+    name: E2E Tests (shard ${{ matrix.shard }}/${{ matrix.total_shards }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    needs: [backend-tests, frontend-tests]
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3, 4]
+        total_shards: [4]
+
+    env:
+      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY || 'sk-test-fallback-key' }}
+      FRONTEND_URL: http://localhost:3000
+      BACKEND_URL: http://localhost:8000
+      NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+      SUPABASE_URL: https://test.supabase.co
+      SUPABASE_SERVICE_ROLE_KEY: test-service-role-key
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Set up Python (Backend)
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+          cache: 'pip'
+
+      - name: Set up Node.js (Frontend)
+        uses: actions/setup-node@v6
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install backend dependencies
+        working-directory: backend
+        run: pip install -r requirements.txt
+
+      - name: Install frontend dependencies
+        working-directory: frontend
+        run: npm ci
+
+      - name: Install Playwright browsers
+        working-directory: frontend
+        run: npx playwright install --with-deps chromium
+
+      - name: Start backend server
+        working-directory: backend
+        run: |
+          uvicorn main:app --host 0.0.0.0 --port 8000 > backend.log 2>&1 &
+          BACKEND_PID=$!
+          echo "BACKEND_PID=$BACKEND_PID" >> $GITHUB_ENV
+          for i in {1..30}; do
+            if curl -f http://localhost:8000/health > /dev/null 2>&1; then
+              echo "Backend is ready"
+              exit 0
+            fi
+            echo "Waiting for backend... ($i/30)"
+            sleep 1
+          done
+          echo "Backend failed to start"
+          cat backend.log
+          exit 1
+
+      - name: Build and start frontend server
+        working-directory: frontend
+        run: |
+          npm run build
+          if [ -f .next/standalone/server.js ]; then
+            node .next/standalone/server.js > frontend.log 2>&1 &
+          else
+            npx next start > frontend.log 2>&1 &
+          fi
+          FRONTEND_PID=$!
+          echo "FRONTEND_PID=$FRONTEND_PID" >> $GITHUB_ENV
+          for i in {1..60}; do
+            if curl -f http://localhost:3000 > /dev/null 2>&1; then
+              echo "Frontend is ready"
+              exit 0
+            fi
+            echo "Waiting for frontend... ($i/60)"
+            sleep 1
+          done
+          echo "Frontend failed to start"
+          cat frontend.log
+          exit 1
+
+      - name: Run E2E tests (shard ${{ matrix.shard }}/${{ matrix.total_shards }})
+        working-directory: frontend
+        run: npx playwright test --shard=${{ matrix.shard }}/${{ matrix.total_shards }}
+        env:
+          CI: true
+
+      - name: Stop services
+        if: always()
+        run: |
+          [ -n "$BACKEND_PID" ] && kill $BACKEND_PID || true
+          [ -n "$FRONTEND_PID" ] && kill $FRONTEND_PID || true
+
+      - name: Upload Playwright report
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: playwright-report-shard-${{ matrix.shard }}
+          path: frontend/playwright-report/
+          retention-days: 7
+
+      - name: Upload server logs
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: server-logs-e2e-shard-${{ matrix.shard }}
+          path: |
+            backend/backend.log
+            frontend/frontend.log
+          retention-days: 7

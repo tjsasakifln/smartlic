@@ -318,20 +318,70 @@ export async function mockAuthAPI(page: Page, userType: 'admin' | 'user' = 'user
     });
   });
 
-  // Mock /me endpoint
+  // Mock /me endpoint — must match backend UserProfileResponse schema
   await page.route('**/me', async (route: Route) => {
     await route.fulfill({
       status: 200,
       contentType: 'application/json',
       body: JSON.stringify({
-        id: user.id,
+        user_id: user.id,
         email: user.email,
-        full_name: user.user_metadata.full_name,
-        is_admin: isAdmin,
         plan_id: 'free',
         plan_name: 'Gratuito',
-        credits_remaining: 3,
+        capabilities: { max_history_days: 30, allow_excel: true, allow_pipeline: true },
+        quota_used: 0,
+        quota_remaining: 3,
+        quota_reset_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+        trial_expires_at: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString(),
+        subscription_status: 'trial',
+        is_admin: isAdmin,
+        dunning_phase: 'healthy',
+        days_since_failure: null,
+        subscription_end_date: null,
+        is_founder: false,
+        founder_since: null,
+        founder_offer_version: null,
+        founder_checkout_source: null,
+        consulting_discount_pct: null,
+        last_login_at: new Date().toISOString(),
+        login_count: 1,
+        allow_network_analytics: null,
       }),
+    });
+  });
+
+  // -- Catch-all API mock (lowest priority, registered BEFORE addInitScript) --
+  // The /buscar shell calls many endpoints. Return empty JSON so the page
+  // renders without triggering error boundary. Specific routes above
+  // (**/me, **/auth/**) take priority because they were registered first.
+  await page.route('**/api/setores', async (route: Route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        setores: [
+          { id: 'vestuario', name: 'Vestuário e Uniformes', description: 'Confecção, uniformes, EPIs' },
+          { id: 'alimentos', name: 'Alimentos e Merenda', description: 'Gêneros alimentícios' },
+          { id: 'informatica', name: 'Hardware e Equipamentos de TI', description: 'Computadores, periféricos' },
+        ],
+      }),
+    });
+  });
+  // Mock /api/health — BackendStatusIndicator polls this. Must return
+  // { backend: "healthy" } or DegradationBanner hides search form.
+  await page.route('**/api/health', async (route: Route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ status: 'ok', backend: 'healthy' }),
+    });
+  });
+
+  await page.route(/\/api\/|\/v1\//, async (route: Route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({}),
     });
   });
 
@@ -357,20 +407,30 @@ export async function mockAuthAPI(page: Page, userType: 'admin' | 'user' = 'user
 }
 
 /**
- * Mock /me endpoint with custom user data
- * Used for testing different plan types and quota states
+ * Mock /me endpoint with custom user data — must match backend UserProfileResponse schema.
+ * Used for testing different plan types and quota states.
+ *
+ * Accepts BOTH legacy field names (credits_remaining, reset_date) and new schema names
+ * (quota_remaining, quota_reset_date) for backward compatibility.
  */
 export async function mockMeAPI(
   page: Page,
   userData: {
     plan_id?: string;
     plan_name?: string;
+    /** @deprecated use quota_remaining */
     credits_remaining?: number | null;
+    /** @deprecated */
     credits_total?: number;
+    quota_remaining?: number | null;
     quota_used?: number;
+    /** @deprecated use quota_reset_date */
     reset_date?: string;
+    quota_reset_date?: string;
     trial_expires_at?: string;
+    subscription_status?: string;
     is_admin?: boolean;
+    is_founder?: boolean;
   }
 ) {
   await page.route('**/me', async (route: Route) => {
@@ -378,17 +438,28 @@ export async function mockMeAPI(
       status: 200,
       contentType: 'application/json',
       body: JSON.stringify({
-        id: 'mock-user-id',
+        user_id: 'mock-user-id',
         email: 'user@test.com',
-        full_name: 'Test User',
-        is_admin: userData.is_admin || false,
         plan_id: userData.plan_id || 'free',
         plan_name: userData.plan_name || 'Gratuito',
-        credits_remaining: userData.credits_remaining ?? 3,
-        credits_total: userData.credits_total,
-        quota_used: userData.quota_used,
-        reset_date: userData.reset_date,
-        trial_expires_at: userData.trial_expires_at,
+        capabilities: { max_history_days: 30, allow_excel: true, allow_pipeline: true },
+        quota_used: userData.quota_used ?? 0,
+        quota_remaining: userData.quota_remaining ?? userData.credits_remaining ?? 3,
+        quota_reset_date: userData.quota_reset_date || userData.reset_date || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+        trial_expires_at: userData.trial_expires_at || new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString(),
+        subscription_status: userData.subscription_status || 'trial',
+        is_admin: userData.is_admin || false,
+        dunning_phase: 'healthy',
+        days_since_failure: null,
+        subscription_end_date: null,
+        is_founder: userData.is_founder || false,
+        founder_since: null,
+        founder_offer_version: null,
+        founder_checkout_source: null,
+        consulting_discount_pct: null,
+        last_login_at: new Date().toISOString(),
+        login_count: 1,
+        allow_network_analytics: null,
       }),
     });
   });

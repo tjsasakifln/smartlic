@@ -62,36 +62,61 @@ export function makePaidUser(overrides: Partial<MockUser> = {}): MockUser {
 }
 
 // ---------------------------------------------------------------------------
-// User / Me response
+// User / Me response — must match backend UserProfileResponse schema
 // ---------------------------------------------------------------------------
 
+/** Backward-compat: accept legacy field names mapped to new schema. */
 export interface MeResponse {
-  id: string;
+  user_id?: string;
+  /** @deprecated use user_id */
+  id?: string;
   email: string;
-  full_name: string;
+  /** @deprecated — not in UserProfileResponse, kept for compat */
+  full_name?: string;
   is_admin: boolean;
   plan_id: string;
   plan_name: string;
-  credits_remaining: number | null;
+  /** @deprecated use quota_remaining */
+  credits_remaining?: number | null;
+  /** @deprecated */
   credits_total?: number;
+  quota_remaining?: number | null;
   quota_used?: number;
+  /** @deprecated use quota_reset_date */
   reset_date?: string;
+  quota_reset_date?: string;
   trial_expires_at?: string;
   subscription_status?: string;
   mfa_enabled?: boolean;
+  capabilities?: Record<string, unknown>;
+  dunning_phase?: string;
+  is_founder?: boolean;
 }
 
-export function makeMeResponse(overrides: Partial<MeResponse> = {}): MeResponse {
+export function makeMeResponse(overrides: Partial<MeResponse> = {}): Record<string, unknown> {
   return {
-    id: 'critical-flow-user-id',
-    email: 'critical-flow@test.smartlic.tech',
-    full_name: 'Critical Flow Tester',
-    is_admin: false,
-    plan_id: 'free_trial',
-    plan_name: 'Avaliacao Gratuita',
-    credits_remaining: 3,
-    trial_expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
-    ...overrides,
+    user_id: overrides.user_id || overrides.id || 'critical-flow-user-id',
+    email: overrides.email || 'critical-flow@test.smartlic.tech',
+    plan_id: overrides.plan_id || 'free_trial',
+    plan_name: overrides.plan_name || 'Avaliacao Gratuita',
+    capabilities: overrides.capabilities || { max_history_days: 30, allow_excel: true, allow_pipeline: true },
+    quota_used: overrides.quota_used ?? 0,
+    quota_remaining: overrides.quota_remaining ?? overrides.credits_remaining ?? 3,
+    quota_reset_date: overrides.quota_reset_date || overrides.reset_date || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+    trial_expires_at: overrides.trial_expires_at || new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+    subscription_status: overrides.subscription_status || 'trialing',
+    is_admin: overrides.is_admin || false,
+    dunning_phase: overrides.dunning_phase || 'healthy',
+    days_since_failure: null,
+    subscription_end_date: null,
+    is_founder: overrides.is_founder || false,
+    founder_since: null,
+    founder_offer_version: null,
+    founder_checkout_source: null,
+    consulting_discount_pct: null,
+    last_login_at: new Date().toISOString(),
+    login_count: 1,
+    allow_network_analytics: null,
   };
 }
 
