@@ -7719,6 +7719,85 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/workspace/documentos": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Listar documentos do usuário
+         * @description List the current user's documents with optional filters.
+         */
+        get: operations["list_documentos_v1_workspace_documentos_get"];
+        put?: never;
+        /**
+         * Criar novo documento
+         * @description Create a new document for the current user.
+         *
+         *     If template_id is provided, copies the template content into the new document.
+         *     If edital_id is provided, pre-populates variaveis from pncp_raw_bids data.
+         */
+        post: operations["create_documento_v1_workspace_documentos_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/workspace/documentos/{documento_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Obter documento por ID
+         * @description Get a single document by ID (must be owned by the current user).
+         */
+        get: operations["get_documento_v1_workspace_documentos__documento_id__get"];
+        put?: never;
+        post?: never;
+        /**
+         * Excluir documento
+         * @description Delete a document by ID (must be owned by the current user).
+         */
+        delete: operations["delete_documento_v1_workspace_documentos__documento_id__delete"];
+        options?: never;
+        head?: never;
+        /**
+         * Atualizar documento
+         * @description Update document title and/or content (must be owned by the current user).
+         */
+        patch: operations["update_documento_v1_workspace_documentos__documento_id__patch"];
+        trace?: never;
+    };
+    "/v1/workspace/documentos/{documento_id}/render": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Renderizar variáveis do documento
+         * @description Re-render document variables from edital data.
+         *
+         *     Fetches the edital from pncp_raw_bids and substitutes {{variavel}}
+         *     patterns in the document content using the fetched data plus user profile.
+         *     The updated content is saved to the document.
+         */
+        post: operations["render_documento_v1_workspace_documentos__documento_id__render_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/workspace/editais-hoje": {
         parameters: {
             query?: never;
@@ -7764,6 +7843,28 @@ export interface paths {
          *     instead of failing the entire response.
          */
         get: operations["get_workspace_resumo_v1_workspace_resumo_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/workspace/templates": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Listar templates de documentos
+         * @description List all built-in document templates.
+         *
+         *     Templates are read-only and available to all authenticated users.
+         */
+        get: operations["list_templates_v1_workspace_templates_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -11330,6 +11431,77 @@ export interface components {
             quantidade: number;
             /** Valor Total */
             valor_total: number;
+        };
+        /**
+         * DocumentoCreate
+         * @description Request body for POST /v1/workspace/documentos.
+         */
+        DocumentoCreate: {
+            /** Edital Id */
+            edital_id?: string | null;
+            /** Template Id */
+            template_id?: string | null;
+            /** Tipo */
+            tipo: string;
+            /** Titulo */
+            titulo: string;
+        };
+        /**
+         * DocumentoListResponse
+         * @description Paginated list of user documents.
+         */
+        DocumentoListResponse: {
+            /** Documentos */
+            documentos: components["schemas"]["DocumentoResponse"][];
+            /** Total */
+            total: number;
+        };
+        /**
+         * DocumentoResponse
+         * @description Full document model returned to the frontend.
+         */
+        DocumentoResponse: {
+            /** Conteudo */
+            conteudo: string;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Edital Id */
+            edital_id?: string | null;
+            /** Id */
+            id: string;
+            /** Template Id */
+            template_id?: string | null;
+            /** Tipo */
+            tipo: string;
+            /** Titulo */
+            titulo: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+            /** User Id */
+            user_id: string;
+            /**
+             * Variaveis
+             * @default {}
+             */
+            variaveis: {
+                [key: string]: unknown;
+            };
+        };
+        /**
+         * DocumentoUpdate
+         * @description Request body for PATCH /v1/workspace/documentos/{id}.
+         */
+        DocumentoUpdate: {
+            /** Conteudo */
+            conteudo?: string | null;
+            /** Titulo */
+            titulo?: string | null;
         };
         /**
          * DossieRequest
@@ -15176,6 +15348,17 @@ export interface components {
             email_queued: boolean;
         };
         /**
+         * RenderDocumentoRequest
+         * @description Request body for POST /v1/workspace/documentos/{id}/render.
+         *
+         *     Fetch edital data from pncp_raw_bids by edital_id and substitute
+         *     {{variavel}} patterns in the document conteudo.
+         */
+        RenderDocumentoRequest: {
+            /** Edital Id */
+            edital_id: string;
+        };
+        /**
          * RenewalAlertItem
          * @description A single contract approaching renewal.
          */
@@ -17011,6 +17194,27 @@ export interface components {
             razao_social: string;
             /** Total Won */
             total_won: number;
+        };
+        /**
+         * TemplateResponse
+         * @description Read-only template model returned to the frontend.
+         */
+        TemplateResponse: {
+            /** Conteudo */
+            conteudo: string;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Descricao */
+            descricao?: string | null;
+            /** Id */
+            id: string;
+            /** Nome */
+            nome: string;
+            /** Tipo */
+            tipo: string;
         };
         /**
          * TerritorioEntry
@@ -28624,6 +28828,211 @@ export interface operations {
             };
         };
     };
+    list_documentos_v1_workspace_documentos_get: {
+        parameters: {
+            query?: {
+                /** @description Filter by document type */
+                tipo?: string | null;
+                /** @description Filter by edital ID */
+                edital_id?: string | null;
+                /** @description Items per page */
+                limit?: number;
+                /** @description Offset for pagination */
+                offset?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DocumentoListResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_documento_v1_workspace_documentos_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DocumentoCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DocumentoResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_documento_v1_workspace_documentos__documento_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                documento_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DocumentoResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_documento_v1_workspace_documentos__documento_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                documento_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_documento_v1_workspace_documentos__documento_id__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                documento_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DocumentoUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DocumentoResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    render_documento_v1_workspace_documentos__documento_id__render_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                documento_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RenderDocumentoRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DocumentoResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     get_editais_hoje_v1_workspace_editais_hoje_get: {
         parameters: {
             query?: never;
@@ -28660,6 +29069,26 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["WorkspaceResumo"];
+                };
+            };
+        };
+    };
+    list_templates_v1_workspace_templates_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TemplateResponse"][];
                 };
             };
         };
