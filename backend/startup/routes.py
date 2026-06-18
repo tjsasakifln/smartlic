@@ -120,6 +120,7 @@ from routes.csp_report import router as csp_report_router
 from routes.alerts_b2gops import router as alerts_b2gops_router
 from routes.workspace_watchlist import router as workspace_watchlist_router
 from routes.workspace_alertas import router as workspace_alertas_router
+from routes.workspace_integracoes import router as workspace_integracoes_router
 from routes.admin_outgoing_webhooks import router as admin_outgoing_webhooks_router
 from routes.admin_audit_log import router as admin_audit_log_router
 from routes.admin_rate_limits import router as admin_rate_limits_router
@@ -200,6 +201,7 @@ _v1_routers = [
 	    workspace_watchlist_router,
 	    workspace_alertas_router,
 	    workspace_centro_guerra_router,
+	    workspace_integracoes_router,
 ]
 def register_routes(app: FastAPI) -> None:
     """Register all application routers onto *app*."""

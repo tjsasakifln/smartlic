@@ -3341,6 +3341,143 @@
         "title": "CalculadoraDadosResponse",
         "type": "object"
       },
+      "CanalIntegracao": {
+        "description": "Public integration channel representation returned by the API.",
+        "properties": {
+          "ativo": {
+            "default": true,
+            "title": "Ativo",
+            "type": "boolean"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "email_destino": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Email Destino"
+          },
+          "eventos": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Eventos",
+            "type": "array"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "nome": {
+            "title": "Nome",
+            "type": "string"
+          },
+          "tipo": {
+            "enum": [
+              "slack",
+              "teams",
+              "email"
+            ],
+            "title": "Tipo",
+            "type": "string"
+          },
+          "updated_at": {
+            "format": "date-time",
+            "title": "Updated At",
+            "type": "string"
+          },
+          "url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Url"
+          },
+          "user_id": {
+            "title": "User Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "user_id",
+          "tipo",
+          "nome",
+          "created_at",
+          "updated_at"
+        ],
+        "title": "CanalIntegracao",
+        "type": "object"
+      },
+      "CanalIntegracaoCreate": {
+        "description": "Request body for POST /v1/workspace/integracoes/canais.",
+        "properties": {
+          "email_destino": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Email address (required for email)",
+            "title": "Email Destino"
+          },
+          "eventos": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Eventos",
+            "type": "array"
+          },
+          "nome": {
+            "maxLength": 100,
+            "minLength": 1,
+            "title": "Nome",
+            "type": "string"
+          },
+          "tipo": {
+            "enum": [
+              "slack",
+              "teams",
+              "email"
+            ],
+            "title": "Tipo",
+            "type": "string"
+          },
+          "url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Webhook URL (required for slack/teams)",
+            "title": "Url"
+          }
+        },
+        "required": [
+          "tipo",
+          "nome"
+        ],
+        "title": "CanalIntegracaoCreate",
+        "type": "object"
+      },
       "CancelDeletionResponse": {
         "properties": {
           "detail": {
@@ -19426,6 +19563,25 @@
         "title": "TestAlertResponse",
         "type": "object"
       },
+      "TestNotificacaoResponse": {
+        "description": "Response from the test notification endpoint.",
+        "properties": {
+          "mensagem": {
+            "title": "Mensagem",
+            "type": "string"
+          },
+          "sucesso": {
+            "title": "Sucesso",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "sucesso",
+          "mensagem"
+        ],
+        "title": "TestNotificacaoResponse",
+        "type": "object"
+      },
       "TimeSeriesDataPoint": {
         "properties": {
           "label": {
@@ -29979,6 +30135,124 @@
         ]
       }
     },
+    "/v1/canais": {
+      "get": {
+        "description": "List all integration channels for the authenticated user.",
+        "operationId": "list_canais_v1_canais_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/CanalIntegracao"
+                  },
+                  "title": "Response List Canais V1 Canais Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "List Canais",
+        "tags": [
+          "workspace-integracoes"
+        ]
+      },
+      "post": {
+        "description": "Create a new integration channel (Slack, Teams, or Email).",
+        "operationId": "create_canal_v1_canais_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CanalIntegracaoCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CanalIntegracao"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Create Canal",
+        "tags": [
+          "workspace-integracoes"
+        ]
+      }
+    },
+    "/v1/canais/{canal_id}": {
+      "delete": {
+        "description": "Delete an integration channel.",
+        "operationId": "delete_canal_v1_canais__canal_id__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "canal_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Canal Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Delete Canal",
+        "tags": [
+          "workspace-integracoes"
+        ]
+      }
+    },
     "/v1/change-password": {
       "post": {
         "description": "Change current user's password.",
@@ -37222,6 +37496,55 @@
         "summary": "Submit Export Time Saved Survey",
         "tags": [
           "survey"
+        ]
+      }
+    },
+    "/v1/test/{canal_id}": {
+      "post": {
+        "description": "Send a test notification to verify the channel configuration.\n\n- Slack: POST to webhook URL with a plain text message\n- Teams: POST to webhook URL with a simple MessageCard\n- Email: send via Resend API",
+        "operationId": "test_canal_v1_test__canal_id__post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "canal_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Canal Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TestNotificacaoResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Test Canal",
+        "tags": [
+          "workspace-integracoes"
         ]
       }
     },

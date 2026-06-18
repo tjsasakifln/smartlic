@@ -3820,6 +3820,50 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/canais": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Canais
+         * @description List all integration channels for the authenticated user.
+         */
+        get: operations["list_canais_v1_canais_get"];
+        put?: never;
+        /**
+         * Create Canal
+         * @description Create a new integration channel (Slack, Teams, or Email).
+         */
+        post: operations["create_canal_v1_canais_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/canais/{canal_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Delete Canal
+         * @description Delete an integration channel.
+         */
+        delete: operations["delete_canal_v1_canais__canal_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/change-password": {
         parameters: {
             query?: never;
@@ -7319,6 +7363,30 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/test/{canal_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Test Canal
+         * @description Send a test notification to verify the channel configuration.
+         *
+         *     - Slack: POST to webhook URL with a plain text message
+         *     - Teams: POST to webhook URL with a simple MessageCard
+         *     - Email: send via Resend API
+         */
+        post: operations["test_canal_v1_test__canal_id__post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/trial-emails/unsubscribe": {
         parameters: {
             query?: never;
@@ -9504,6 +9572,69 @@ export interface components {
             total_editais_mes: number;
             /** Uf */
             uf: string;
+        };
+        /**
+         * CanalIntegracao
+         * @description Public integration channel representation returned by the API.
+         */
+        CanalIntegracao: {
+            /**
+             * Ativo
+             * @default true
+             */
+            ativo: boolean;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Email Destino */
+            email_destino?: string | null;
+            /** Eventos */
+            eventos?: string[];
+            /** Id */
+            id: string;
+            /** Nome */
+            nome: string;
+            /**
+             * Tipo
+             * @enum {string}
+             */
+            tipo: "slack" | "teams" | "email";
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+            /** Url */
+            url?: string | null;
+            /** User Id */
+            user_id: string;
+        };
+        /**
+         * CanalIntegracaoCreate
+         * @description Request body for POST /v1/workspace/integracoes/canais.
+         */
+        CanalIntegracaoCreate: {
+            /**
+             * Email Destino
+             * @description Email address (required for email)
+             */
+            email_destino?: string | null;
+            /** Eventos */
+            eventos?: string[];
+            /** Nome */
+            nome: string;
+            /**
+             * Tipo
+             * @enum {string}
+             */
+            tipo: "slack" | "teams" | "email";
+            /**
+             * Url
+             * @description Webhook URL (required for slack/teams)
+             */
+            url?: string | null;
         };
         /** CancelDeletionResponse */
         CancelDeletionResponse: {
@@ -17024,6 +17155,16 @@ export interface components {
             /** Title */
             title: string;
         };
+        /**
+         * TestNotificacaoResponse
+         * @description Response from the test notification endpoint.
+         */
+        TestNotificacaoResponse: {
+            /** Mensagem */
+            mensagem: string;
+            /** Sucesso */
+            sucesso: boolean;
+        };
         /** TimeSeriesDataPoint */
         TimeSeriesDataPoint: {
             /** Label */
@@ -23149,6 +23290,88 @@ export interface operations {
             };
         };
     };
+    list_canais_v1_canais_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CanalIntegracao"][];
+                };
+            };
+        };
+    };
+    create_canal_v1_canais_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CanalIntegracaoCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CanalIntegracao"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_canal_v1_canais__canal_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                canal_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     change_password_v1_change_password_post: {
         parameters: {
             query?: never;
@@ -27931,6 +28154,37 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ExportTimeSavedSurveyResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    test_canal_v1_test__canal_id__post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                canal_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TestNotificacaoResponse"];
                 };
             };
             /** @description Validation Error */
