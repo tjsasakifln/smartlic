@@ -642,3 +642,293 @@ def require_rate_limit(max_requests: int, window_seconds: int):
         }
 
     return _check
+
+# ============================================================================
+# Issue #1973: Granular per-endpoint/role rate limiting
+# ============================================================================
+
+# Tier rate limits (env var overridable)
+RL_ANONYMOUS_RPM = int(os.getenv("RL_ANONYMOUS_RPM", "10"))
+RL_TRIAL_RPM = int(os.getenv("RL_TRIAL_RPM", "30"))
+RL_PRO_RPM = int(os.getenv("RL_PRO_RPM", "60"))
+RL_ADMIN_RPM = int(os.getenv("RL_ADMIN_RPM", "120"))
+
+# Tier mapping for easy lookup
+_TIER_RPM: dict[str, int] = {
+    "anonymous": RL_ANONYMOUS_RPM,
+    "trial": RL_TRIAL_RPM,
+    "pro": RL_PRO_RPM,
+    "admin": RL_ADMIN_RPM,
+}
+
+# Endpoint-specific rate limits (env var overridable JSON string).
+_ENDPOINT_RATE_LIMITS: dict[str, dict[str, int]] = {
+    "/v1/buscar": {"trial": 3, "pro": 10, "anonymous": 3, "admin": 60},
+    "/v1/pipeline": {"default": 30},
+    "/v1/search": {"trial": 5, "pro": 15, "anonymous": 3, "admin": 60},
+}
+# Allow full override via env var (JSON string)
+_ENDPOINT_LIMITS_JSON = os.getenv("ENDPOINT_RATE_LIMITS")
+if _ENDPOINT_LIMITS_JSON:
+    import json as _json
+    try:
+        parsed = _json.loads(_ENDPOINT_LIMITS_JSON)
+        if isinstance(parsed, dict):
+            _ENDPOINT_RATE_LIMITS.update(parsed)
+    except (_json.JSONDecodeError, TypeError):
+        logger.warning("Invalid ENDPOINT_RATE_LIMITS env var JSON — ignoring override")
+
+# Endpoints exempt from rate limiting entirely
+_RATE_LIMIT_EXEMPT_ENDPOINTS: frozenset[str] = frozenset({
+    "/health", "/health/live", "/health/ready", "/sources/health", "/metrics",
+})
+
+
+def get_endpoint_rate_limit(endpoint: str, tier: str) -> int:
+    """Get the rate limit for a given endpoint and user tier.
+
+    Resolution order:
+      1. Exact endpoint + tier match in ``_ENDPOINT_RATE_LIMITS``.
+      2. Exact endpoint + ``"default"`` key.
+      3. Prefix match (endpoint starts with a configured path) + tier.
+      4. Prefix match + ``"default"`` key.
+      5. Fallback to the tier's general RPM.
+
+    Returns the max requests per minute.
+    """
+    # 1. Exact match: endpoint + tier
+    ep_conf = _ENDPOINT_RATE_LIMITS.get(endpoint)
+    if ep_conf is not None:
+        if tier in ep_conf:
+            return ep_conf[tier]
+        if "default" in ep_conf:
+            return ep_conf["default"]
+
+    # 2. Prefix match: check if endpoint starts with a configured path
+    for path, conf in _ENDPOINT_RATE_LIMITS.items():
+        if endpoint.startswith(path):
+            if tier in conf:
+                return conf[tier]
+            if "default" in conf:
+                return conf["default"]
+
+    # 3. Fallback to general tier RPM
+    return _TIER_RPM.get(tier, RL_ANONYMOUS_RPM)
+
+
+def is_exempt_endpoint(endpoint: str) -> bool:
+    """Check if an endpoint is exempt from rate limiting."""
+    for exempt in _RATE_LIMIT_EXEMPT_ENDPOINTS:
+        if endpoint == exempt or endpoint.startswith(exempt + "/"):
+            return True
+    return False
+
+
+def get_user_tier(user: dict | None = None) -> str:
+    """Determine the user's rate limit tier.
+
+    Args:
+        user: User dict from require_auth or get_current_user.
+              May contain ``is_admin``, ``admin_roles``, and ``plan_type``
+              fields. ``None`` means unauthenticated.
+
+    Returns:
+        One of ``"admin"``, ``"pro"``, ``"trial"``, ``"anonymous"``.
+    """
+    if user is None:
+        return "anonymous"
+
+    # Admin check (highest priority)
+    if user.get("is_admin") or user.get("admin_roles"):
+        return "admin"
+
+    # Plan-based tier
+    plan_type = user.get("plan_type", "") or ""
+    if "pro" in plan_type or "consultoria" in plan_type:
+        return "pro"
+    if "trial" in plan_type:
+        return "trial"
+
+    # Default for authenticated users without a recognized plan
+    return "trial"
+
+
+async def _fetch_user_tier_data(user_id: str) -> dict:
+    """Fetch the minimum profile data needed for tier determination.
+
+    Returns ``{plan_type, is_admin, admin_roles}``. On error returns
+    an empty dict — the caller falls back to default tier logic.
+    """
+    try:
+        from supabase_client import get_supabase, sb_execute
+        sb = get_supabase()
+        result = await sb_execute(
+            sb.table("profiles")
+            .select("plan_type, is_admin, admin_roles")
+            .eq("id", user_id)
+            .limit(1),
+            category="read",
+        )
+        rows = result.data or []
+        return rows[0] if rows else {}
+    except Exception as e:
+        logger.warning(
+            "Rate limit tier fetch failed for user %s: %s",
+            user_id[:8], type(e).__name__,
+        )
+        return {}
+
+
+async def check_rate_limit_granular(
+    request: Request,
+    user_tier: str,
+    endpoint: str,
+    user_id: str | None = None,
+) -> tuple[bool, int, int, int]:
+    """Check rate limit using tier + endpoint granular limits.
+
+    Uses the FlexibleRateLimiter with a composite Redis key:
+    rl_granular:{tier}:{endpoint}:{identifier}:{window}.
+
+    Args:
+        request: FastAPI request object.
+        user_tier: Rate limit tier (admin, pro, trial, anonymous).
+        endpoint: Request URL path.
+        user_id: User ID (for authenticated users) or None (uses IP).
+
+    Returns:
+        ``(allowed, retry_after_seconds, remaining, limit)``.
+    """
+    limit = get_endpoint_rate_limit(endpoint, user_tier)
+
+    # Determine identifier for the rate limit key
+    if user_id:
+        identifier = f"user:{user_id}"
+    else:
+        identifier = f"ip:{_get_client_ip(request)}"
+
+    window_seconds = 60
+    full_key = f"granular:{user_tier}:{endpoint}:{identifier}"
+
+    return await _flexible_limiter.check_rate_limit(
+        full_key, limit, window_seconds
+    )
+
+
+def require_rate_limit_granular():
+    """FastAPI dependency for granular per-endpoint/role rate limiting.
+
+    Replaces require_rate_limit with tier-aware, per-endpoint limits.
+    Controlled by the ``RATE_LIMIT_PER_ENDPOINT_ENABLED`` feature flag.
+
+    Behavior:
+      - Exempt endpoints (health, metrics, etc.) skip all checks.
+      - Feature flag off -> no-op (backward compat).
+      - Authenticated users: tier determined from profile data.
+      - Unauthenticated users: anonymous tier + IP-based key.
+      - On exceeded: 429 with structured body and rate limit headers.
+      - On OK: injects rate limit headers via request.state.
+
+    Usage:
+        @router.post("/v1/buscar")
+        async def buscar(
+            ...,
+            _rl=Depends(require_rate_limit_granular()),
+        ):
+    """
+
+    async def _check(request: Request):
+        from config import get_feature_flag
+
+        # Feature flag: if disabled, skip granular check
+        if not get_feature_flag("RATE_LIMIT_PER_ENDPOINT_ENABLED"):
+            return
+
+        endpoint = request.url.path
+
+        # Exempt endpoints: skip entirely
+        if is_exempt_endpoint(endpoint):
+            return
+
+        user_id = None
+
+        # Try to extract user ID from JWT (optional auth)
+        auth_header = request.headers.get("authorization", "")
+        if auth_header.startswith("Bearer "):
+            user_id = _extract_user_id_from_jwt(auth_header)
+
+        # Determine tier
+        if user_id:
+            profile = await _fetch_user_tier_data(user_id)
+            user = {
+                "id": user_id,
+                "plan_type": profile.get("plan_type"),
+                "is_admin": profile.get("is_admin", False),
+                "admin_roles": profile.get("admin_roles"),
+            }
+            tier = get_user_tier(user)
+        else:
+            tier = "anonymous"
+
+        allowed, retry_after, remaining, _ = await check_rate_limit_granular(
+            request, tier, endpoint, user_id
+        )
+
+        window_seconds = 60
+        now_ts = int(_time.time())
+
+        if not allowed:
+            correlation_id = request.headers.get(
+                "x-correlation-id", str(_uuid.uuid4())
+            )
+
+            # Prometheus counters (best-effort)
+            try:
+                from metrics import (
+                    RATE_LIMIT_GRANULAR_HITS_TOTAL,
+                    RATE_LIMIT_GRANULAR_EXCEEDED_TOTAL,
+                )
+                RATE_LIMIT_GRANULAR_HITS_TOTAL.labels(
+                    tier=tier, endpoint=endpoint,
+                ).inc()
+                RATE_LIMIT_GRANULAR_EXCEEDED_TOTAL.labels(
+                    tier=tier, endpoint=endpoint,
+                ).inc()
+            except Exception:
+                pass
+
+            logger.warning(
+                "Rate limit exceeded (granular): endpoint=%s tier=%s "
+                "user=%s correlation_id=%s",
+                endpoint, tier,
+                user_id or _get_client_ip(request),
+                correlation_id,
+            )
+
+            limit = get_endpoint_rate_limit(endpoint, tier)
+            raise HTTPException(
+                status_code=429,
+                detail={
+                    "detail": f"Limite de requisicoes excedido para {tier}. "
+                              f"Tente novamente em {retry_after} segundos.",
+                    "retry_after_seconds": retry_after,
+                    "correlation_id": correlation_id,
+                    "tier": tier,
+                },
+                headers={
+                    "Retry-After": str(retry_after),
+                    "X-RateLimit-Limit": str(limit),
+                    "X-RateLimit-Remaining": "0",
+                    "X-RateLimit-Reset": str(now_ts + window_seconds),
+                },
+            )
+
+        # Inject rate limit headers on successful requests
+        limit = get_endpoint_rate_limit(endpoint, tier)
+        request.state._rate_limit_headers = {
+            "X-RateLimit-Limit": str(limit),
+            "X-RateLimit-Remaining": str(remaining),
+            "X-RateLimit-Reset": str(now_ts + window_seconds),
+        }
+
+    return _check

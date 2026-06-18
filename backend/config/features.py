@@ -332,6 +332,8 @@ _FEATURE_FLAG_REGISTRY: dict[str, tuple[str, str]] = {
     "COMMAND_WORKSPACE_ADVANCED": ("COMMAND_WORKSPACE_ADVANCED", "false"),
     "COMMAND_DATA_EXPORT": ("COMMAND_DATA_EXPORT", "false"),
     "COMMAND_CUSTOM_ALERTS": ("COMMAND_CUSTOM_ALERTS", "false"),
+    # Issue #1973: Granular per-endpoint rate limiting
+    "RATE_LIMIT_PER_ENDPOINT_ENABLED": ("RATE_LIMIT_PER_ENDPOINT_ENABLED", "true"),
 }
 def get_feature_flag(name: str, default: bool | None = None) -> bool:
     """Get a feature flag value with TTL-based caching (60s).

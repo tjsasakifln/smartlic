@@ -380,3 +380,14 @@ class AdminSyntheticResponse(BaseModel):
     timings: dict[str, int] = {}
     consecutive_failures: int = 0
     detail: Optional[str] = None
+
+
+class RateLimitConfigResponse(BaseModel):
+    """Response for GET /v1/admin/rate-limits (Issue #1973).
+
+    Returns the current rate limit configuration for all tiers and endpoints.
+    """
+    tiers: dict[str, int]
+    endpoints: dict[str, dict[str, int]]
+    exempt_endpoints: list[str]
+    feature_flag_enabled: bool
