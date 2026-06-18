@@ -24362,6 +24362,31 @@
         ]
       }
     },
+    "/v1/admin/rate-limits": {
+      "get": {
+        "description": "Return the current granular rate limit configuration.\n\nIncludes tier definitions, endpoint-specific overrides, exempt prefixes,\nwindow size, and whether the granular rate limiter feature is enabled.\n\nRequires admin authentication.",
+        "operationId": "get_rate_limits_config_v1_admin_rate_limits_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Get Rate Limits Config",
+        "tags": [
+          "admin"
+        ]
+      }
+    },
     "/v1/admin/reconciliation/history": {
       "get": {
         "description": "AC10: Get last N reconciliation runs.\n\nReturns list of reconciliation_log entries, most recent first.",
