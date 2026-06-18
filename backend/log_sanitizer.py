@@ -563,6 +563,66 @@ def log_admin_action(
     logger.log(level, " ".join(msg_parts))
 
 
+# ============================================================================
+# #1974: Admin Audit Log DB Persistence
+# ============================================================================
+
+
+async def log_admin_action_db(
+    admin_id: str,
+    action: str,
+    entity_type: str,
+    entity_id: str,
+    details: Optional[Dict[str, Any]] = None,
+    ip_address: Optional[str] = None,
+) -> None:
+    """Persist an admin action to the ``admin_audit_log`` table (#1974).
+
+    PII is sanitized via ``sanitize_dict()`` before storage.
+    Failures are logged as warnings but never raised -- audit visibility
+    is always preserved via the existing ``log_admin_action()`` stdout path.
+
+    Args:
+        admin_id: UUID of the admin who performed the action.
+        action: Action identifier (e.g. ``assign_plan``, ``create_user``).
+        entity_type: Type of affected entity (e.g. ``user``, ``cache``,
+            ``feature_flag``, ``reconciliation``).
+        entity_id: ID of the affected entity (UUID, flag name, hash, etc.).
+        details: Optional metadata dict (will be sanitized for PII).
+        ip_address: Optional client IP address.
+    """
+    safe_details: Dict[str, Any] = {}
+    if details:
+        safe_details = sanitize_dict(details)
+
+    row = {
+        "admin_id": admin_id,
+        "action": action,
+        "entity_type": entity_type,
+        "entity_id": entity_id,
+        "details": safe_details,
+    }
+    if ip_address:
+        row["ip"] = ip_address
+
+    try:
+        from supabase_client import get_supabase, sb_execute
+
+        supabase = get_supabase()
+        await sb_execute(
+            supabase.table("admin_audit_log").insert(row),
+            category="write",
+        )
+    except Exception as e:
+        # Never let a DB write failure suppress the audit event.
+        # The stdout log via log_admin_action() already captured it.
+        logging.getLogger(__name__).warning(
+            "Failed to persist admin audit log to Supabase: %s "
+            "(action=%s, admin=%s, entity=%s/%s)",
+            e, action, admin_id[:8], entity_type, entity_id,
+        )
+
+
 def log_auth_event(
     logger: logging.Logger,
     event: str,

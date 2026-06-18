@@ -115,8 +115,8 @@ class TestAdminUserCreationDefaultPlan:
         assert mock_table.update.called, "Profile should be updated with company info"
 
         # Verify NO subscription was created (free_trial doesn't create subscription)
-        # The insert() method should NOT be called for free_trial plans
-        assert mock_table.insert.call_count == 0, "free_trial should not create a subscription record"
+        # The only insert should be from the admin_audit_log (#1974)
+        assert mock_table.insert.call_count == 1, "free_trial should only create audit log entry, not subscription"
 
     def test_create_user_without_plan_id_and_without_company_minimal_profile(self, admin_client):
         """
@@ -161,8 +161,8 @@ class TestAdminUserCreationDefaultPlan:
         # Since company is None and plan_id == "free_trial", update should NOT happen
         assert mock_table.update.call_count == 0, "Profile should NOT be updated (relying on DB defaults)"
 
-        # Verify NO subscription was created
-        assert mock_table.insert.call_count == 0, "free_trial should not create a subscription record"
+        # Verify NO subscription was created (only audit log entry allowed)
+        assert mock_table.insert.call_count == 1, "free_trial should only create audit log entry, not subscription"
 
     def test_create_user_explicit_free_trial_behaves_same_as_default(self, admin_client):
         """
@@ -201,9 +201,9 @@ class TestAdminUserCreationDefaultPlan:
         assert data["email"] == "explicit@example.com"
         assert data["plan_id"] == "free_trial"
 
-        # Verify behavior is same as default (no update, no subscription)
+        # Verify behavior is same as default (no update, no subscription — only audit log)
         assert mock_table.update.call_count == 0, "Explicit free_trial should not update profile"
-        assert mock_table.insert.call_count == 0, "Explicit free_trial should not create subscription"
+        assert mock_table.insert.call_count == 1, "Explicit free_trial should only create audit log entry, not subscription"
 
     def test_create_user_with_paid_plan_creates_subscription(self, admin_client):
         """
@@ -250,8 +250,8 @@ class TestAdminUserCreationDefaultPlan:
         data = response.json()
         assert data["plan_id"] == "smartlic_pro"
 
-        # Verify subscription WAS created (contrast with free_trial)
-        assert mock_table.insert.call_count == 1, "Paid plan should create a subscription record"
+        # Verify subscription WAS created (1 insert) plus audit log entry (1 insert) = 2 total
+        assert mock_table.insert.call_count == 2, "Paid plan should create subscription (1) + audit log (1)"
 
         # Verify profile WAS updated with plan_type
         update_calls = [call for call in mock_table.update.call_args_list if call[0][0].get("plan_type")]

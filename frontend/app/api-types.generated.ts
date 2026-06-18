@@ -493,6 +493,38 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/admin/audit-log": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Audit Log
+         * @description Query the admin audit log with optional filters.
+         *
+         *     Requires ``admin:compliance`` or ``admin:super`` role.
+         *     PII in the ``details`` field is sanitized at write time via
+         *     ``log_sanitizer.sanitize_dict()``.
+         *
+         *     **Filters:**
+         *     - ``admin_id``: Filter by the admin who performed the action.
+         *     - ``entity_type``: Filter by entity type (e.g. ``user``, ``cache``).
+         *     - ``action``: Filter by action name (e.g. ``assign_plan``).
+         *     - ``from`` / ``to``: ISO 8601 date range filter on ``created_at``.
+         *     - ``limit``: Page size (1-200, default 50).
+         *     - ``offset``: Pagination offset (default 0).
+         */
+        get: operations["get_audit_log_v1_admin_audit_log_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/admin/cache": {
         parameters: {
             query?: never;
@@ -8379,6 +8411,80 @@ export interface components {
              * @default 0
              */
             valor_total_30d: number;
+        };
+        /**
+         * AuditLogEntry
+         * @description Single admin audit log entry.
+         */
+        AuditLogEntry: {
+            /**
+             * Action
+             * @description Action performed
+             */
+            action: string;
+            /**
+             * Admin Id
+             * @description Admin user ID
+             */
+            admin_id: string;
+            /**
+             * Created At
+             * @description ISO timestamp of the action
+             */
+            created_at: string;
+            /**
+             * Details
+             * @description Action details (PII sanitized)
+             */
+            details?: {
+                [key: string]: unknown;
+            };
+            /**
+             * Entity Id
+             * @description ID of affected entity
+             */
+            entity_id: string;
+            /**
+             * Entity Type
+             * @description Type of affected entity
+             */
+            entity_type: string;
+            /**
+             * Id
+             * @description Audit log entry UUID
+             */
+            id: string;
+            /**
+             * Ip
+             * @description Client IP address
+             */
+            ip?: string | null;
+        };
+        /**
+         * AuditLogResponse
+         * @description Paginated audit log response.
+         */
+        AuditLogResponse: {
+            /**
+             * Entries
+             * @description List of audit log entries
+             */
+            entries: components["schemas"]["AuditLogEntry"][];
+            /**
+             * Limit
+             * @description Page size applied
+             */
+            limit: number;
+            /**
+             * Offset
+             * @description Offset applied
+             */
+            offset: number;
+            /**
+             * Total
+             * @description Total matching entries (before pagination)
+             */
+            total: number;
         };
         /** AuthStatusResponse */
         AuthStatusResponse: {
@@ -18141,6 +18247,50 @@ export interface operations {
                 };
                 content: {
                     "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_audit_log_v1_admin_audit_log_get: {
+        parameters: {
+            query?: {
+                /** @description Filter by admin user ID */
+                admin_id?: string | null;
+                /** @description Filter by entity type (e.g. user, cache) */
+                entity_type?: string | null;
+                /** @description Filter by action (e.g. assign_plan, create_user) */
+                action?: string | null;
+                /** @description Start date (ISO 8601) */
+                from?: string | null;
+                /** @description End date (ISO 8601) */
+                to?: string | null;
+                /** @description Max results per page */
+                limit?: number;
+                /** @description Number of results to skip */
+                offset?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AuditLogResponse"];
                 };
             };
             /** @description Validation Error */
