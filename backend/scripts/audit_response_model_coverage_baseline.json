@@ -2,6 +2,15 @@
   "files": [
     {
       "coverage_pct": 0.0,
+      "file": "backend/routes/admin_rate_limits.py",
+      "missing_paths": [
+        "/rate-limits"
+      ],
+      "response_model_count": 0,
+      "router_count": 1
+    },
+    {
+      "coverage_pct": 0.0,
       "file": "backend/routes/network_intel.py",
       "missing_paths": [
         "/health"
@@ -33,6 +42,15 @@
       "file": "backend/routes/widget_compint.py",
       "missing_paths": [
         "/widget/competitive-intel"
+      ],
+      "response_model_count": 1,
+      "router_count": 2
+    },
+    {
+      "coverage_pct": 50.0,
+      "file": "backend/routes/workspace_timeline.py",
+      "missing_paths": [
+        "/workspace/timeline/{edital_id}/evento"
       ],
       "response_model_count": 1,
       "router_count": 2
@@ -76,6 +94,20 @@
     },
     {
       "coverage_pct": 100.0,
+      "file": "backend/routes/admin_alerts.py",
+      "missing_paths": [],
+      "response_model_count": 1,
+      "router_count": 1
+    },
+    {
+      "coverage_pct": 100.0,
+      "file": "backend/routes/admin_audit_log.py",
+      "missing_paths": [],
+      "response_model_count": 1,
+      "router_count": 1
+    },
+    {
+      "coverage_pct": 100.0,
       "file": "backend/routes/admin_billing_sync.py",
       "missing_paths": [],
       "response_model_count": 4,
@@ -87,6 +119,13 @@
       "missing_paths": [],
       "response_model_count": 3,
       "router_count": 3
+    },
+    {
+      "coverage_pct": 100.0,
+      "file": "backend/routes/admin_circuit_breakers.py",
+      "missing_paths": [],
+      "response_model_count": 1,
+      "router_count": 1
     },
     {
       "coverage_pct": 100.0,
@@ -105,6 +144,20 @@
     {
       "coverage_pct": 100.0,
       "file": "backend/routes/admin_cron.py",
+      "missing_paths": [],
+      "response_model_count": 1,
+      "router_count": 1
+    },
+    {
+      "coverage_pct": 100.0,
+      "file": "backend/routes/admin_data_retention.py",
+      "missing_paths": [],
+      "response_model_count": 1,
+      "router_count": 1
+    },
+    {
+      "coverage_pct": 100.0,
+      "file": "backend/routes/admin_db_pool.py",
       "missing_paths": [],
       "response_model_count": 1,
       "router_count": 1
@@ -153,10 +206,24 @@
     },
     {
       "coverage_pct": 100.0,
+      "file": "backend/routes/admin_outgoing_webhooks.py",
+      "missing_paths": [],
+      "response_model_count": 1,
+      "router_count": 1
+    },
+    {
+      "coverage_pct": 100.0,
       "file": "backend/routes/admin_sessions.py",
       "missing_paths": [],
       "response_model_count": 2,
       "router_count": 2
+    },
+    {
+      "coverage_pct": 100.0,
+      "file": "backend/routes/admin_synthetic.py",
+      "missing_paths": [],
+      "response_model_count": 1,
+      "router_count": 1
     },
     {
       "coverage_pct": 100.0,
@@ -175,6 +242,13 @@
     {
       "coverage_pct": 100.0,
       "file": "backend/routes/alerts.py",
+      "missing_paths": [],
+      "response_model_count": 7,
+      "router_count": 7
+    },
+    {
+      "coverage_pct": 100.0,
+      "file": "backend/routes/alerts_b2gops.py",
       "missing_paths": [],
       "response_model_count": 7,
       "router_count": 7
@@ -297,6 +371,13 @@
       "missing_paths": [],
       "response_model_count": 4,
       "router_count": 4
+    },
+    {
+      "coverage_pct": 100.0,
+      "file": "backend/routes/csp_report.py",
+      "missing_paths": [],
+      "response_model_count": 1,
+      "router_count": 1
     },
     {
       "coverage_pct": 100.0,
@@ -423,6 +504,13 @@
       "missing_paths": [],
       "response_model_count": 3,
       "router_count": 3
+    },
+    {
+      "coverage_pct": 100.0,
+      "file": "backend/routes/integrations.py",
+      "missing_paths": [],
+      "response_model_count": 5,
+      "router_count": 5
     },
     {
       "coverage_pct": 100.0,
@@ -766,18 +854,60 @@
       "missing_paths": [],
       "response_model_count": 2,
       "router_count": 2
+    },
+    {
+      "coverage_pct": 100.0,
+      "file": "backend/routes/workspace.py",
+      "missing_paths": [],
+      "response_model_count": 2,
+      "router_count": 2
+    },
+    {
+      "coverage_pct": 100.0,
+      "file": "backend/routes/workspace_alertas.py",
+      "missing_paths": [],
+      "response_model_count": 3,
+      "router_count": 3
+    },
+    {
+      "coverage_pct": 100.0,
+      "file": "backend/routes/workspace_centro_guerra.py",
+      "missing_paths": [],
+      "response_model_count": 2,
+      "router_count": 2
+    },
+    {
+      "coverage_pct": 100.0,
+      "file": "backend/routes/workspace_documentos.py",
+      "missing_paths": [],
+      "response_model_count": 7,
+      "router_count": 7
+    },
+    {
+      "coverage_pct": 100.0,
+      "file": "backend/routes/workspace_integracoes.py",
+      "missing_paths": [],
+      "response_model_count": 4,
+      "router_count": 4
+    },
+    {
+      "coverage_pct": 100.0,
+      "file": "backend/routes/workspace_watchlist.py",
+      "missing_paths": [],
+      "response_model_count": 3,
+      "router_count": 3
     }
   ],
   "summary": {
-    "coverage_pct": 96.75,
-    "files_scanned": 110,
-    "files_with_routes": 107,
+    "coverage_pct": 96.59,
+    "files_scanned": 128,
+    "files_with_routes": 125,
     "helper_files_excluded": [
       "backend/routes/_recency_helpers.py",
       "backend/routes/_sitemap_cache_headers.py",
       "backend/routes/search_state.py"
     ],
-    "total_routes": 308,
-    "total_with_response_model": 298
+    "total_routes": 352,
+    "total_with_response_model": 340
   }
 }
