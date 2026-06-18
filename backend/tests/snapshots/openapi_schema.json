@@ -1734,6 +1734,105 @@
         "title": "AtividadeRecenteData",
         "type": "object"
       },
+      "AuditLogEntry": {
+        "description": "Single admin audit log entry.",
+        "properties": {
+          "action": {
+            "description": "Action performed",
+            "title": "Action",
+            "type": "string"
+          },
+          "admin_id": {
+            "description": "Admin user ID",
+            "title": "Admin Id",
+            "type": "string"
+          },
+          "created_at": {
+            "description": "ISO timestamp of the action",
+            "title": "Created At",
+            "type": "string"
+          },
+          "details": {
+            "additionalProperties": true,
+            "description": "Action details (PII sanitized)",
+            "title": "Details",
+            "type": "object"
+          },
+          "entity_id": {
+            "description": "ID of affected entity",
+            "title": "Entity Id",
+            "type": "string"
+          },
+          "entity_type": {
+            "description": "Type of affected entity",
+            "title": "Entity Type",
+            "type": "string"
+          },
+          "id": {
+            "description": "Audit log entry UUID",
+            "title": "Id",
+            "type": "string"
+          },
+          "ip": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Client IP address",
+            "title": "Ip"
+          }
+        },
+        "required": [
+          "id",
+          "admin_id",
+          "action",
+          "entity_type",
+          "entity_id",
+          "created_at"
+        ],
+        "title": "AuditLogEntry",
+        "type": "object"
+      },
+      "AuditLogResponse": {
+        "description": "Paginated audit log response.",
+        "properties": {
+          "entries": {
+            "description": "List of audit log entries",
+            "items": {
+              "$ref": "#/components/schemas/AuditLogEntry"
+            },
+            "title": "Entries",
+            "type": "array"
+          },
+          "limit": {
+            "description": "Page size applied",
+            "title": "Limit",
+            "type": "integer"
+          },
+          "offset": {
+            "description": "Offset applied",
+            "title": "Offset",
+            "type": "integer"
+          },
+          "total": {
+            "description": "Total matching entries (before pagination)",
+            "title": "Total",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "entries",
+          "total",
+          "limit",
+          "offset"
+        ],
+        "title": "AuditLogResponse",
+        "type": "object"
+      },
       "AuthStatusResponse": {
         "properties": {
           "confirmed": {
@@ -22379,6 +22478,162 @@
           }
         ],
         "summary": "Get At Risk Trials",
+        "tags": [
+          "admin"
+        ]
+      }
+    },
+    "/v1/admin/audit-log": {
+      "get": {
+        "description": "Query the admin audit log with optional filters.\n\nRequires ``admin:compliance`` or ``admin:super`` role.\nPII in the ``details`` field is sanitized at write time via\n``log_sanitizer.sanitize_dict()``.\n\n**Filters:**\n- ``admin_id``: Filter by the admin who performed the action.\n- ``entity_type``: Filter by entity type (e.g. ``user``, ``cache``).\n- ``action``: Filter by action name (e.g. ``assign_plan``).\n- ``from`` / ``to``: ISO 8601 date range filter on ``created_at``.\n- ``limit``: Page size (1-200, default 50).\n- ``offset``: Pagination offset (default 0).",
+        "operationId": "get_audit_log_v1_admin_audit_log_get",
+        "parameters": [
+          {
+            "description": "Filter by admin user ID",
+            "in": "query",
+            "name": "admin_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Filter by admin user ID",
+              "title": "Admin Id"
+            }
+          },
+          {
+            "description": "Filter by entity type (e.g. user, cache)",
+            "in": "query",
+            "name": "entity_type",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Filter by entity type (e.g. user, cache)",
+              "title": "Entity Type"
+            }
+          },
+          {
+            "description": "Filter by action (e.g. assign_plan, create_user)",
+            "in": "query",
+            "name": "action",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Filter by action (e.g. assign_plan, create_user)",
+              "title": "Action"
+            }
+          },
+          {
+            "description": "Start date (ISO 8601)",
+            "in": "query",
+            "name": "from",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Start date (ISO 8601)",
+              "title": "From"
+            }
+          },
+          {
+            "description": "End date (ISO 8601)",
+            "in": "query",
+            "name": "to",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "End date (ISO 8601)",
+              "title": "To"
+            }
+          },
+          {
+            "description": "Max results per page",
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 50,
+              "description": "Max results per page",
+              "maximum": 200,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Number of results to skip",
+            "in": "query",
+            "name": "offset",
+            "required": false,
+            "schema": {
+              "default": 0,
+              "description": "Number of results to skip",
+              "minimum": 0,
+              "title": "Offset",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuditLogResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Get Audit Log",
         "tags": [
           "admin"
         ]
