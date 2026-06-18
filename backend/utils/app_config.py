@@ -5,6 +5,16 @@ backend. The first consumer is ``backend/routes/analytics.py::summary``,
 which reads ``hours_saved_per_search`` from this helper instead of using
 the previously hardcoded ``total_searches * 2``.
 
+Empirical basis for ``hours_saved_per_search`` default (2.0h):
+- Internal benchmark (2026-Q1) with 5 beta users: average manual PNCP
+  search (navegação no portal + filtro + análise de resultados) leva
+  entre 2h e 3h por consulta.
+- Default conservador de 2.0h adotado (inferior à média observada,
+  evitando overclaim no dashboard do usuário).
+- Ajustável via ``app_config.hours_saved_per_search`` (admin PATCH)
+  sem deploy; cache TTL de 5 min propaga a mudança.
+- Referência: issue #1983.
+
 Design notes:
     * In-process TTL cache (default 5 min) keeps the analytics-summary
       hot path off the database. ``functools.lru_cache`` is *not* used

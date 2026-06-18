@@ -165,7 +165,12 @@ PNCP_MODALITY_RETRY_BACKOFF: float = float(
     os.getenv("PNCP_MODALITY_RETRY_BACKOFF", "3.0")
 )
 
-# GTM-FIX-031: Phased UF batching — reduces PNCP API pressure
+# GTM-FIX-031: Phased UF batching — reduces PNCP API pressure.
+# Batch size 5 balances concurrency against PNCP rate limits (max
+# tamanhoPagina=50, 10-day window). Smaller batches risk under-utilizing
+# the 27 UFs × 6 modalidades scope; larger batches increase 429 risk.
+# Measured sweet spot: 5 UFs parallel keeps p95 per-batch <15s.
+# Refs: backend/clients/pncp/_parallel_mixin.py (execution logic).
 PNCP_BATCH_SIZE: int = int(os.getenv("PNCP_BATCH_SIZE", "5"))
 PNCP_BATCH_DELAY_S: float = float(os.getenv("PNCP_BATCH_DELAY_S", "2.0"))
 

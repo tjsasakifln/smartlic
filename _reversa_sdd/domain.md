@@ -334,7 +334,7 @@ fresh (0-6h) ──► stale (6-24h) ──► expired (>24h)
 | **CNPJ** | Cadastro Nacional Pessoa Jurídica (14 dígitos) |
 | **CNAE** | Classificação Nacional de Atividades Econômicas (5 dígitos) |
 | **B2G** | Business-to-Government |
-| **Setor** | Categoria de atuação (15 setores em `sectors_data.yaml`); ex: Limpeza, Uniformes, TI |
+| **Setor** | Categoria de atuação (20 setores em `sectors_data.yaml`); ex: Limpeza, Uniformes, TI |
 | **Viabilidade** | Score 4-fator HIGH/MEDIUM/LOW |
 | **Pipeline** | Funil kanban de oportunidades user-tracked |
 | **Trial** | 14 dias gratis sem cartão |
@@ -360,8 +360,8 @@ fresh (0-6h) ──► stale (6-24h) ──► expired (>24h)
 - 🔴 **Founding plan**: `POST /founding/checkout` separate route — pricing? deadline? cap?
 - 🔴 **Partner program**: dashboard + admin endpoints existem; commission %, payout cycle, attribution rules?
 - 🔴 **CNAE→Setor mapping**: hardcoded em `utils/cnae_mapping.py`; cobertura completa? fallback "diversos"?
-- 🟡 **`estimated_hours_saved`**: constante 2.5h/search — base empírica? 
-- 🟡 **15 vs 20 setores**: CLAUDE.md menciona 15 setores; modules.json menciona 20. Inconsistência?
+- 🟢 **`estimated_hours_saved`**: agora configurável via `app_config.hours_saved_per_search` (BIZ-METRIC-001). Default 2.0h/search, baseado em benchmark interno de busca manual no PNCP (tempo médio ~2-3h por consulta). Fonte: `backend/utils/app_config.py`.
+- 🟢 **Consistência setores**: CLAUDE.md, `_reversa_sdd/domain.md` e `sectors_data.yaml` alinhados em 20 setores. Verificado em 2026-06-17 (issue #1983).
 - 🔴 **Webhook HMAC verify gap** (Resend `/trial-emails/webhook`) — security hole?
 - 🔴 **Admin role granularity**: all-or-nothing — compliance concern?
 - 🟡 **Pricing R$397/297/...**: source of truth `plan_billing_periods` table sync com Stripe — quando sync corre?
