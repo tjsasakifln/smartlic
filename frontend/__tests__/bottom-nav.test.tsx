@@ -101,12 +101,12 @@ describe("BottomNav", () => {
     expect(screen.getByText("Sair")).toBeInTheDocument();
   });
 
-  // SHIP-002: Alertas and Dashboard removed from drawer (feature-gated)
-  it("drawer does not show Alertas (feature-gated SHIP-002)", () => {
+  // B2GOPS-011 (#2021): Alertas now active in drawer
+  it("drawer shows Alertas", () => {
     render(<BottomNav />);
     fireEvent.click(screen.getByTestId("bottom-nav-more"));
 
-    expect(screen.queryByText("Alertas")).not.toBeInTheDocument();
+    expect(screen.getByText("Alertas")).toBeInTheDocument();
   });
 
   it("drawer closes when backdrop is clicked", () => {
