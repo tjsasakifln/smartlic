@@ -1,17 +1,20 @@
-# DEBT-123 AC7: This workflow runs the full test suite (Python 3.12, frontend,
-# integration, E2E). It complements backend-tests.yml which runs backend-only
-# tests PLUS quality tools (pip-audit, ruff, mypy, schema validation, per-module coverage).
-# Both are needed: this for integration + E2E, backend-tests.yml for quality gates.
-# NOTE: The E2E job here duplicates e2e.yml. e2e.yml is more complete (uploads artifacts,
-# runs smoke tests). tests.yml E2E job serves as a gating step that requires unit tests first.
+# Unit + Integration tests on push to main. Complements backend-tests.yml
+# (quality gates: pip-audit, ruff, mypy, schema validation) and frontend-tests.yml
+# (PR gate). E2E coverage on main is provided by e2e-critical-flows.yml (path-triggered
+# on PR) and e2e.yml (smoke + full suite, path-triggered on PR). The E2E job was
+# removed from this workflow in 2026-06-18 because:
+#   1. 1810 tests × 1 worker × 2 retries = 30h+ theoretical runtime
+#   2. Every run cancelled at the GHA 360-min default timeout (62 cancelled in a row)
+#   3. Almost all tests failing since RBAC + OAuth + doc PRs — suite structurally broken
+#   4. Branch protection never required this job (only Backend + Frontend Tests)
+#   5. Zero safety-net value: cancelled jobs don't block deploys
+#   Re-enable when: E2E suite passes locally, sharding implemented (4×4), timeout-minutes: 20.
 #
 # mission sparkling-patterson 2026-04-24: deferred to post-merge. PR gate
 # is backend-tests.yml + frontend-tests.yml (those are what branch
-# protection enforces). Running the Python 3.12 matrix + integration +
-# E2E on every PR was duplicated work that added 8-10 min of queue time
-# per PR. Now runs on push to main/master (catches regressions before
-# deploy) and workflow_dispatch (manual on-demand for risky PRs).
-name: "Tests (Full Matrix + Integration + E2E)"
+# protection enforces). Runs on push to main/master (catches regressions
+# before deploy) and workflow_dispatch (manual on-demand for risky PRs).
+name: "Tests (Unit + Integration)"
 
 on:
   push:
@@ -31,6 +34,7 @@ jobs:
   backend-tests:
     name: Backend Tests
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     strategy:
       matrix:
         python-version: ['3.12']
@@ -109,6 +113,7 @@ jobs:
   frontend-tests:
     name: Frontend Tests
     runs-on: ubuntu-latest
+    timeout-minutes: 15
 
     steps:
       - name: Checkout code
@@ -215,6 +220,7 @@ jobs:
   integration-tests:
     name: Integration Tests
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     needs: [backend-tests] # Run integration only if unit tests pass
 
     env:
@@ -257,194 +263,8 @@ jobs:
           path: backend/tests/integration/
           retention-days: 7
 
-  e2e-tests:
-    name: End-to-End Tests
-    runs-on: ubuntu-latest
-    needs: [backend-tests, frontend-tests] # Run E2E only if unit tests pass
-
-    env:
-      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY || 'sk-test-fallback-key' }}
-      FRONTEND_URL: http://localhost:3000
-      BACKEND_URL: http://localhost:8000
-      NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
-      NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v6
-
-      - name: Set up Python (Backend)
-        uses: actions/setup-python@v6
-        with:
-          python-version: '3.12'
-          cache: 'pip'
-
-      - name: Set up Node.js (Frontend)
-        uses: actions/setup-node@v6
-        with:
-          node-version: '20'
-          cache: 'npm'
-          cache-dependency-path: frontend/package-lock.json
-
-      - name: Install backend dependencies
-        run: |
-          cd backend
-          pip install -r requirements.txt
-
-      - name: Install frontend dependencies
-        run: |
-          cd frontend
-          npm ci
-
-      - name: Install Playwright browsers
-        run: |
-          cd frontend
-          npx playwright install chromium --with-deps
-
-      - name: Start backend server
-        run: |
-          cd backend
-          uvicorn main:app --host 0.0.0.0 --port 8000 > backend.log 2>&1 &
-          BACKEND_PID=$!
-          echo "Backend PID: $BACKEND_PID"
-          echo "BACKEND_PID=$BACKEND_PID" >> $GITHUB_ENV
-
-          # Wait for backend to be ready (max 30 seconds)
-          for i in {1..30}; do
-            if curl -f http://localhost:8000/health > /dev/null 2>&1; then
-              echo "✅ Backend is ready"
-              exit 0
-            fi
-            echo "Waiting for backend... ($i/30)"
-            sleep 1
-          done
-
-          echo "❌ Backend failed to start within 30 seconds"
-          echo "Backend logs:"
-          cat backend.log
-          exit 1
-        env:
-          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY || 'sk-test-fallback' }}
-
-      - name: Build frontend
-        run: |
-          cd frontend
-          npm run build
-
-      - name: Start frontend server
-        run: |
-          cd frontend
-          npm run start > frontend.log 2>&1 &
-          FRONTEND_PID=$!
-          echo "Frontend PID: $FRONTEND_PID"
-          echo "FRONTEND_PID=$FRONTEND_PID" >> $GITHUB_ENV
-
-          # Wait for frontend to be ready (max 60 seconds)
-          for i in {1..60}; do
-            if curl -f http://localhost:3000 > /dev/null 2>&1; then
-              echo "✅ Frontend is ready"
-              exit 0
-            fi
-            echo "Waiting for frontend... ($i/60)"
-            sleep 1
-          done
-
-          echo "❌ Frontend failed to start within 60 seconds"
-          echo "Frontend logs:"
-          cat frontend.log
-          exit 1
-
-      - name: Verify services are responding
-        run: |
-          echo "Checking backend health..."
-          curl -v http://localhost:8000/health || exit 1
-          echo ""
-          echo "Checking frontend health..."
-          curl -v http://localhost:3000 || exit 1
-          echo ""
-          echo "✅ Both services are responding"
-
-      - name: Run E2E tests
-        run: |
-          cd frontend
-          npm run test:e2e
-        env:
-          CI: true
-          FRONTEND_URL: http://localhost:3000
-          BACKEND_URL: http://localhost:8000
-
-      - name: Stop services
-        if: always()
-        run: |
-          echo "Stopping backend and frontend servers..."
-          if [ -n "$BACKEND_PID" ]; then
-            kill $BACKEND_PID || true
-            echo "Backend stopped (PID: $BACKEND_PID)"
-          fi
-          if [ -n "$FRONTEND_PID" ]; then
-            kill $FRONTEND_PID || true
-            echo "Frontend stopped (PID: $FRONTEND_PID)"
-          fi
-
-      - name: Upload backend logs
-        uses: actions/upload-artifact@v7
-        if: always()
-        with:
-          name: backend-logs
-          path: backend/backend.log
-          retention-days: 7
-
-      - name: Upload frontend logs
-        uses: actions/upload-artifact@v7
-        if: always()
-        with:
-          name: frontend-logs
-          path: frontend/frontend.log
-          retention-days: 7
-
-      - name: Upload Playwright report
-        uses: actions/upload-artifact@v7
-        if: always()
-        with:
-          name: playwright-report
-          path: frontend/playwright-report/
-          retention-days: 30
-
-      - name: Upload test results
-        uses: actions/upload-artifact@v7
-        if: always()
-        with:
-          name: e2e-test-results
-          path: frontend/test-results/
-          retention-days: 30
-
-      # DEBT-123 AC9: PR comment — intentionally non-blocking (informational, not a gate)
-      - name: Comment PR with E2E results
-        uses: actions/github-script@v9
-        if: always() && github.event_name == 'pull_request'
-        continue-on-error: true  # DEBT-123 AC9: intentional — PR comment is informational
-        with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          script: |
-            const fs = require('fs');
-            const reportPath = 'frontend/test-results/junit.xml';
-
-            let message = '## 🎭 E2E Test Results\n\n';
-
-            if (fs.existsSync(reportPath)) {
-              message += '✅ E2E tests completed. See artifacts for detailed report.\n\n';
-              message += `📊 [View Playwright Report](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})\n`;
-            } else {
-              message += '⚠️ E2E test report not found.\n';
-            }
-
-            try {
-              await github.rest.issues.createComment({
-                issue_number: context.issue.number,
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                body: message
-              });
-            } catch (error) {
-              console.log('Failed to post comment:', error.message);
-            }
+  # NOTE: E2E tests were removed from this workflow on 2026-06-18.
+  # See workflow header comment for rationale. Coverage preserved by:
+  #   - e2e.yml (PR path-triggered, smoke + full suite)
+  #   - e2e-critical-flows.yml (PR path-triggered, 6 critical business flows)
+  # Re-enable here when: suite passes locally, sharding implemented, timeout-minutes: 20.
