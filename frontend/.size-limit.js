@@ -16,12 +16,15 @@
  *    First Load JS para ≤ 600 KB em 90 dias via route-level code splitting
  *    + dynamic imports de rotas autenticadas (dashboard, pipeline, admin) +
  *    migração opportunística de Framer → CSS transitions em landing.
+ *  - 2026-06-17: bump 1.95→1.97 MB para acomodar workspace (centro de guerra,
+ *    alertas inteligentes, timeline, watchlist) — novo feature code sem
+ *    dependências pesadas adicionadas (~10 KB gzipped de código novo).
  */
 module.exports = [
   {
     name: 'First Load JS (total)',
     path: '.next/static/chunks/**/*.js',
     gzip: true,
-    limit: '1950000 B',
+    limit: '1970000 B',
   },
 ];

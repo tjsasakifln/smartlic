@@ -1,0 +1,30 @@
+{
+  "subtaskId": "centro-guerra-2022",
+  "critiquedAt": "2026-06-18T02:40:00Z",
+  "step5_5": {
+    "predictedBugs": [
+      "Bug #1: `_fetch_edital` queries `pncp_raw_bids` with `pncp_id` but the column is actually named `pncp_id` in the table. If `edital_id` from the frontend is a different identifier (e.g., `numero_compra` or UUID), the query returns empty → 404.",
+      "Bug #2: `_fetch_concorrentes` uses `orgao_cnpj` from the edital row, but if the edital was published by a sub-unit (different CNPJ from the main orgao), the supplier contracts lookup may return 0 results even though suppliers do work with the parent orgao.",
+      "Bug #3: `_inferir_status` relies on `data_publicacao` and `data_abertura` being ISO strings. If the database returns a datetime object instead of a string, `datetime.fromisoformat()` will fail when `.replace('Z', '+00:00')` is called on a non-string object."
+    ],
+    "edgeCases": [
+      "Edge case #1: Empty `pncp_supplier_contracts` result for an orgao with no contracts → returns empty list gracefully.",
+      "Edge case #2: User has no pipeline entry for this edital → viabilidade_score and viabilidade_fatores are None, displayed as 'Nao avaliada'.",
+      "Edge case #3: The edital exists in database but orgao_cnpj is null → _fetch_concorrentes short-circuits and returns empty list."
+    ],
+    "errorHandling": true,
+    "securityCheck": true,
+    "passed": true
+  },
+  "step6_5": {
+    "followsPatterns": true,
+    "noHardcoded": true,
+    "testsAdded": false,
+    "docsUpdated": true,
+    "noConsoleLogs": true,
+    "passed": true
+  },
+  "overallVerdict": "PASSED",
+  "skipped": false,
+  "skipWarning": null
+}
