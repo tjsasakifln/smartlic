@@ -127,6 +127,7 @@ from routes.admin_rate_limits import router as admin_rate_limits_router
 from routes.workspace import router as workspace_router
 from routes.workspace_timeline import router as workspace_timeline_router
 from routes.workspace_centro_guerra import router as workspace_centro_guerra_router
+from routes.workspace_documentos import router as workspace_documentos_router
 _v1_routers = [
     admin_router, admin_rate_limits_router, subscriptions_router, upgrade_to_lifetime_router,
     features_router, messages_router,
@@ -196,12 +197,21 @@ _v1_routers = [
     integrations_router,
     csp_report_router,
     alerts_b2gops_router,
+<<<<<<< HEAD
 	    workspace_router,
 	    workspace_timeline_router,
 	    workspace_watchlist_router,
 	    workspace_alertas_router,
 	    workspace_centro_guerra_router,
 	    workspace_integracoes_router,
+=======
+    workspace_router,
+    workspace_timeline_router,
+    workspace_watchlist_router,
+    workspace_alertas_router,
+    workspace_centro_guerra_router,
+    workspace_documentos_router,
+>>>>>>> 9998921a (feat: documentos colaborativos — editor + templates + variáveis (#2023))
 ]
 def register_routes(app: FastAPI) -> None:
     """Register all application routers onto *app*."""
