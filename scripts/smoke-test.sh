@@ -62,14 +62,14 @@ log_skip() { echo -e "  ${YELLOW}SKIP${NC}  $1 — $2"; ((SKIP_COUNT+=1)); }
 
 # (a)-(e) HTTP 200 check
 check_http_200() {
-  local label="$1" url="$2" method="${3:-GET}"
+  local label="$1" url="$2" method="${3:-GET}" extra_flags="${4:-}"
 
   echo "─── ${label} ──────────────────────────────────────"
   echo "${method} ${url}"
 
   local http_code
   http_code=$(curl -s -o /dev/null -w "%{http_code}" -X "${method}" \
-    "${url}" --max-time "${CHECK_TIMEOUT}" 2>&1 || echo "000")
+    ${extra_flags} "${url}" --max-time "${CHECK_TIMEOUT}" 2>&1 || echo "000")
 
   if [ "${http_code}" = "000" ]; then
     log_fail "${label}" "Connection failed (timeout or DNS error)"
@@ -203,9 +203,9 @@ check_http_200 "(b) Readiness probe" "${API_URL}/health/ready"
 # (c) /v1/sectors
 check_http_200 "(c) Public sectors"  "${API_URL}/v1/sectors"
 
-# (d) /observatorio/ (frontend ISR page)
-# Trailing slash required — Next.js redirects /observatorio → /observatorio/ (301)
-check_http_200 "(d) ISR page"        "${FRONTEND_URL}/observatorio/"
+# (d) /observatorio (frontend ISR page)
+# -L follows redirects — resilient to Next.js trailingSlash config changes
+check_http_200 "(d) ISR page"        "${FRONTEND_URL}/observatorio" "GET" "-L"
 
 # (e) /v1/plans
 check_http_200 "(e) Plans"           "${API_URL}/v1/plans"
