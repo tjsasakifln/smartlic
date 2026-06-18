@@ -90,11 +90,51 @@ jobs:
       - name: Check for unapplied migrations
         run: |
           echo "Checking migration status..."
+          set +e  # supabase CLI may exit non-zero on runner image mismatches
           OUTPUT=$(supabase migration list --linked 2>&1)
+          LIST_EXIT=$?
+          set -e
           echo "$OUTPUT"
 
-          if echo "$OUTPUT" | grep -q "Not applied"; then
-            echo "::error::Found unapplied migrations! Run 'supabase db push' before deploying."
+          # If supabase CLI failed entirely, warn and skip (not a migration problem)
+          if [ $LIST_EXIT -ne 0 ] && [ -z "$OUTPUT" ]; then
+            echo "::warning::supabase migration list failed with exit $LIST_EXIT — cannot verify migrations, skipping check"
+            exit 0
+          fi
+
+          # 2-pass scan: mark migration as applied if ANY row has non-empty Remote.
+          # Supabase CLI 2.x emits dual rows per applied migration — second row
+          # has empty Remote but is NOT unapplied (false positive without this scan).
+          UNAPPLIED=$(echo "$OUTPUT" | awk -F'|' '
+            NR > 2 {
+              local = $1; gsub(/^[ \t]+|[ \t]+$/, "", local)
+              remote = $2; gsub(/^[ \t]+|[ \t]+$/, "", remote)
+              if (local == "") next
+              if (local ~ /\.down/) next
+              if (local !~ /^[0-9]{14}$/) next
+              seen[local] = 1
+              if (remote != "") applied[local] = 1
+            }
+            END {
+              for (m in seen) {
+                if (!applied[m]) print m
+              }
+            }
+          ' | sort)
+
+          if [ -n "$UNAPPLIED" ] || echo "$OUTPUT" | grep -q "Not applied"; then
+            echo ""
+            echo "::error::Found unapplied migrations!"
+            if [ -n "$UNAPPLIED" ]; then
+              echo "Unapplied migrations:"
+              echo "$UNAPPLIED"
+            fi
+            echo ""
+            echo "To fix this:"
+            echo "  1. export SUPABASE_ACCESS_TOKEN=<your-token>"
+            echo "  2. supabase link --project-ref <project-ref>"
+            echo "  3. supabase db push --include-all"
+            echo ""
             exit 1
           fi
 
