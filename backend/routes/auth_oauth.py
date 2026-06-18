@@ -35,6 +35,16 @@ router = APIRouter(prefix="/api/auth", tags=["oauth"])
 # Frontend URL for redirects
 FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:3000")
 
+# Backend public URL — prefer explicit BACKEND_URL, fallback to Railway service URL
+_backend_url_raw = os.getenv("BACKEND_URL")
+if not _backend_url_raw:
+    _railway_backend = os.getenv("RAILWAY_SERVICE_BIDIQ_BACKEND_URL")
+    if _railway_backend:
+        _backend_url_raw = f"https://{_railway_backend}"
+    else:
+        _backend_url_raw = "http://localhost:8000"
+BACKEND_URL = _backend_url_raw
+
 # STORY-210 AC13: In-memory OAuth nonce store with TTL
 # Key: nonce string, Value: (user_id, redirect_path, created_at)
 _OAUTH_NONCE_TTL = 600  # 10 minutes
@@ -110,9 +120,8 @@ async def google_oauth_initiate(
         → Redirects to https://accounts.google.com/o/oauth2/auth?...
     """
     try:
-        # Build redirect URI
-        backend_url = os.getenv("BACKEND_URL", "http://localhost:8000")
-        redirect_uri = f"{backend_url}/api/auth/google/callback"
+        # Build redirect URI using configured BACKEND_URL
+        redirect_uri = f"{BACKEND_URL}/v1/api/auth/google/callback"
 
         # STORY-210 AC13: Validate redirect path against whitelist
         if redirect not in _ALLOWED_REDIRECT_PATHS:
@@ -192,8 +201,7 @@ async def google_oauth_callback(
         user_id, redirect_path = nonce_result
 
         # Build redirect URI (must match authorization request)
-        backend_url = os.getenv("BACKEND_URL", "http://localhost:8000")
-        redirect_uri = f"{backend_url}/api/auth/google/callback"
+        redirect_uri = f"{BACKEND_URL}/v1/api/auth/google/callback"
 
         # Exchange code for tokens
         tokens = await exchange_code_for_tokens(code, redirect_uri)

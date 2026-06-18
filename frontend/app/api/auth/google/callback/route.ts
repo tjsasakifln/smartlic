@@ -30,7 +30,7 @@ export async function GET(request: NextRequest) {
   });
 
   try {
-    const backendCallbackUrl = `${backendUrl}/api/auth/google/callback?${params.toString()}`;
+    const backendCallbackUrl = `${backendUrl}/v1/api/auth/google/callback?${params.toString()}`;
     const response = await fetch(backendCallbackUrl, {
       method: "GET",
       redirect: "manual", // Capture the 302 — don't follow it server-side

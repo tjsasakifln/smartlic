@@ -34,7 +34,7 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    const backendOAuthUrl = `${backendUrl}/api/auth/google?redirect=${encodeURIComponent(redirect)}`;
+    const backendOAuthUrl = `${backendUrl}/v1/api/auth/google?redirect=${encodeURIComponent(redirect)}`;
     const response = await fetch(backendOAuthUrl, {
       method: "GET",
       headers: { Authorization: `Bearer ${token}` },

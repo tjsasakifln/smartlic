@@ -34,10 +34,42 @@ import { RestoredResultsBanner } from "./components/RestoredResultsBanner";
 import { clearNewBidsBadge } from "../../components/NewBidsNotificationBadge";
 import { setClarityTag } from "../components/ClarityAnalytics";
 import { tagOnboardingStep } from "../../lib/analytics/clarity_onboarding";
+import { toast } from "sonner";
 
 function HomePageContent() {
   const orch = useSearchOrchestration();
   const searchParams = useSearchParams();
+
+  // STORY-361: Handle OAuth query params (google_oauth=success, error=oauth_*)
+  useEffect(() => {
+    const oauthSuccess = searchParams.get("google_oauth");
+    const oauthError = searchParams.get("error");
+    if (oauthSuccess === "success") {
+      toast.success("Google Sheets conectado com sucesso!", {
+        description: "Agora você pode exportar seus resultados.",
+        duration: 5000,
+      });
+      const url = new URL(window.location.href);
+      url.searchParams.delete("google_oauth");
+      window.history.replaceState({}, "", url.toString());
+    } else if (oauthError?.startsWith("oauth_")) {
+      const messages: Record<string, string> = {
+        oauth_init_failed: "Falha ao iniciar autenticação com Google. Tente novamente.",
+        oauth_network_error: "Erro de conexão com o servidor. Verifique sua internet.",
+        oauth_denied: "Autorização do Google negada. Para exportar, é necessário permitir o acesso.",
+        oauth_failed: "Falha na autenticação com Google. Tente novamente.",
+        oauth_callback_failed: "Erro ao finalizar autenticação. Tente novamente.",
+        missing_code: "Resposta inválida do Google. Tente novamente.",
+        invalid_state: "Sessão expirada. Tente autorizar novamente.",
+      };
+      const msg = messages[oauthError] || `Erro de autenticação (${oauthError}). Tente novamente.`;
+      toast.error("Erro no Google Sheets", { description: msg, duration: 6000 });
+      const url = new URL(window.location.href);
+      url.searchParams.delete("error");
+      url.searchParams.delete("detail");
+      window.history.replaceState({}, "", url.toString());
+    }
+  }, []); // Run once on mount
 
   // CONV-INST-005: fire first_analysis_done tag only once per session
   const firstAnalysisDoneRef = useRef(false);
