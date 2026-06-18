@@ -1,0 +1,332 @@
+# Prometheus SLA Alert Rules — SmartLic
+
+**Versao:** 1.0
+**Criado:** 2026-06-17
+**Owner:** @devops
+**Issue:** #1958
+
+Regras de alerta Prometheus para monitoramento de violacao de SLAs contratuais.
+Documento de referencia: `docs/architecture/SLAs.md`
+
+> **IMPORTANTE:** Estas regras pressupoem que um servidor Prometheus ou Grafana Agent esta
+> configurado para scrapar o endpoint `/metrics` do backend SmartLic. Atualmente nao ha
+> AlertManager configurado na infraestrutura Railway — estas regras devem ser aplicadas
+> no servidor Prometheus quando disponivel ou via Grafana Managed Alerts.
+>
+> A configuracao de AlertManager e prioridade media conforme monitoring-setup.md.
+> Enquanto nao houver AlertManager, os SLAs sao monitorados via:
+> - Sentry Metric Alerts (para error rate, route timeout)
+> - UptimeRobot/BetterStack (para uptime)
+> - SLO Dashboard API (`GET /v1/admin/slo`)
+
+```yaml
+groups:
+  - name: smartlic_sla_alerts
+    interval: 5m
+    limit: 20
+
+    rules:
+      # ============================================================
+      # UPTIME SLAs
+      # ============================================================
+
+      - alert: AppUptimeBelowSLA
+        expr: |
+          smartlic_uptime_pct_30d < 99.5
+        for: 5m
+        labels:
+          severity: critical
+          sla: uptime
+          service: app
+        annotations:
+          summary: "SmartLic App uptime abaixo do SLA de 99.5%"
+          description: |
+            Uptime 30d esta em {{ $value }}%. SLA contratual: 99.5%.
+            Downtime maximo permitido no mes: 3.6h.
+          runbook: "docs/runbooks/incident-response.md"
+          grafana: "smartlic_uptime_pct_30d"
+
+      - alert: APIAvailabilityBelowSLA
+        expr: |
+          (
+            sum(rate(smartlic_http_responses_total{status_class=~"5xx|4xx"}[5m]))
+            / sum(rate(smartlic_http_responses_total[5m]))
+            * 100
+          ) > 0.1
+        for: 10m
+        labels:
+          severity: critical
+          sla: uptime
+          service: api
+        annotations:
+          summary: "API disponibilidade abaixo do SLA de 99.9%"
+          description: |
+            Taxa de erro da API em {{ $value | humanize }}% nos ultimos 10 min.
+            SLA: max 0.1% de erro (99.9% disponibilidade).
+          runbook: "docs/runbooks/incident-response.md"
+
+      # ============================================================
+      # LATENCIA SLAs
+      # ============================================================
+
+      - alert: SearchLatencyP95AboveSLA
+        expr: |
+          histogram_quantile(0.95,
+            sum(rate(smartlic_search_duration_seconds_bucket[5m])) by (le)
+          ) > 5
+        for: 5m
+        labels:
+          severity: warning
+          sla: latency
+          endpoint: /buscar
+          percentile: p95
+        annotations:
+          summary: "p95 de busca acima do SLA de 5s"
+          description: |
+            Latencia p95 do endpoint /buscar em {{ $value | humanizeDuration }}.
+            SLA: p95 < 5s.
+          runbook: "docs/runbooks/general-outage.md"
+
+      - alert: SearchLatencyP99AboveSLA
+        expr: |
+          histogram_quantile(0.99,
+            sum(rate(smartlic_search_duration_seconds_bucket[5m])) by (le)
+          ) > 20
+        for: 5m
+        labels:
+          severity: critical
+          sla: latency
+          endpoint: /buscar
+          percentile: p99
+        annotations:
+          summary: "p99 de busca acima do SLA de 20s"
+          description: |
+            Latencia p99 do endpoint /buscar em {{ $value | humanizeDuration }}.
+            SLA: p99 < 20s. Investigar time budget waterfall.
+          runbook: "docs/runbooks/incident-response.md"
+
+      - alert: PipelineLatencyP95AboveSLA
+        expr: |
+          histogram_quantile(0.95,
+            sum(rate(smartlic_http_response_duration_seconds_bucket{route="/pipeline"}[5m])) by (le)
+          ) > 0.5
+        for: 5m
+        labels:
+          severity: warning
+          sla: latency
+          endpoint: /pipeline
+          percentile: p95
+        annotations:
+          summary: "p95 do pipeline acima do SLA de 500ms"
+          description: |
+            Latencia p95 do endpoint /pipeline em {{ $value | humanizeDuration }}.
+            SLA: p95 < 500ms.
+          runbook: "docs/runbooks/general-outage.md"
+
+      - alert: DashboardLatencyP95AboveSLA
+        expr: |
+          histogram_quantile(0.95,
+            sum(rate(smartlic_http_response_duration_seconds_bucket{route="/dashboard"}[5m])) by (le)
+          ) > 2
+        for: 5m
+        labels:
+          severity: warning
+          sla: latency
+          endpoint: /dashboard
+          percentile: p95
+        annotations:
+          summary: "p95 do dashboard acima do SLA de 2s"
+          description: |
+            Latencia p95 do endpoint /dashboard em {{ $value | humanizeDuration }}.
+            SLA: p95 < 2s.
+          runbook: "docs/runbooks/general-outage.md"
+
+      - alert: ObservatorioLatencyP95AboveSLA
+        expr: |
+          histogram_quantile(0.95,
+            sum(rate(smartlic_http_response_duration_seconds_bucket{route=~"/observatorio/.*"}[5m])) by (le)
+          ) > 0.5
+        for: 5m
+        labels:
+          severity: warning
+          sla: latency
+          endpoint: /observatorio
+          percentile: p95
+        annotations:
+          summary: "p95 do observatorio acima do SLA de 500ms"
+          description: |
+            Latencia p95 das paginas do observatorio em {{ $value | humanizeDuration }}.
+            SLA: p95 < 500ms.
+          runbook: "docs/runbooks/general-outage.md"
+
+      - alert: HealthCheckLatencyP95AboveSLA
+        expr: |
+          histogram_quantile(0.95,
+            sum(rate(smartlic_http_response_duration_seconds_bucket{route="/health/ready"}[5m])) by (le)
+          ) > 0.5
+        for: 10m
+        labels:
+          severity: warning
+          sla: latency
+          endpoint: /health/ready
+          percentile: p95
+        annotations:
+          summary: "p95 do health check acima do SLA de 500ms"
+          description: |
+            Latencia p95 do /health/ready em {{ $value | humanizeDuration }}.
+            SLA: p95 < 500ms. Investigar dependencias (Supabase, Redis).
+          runbook: "docs/runbooks/general-outage.md"
+
+      # ============================================================
+      # ERROR RATE SLA
+      # ============================================================
+
+      - alert: ErrorRateAboveSLA
+        expr: |
+          (
+            sum(rate(smartlic_http_responses_total{status_class="5xx"}[5m]))
+            / sum(rate(smartlic_http_responses_total[5m]))
+            * 100
+          ) > 1
+        for: 5m
+        labels:
+          severity: critical
+          sla: error_rate
+        annotations:
+          summary: "Error rate HTTP 5xx acima do SLA de 1%"
+          description: |
+            Taxa de erro 5xx em {{ $value | humanize }}% nos ultimos 5 min.
+            SLA: < 1%. Investigar erros no Sentry.
+          runbook: "docs/runbooks/incident-response.md"
+
+      - alert: ErrorRateSpike
+        expr: |
+          (
+            sum(rate(smartlic_http_responses_total{status_class="5xx"}[5m]))
+            / sum(rate(smartlic_http_responses_total[5m]))
+            * 100
+          ) > 5
+        for: 2m
+        labels:
+          severity: critical
+          sla: error_rate
+          spike: true
+        annotations:
+          summary: "PICO de erro HTTP 5xx em {{ $value | humanize }}%"
+          description: |
+            Pico de erro. Acionar runbook de resposta a incidentes imediatamente.
+          runbook: "docs/runbooks/incident-response.md"
+
+      # ============================================================
+      # ERROR BUDGET ALERTS
+      # ============================================================
+
+      - alert: ErrorBudgetWarning
+        expr: |
+          smartlic_error_budget_consumed_pct > 70
+        for: 5m
+        labels:
+          severity: warning
+          sla: error_budget
+          zone: yellow
+        annotations:
+          summary: "Error budget acima de 70% (zona amarela)"
+          description: |
+            Error budget consumido: {{ $value | humanize }}%.
+            Reforcar revisao de PRs e feature-flag mudancas arriscadas.
+          runbook: "docs/architecture/error-budget-slo.md"
+
+      - alert: ErrorBudgetCritical
+        expr: |
+          smartlic_error_budget_consumed_pct > 90
+        for: 5m
+        labels:
+          severity: critical
+          sla: error_budget
+          zone: red
+        annotations:
+          summary: "Error budget acima de 90% (zona vermelha)"
+          description: |
+            Error budget consumido: {{ $value | humanize }}%.
+            Freeze de deploys. Apenas hotfixes SEV1/SEV2 permitidos.
+          runbook: "docs/architecture/error-budget-slo.md"
+
+      - alert: ErrorBudgetExhausted
+        expr: |
+          smartlic_error_budget_consumed_pct > 100
+        labels:
+          severity: critical
+          sla: error_budget
+          zone: exhausted
+        annotations:
+          summary: "ERROR BUDGET ESGOTADO"
+          description: |
+            Error budget excedido em {{ $value | humanize }}%.
+            Freeze total. Post-mortem obrigatorio.
+          runbook: "docs/architecture/error-budget-slo.md"
+
+      # ============================================================
+      # RECOVERY METRICS
+      # ============================================================
+
+      - alert: IncidentDurationExceedsRTO
+        expr: |
+          time() - max by (incident_id) (smartlic_incident_start_timestamp) > 14400
+        labels:
+          severity: critical
+          sla: rto
+        annotations:
+          summary: "Incidente ultrapassou RTO de 4h"
+          description: |
+            Incidente ativo ha mais de 4h. RTO de full system recovery excedido.
+            Escalar para suporte Railway/Supabase se necessario.
+          runbook: "docs/runbooks/incident-response.md"
+
+      # ============================================================
+      # RECORDING RULES (desempenho)
+      # ============================================================
+
+      - record: smartlic:sla:uptime_30d
+        expr: smartlic_uptime_pct_30d
+
+      - record: smartlic:sla:search_p95_latency_5m
+        expr: |
+          histogram_quantile(0.95,
+            sum(rate(smartlic_search_duration_seconds_bucket[5m])) by (le)
+          )
+
+      - record: smartlic:sla:search_p99_latency_5m
+        expr: |
+          histogram_quantile(0.99,
+            sum(rate(smartlic_search_duration_seconds_bucket[5m])) by (le)
+          )
+
+      - record: smartlic:sla:error_rate_5m
+        expr: |
+          sum(rate(smartlic_http_responses_total{status_class="5xx"}[5m]))
+          / sum(rate(smartlic_http_responses_total[5m]))
+          * 100
+
+      - record: smartlic:sla:error_budget_consumed_pct
+        expr: smartlic_error_budget_consumed_pct
+```
+
+## Variaveis de Ambiente Esperadas
+
+Nenhuma. As regras dependem exclusivamente das metricas exportadas pelo backend
+em `/metrics`. Verificar disponibilidade:
+
+```bash
+curl -s https://api.smartlic.tech/metrics | grep -E 'smartlic_(uptime|http_responses|search_duration|error_budget|incident)'
+```
+
+## Integracao com Sentry
+
+Enquanto o AlertManager nao estiver configurado, as seguintes regras tem
+equivalentes no Sentry:
+
+| Regra Prometheus | Alternativa Sentry |
+|-----------------|-------------------|
+| ErrorRateAboveSLA | Sentry Metric Alert: HTTP 5xx > 10/min |
+| SearchLatencyP95AboveSLA | Sentry Metric Alert: p95 search > 5s |
+| ErrorBudgetWarning | SLO Dashboard API (manual, GET /v1/admin/slo) |
