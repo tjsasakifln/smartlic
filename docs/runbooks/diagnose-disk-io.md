@@ -116,23 +116,28 @@ ORDER BY duration DESC
 LIMIT 20;
 ```
 
-## 6. Métricas de Disk IO (pg_stat_bgwriter)
+## 6. Métricas de Disk IO (pg_stat_bgwriter + pg_stat_checkpointer)
 
-- `buffers_checkpoint`: páginas escritas por checkpoint (write IO)
-- `buffers_backend`: páginas escritas por backends (write IO)
+> **PG17:** As colunas `checkpoints_timed`, `checkpoints_req` e `buffers_checkpoint`
+> foram movidas para `pg_stat_checkpointer`. A query abaixo usa as novas colunas
+> com fallback para `pg_stat_bgwriter` (compatível com PG ≤16).
+
+- `num_timed`: checkpoints agendados (write IO)
+- `num_requested`: checkpoints forçados (write IO)
+- `buffers_written`: páginas escritas por checkpoint (write IO)
+- `buffers_clean`: páginas escritas pelo background writer (write IO)
 - `buffers_alloc`: páginas alocadas (read IO do disco)
 
 ```sql
-SELECT
-  'checkpoints_timed' AS metric, checkpoints_timed AS value
-FROM pg_stat_bgwriter
+-- Colunas movidas para pg_stat_checkpointer no PostgreSQL 17
+SELECT 'checkpoints_timed' AS metric, num_timed AS value
+FROM pg_stat_checkpointer
 UNION ALL
-SELECT 'checkpoints_req', checkpoints_req FROM pg_stat_bgwriter
+SELECT 'checkpoints_req', num_requested FROM pg_stat_checkpointer
 UNION ALL
-SELECT 'buffers_checkpoint (writes)', buffers_checkpoint FROM pg_stat_bgwriter
+SELECT 'buffers_checkpoint (writes)', buffers_written FROM pg_stat_checkpointer
 UNION ALL
-SELECT 'buffers_backend (writes)', buffers_backend FROM pg_stat_bgwriter
-UNION ALL
+-- Estas colunas permanecem em pg_stat_bgwriter
 SELECT 'buffers_clean (writes)', buffers_clean FROM pg_stat_bgwriter
 UNION ALL
 SELECT 'buffers_alloc (reads from disk)', buffers_alloc FROM pg_stat_bgwriter
