@@ -19128,6 +19128,134 @@
         "title": "TimeSeriesDataPoint",
         "type": "object"
       },
+      "TimelineEvento": {
+        "description": "A single timeline event for an edital.",
+        "properties": {
+          "created_at": {
+            "title": "Created At",
+            "type": "string"
+          },
+          "critico": {
+            "default": false,
+            "title": "Critico",
+            "type": "boolean"
+          },
+          "descricao": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Descricao"
+          },
+          "edital_id": {
+            "title": "Edital Id",
+            "type": "string"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "metadata": {
+            "additionalProperties": true,
+            "title": "Metadata",
+            "type": "object"
+          },
+          "tipo": {
+            "title": "Tipo",
+            "type": "string"
+          },
+          "titulo": {
+            "title": "Titulo",
+            "type": "string"
+          },
+          "user_id": {
+            "title": "User Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "edital_id",
+          "user_id",
+          "tipo",
+          "titulo",
+          "created_at"
+        ],
+        "title": "TimelineEvento",
+        "type": "object"
+      },
+      "TimelineEventoCreate": {
+        "description": "Request body to create a manual timeline event.\n\nOnly 'nota_manual' and 'lembrete' tipos are allowed via user creation.",
+        "properties": {
+          "descricao": {
+            "anyOf": [
+              {
+                "maxLength": 5000,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Descri\u00e7\u00e3o detalhada do evento (opcional)",
+            "title": "Descricao"
+          },
+          "tipo": {
+            "description": "Tipo do evento: nota_manual ou lembrete",
+            "title": "Tipo",
+            "type": "string"
+          },
+          "titulo": {
+            "description": "T\u00edtulo descritivo do evento",
+            "maxLength": 500,
+            "minLength": 1,
+            "title": "Titulo",
+            "type": "string"
+          }
+        },
+        "required": [
+          "tipo",
+          "titulo"
+        ],
+        "title": "TimelineEventoCreate",
+        "type": "object"
+      },
+      "TimelineResponse": {
+        "description": "Paginated timeline event list.",
+        "properties": {
+          "eventos": {
+            "items": {
+              "$ref": "#/components/schemas/TimelineEvento"
+            },
+            "title": "Eventos",
+            "type": "array"
+          },
+          "limit": {
+            "title": "Limit",
+            "type": "integer"
+          },
+          "offset": {
+            "title": "Offset",
+            "type": "integer"
+          },
+          "total": {
+            "title": "Total",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "eventos",
+          "total",
+          "limit",
+          "offset"
+        ],
+        "title": "TimelineResponse",
+        "type": "object"
+      },
       "TopComprador": {
         "properties": {
           "cnpj": {
@@ -37133,6 +37261,213 @@
         "summary": "Get Workspace Resumo",
         "tags": [
           "workspace"
+        ]
+      }
+    },
+    "/v1/workspace/timeline/{edital_id}": {
+      "get": {
+        "description": "Retorna eventos cronol\u00f3gicos de um edital em ordem DESC. Suporta filtros por tipo_evento, data_inicio, data_fim, critico. Pagina\u00e7\u00e3o via limit (default 50, max 200) e offset.",
+        "operationId": "list_timeline_eventos_v1_workspace_timeline__edital_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "edital_id",
+            "required": true,
+            "schema": {
+              "title": "Edital Id",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Filtrar por tipo de evento (ex: publicacao, alteracao)",
+            "in": "query",
+            "name": "tipo_evento",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Filtrar por tipo de evento (ex: publicacao, alteracao)",
+              "title": "Tipo Evento"
+            }
+          },
+          {
+            "description": "Filtrar eventos a partir desta data (ISO 8601)",
+            "in": "query",
+            "name": "data_inicio",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Filtrar eventos a partir desta data (ISO 8601)",
+              "title": "Data Inicio"
+            }
+          },
+          {
+            "description": "Filtrar eventos at\u00e9 esta data (ISO 8601)",
+            "in": "query",
+            "name": "data_fim",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Filtrar eventos at\u00e9 esta data (ISO 8601)",
+              "title": "Data Fim"
+            }
+          },
+          {
+            "description": "Filtrar apenas eventos cr\u00edticos",
+            "in": "query",
+            "name": "critico",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "boolean"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Filtrar apenas eventos cr\u00edticos",
+              "title": "Critico"
+            }
+          },
+          {
+            "description": "N\u00famero m\u00e1ximo de eventos por p\u00e1gina",
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 50,
+              "description": "N\u00famero m\u00e1ximo de eventos por p\u00e1gina",
+              "maximum": 200,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Offset para pagina\u00e7\u00e3o",
+            "in": "query",
+            "name": "offset",
+            "required": false,
+            "schema": {
+              "default": 0,
+              "description": "Offset para pagina\u00e7\u00e3o",
+              "minimum": 0,
+              "title": "Offset",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TimelineResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Listar eventos da timeline de um edital",
+        "tags": [
+          "workspace-timeline"
+        ]
+      }
+    },
+    "/v1/workspace/timeline/{edital_id}/evento": {
+      "post": {
+        "description": "Cria um evento manual na timeline do edital. Apenas tipos 'nota_manual' e 'lembrete' s\u00e3o permitidos.",
+        "operationId": "create_timeline_evento_v1_workspace_timeline__edital_id__evento_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "edital_id",
+            "required": true,
+            "schema": {
+              "title": "Edital Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TimelineEventoCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Create Timeline Evento V1 Workspace Timeline  Edital Id  Evento Post",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Criar evento manual na timeline",
+        "tags": [
+          "workspace-timeline"
         ]
       }
     },
