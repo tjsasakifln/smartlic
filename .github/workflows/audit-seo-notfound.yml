@@ -57,8 +57,15 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          OUTPUT=$(bash .github/scripts/audit-seo-notfound.sh 2>&1) || true
+          SCRIPT_EXIT=0
+          OUTPUT=$(bash .github/scripts/audit-seo-notfound.sh 2>&1) || SCRIPT_EXIT=$?
           echo "$OUTPUT"
+
+          # If script crashed before producing results, fail early
+          if [ "$SCRIPT_EXIT" -ne 0 ] && ! echo "$OUTPUT" | grep -q "^violations_found="; then
+            echo "::error::audit-seo-notfound.sh crashed before producing results (exit code $SCRIPT_EXIT)"
+            exit 1
+          fi
 
           # Parse output for CI summary
           if echo "$OUTPUT" | grep -q "^violations_found=true"; then
@@ -68,12 +75,17 @@ jobs:
             echo "::error::Found $COUNT unmarked notFound() call(s) in protected SEO routes."
 
             # Annotate each violation line in the GitHub UI
+            # Script output format: VIOLATION: <file>:<lineno>: <content>
             while IFS= read -r line; do
               case "$line" in
                 VIOLATION:*)
-                  vfile="${line#VIOLATION: }"
-                  vfile="${vfile%%:*}"
-                  vrest="${line#*: }"
+                  # Remove "VIOLATION: " prefix
+                  vrest="${line#VIOLATION: }"
+                  # Extract file (first field before first colon)
+                  vfile="${vrest%%:*}"
+                  # Remove file prefix to get "lineno: <content>"
+                  vrest="${vrest#"$vfile":}"
+                  # Extract lineno (first field of remainder)
                   vlineno="${vrest%%:*}"
                   echo "::error file=${vfile},line=${vlineno}::Unmarked notFound() in protected SEO route. See ADR-SEO-001 for the allowed-marker convention."
                   ;;

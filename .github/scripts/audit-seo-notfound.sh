@@ -49,7 +49,7 @@ find_notfound_calls() {
       [ -d "$d" ] && dirs+=("$d")
     done
     if [ ${#dirs[@]} -eq 0 ]; then
-      echo "No protected directories found."
+      echo "No protected directories found." >&2
       return 0
     fi
     # Usa grep -P por portabilidade com ubuntu-latest (CI).
@@ -139,6 +139,7 @@ while IFS= read -r hit; do
       echo "WARNING: $file:$lineno — high-risk conditional notFound() with marker (Estrategia C pattern)"
       echo "  Context:"
       get_context "$file" "$lineno" | while IFS= read -r ctx; do echo "    $ctx"; done
+      echo "$file:$lineno — high-risk conditional notFound() with marker" >> "$WARNINGS_FILE"
       WARNING_COUNT=$((WARNING_COUNT + 1))
     fi
     continue
