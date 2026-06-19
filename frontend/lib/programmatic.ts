@@ -5,8 +5,38 @@
  * content blocks for programmatic pages.
  */
 
+import * as Sentry from '@sentry/nextjs';
 import { SECTORS, type SectorMeta } from './sectors';
 import { ssgLimitedFetch } from '@/lib/concurrency';
+
+// BUILD-FIX: Detect build phase to avoid throwing on 5xx during initial SSG.
+// During `next build`, static generation has no ISR cache — a 5xx throw is
+// fatal. At runtime ISR, throwing on 5xx preserves the last-good cached page.
+//
+// Detection strategy:
+//   1. NEXT_PHASE env var — set by Next.js CLI in the main process. May not
+//      propagate to worker processes that actually generate static pages.
+//   2. process.argv fallback — Next.js build workers are spawned from
+//      next/dist/build/ or next/dist/compiled/ entry points. Runtime ISR
+//      workers use next/dist/server/ paths, which are excluded.
+export const IS_BUILD_PHASE: boolean = (() => {
+  if (typeof process === 'undefined') return false;
+  if (
+    process.env.NEXT_PHASE === 'phase-production-build' ||
+    process.env.NEXT_PHASE === 'phase-development-build'
+  ) {
+    return true;
+  }
+  // Fallback: Next.js build worker detection via entry-point path.
+  const execPath = process.argv[1] || '';
+  if (
+    execPath.includes('next/dist/build') ||
+    execPath.includes('next/dist/compiled')
+  ) {
+    return true;
+  }
+  return false;
+})();
 
 // SEO-478: Slugs cujo ID no backend difere do padrão slug.replace(/-/g, '_').
 // Preserva URLs existentes sem quebrar o mapeamento para IDs do backend.
@@ -826,16 +856,77 @@ export interface ContratosSetorStats {
 
 export async function fetchContratosSetorStats(sectorSlug: string): Promise<ContratosSetorStats | null> {
   const backendUrl = process.env.BACKEND_URL;
-  if (!backendUrl) return null;
+  if (!backendUrl) {
+    Sentry.addBreadcrumb({
+      category: 'fetch',
+      message: 'fetchContratosSetorStats no BACKEND_URL',
+      level: 'warning',
+      data: { sector_slug: sectorSlug, outcome: 'no_backend_url' },
+    });
+    return null;
+  }
+
+  const sectorId = SECTOR_SLUG_TO_BACKEND_ID[sectorSlug] ?? sectorSlug.replace(/-/g, '_');
+  const url = `${backendUrl}/v1/blog/stats/contratos/${sectorId}`;
 
   try {
-    const sectorId = SECTOR_SLUG_TO_BACKEND_ID[sectorSlug] ?? sectorSlug.replace(/-/g, '_');
-    const res = await ssgLimitedFetch(`${backendUrl}/v1/blog/stats/contratos/${sectorId}`, {
+    const res = await ssgLimitedFetch(url, {
       signal: AbortSignal.timeout(25000),
     });
-    if (!res.ok) return null;
+
+    if (res.status >= 500) {
+      if (IS_BUILD_PHASE) {
+        console.warn(`[programmatic] Backend 5xx during build for contratos/${sectorId} — rendering fallback`);
+        Sentry.addBreadcrumb({
+          category: 'fetch',
+          message: `fetchContratosSetorStats 5xx (build phase)`,
+          level: 'warning',
+          data: { sector_slug: sectorSlug, sector_id: sectorId, status: res.status, outcome: 'build_5xx_fallback' },
+        });
+        return null;
+      }
+      Sentry.addBreadcrumb({
+        category: 'fetch',
+        message: `fetchContratosSetorStats 5xx (ISR throw)`,
+        level: 'error',
+        data: { sector_slug: sectorSlug, sector_id: sectorId, status: res.status, outcome: 'isr_5xx_throw' },
+      });
+      throw new Error(`contratos_setor_stats_backend_5xx:${res.status}`);
+    }
+
+    if (!res.ok) {
+      Sentry.addBreadcrumb({
+        category: 'fetch',
+        message: `fetchContratosSetorStats HTTP ${res.status}`,
+        level: 'warning',
+        data: { sector_slug: sectorSlug, sector_id: sectorId, status: res.status, outcome: 'http_error_null' },
+      });
+      return null;
+    }
+
+    Sentry.addBreadcrumb({
+      category: 'fetch',
+      message: 'fetchContratosSetorStats success',
+      level: 'info',
+      data: { sector_slug: sectorSlug, sector_id: sectorId, status: res.status, outcome: 'success' },
+    });
     return res.json();
-  } catch {
+  } catch (err) {
+    if (err instanceof Error && err.message.startsWith('contratos_setor_stats_backend_5xx')) {
+      Sentry.addBreadcrumb({
+        category: 'fetch',
+        message: `fetchContratosSetorStats re-throw 5xx`,
+        level: 'error',
+        data: { sector_slug: sectorSlug, sector_id: sectorId, outcome: '5xx_rethrow' },
+      });
+      throw err;
+    }
+    Sentry.addBreadcrumb({
+      category: 'fetch',
+      message: `fetchContratosSetorStats error`,
+      level: 'error',
+      data: { sector_slug: sectorSlug, sector_id: sectorId, outcome: 'catch_null', error: String(err) },
+    });
     return null;
   }
 }

@@ -2,6 +2,7 @@ import { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import { ssgLimitedFetch } from '@/lib/concurrency';
+import EmptyStateSEO from '@/components/seo/EmptyStateSEO';
 import { AnalysisViewTracker } from './AnalysisViewTracker';
 import ShareButtons from '@/components/share/ShareButtons';
 import SchemaMarkup from '@/components/blog/SchemaMarkup';
@@ -72,8 +73,13 @@ export async function generateMetadata({
   params: Promise<{ hash: string }>;
 }): Promise<Metadata> {
   const { hash } = await params;
-  const data = await fetchAnalysis(hash);
-  if (!data) return { title: 'Análise não encontrada' };
+  let data: SharedAnalysis | null = null;
+  try {
+    data = await fetchAnalysis(hash);
+  } catch {
+    // 5xx transient → noindex, follow; ISR retries at next revalidation
+  }
+  if (!data) return { title: 'Análise não encontrada', robots: { index: false, follow: true } };
 
   const levelLabel = data.viability_level === 'alta' ? 'ALTA' : data.viability_level === 'media' ? 'MÉDIA' : 'BAIXA';
   const setor = data.bid_modalidade || data.bid_uf || 'licitações';
@@ -133,8 +139,30 @@ export default async function AnalisePage({
   params: Promise<{ hash: string }>;
 }) {
   const { hash } = await params;
-  const data = await fetchAnalysis(hash);
-  if (!data) notFound();
+
+  // ADR-SEO-001: hash malformed → true 404 (no backend call needed)
+  if (!/^[A-Za-z0-9_-]{8,64}$/.test(hash)) {
+    notFound(); // adr-seo-001-allow: hash format invalid — true 404
+  }
+
+  let data: SharedAnalysis | null = null;
+  try {
+    data = await fetchAnalysis(hash);
+  } catch {
+    // 5xx transient → render EmptyStateSEO; ISR retries at next revalidation
+  }
+
+  // ADR-SEO-001: data absence → EmptyStateSEO (not notFound) to prevent ISR-cached 404s
+  if (!data) {
+    return (
+      <EmptyStateSEO
+        title="Análise não encontrada"
+        description="Análise não encontrada ou ainda sendo processada. Tente novamente mais tarde."
+        ctaHref="/"
+        ctaLabel="Página inicial"
+      />
+    );
+  }
 
   const levelLabel = data.viability_level === 'alta' ? 'ALTA' : data.viability_level === 'media' ? 'MÉDIA' : 'BAIXA';
   const levelColor =
