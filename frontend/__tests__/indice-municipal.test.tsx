@@ -251,3 +251,96 @@ describe('Slug utility (indice-municipal)', () => {
     expect(color).toBe('text-red-600');
   });
 });
+
+describe('MunicipioPage — ADR-SEO-001 (EmptyStateSEO)', () => {
+  beforeEach(() => {
+    // Reset fetch mock to avoid polluting other tests
+    (global.fetch as jest.Mock).mockReset?.();
+  });
+
+  it('AC4: backend returns is_empty_period:true → generateMetadata returns noindex,follow + canonical', async () => {
+    global.fetch = jest.fn().mockResolvedValue({
+      ok: true,
+      json: () => Promise.resolve({ is_empty_period: true, score_total: null }),
+    } as Response);
+
+    const mod = await import('@/app/indice-municipal/[municipio-uf]/page');
+    const metadata = await mod.generateMetadata({
+      params: Promise.resolve({ 'municipio-uf': 'sao-paulo-sp' }),
+      searchParams: Promise.resolve({ periodo: '2026-Q2' }),
+    });
+
+    // AC3: robots noindex,follow
+    expect(metadata.robots).toEqual({ index: false, follow: true });
+    // AC3: canonical self-referential
+    expect(metadata.alternates?.canonical).toBe(
+      'https://smartlic.tech/indice-municipal/sao-paulo-sp'
+    );
+  });
+
+  it('AC5: backend returns 500 → generateMetadata returns noindex,follow (nao 404, nao throw)', async () => {
+    global.fetch = jest.fn().mockResolvedValue({
+      ok: false,
+      status: 500,
+    } as Response);
+
+    const mod = await import('@/app/indice-municipal/[municipio-uf]/page');
+    // Must NOT throw — catch swallows transient errors
+    const metadata = await mod.generateMetadata({
+      params: Promise.resolve({ 'municipio-uf': 'sao-paulo-sp' }),
+      searchParams: Promise.resolve({ periodo: '2026-Q2' }),
+    });
+
+    // ADR-SEO-001: data absence → noindex,follow so Google recovers on next regen
+    expect(metadata.robots).toEqual({ index: false, follow: true });
+  });
+
+  it('generateMetadata returns index:true for valid data', async () => {
+    global.fetch = jest.fn().mockResolvedValue({
+      ok: true,
+      json: () =>
+        Promise.resolve({
+          is_empty_period: false,
+          score_total: 78.5,
+          score_transparencia_digital: 17.0,
+          score_eficiencia_temporal: 15.5,
+          score_diversidade_mercado: 16.0,
+          score_volume_publicacao: 18.0,
+          score_consistencia: 12.0,
+          total_editais: 450,
+          ranking_nacional: 1,
+          ranking_uf: 1,
+          calculado_em: '2026-04-11T12:00:00+00:00',
+        }),
+    } as Response);
+
+    const mod = await import('@/app/indice-municipal/[municipio-uf]/page');
+    const metadata = await mod.generateMetadata({
+      params: Promise.resolve({ 'municipio-uf': 'sao-paulo-sp' }),
+      searchParams: Promise.resolve({ periodo: '2026-Q2' }),
+    });
+
+    expect(metadata.robots).toEqual({ index: true, follow: true });
+    expect(metadata.title).toContain('Sao Paulo');
+    // OG image should be present when score is available
+    expect(metadata.openGraph?.images).toHaveLength(1);
+  });
+
+  it('AC6: notFound() has adr-seo-001-allow marker for CI gate compatibility', async () => {
+    const fs = await import('fs');
+    const path = await import('path');
+    const sourcePath = path.resolve(
+      __dirname,
+      '../app/indice-municipal/[municipio-uf]/page.tsx'
+    );
+    const source = fs.readFileSync(sourcePath, 'utf-8');
+
+    // The remaining notFound() call must have the CI gate marker
+    expect(source).toContain('// adr-seo-001-allow: slug malformed — true 404');
+    // No other notFound() call without the marker
+    const notFoundLines = source
+      .split('\n')
+      .filter((l: string) => l.includes('notFound()'));
+    expect(notFoundLines.length).toBe(1);
+  });
+});

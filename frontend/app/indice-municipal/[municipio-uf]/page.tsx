@@ -3,15 +3,22 @@
  *
  * ISR revalidate 24h. Schema.org: Article.
  * Slug format: "sao-paulo-sp" (nome-slug + "-" + uf 2 chars)
+ *
+ * ADR-SEO-001: data absence → EmptyStateSEO (not notFound) to prevent ISR-cached 404s.
+ * notFound() is reserved for malformed slugs only.
  */
 
 import { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { ssgLimitedFetch } from '@/lib/concurrency';
+import EmptyStateSEO from '@/components/seo/EmptyStateSEO';
 import StickyTrialCTA from '@/app/components/StickyTrialCTA';
 
 export const revalidate = 3600;
+
+/** Slug pattern: nome-do-municipio-uf (e.g. "sao-paulo-sp") */
+const MUNICIPIO_SLUG_PATTERN = /^[a-zà-ü]+(?:-[a-zà-ü]+)*-([a-z]{2})$/;
 
 interface PageProps {
   params: Promise<{ 'municipio-uf': string }>;
@@ -55,38 +62,59 @@ export async function generateMetadata({ params, searchParams }: PageProps): Pro
   const municipioSlug = extractMunicipioSlug(slug);
   const municipioTitulo = deslugify(municipioSlug);
 
+  const canonical = `https://smartlic.tech/indice-municipal/${slug}`;
+
   let data = null;
-  let genuineNotFound = false;
   try {
     data = await fetchMunicipio(slug, periodo);
-    if (data === null) genuineNotFound = true;
-  } catch { /* transient backend error: keep page indexable */ }
-  const score = data?.score_total != null ? Number(data.score_total) : null;
-  const scoreText = score != null ? ` Score ${score.toFixed(1)} de 100.` : '';
+  } catch {
+    /* transient backend error: graceful degradation — noindex,follow so Google recovers on next regen */
+  }
 
+  const hasData = data && !data.is_empty_period;
+
+  if (!hasData) {
+    // ADR-SEO-001: data absence → noindex,follow + canonical self-referential
+    return {
+      title: `${municipioTitulo} (${uf}) — Índice de Transparência Municipal`,
+      description: `Transparência em compras públicas de ${municipioTitulo}/${uf}.`,
+      alternates: { canonical },
+      robots: { index: false, follow: true },
+      openGraph: {
+        title: `${municipioTitulo} (${uf}) — Índice de Transparência Municipal`,
+        description: `Transparência em compras públicas de ${municipioTitulo}/${uf}.`,
+        url: canonical,
+        type: 'article' as const,
+        locale: 'pt_BR',
+      },
+    };
+  }
+
+  const score = Number(data.score_total);
+  const scoreText = ` Score ${score.toFixed(1)} de 100.`;
   const title = `${municipioTitulo} (${uf}) — Índice de Transparência Municipal`;
   const description = `Transparência em compras públicas de ${municipioTitulo}/${uf}.${scoreText} Dados das fontes oficiais: volume, eficiência e diversidade de mercado.`;
 
   return {
     title,
     description,
-    alternates: { canonical: `https://smartlic.tech/indice-municipal/${slug}` },
+    alternates: { canonical },
     openGraph: {
       title,
       description,
-      url: `https://smartlic.tech/indice-municipal/${slug}`,
-      type: 'article',
+      url: canonical,
+      type: 'article' as const,
       locale: 'pt_BR',
-      images: score != null ? [
+      images: [
         {
           url: `https://smartlic.tech/api/og/indice-municipal?cidade=${encodeURIComponent(municipioTitulo)}&uf=${uf}&score=${Math.round(score)}`,
           width: 1200,
           height: 630,
           alt: `Índice de Transparência Municipal — ${municipioTitulo}/${uf}: ${score.toFixed(1)} de 100`,
         },
-      ] : [],
+      ],
     },
-    robots: genuineNotFound ? { index: false, follow: false } : { index: true },
+    robots: { index: true, follow: true },
   };
 }
 
@@ -94,13 +122,31 @@ export default async function MunicipioPage({ params, searchParams }: PageProps)
   const { 'municipio-uf': slug } = await params;
   const { periodo = '2026-Q2' } = await searchParams;
 
+  // AC2: slug malformed → true 404 (ISR-safe since URLs come from sitemap)
+  if (!MUNICIPIO_SLUG_PATTERN.test(slug)) {
+    notFound(); // adr-seo-001-allow: slug malformed — true 404
+  }
+
   const uf = extractUF(slug);
   const municipioSlug = extractMunicipioSlug(slug);
   const municipioTitulo = deslugify(municipioSlug);
 
-  const data = await fetchMunicipio(slug, periodo);
+  // ADR-SEO-001: fetch errors/empty data → EmptyStateSEO (not notFound)
+  const data = await fetchMunicipio(slug, periodo).catch(() => null);
 
-  if (!data) notFound(); // adr-seo-001-allow: true 404 for non-existent municipio slug
+  if (!data || data.is_empty_period) {
+    return (
+      <main className="max-w-3xl mx-auto px-4 py-10">
+        <EmptyStateSEO
+          title={`${municipioTitulo} (${uf}) — Índice de Transparência Municipal`}
+          description={`Não há dados disponíveis para ${municipioTitulo}/${uf} no período ${periodo}. Tente outro período ou volte mais tarde.`}
+          ctaHref="/indice-municipal"
+          ctaLabel="Ver ranking completo"
+          periodLabel={`Período: ${periodo}`}
+        />
+      </main>
+    );
+  }
 
   const score = data?.score_total != null ? Number(data.score_total) : null;
   const scoreColor =
@@ -112,52 +158,47 @@ export default async function MunicipioPage({ params, searchParams }: PageProps)
           ? 'text-yellow-600'
           : 'text-red-600';
 
-  const dimensoes = data
-    ? [
-        {
-          nome: 'Transparência Digital',
-          score: Number(data.score_transparencia_digital || 0),
-          desc: 'Uso de pregão eletrônico',
-        },
-        {
-          nome: 'Eficiência Temporal',
-          score: Number(data.score_eficiencia_temporal || 0),
-          desc: 'Tempo publicação → abertura',
-        },
-        {
-          nome: 'Diversidade de Mercado',
-          score: Number(data.score_diversidade_mercado || 0),
-          desc: 'Fornecedores únicos',
-        },
-        {
-          nome: 'Volume de Publicação',
-          score: Number(data.score_volume_publicacao || 0),
-          desc: 'Total de editais publicados',
-        },
-        {
-          nome: 'Consistência',
-          score: Number(data.score_consistencia || 0),
-          desc: 'Publicações regulares por mês',
-        },
-      ]
-    : [];
+  const dimensoes = [
+    {
+      nome: 'Transparência Digital',
+      score: Number(data.score_transparencia_digital || 0),
+      desc: 'Uso de pregão eletrônico',
+    },
+    {
+      nome: 'Eficiência Temporal',
+      score: Number(data.score_eficiencia_temporal || 0),
+      desc: 'Tempo publicação → abertura',
+    },
+    {
+      nome: 'Diversidade de Mercado',
+      score: Number(data.score_diversidade_mercado || 0),
+      desc: 'Fornecedores únicos',
+    },
+    {
+      nome: 'Volume de Publicação',
+      score: Number(data.score_volume_publicacao || 0),
+      desc: 'Total de editais publicados',
+    },
+    {
+      nome: 'Consistência',
+      score: Number(data.score_consistencia || 0),
+      desc: 'Publicações regulares por mês',
+    },
+  ];
 
-  const articleSchema =
-    data && score != null
-      ? {
-          '@context': 'https://schema.org',
-          '@type': 'Article',
-          headline: `${municipioTitulo} (${uf}) — Índice de Transparência em Compras Públicas`,
-          datePublished: data.calculado_em,
-          dateModified: data.calculado_em,
-          author: {
-            '@type': 'Organization',
-            name: 'SmartLic',
-            url: 'https://smartlic.tech',
-          },
-          description: `Score ${score.toFixed(1)} pontos. Ranking ${data.ranking_nacional}º entre municípios brasileiros.`,
-        }
-      : null;
+  const articleSchema = {
+    '@context': 'https://schema.org',
+    '@type': 'Article',
+    headline: `${municipioTitulo} (${uf}) — Índice de Transparência em Compras Públicas`,
+    datePublished: data.calculado_em,
+    dateModified: data.calculado_em,
+    author: {
+      '@type': 'Organization',
+      name: 'SmartLic',
+      url: 'https://smartlic.tech',
+    },
+    description: `Score ${score?.toFixed(1)} pontos. Ranking ${data.ranking_nacional}º entre municípios brasileiros.`,
+  };
 
   const breadcrumbJsonLd = {
     '@context': 'https://schema.org',
@@ -171,12 +212,10 @@ export default async function MunicipioPage({ params, searchParams }: PageProps)
 
   return (
     <>
-      {articleSchema && (
-        <script
-          type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(articleSchema) }}
-        />
-      )}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(articleSchema) }}
+      />
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd) }}
