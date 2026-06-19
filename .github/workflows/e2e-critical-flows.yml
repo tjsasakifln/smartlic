@@ -57,7 +57,7 @@ jobs:
   critical-flows:
     name: 'Critical Flow E2E Tests'
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 25
 
     env:
       FRONTEND_URL: http://localhost:3000

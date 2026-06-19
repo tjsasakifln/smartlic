@@ -313,7 +313,7 @@ jobs:
           BACKEND_PID=$!
           echo "BACKEND_PID=$BACKEND_PID" >> $GITHUB_ENV
           for i in {1..30}; do
-            if curl -f http://localhost:8000/health > /dev/null 2>&1; then
+            if curl -f http://localhost:8000/health/live > /dev/null 2>&1; then
               echo "Backend is ready"
               exit 0
             fi

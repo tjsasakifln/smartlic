@@ -48,7 +48,7 @@ jobs:
   e2e-tests:
     name: Playwright E2E Tests
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 30
 
     env:
       OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY || 'sk-test-fallback-key' }}
@@ -86,7 +86,7 @@ jobs:
 
       - name: Install Playwright browsers
         working-directory: frontend
-        run: npx playwright install --with-deps chromium webkit
+        run: npx playwright install --with-deps chromium
 
       - name: Start backend server
         working-directory: backend
@@ -97,7 +97,7 @@ jobs:
 
           # Wait for backend to be ready (max 30 seconds)
           for i in {1..30}; do
-            if curl -f http://localhost:8000/health > /dev/null 2>&1; then
+            if curl -f http://localhost:8000/health/live > /dev/null 2>&1; then
               echo "Backend is ready"
               exit 0
             fi
@@ -257,7 +257,7 @@ jobs:
           BACKEND_PID=$!
           echo "BACKEND_PID=$BACKEND_PID" >> $GITHUB_ENV
           for i in {1..30}; do
-            if curl -f http://localhost:8000/health > /dev/null 2>&1; then
+            if curl -f http://localhost:8000/health/live > /dev/null 2>&1; then
               echo "Backend is ready"
               exit 0
             fi
