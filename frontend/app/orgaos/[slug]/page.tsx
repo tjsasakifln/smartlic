@@ -80,7 +80,6 @@ async function fetchOrgaoStats(slug: string): Promise<OrgaoStats | null> {
     timeout: 15000,
     retries: 1,
     revalidate: 3600,
-    throwOn5xx: true, // ISR stale-preservation: 5xx re-throws to keep last-good cache
     label: 'orgao-stats',
   });
 }
