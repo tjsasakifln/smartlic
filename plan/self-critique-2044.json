@@ -1,0 +1,31 @@
+{
+  "subtaskId": "2044",
+  "critiquedAt": "2026-06-18T21:30:00Z",
+  "step5_5": {
+    "predictedBugs": [
+      "Sentry breadcrumb network error: String(err) pode ser verbose se erro for objeto grande, mas String(err) em Error objects produz mensagens curtas como 'TypeError: fetch failed'",
+      "Error message prefix 'contratos_setor_stats_backend_5xx' é formato privado — se backend mudar prefixo, catch block não detectaria (mas isso é intencional para não engolir erros de terceiros)",
+      "ISR revalidate não é explicitamente setado no fetch options — depende do page-level revalidate=3600 para ISR funcionar. Comportamento correto pois o throw propaga para o Next.js que gerencia o stale cache independente do revalidate window"
+    ],
+    "edgeCases": [
+      "BACKEND_URL vazio (string vazia) — tratado por !backendUrl, retorna null",
+      "503 Service Unavailable — mesmo tratamento de 500, throw durante ISR, null durante build",
+      "429 rate limit — 4xx, retorna null como 'sem dados' (não é 5xx para throw)",
+      "sectorSlug com caracteres especiais — slugs são controlados pelo catálogo estático, não user input"
+    ],
+    "errorHandling": true,
+    "securityCheck": true,
+    "passed": true
+  },
+  "step6_5": {
+    "followsPatterns": true,
+    "noHardcoded": true,
+    "testsAdded": true,
+    "docsUpdated": true,
+    "noConsoleLogs": true,
+    "passed": true
+  },
+  "overallVerdict": "PASSED",
+  "skipped": false,
+  "skipWarning": null
+}

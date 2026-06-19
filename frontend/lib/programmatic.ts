@@ -5,6 +5,7 @@
  * content blocks for programmatic pages.
  */
 
+import * as Sentry from '@sentry/nextjs';
 import { SECTORS, type SectorMeta } from './sectors';
 import { ssgLimitedFetch } from '@/lib/concurrency';
 
@@ -876,16 +877,77 @@ export interface ContratosSetorStats {
 
 export async function fetchContratosSetorStats(sectorSlug: string): Promise<ContratosSetorStats | null> {
   const backendUrl = process.env.BACKEND_URL;
-  if (!backendUrl) return null;
+  if (!backendUrl) {
+    Sentry.addBreadcrumb({
+      category: 'fetch',
+      message: 'fetchContratosSetorStats no BACKEND_URL',
+      level: 'warning',
+      data: { sector_slug: sectorSlug, outcome: 'no_backend_url' },
+    });
+    return null;
+  }
+
+  const sectorId = SECTOR_SLUG_TO_BACKEND_ID[sectorSlug] ?? sectorSlug.replace(/-/g, '_');
+  const url = `${backendUrl}/v1/blog/stats/contratos/${sectorId}`;
 
   try {
-    const sectorId = SECTOR_SLUG_TO_BACKEND_ID[sectorSlug] ?? sectorSlug.replace(/-/g, '_');
-    const res = await ssgLimitedFetch(`${backendUrl}/v1/blog/stats/contratos/${sectorId}`, {
+    const res = await ssgLimitedFetch(url, {
       signal: AbortSignal.timeout(25000),
     });
-    if (!res.ok) return null;
+
+    if (res.status >= 500) {
+      if (IS_BUILD_PHASE) {
+        console.warn(`[programmatic] Backend 5xx during build for contratos/${sectorId} — rendering fallback`);
+        Sentry.addBreadcrumb({
+          category: 'fetch',
+          message: `fetchContratosSetorStats 5xx (build phase)`,
+          level: 'warning',
+          data: { sector_slug: sectorSlug, sector_id: sectorId, status: res.status, outcome: 'build_5xx_fallback' },
+        });
+        return null;
+      }
+      Sentry.addBreadcrumb({
+        category: 'fetch',
+        message: `fetchContratosSetorStats 5xx (ISR throw)`,
+        level: 'error',
+        data: { sector_slug: sectorSlug, sector_id: sectorId, status: res.status, outcome: 'isr_5xx_throw' },
+      });
+      throw new Error(`contratos_setor_stats_backend_5xx:${res.status}`);
+    }
+
+    if (!res.ok) {
+      Sentry.addBreadcrumb({
+        category: 'fetch',
+        message: `fetchContratosSetorStats HTTP ${res.status}`,
+        level: 'warning',
+        data: { sector_slug: sectorSlug, sector_id: sectorId, status: res.status, outcome: 'http_error_null' },
+      });
+      return null;
+    }
+
+    Sentry.addBreadcrumb({
+      category: 'fetch',
+      message: 'fetchContratosSetorStats success',
+      level: 'info',
+      data: { sector_slug: sectorSlug, sector_id: sectorId, status: res.status, outcome: 'success' },
+    });
     return res.json();
-  } catch {
+  } catch (err) {
+    if (err instanceof Error && err.message.startsWith('contratos_setor_stats_backend_5xx')) {
+      Sentry.addBreadcrumb({
+        category: 'fetch',
+        message: `fetchContratosSetorStats re-throw 5xx`,
+        level: 'error',
+        data: { sector_slug: sectorSlug, sector_id: sectorId, outcome: '5xx_rethrow' },
+      });
+      throw err;
+    }
+    Sentry.addBreadcrumb({
+      category: 'fetch',
+      message: `fetchContratosSetorStats error`,
+      level: 'error',
+      data: { sector_slug: sectorSlug, sector_id: sectorId, outcome: 'catch_null', error: String(err) },
+    });
     return null;
   }
 }
