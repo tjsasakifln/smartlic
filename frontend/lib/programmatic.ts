@@ -19,7 +19,7 @@ import { ssgLimitedFetch } from '@/lib/concurrency';
 //   2. process.argv fallback — Next.js build workers are spawned from
 //      next/dist/build/ or next/dist/compiled/ entry points. Runtime ISR
 //      workers use next/dist/server/ paths, which are excluded.
-const IS_BUILD_PHASE: boolean = (() => {
+export const IS_BUILD_PHASE: boolean = (() => {
   if (typeof process === 'undefined') return false;
   if (
     process.env.NEXT_PHASE === 'phase-production-build' ||
