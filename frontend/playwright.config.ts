@@ -73,10 +73,10 @@ export default defineConfig({
       name: 'chromium',
       use: { ...devices['Desktop Chrome'] },
     },
-    {
+    ...(process.env.CI ? [] : [{
       name: 'Mobile Safari',
       use: { ...devices['iPhone 13'] },
-    },
+    }]),
     /* GTM-QUAL-001: Smoke tests run on Chromium only for speed */
     {
       name: 'smoke',

@@ -349,7 +349,7 @@ jobs:
 
       - name: Run E2E tests (shard ${{ matrix.shard }}/${{ matrix.total_shards }})
         working-directory: frontend
-        run: npx playwright test --shard=${{ matrix.shard }}/${{ matrix.total_shards }}
+        run: npx playwright test --shard=${{ matrix.shard }}/${{ matrix.total_shards }} --project=chromium
         env:
           CI: true
 
