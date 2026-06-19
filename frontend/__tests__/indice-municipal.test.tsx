@@ -340,7 +340,12 @@ describe('MunicipioPage — ADR-SEO-001 (EmptyStateSEO)', () => {
     // No other notFound() call without the marker
     const notFoundLines = source
       .split('\n')
-      .filter((l: string) => l.includes('notFound()'));
+      .filter((l: string) => {
+        const t = l.trim();
+        // Skip JSDoc/inline comment lines (adr-seo-001-allow marker already checked above)
+        if (t.startsWith('*') || t.startsWith('//') || t.startsWith('/*')) return false;
+        return l.includes('notFound()');
+      });
     expect(notFoundLines.length).toBe(1);
   });
 });
