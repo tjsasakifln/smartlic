@@ -1,0 +1,1321 @@
+# PSEO Route Inventory — Machine-Readable Metadata
+# Generated: 2026-06-22 by PSEO-000 audit
+# Source of truth for pSEO route families, revalidate config, fetch functions, and error boundaries.
+# Used by: CI gates (audit-seo-notfound, audit-seo-route-config), PSEO refactoring (PSEO-002–014)
+
+version: 1
+generated: "2026-06-22"
+total_routes: 18
+total_page_files: 48
+
+route_families:
+  # =========================================================================
+  # Blog Editorial (lib/blog.ts + SEO metadata)
+  # =========================================================================
+  - family: blog-editorial
+    description: "Blog editorial — artigos escritos por humanos, autores, weekly digest"
+    prefix: /blog
+    rendering: blog-editorial
+    data_source: lib/blog.ts
+    seo_source: lib/seo.ts
+    routes:
+      - path: /blog
+        file: frontend/app/blog/page.tsx
+        revalidate: null       # SSG
+        dynamic: auto
+        generateStaticParams: false
+        fetch_functions: []
+        error_boundary: blog/error.tsx
+        loading_boundary: null
+        error_handling: "default Next.js error boundary"
+        volume: 1
+        notes: "Index page — lista posts recentes + paginação"
+
+      - path: /blog/[slug]
+        file: frontend/app/blog/[slug]/page.tsx
+        revalidate: null       # SSR on-demand
+        dynamic: auto
+        generateStaticParams: true  # getAllSlugs()
+        fetch_functions: [getArticleBySlug]
+        backend_endpoint: "blog CMS (Supabase)"
+        error_boundary: blog/error.tsx
+        loading_boundary: null
+        error_handling: "notFound() para slug inexistente"
+        volume: 200
+        notes: "Post individual — renderizado via blog.ts, não usa PSEOTemplate"
+
+      - path: /blog/author/[slug]
+        file: frontend/app/blog/author/[slug]/page.tsx
+        revalidate: 3600
+        dynamic: auto
+        generateStaticParams: true  # getAllAuthorSlugs()
+        fetch_functions: [getAuthorBySlug, getArticlesByAuthor]
+        backend_endpoint: "blog CMS (Supabase)"
+        error_boundary: blog/error.tsx
+        loading_boundary: null
+        error_handling: "notFound() para author slug inexistente; adr-seo-001-allow"
+        volume: 15
+        notes: "Página de autor — artigo biografia + lista de posts"
+
+      - path: /blog/weekly
+        file: frontend/app/blog/weekly/page.tsx
+        revalidate: null       # SSG
+        dynamic: auto
+        generateStaticParams: false
+        fetch_functions: []
+        backend_endpoint: null
+        error_boundary: blog/error.tsx
+        loading_boundary: null
+        error_handling: "default Next.js error boundary"
+        volume: 1
+        notes: "Índice de weekly digests"
+
+      - path: /blog/weekly/[slug]
+        file: frontend/app/blog/weekly/[slug]/page.tsx
+        revalidate: 3600
+        dynamic: auto
+        generateStaticParams: false
+        fetch_functions: [fetchWeeklyData]
+        backend_endpoint: "GET /v1/blog/weekly/{slug}"
+        error_boundary: blog/error.tsx
+        loading_boundary: null
+        error_handling: "notFound() para slug inexistente; adr-seo-001-allow"
+        volume: 20
+        notes: "Weekly digest individual"
+
+  # =========================================================================
+  # Blog Programmatic (lib/programmatic.ts + ISR)
+  # =========================================================================
+  - family: blog-programmatic
+    description: "Blog programmatico — setor×UF, cidade, panorama, contratos, diário"
+    prefix: /blog
+    rendering: direct-fetch
+    data_source: lib/programmatic.ts
+    seo_source: lib/seo.ts
+    routes:
+      - path: /blog/programmatic/[setor]
+        file: frontend/app/blog/programmatic/[setor]/page.tsx
+        revalidate: 3600
+        dynamic: auto
+        generateStaticParams: true  # generateSectorParams()
+        fetch_functions: [fetchSectorBlogStats, getSectorFromSlug, getEditorialContent]
+        backend_endpoint: "GET /v1/blog/stats/programmatic/{setor}"
+        error_boundary: blog/error.tsx
+        loading_boundary: null
+        error_handling: "EmptyStateSEO p/ setor sem dados; adr-seo-001: nunca notFound()"
+        volume: 15
+        notes: "Página de setor — editorial + stats de editais"
+
+      - path: /blog/programmatic/[setor]/[uf]
+        file: frontend/app/blog/programmatic/[setor]/[uf]/page.tsx
+        revalidate: 3600
+        dynamic: auto
+        generateStaticParams: true  # generateSectorUfParams()
+        fetch_functions: [fetchSectorUfBlogStats, getSectorFromSlug, generateSectorFAQs]
+        backend_endpoint: "GET /v1/blog/stats/programmatic/{setor}/{uf}"
+        error_boundary: blog/error.tsx
+        loading_boundary: null
+        error_handling: "noindex quando total < MIN_ACTIVE_BIDS_FOR_INDEX; adr-seo-001: nunca notFound()"
+        volume: 405
+        notes: "15 setores × 27 UFs. Maior volume da família blog."
+
+      - path: /blog/licitacoes
+        file: frontend/app/blog/licitacoes/page.tsx
+        revalidate: null       # SSG
+        dynamic: auto
+        generateStaticParams: false
+        fetch_functions: []
+        backend_endpoint: null
+        error_boundary: blog/error.tsx
+        loading_boundary: null
+        error_handling: "default Next.js error boundary"
+        volume: 1
+        notes: "Landing page — índice de setores de licitação"
+
+      - path: /blog/licitacoes/[setor]/[uf]
+        file: frontend/app/blog/licitacoes/[setor]/[uf]/page.tsx
+        revalidate: 3600
+        dynamic: auto
+        generateStaticParams: true  # generateLicitacoesParams()
+        fetch_functions: [fetchSectorUfBlogStats, getSectorFromSlug, generateLicitacoesFAQs]
+        backend_endpoint: "GET /v1/blog/stats/licitacoes/{setor}/{uf}"
+        error_boundary: blog/error.tsx
+        loading_boundary: null
+        error_handling: "adr-seo-001: nunca notFound()"
+        volume: 405
+        notes: "Página de licitações setor×UF — template blog-style"
+
+      - path: /blog/licitacoes/cidade/[cidade]
+        file: frontend/app/blog/licitacoes/cidade/[cidade]/page.tsx
+        revalidate: 3600
+        dynamic: auto
+        generateStaticParams: true
+        fetch_functions: [fetchCidadeStats, getCityBySlug]
+        backend_endpoint: "GET /v1/blog/stats/licitacoes/cidade/{cidade}"
+        error_boundary: blog/error.tsx
+        loading_boundary: null
+        error_handling: "adr-seo-001: nunca notFound()"
+        volume: 100
+        notes: "Página de licitações por cidade"
+
+      - path: /blog/licitacoes/cidade/[cidade]/[setor]
+        file: frontend/app/blog/licitacoes/cidade/[cidade]/[setor]/page.tsx
+        revalidate: 3600
+        dynamic: auto
+        generateStaticParams: true
+        fetch_functions: [getCityBySlug, getSectorBySlug, generateCidadeSectorFAQs]
+        backend_endpoint: "GET /v1/blog/stats/licitacoes/cidade/{cidade}/{setor}"
+        error_boundary: blog/error.tsx
+        loading_boundary: null
+        error_handling: "adr-seo-001: nunca notFound()"
+        volume: 500
+        notes: "Cross-product cidade×setor"
+
+      - path: /blog/contratos/[setor]
+        file: frontend/app/blog/contratos/[setor]/page.tsx
+        revalidate: 3600
+        dynamic: auto
+        generateStaticParams: true
+        fetch_functions: [fetchContratosSetorStats, getSectorFromSlug, generateContratosSetorFAQs]
+        backend_endpoint: "GET /v1/blog/stats/contratos/{setor}"
+        error_boundary: blog/error.tsx
+        loading_boundary: null
+        error_handling: "adr-seo-001: nunca notFound()"
+        volume: 15
+        notes: "Página de contratos por setor"
+
+      - path: /blog/panorama
+        file: frontend/app/blog/panorama/page.tsx
+        revalidate: null       # SSG
+        dynamic: auto
+        generateStaticParams: false
+        fetch_functions: []
+        backend_endpoint: null
+        error_boundary: blog/error.tsx
+        loading_boundary: null
+        error_handling: "default Next.js error boundary"
+        volume: 1
+        notes: "Índice de panoramas setoriais"
+
+      - path: /blog/panorama/[setor]
+        file: frontend/app/blog/panorama/[setor]/page.tsx
+        revalidate: 3600
+        dynamic: auto
+        generateStaticParams: true
+        fetch_functions: [fetchPanoramaStats, getSectorFromSlug, generatePanoramaFAQs]
+        backend_endpoint: "GET /v1/blog/stats/panorama/{setor}"
+        error_boundary: blog/error.tsx
+        loading_boundary: null
+        error_handling: "adr-seo-001: nunca notFound()"
+        volume: 15
+        notes: "Panorama setorial — análise de mercado + tendências"
+
+      - path: /blog/licitacoes-do-dia
+        file: frontend/app/blog/licitacoes-do-dia/page.tsx
+        revalidate: 3600
+        dynamic: auto
+        generateStaticParams: false
+        fetch_functions: [fetchLatestDigest]
+        backend_endpoint: "GET /v1/blog/stats/licitacoes-do-dia/latest"
+        error_boundary: blog/error.tsx
+        loading_boundary: null
+        error_handling: "EmptyStateSEO se sem dados hoje"
+        volume: 1
+        notes: "Licitações do dia (hoje)"
+
+      - path: /blog/licitacoes-do-dia/[date]
+        file: frontend/app/blog/licitacoes-do-dia/[date]/page.tsx
+        revalidate: 3600
+        dynamic: auto
+        generateStaticParams: true
+        fetch_functions: [fetchDailyData, getAdjacentDates]
+        backend_endpoint: "GET /v1/blog/stats/licitacoes-do-dia/{date}"
+        error_boundary: blog/error.tsx
+        loading_boundary: null
+        error_handling: "data futura → redirect hoje; data sem dados → EmptyStateSEO"
+        volume: 365
+        notes: "Licitações do dia — archive diário"
+
+  # =========================================================================
+  # Entity Pages — CNPJ / Fornecedores (entity-driven, lib/seo.ts + lib/programmatic.ts)
+  # =========================================================================
+  - family: entity-cnpj
+    description: "Páginas de entidade — perfil de empresa, fornecedor, compliance"
+    prefix: /cnpj, /fornecedores, /compliance
+    rendering: direct-fetch
+    data_source: "lib/programmatic.ts + lib/safe-fetch.ts (fetchWithBudget)"
+    seo_source: lib/seo.ts
+    routes:
+      - path: /cnpj
+        file: frontend/app/cnpj/page.tsx
+        revalidate: null
+        dynamic: auto
+        generateStaticParams: false
+        fetch_functions: []
+        backend_endpoint: null
+        error_boundary: cnpj/error.tsx
+        loading_boundary: null
+        error_handling: "default Next.js error boundary"
+        volume: 1
+        notes: "Landing page — busca de CNPJ"
+
+      - path: /cnpj/[cnpj]
+        file: frontend/app/cnpj/[cnpj]/page.tsx
+        revalidate: 3600
+        dynamic: auto
+        generateStaticParams: true  # retorna [] (SSR on-demand)
+        fetch_functions: [fetchPerfil]
+        backend_endpoint: "GET /v1/empresa/{cnpj}/perfil-b2g"
+        fetch_pattern: "fetchWithBudget — timeout 15s, retries=1, throwOn5xx"
+        error_boundary: cnpj/error.tsx
+        loading_boundary: null
+        error_handling: "EmptyStateSEO p/ CNPJ sem dados; adr-seo-001: notFound() só p/ CNPJ inválido (Mod-11)"
+        volume: 10000
+        notes: "Perfil B2G — score, contratos 24m, editais abertos, amostra. Maior volume individual."
+
+      - path: /fornecedores
+        file: frontend/app/fornecedores/page.tsx
+        revalidate: null
+        dynamic: auto
+        generateStaticParams: false
+        fetch_functions: []
+        backend_endpoint: null
+        error_boundary: fornecedores/error.tsx
+        loading_boundary: null
+        error_handling: "default Next.js error boundary"
+        volume: 1
+        notes: "Landing page — busca de fornecedores"
+
+      - path: /fornecedores/[cnpj]
+        file: frontend/app/fornecedores/[cnpj]/page.tsx
+        revalidate: 3600
+        dynamic: auto
+        generateStaticParams: true  # retorna [] (SSR on-demand)
+        fetch_functions: [fetchFornecedoresStats]
+        backend_endpoint: "GET /v1/fornecedores/{cnpj}"
+        fetch_pattern: "fetchWithBudget — timeout 15s, throwOn5xx"
+        error_boundary: fornecedores/error.tsx
+        loading_boundary: null
+        error_handling: "adr-seo-001: notFound() só p/ CNPJ inválido"
+        volume: 5000
+        notes: "Detalhes do fornecedor — contratos, órgãos, valores"
+
+      - path: /fornecedores/[cnpj]/[uf]
+        file: frontend/app/fornecedores/[cnpj]/[uf]/page.tsx
+        revalidate: 3600
+        dynamic: auto
+        generateStaticParams: true
+        fetch_functions: [fetchFornecedoresStats]
+        backend_endpoint: "GET /v1/fornecedores/{cnpj}/{uf}"
+        fetch_pattern: "ssgLimitedFetch ou fetchWithBudget"
+        error_boundary: fornecedores/error.tsx
+        loading_boundary: null
+        error_handling: "adr-seo-001: nunca notFound()"
+        volume: 1000
+        notes: "Fornecedor filtrado por UF"
+
+      - path: /compliance
+        file: frontend/app/compliance/page.tsx
+        revalidate: null
+        dynamic: auto
+        generateStaticParams: false
+        fetch_functions: []
+        backend_endpoint: null
+        error_boundary: compliance/error.tsx
+        loading_boundary: null
+        error_handling: "default Next.js error boundary"
+        volume: 1
+        notes: "Landing page — verificação de compliance"
+
+      - path: /compliance/[cnpj]
+        file: frontend/app/compliance/[cnpj]/page.tsx
+        revalidate: null       # SSR on-demand
+        dynamic: auto
+        generateStaticParams: true  # retorna [] (SSR on-demand)
+        fetch_functions: [fetchComplianceCheck]
+        backend_endpoint: "GET /v1/compliance/{cnpj}"
+        fetch_pattern: "fetchWithBudget"
+        error_boundary: compliance/error.tsx
+        loading_boundary: null
+        error_handling: "adr-seo-001: notFound() só p/ CNPJ inválido"
+        volume: 500
+        notes: "Relatório de compliance — certidões, sanções, regularidade"
+
+  # =========================================================================
+  # Entity Pages — Órgãos, Municípios, Itens (catalog-driven)
+  # =========================================================================
+  - family: entity-public
+    description: "Páginas de entidades públicas — órgãos, municípios, itens CATMAT"
+    prefix: /orgaos, /municipios, /itens, /indice-municipal
+    rendering: direct-fetch
+    data_source: "lib/programmatic.ts + lib/seo.ts"
+    seo_source: lib/seo.ts
+    routes:
+      - path: /orgaos
+        file: frontend/app/orgaos/page.tsx
+        revalidate: null
+        dynamic: auto
+        generateStaticParams: false
+        fetch_functions: []
+        backend_endpoint: null
+        error_boundary: orgaos/error.tsx
+        loading_boundary: null
+        error_handling: "default Next.js error boundary"
+        volume: 1
+        notes: "Landing page — busca de órgãos públicos"
+
+      - path: /orgaos-publicos
+        file: frontend/app/orgaos-publicos/page.tsx
+        revalidate: null
+        dynamic: auto
+        generateStaticParams: false
+        fetch_functions: []
+        backend_endpoint: null
+        error_boundary: null
+        loading_boundary: null
+        error_handling: "default Next.js error boundary — página estática"
+        volume: 1
+        notes: "Landing estática — lista de órgãos públicos"
+
+      - path: /orgaos/[slug]
+        file: frontend/app/orgaos/[slug]/page.tsx
+        revalidate: 3600
+        dynamic: auto
+        generateStaticParams: true
+        fetch_functions: [fetchOrgaoStats]
+        backend_endpoint: "GET /v1/orgaos/{slug}"
+        fetch_pattern: "ssgLimitedFetch / fetchWithBudget"
+        error_boundary: orgaos/error.tsx
+        loading_boundary: null
+        error_handling: "adr-seo-001: notFound() só p/ slug fora do catálogo"
+        volume: 5000
+        notes: "Perfil do órgão público — contratos, editais, fornecedores"
+
+      - path: /municipios
+        file: frontend/app/municipios/page.tsx
+        revalidate: null
+        dynamic: auto
+        generateStaticParams: false
+        fetch_functions: []
+        backend_endpoint: null
+        error_boundary: municipios/error.tsx
+        loading_boundary: null
+        error_handling: "default Next.js error boundary"
+        volume: 1
+        notes: "Landing page — busca de municípios"
+
+      - path: /municipios/[slug]
+        file: frontend/app/municipios/[slug]/page.tsx
+        revalidate: 3600
+        dynamic: auto
+        generateStaticParams: true
+        fetch_functions: [fetchMunicipioStats]
+        backend_endpoint: "GET /v1/municipios/{slug}"
+        fetch_pattern: "ssgLimitedFetch"
+        error_boundary: municipios/error.tsx
+        loading_boundary: null
+        error_handling: "adr-seo-001: notFound() só p/ slug fora do catálogo"
+        volume: 5570
+        notes: "Perfil do município — indicadores, contratos, editais"
+
+      - path: /indice-municipal
+        file: frontend/app/indice-municipal/page.tsx
+        revalidate: null
+        dynamic: auto
+        generateStaticParams: false
+        fetch_functions: []
+        backend_endpoint: null
+        error_boundary: null
+        loading_boundary: null
+        error_handling: "default Next.js error boundary"
+        volume: 1
+        notes: "Landing page — índice municipal"
+
+      - path: /indice-municipal/[municipio-uf]
+        file: frontend/app/indice-municipal/[municipio-uf]/page.tsx
+        revalidate: 3600
+        dynamic: auto
+        generateStaticParams: false
+        fetch_functions: [fetchIndiceMunicipal]
+        backend_endpoint: "GET /v1/indice-municipal/{municipio-uf}"
+        fetch_pattern: "fetchWithBudget"
+        error_boundary: null
+        loading_boundary: null
+        error_handling: "adr-seo-001: nunca notFound()"
+        volume: 5570
+        notes: "Índice municipal — score, indicadores, ranking"
+
+      - path: /itens
+        file: frontend/app/itens/page.tsx
+        revalidate: null
+        dynamic: auto
+        generateStaticParams: false
+        fetch_functions: []
+        backend_endpoint: null
+        error_boundary: itens/error.tsx
+        loading_boundary: null
+        error_handling: "default Next.js error boundary"
+        volume: 1
+        notes: "Landing page — busca de itens CATMAT"
+
+      - path: /itens/[catmat]
+        file: frontend/app/itens/[catmat]/page.tsx
+        revalidate: 86400
+        dynamic: force-static
+        generateStaticParams: true
+        fetch_functions: [fetchItemStats]
+        backend_endpoint: "GET /v1/itens/{catmat}"
+        fetch_pattern: "ssgLimitedFetch"
+        error_boundary: itens/error.tsx
+        loading_boundary: null
+        error_handling: "adr-seo-001: notFound() só p/ CATMAT inválido"
+        volume: 2000
+        notes: "Item CATMAT — preço médio, órgãos compradores, fornecedores. dynamic=force-static + revalidate=24h."
+
+  # =========================================================================
+  # Data Pages — Licitacões, Contratos (data-driven, high-volume)
+  # =========================================================================
+  - family: data-pages
+    description: "Páginas de dados — licitações, contratos, observatório, alertas"
+    prefix: /licitacoes, /contratos, /observatorio, /alertas-publicos
+    rendering: direct-fetch
+    data_source: "lib/programmatic.ts + lib/seo.ts + lib/concurrency.ts"
+    seo_source: lib/seo.ts
+    routes:
+      - path: /licitacoes
+        file: frontend/app/licitacoes/page.tsx
+        revalidate: null
+        dynamic: auto
+        generateStaticParams: false
+        fetch_functions: []
+        backend_endpoint: null
+        error_boundary: licitacoes/error.tsx
+        loading_boundary: null
+        error_handling: "default Next.js error boundary"
+        volume: 1
+        notes: "Landing page — busca de licitações"
+
+      - path: /licitacoes/[setor]
+        file: frontend/app/licitacoes/[setor]/page.tsx
+        revalidate: 21600
+        dynamic: auto
+        generateStaticParams: true  # generateSectorParams()
+        fetch_functions: [fetchSectorLicitacoes, getSectorFromSlug]
+        backend_endpoint: "GET /v1/licitacoes/{setor}"
+        fetch_pattern: "ssgLimitedFetch — pool semaphore"
+        error_boundary: licitacoes/error.tsx
+        loading_boundary: null
+        error_handling: "adr-seo-001: nunca notFound()"
+        volume: 15
+        notes: "Licitações por setor — revalidate=6h (dados de licitação mais estáveis)"
+
+      - path: /contratos
+        file: frontend/app/contratos/page.tsx
+        revalidate: null
+        dynamic: auto
+        generateStaticParams: false
+        fetch_functions: []
+        backend_endpoint: null
+        error_boundary: contratos/error.tsx
+        loading_boundary: null
+        error_handling: "default Next.js error boundary"
+        volume: 1
+        notes: "Landing page — busca de contratos"
+
+      - path: /contratos/[setor]/[uf]
+        file: frontend/app/contratos/[setor]/[uf]/page.tsx
+        revalidate: 14400
+        dynamic: auto
+        generateStaticParams: true  # generateSectorUfParams()
+        fetch_functions: [fetchContratosStats, getSectorFromSlug]
+        backend_endpoint: "GET /v1/contratos/{setor}/{uf}/stats"
+        fetch_pattern: "ssgLimitedFetch — timeout 10s, throwOn5xx p/ ISR stale"
+        error_boundary: contratos/error.tsx
+        loading_boundary: null
+        error_handling: "adr-seo-001: nunca notFound(); ISR throwOn5xx preserva last-good"
+        volume: 405
+        notes: "Contratos setor×UF — revalidate=4h. Usa ssgLimitedFetch com semaphore pool."
+
+      - path: /contratos/orgao/[cnpj]
+        file: frontend/app/contratos/orgao/[cnpj]/page.tsx
+        revalidate: 14400
+        dynamic: auto
+        generateStaticParams: true  # retorna [] (SSR on-demand)
+        fetch_functions: [fetchOrgaoContratosStats]
+        backend_endpoint: "GET /v1/contratos/orgao/{cnpj}/stats"
+        fetch_pattern: "fetchWithBudget — timeout 15s, throwOn5xx"
+        error_boundary: contratos/error.tsx
+        loading_boundary: null
+        error_handling: "adr-seo-001: notFound() só p/ CNPJ inválido"
+        volume: 3000
+        notes: "Contratos por órgão — revalidate=4h"
+
+      - path: /observatorio
+        file: frontend/app/observatorio/page.tsx
+        revalidate: null
+        dynamic: auto
+        generateStaticParams: false
+        fetch_functions: []
+        backend_endpoint: null
+        error_boundary: observatorio/error.tsx
+        loading_boundary: null
+        error_handling: "default Next.js error boundary"
+        volume: 1
+        notes: "Landing page — observatório de licitações"
+
+      - path: /observatorio/[slug]
+        file: frontend/app/observatorio/[slug]/page.tsx
+        revalidate: 86400
+        dynamic: auto
+        generateStaticParams: false
+        fetch_functions: [fetchObservatorioArticle]
+        backend_endpoint: "GET /v1/observatorio/{slug}"
+        fetch_pattern: "ssgLimitedFetch / fetchWithBudget"
+        error_boundary: observatorio/error.tsx
+        loading_boundary: null
+        error_handling: "adr-seo-001: notFound() só p/ slug fora do catálogo (adr-seo-001-allow)"
+        volume: 500
+        notes: "Artigo do observatório — revalidate=24h. Conteúdo analítico longo."
+
+      - path: /observatorio/embed/[slug]
+        file: frontend/app/observatorio/embed/[slug]/page.tsx
+        revalidate: null       # SSR — embed não cacheia
+        dynamic: auto
+        generateStaticParams: false
+        fetch_functions: [fetchObservatorioArticle]
+        backend_endpoint: "GET /v1/observatorio/{slug}"
+        fetch_pattern: "fetch direto"
+        error_boundary: observatorio/error.tsx
+        loading_boundary: null
+        error_handling: "adr-seo-001: notFound() só p/ slug fora do catálogo"
+        volume: 500
+        notes: "Versão embed — sem header/footer, para iframe widget"
+
+      - path: /alertas-publicos
+        file: frontend/app/alertas-publicos/page.tsx
+        revalidate: null
+        dynamic: auto
+        generateStaticParams: false
+        fetch_functions: []
+        backend_endpoint: null
+        error_boundary: alertas-publicos/error.tsx
+        loading_boundary: null
+        error_handling: "default Next.js error boundary"
+        volume: 1
+        notes: "Landing page — alertas públicos de editais"
+
+      - path: /alertas-publicos/[setor]/[uf]
+        file: frontend/app/alertas-publicos/[setor]/[uf]/page.tsx
+        revalidate: 3600
+        dynamic: auto
+        generateStaticParams: true  # generateSectorUfParams()
+        fetch_functions: [fetchAlertasPublicos, getSectorFromSlug]
+        backend_endpoint: "GET /v1/alertas-publicos/{setor}/{uf}"
+        fetch_pattern: "fetchWithBudget — timeout 15s"
+        error_boundary: alertas-publicos/error.tsx
+        loading_boundary: null
+        error_handling: "adr-seo-001: nunca notFound()"
+        volume: 405
+        notes: "Pré-visualização de alertas — setor×UF. Dados ao vivo do PNCP."
+
+  # =========================================================================
+  # Content/Marketing Pages (SSG + ISR, editorial/static)
+  # =========================================================================
+  - family: content-marketing
+    description: "Páginas de conteúdo e marketing — landing pages, FAQ, cases, calculadoras"
+    prefix: "/para-*, /como-*, /calculadora, /estatisticas, /ferramentas, /perguntas, /casos, /guia, /glossario, /masterclass, /intencao, /licitacoes-publicas-2026"
+    rendering: direct-fetch
+    data_source: "lib/seo.ts (metadata only, no programmatic data fetch for most)"
+    seo_source: lib/seo.ts
+    routes:
+      - path: /calculadora
+        file: frontend/app/calculadora/page.tsx
+        revalidate: null       # SSG (CSR-heavy — interactive calculator)
+        dynamic: auto
+        generateStaticParams: false
+        fetch_functions: []
+        backend_endpoint: null
+        error_boundary: null
+        loading_boundary: null
+        error_handling: "default Next.js error boundary"
+        volume: 1
+        notes: "Calculadora de ROI — interativa, client-side. Sem error boundary."
+
+      - path: /calculadora/embed
+        file: frontend/app/calculadora/embed/page.tsx
+        revalidate: 3600
+        dynamic: auto
+        generateStaticParams: false
+        fetch_functions: []
+        backend_endpoint: null
+        error_boundary: null
+        loading_boundary: null
+        error_handling: "default Next.js error boundary"
+        volume: 1
+        notes: "Embed da calculadora — versão iframe"
+
+      - path: /estatisticas
+        file: frontend/app/estatisticas/page.tsx
+        revalidate: 21600
+        dynamic: auto
+        generateStaticParams: false
+        fetch_functions: [fetchStats]
+        backend_endpoint: "GET /v1/stats/public"
+        fetch_pattern: "fetch direto"
+        error_boundary: null
+        loading_boundary: null
+        error_handling: "default Next.js error boundary — sem error boundary explícito"
+        volume: 1
+        notes: "Dashboard de estatísticas públicas. revalidate=6h."
+
+      - path: /estatisticas/embed
+        file: frontend/app/estatisticas/embed/page.tsx
+        revalidate: 3600
+        dynamic: auto
+        generateStaticParams: false
+        fetch_functions: [fetchStats]
+        backend_endpoint: "GET /v1/stats/public"
+        fetch_pattern: "fetch direto"
+        error_boundary: null
+        loading_boundary: null
+        error_handling: "default Next.js error boundary"
+        volume: 1
+        notes: "Embed do dashboard de estatísticas"
+
+      - path: /ferramentas/pncp-licitacoes
+        file: frontend/app/ferramentas/pncp-licitacoes/page.tsx
+        revalidate: 3600
+        dynamic: auto
+        generateStaticParams: false
+        fetch_functions: []
+        backend_endpoint: null
+        error_boundary: null
+        loading_boundary: null
+        error_handling: "default Next.js error boundary"
+        volume: 1
+        notes: "Landing page de ferramenta — conteúdo estático com ISR leve"
+
+      - path: /licitacoes-publicas-2026
+        file: frontend/app/licitacoes-publicas-2026/page.tsx
+        revalidate: 3600
+        dynamic: auto
+        generateStaticParams: false
+        fetch_functions: [fetchStats]
+        backend_endpoint: "GET /v1/stats/public"
+        fetch_pattern: "fetch direto"
+        error_boundary: null
+        loading_boundary: null
+        error_handling: "default Next.js error boundary"
+        volume: 1
+        notes: "Relatório de tendências 2026 — conteúdo editorial + dados"
+
+      - path: /perguntas
+        file: frontend/app/perguntas/page.tsx
+        revalidate: null       # SSG
+        dynamic: auto
+        generateStaticParams: false
+        fetch_functions: []
+        backend_endpoint: null
+        error_boundary: null
+        loading_boundary: null
+        error_handling: "default Next.js error boundary"
+        volume: 1
+        notes: "FAQ index"
+
+      - path: /perguntas/[slug]
+        file: frontend/app/perguntas/[slug]/page.tsx
+        revalidate: 3600
+        dynamic: auto
+        generateStaticParams: true
+        fetch_functions: []
+        backend_endpoint: null
+        error_boundary: null
+        loading_boundary: null
+        error_handling: "default Next.js error boundary — sem error boundary explícito"
+        volume: 30
+        notes: "FAQ individual"
+
+      - path: /perguntas/indice-reajuste-contrato-publico
+        file: frontend/app/perguntas/indice-reajuste-contrato-publico/page.tsx
+        revalidate: 3600
+        dynamic: auto
+        generateStaticParams: false
+        fetch_functions: []
+        backend_endpoint: null
+        error_boundary: null
+        loading_boundary: null
+        error_handling: "default Next.js error boundary"
+        volume: 1
+        notes: "FAQ específica — índice de reajuste"
+
+      - path: /casos
+        file: frontend/app/casos/page.tsx
+        revalidate: null
+        dynamic: auto
+        generateStaticParams: false
+        fetch_functions: [getAllCases]
+        backend_endpoint: "CMS (Supabase)"
+        error_boundary: null
+        loading_boundary: null
+        error_handling: "default Next.js error boundary"
+        volume: 1
+        notes: "Índice de cases de sucesso"
+
+      - path: /casos/[slug]
+        file: frontend/app/casos/[slug]/page.tsx
+        revalidate: 3600
+        dynamic: auto
+        generateStaticParams: true  # getAllCaseSlugs()
+        fetch_functions: [getCaseBySlug]
+        backend_endpoint: "CMS (Supabase)"
+        error_boundary: null
+        loading_boundary: null
+        error_handling: "notFound() para slug inexistente"
+        volume: 10
+        notes: "Case individual"
+
+      - path: /guia
+        file: frontend/app/guia/page.tsx
+        revalidate: null
+        dynamic: auto
+        generateStaticParams: false
+        fetch_functions: []
+        backend_endpoint: null
+        error_boundary: null
+        loading_boundary: null
+        error_handling: "default Next.js error boundary"
+        volume: 1
+        notes: "Índice de guias"
+
+      - path: /guia/[slug]
+        file: frontend/app/guia/[slug]/page.tsx
+        revalidate: null
+        dynamic: auto
+        generateStaticParams: true
+        fetch_functions: []
+        backend_endpoint: null
+        error_boundary: null
+        loading_boundary: null
+        error_handling: "default Next.js error boundary"
+        volume: 5
+        notes: "Guia individual — conteúdo estático"
+
+      - path: /guia/guia-pratico-b2g
+        file: frontend/app/guia/guia-pratico-b2g/page.tsx
+        revalidate: null
+        dynamic: auto
+        generateStaticParams: false
+        fetch_functions: []
+        backend_endpoint: null
+        error_boundary: null
+        loading_boundary: null
+        error_handling: "default Next.js error boundary"
+        volume: 1
+        notes: "Guia prático B2G — landing page dedicada"
+
+      - path: /glossario
+        file: frontend/app/glossario/page.tsx
+        revalidate: null
+        dynamic: auto
+        generateStaticParams: false
+        fetch_functions: []
+        backend_endpoint: null
+        error_boundary: null
+        loading_boundary: null
+        error_handling: "default Next.js error boundary"
+        volume: 1
+        notes: "Índice do glossário"
+
+      - path: /glossario/[termo]
+        file: frontend/app/glossario/[termo]/page.tsx
+        revalidate: 3600
+        dynamic: auto
+        generateStaticParams: true
+        fetch_functions: [fetchTermo]
+        backend_endpoint: "CMS (Supabase)"
+        fetch_pattern: "fetchWithBudget"
+        error_boundary: null
+        loading_boundary: null
+        error_handling: "default Next.js error boundary — sem error boundary explícito"
+        volume: 100
+        notes: "Termo do glossário"
+
+      - path: /masterclass
+        file: frontend/app/masterclass/page.tsx
+        revalidate: 3600
+        dynamic: auto
+        generateStaticParams: false
+        fetch_functions: []
+        backend_endpoint: null
+        error_boundary: null
+        loading_boundary: null
+        error_handling: "default Next.js error boundary"
+        volume: 1
+        notes: "Índice de masterclasses"
+
+      - path: /masterclass/[tema]
+        file: frontend/app/masterclass/[tema]/page.tsx
+        revalidate: 3600
+        dynamic: auto
+        generateStaticParams: true
+        fetch_functions: []
+        backend_endpoint: null
+        error_boundary: null
+        loading_boundary: null
+        error_handling: "default Next.js error boundary"
+        volume: 10
+        notes: "Masterclass individual"
+
+  # =========================================================================
+  # Vertical Landing Pages (SSG, conteúdo estático)
+  # =========================================================================
+  - family: vertical-landing
+    description: "Landing pages verticais — para-*, como-*, intencao/*"
+    prefix: "/para-*, /como-*, /intencao/*"
+    rendering: static
+    data_source: null
+    seo_source: lib/seo.ts (metadata only)
+    routes:
+      - path: /para-empresas
+        file: frontend/app/para-empresas/page.tsx
+        revalidate: 3600
+        dynamic: auto
+        generateStaticParams: false
+        fetch_functions: []
+        backend_endpoint: null
+        error_boundary: null
+        loading_boundary: null
+        error_handling: "default Next.js error boundary"
+        volume: 1
+        notes: "Landing vertical — empresas"
+
+      - path: /para-advogados
+        file: frontend/app/para-advogados/page.tsx
+        revalidate: 3600
+        dynamic: auto
+        generateStaticParams: false
+        fetch_functions: []
+        backend_endpoint: null
+        error_boundary: null
+        loading_boundary: null
+        error_handling: "default Next.js error boundary"
+        volume: 1
+        notes: "Landing vertical — advogados"
+
+      - path: /para-construtoras
+        file: frontend/app/para-construtoras/page.tsx
+        revalidate: 3600
+        dynamic: auto
+        generateStaticParams: false
+        fetch_functions: []
+        backend_endpoint: null
+        error_boundary: null
+        loading_boundary: null
+        error_handling: "default Next.js error boundary"
+        volume: 1
+        notes: "Landing vertical — construtoras"
+
+      - path: /para-consultorias
+        file: frontend/app/para-consultorias/page.tsx
+        revalidate: 3600
+        dynamic: auto
+        generateStaticParams: false
+        fetch_functions: []
+        backend_endpoint: null
+        error_boundary: null
+        loading_boundary: null
+        error_handling: "default Next.js error boundary"
+        volume: 1
+        notes: "Landing vertical — consultorias"
+
+      - path: /para-empresas-de-ti
+        file: frontend/app/para-empresas-de-ti/page.tsx
+        revalidate: 3600
+        dynamic: auto
+        generateStaticParams: false
+        fetch_functions: []
+        backend_endpoint: null
+        error_boundary: null
+        loading_boundary: null
+        error_handling: "default Next.js error boundary"
+        volume: 1
+        notes: "Landing vertical — empresas de TI"
+
+      - path: /para-fornecedores
+        file: frontend/app/para-fornecedores/page.tsx
+        revalidate: 3600
+        dynamic: auto
+        generateStaticParams: false
+        fetch_functions: []
+        backend_endpoint: null
+        error_boundary: null
+        loading_boundary: null
+        error_handling: "default Next.js error boundary"
+        volume: 1
+        notes: "Landing vertical — fornecedores"
+
+      - path: /para-quem-quer-subcontratar
+        file: frontend/app/para-quem-quer-subcontratar/page.tsx
+        revalidate: 3600
+        dynamic: auto
+        generateStaticParams: false
+        fetch_functions: []
+        backend_endpoint: null
+        error_boundary: null
+        loading_boundary: null
+        error_handling: "default Next.js error boundary"
+        volume: 1
+        notes: "Landing vertical — subcontratação"
+
+      - path: /como-avaliar-licitacao
+        file: frontend/app/como-avaliar-licitacao/page.tsx
+        revalidate: null       # SSG
+        dynamic: auto
+        generateStaticParams: false
+        fetch_functions: []
+        backend_endpoint: null
+        error_boundary: null
+        loading_boundary: null
+        error_handling: "default Next.js error boundary"
+        volume: 1
+        notes: "How-to article — avaliar licitação"
+
+      - path: /como-evitar-prejuizo-licitacao
+        file: frontend/app/como-evitar-prejuizo-licitacao/page.tsx
+        revalidate: null
+        dynamic: auto
+        generateStaticParams: false
+        fetch_functions: []
+        backend_endpoint: null
+        error_boundary: null
+        loading_boundary: null
+        error_handling: "default Next.js error boundary"
+        volume: 1
+        notes: "How-to article — evitar prejuízo"
+
+      - path: /como-filtrar-editais
+        file: frontend/app/como-filtrar-editais/page.tsx
+        revalidate: null
+        dynamic: auto
+        generateStaticParams: false
+        fetch_functions: []
+        backend_endpoint: null
+        error_boundary: null
+        loading_boundary: null
+        error_handling: "default Next.js error boundary"
+        volume: 1
+        notes: "How-to article — filtrar editais"
+
+      - path: /como-priorizar-oportunidades
+        file: frontend/app/como-priorizar-oportunidades/page.tsx
+        revalidate: null
+        dynamic: auto
+        generateStaticParams: false
+        fetch_functions: []
+        backend_endpoint: null
+        error_boundary: null
+        loading_boundary: null
+        error_handling: "default Next.js error boundary"
+        volume: 1
+        notes: "How-to article — priorizar oportunidades"
+
+      - path: /intencao/comercial
+        file: frontend/app/intencao/comercial/page.tsx
+        revalidate: null
+        dynamic: auto
+        generateStaticParams: false
+        fetch_functions: []
+        backend_endpoint: null
+        error_boundary: null
+        loading_boundary: null
+        error_handling: "default Next.js error boundary"
+        volume: 1
+        notes: "Intenção de uso — comercial"
+
+      - path: /intencao/investigativa
+        file: frontend/app/intencao/investigativa/page.tsx
+        revalidate: null
+        dynamic: auto
+        generateStaticParams: false
+        fetch_functions: []
+        backend_endpoint: null
+        error_boundary: null
+        loading_boundary: null
+        error_handling: "default Next.js error boundary"
+        volume: 1
+        notes: "Intenção de uso — investigativa"
+
+      - path: /intencao/juridica
+        file: frontend/app/intencao/juridica/page.tsx
+        revalidate: null
+        dynamic: auto
+        generateStaticParams: false
+        fetch_functions: []
+        backend_endpoint: null
+        error_boundary: null
+        loading_boundary: null
+        error_handling: "default Next.js error boundary"
+        volume: 1
+        notes: "Intenção de uso — jurídica"
+
+      - path: /intencao/subcontratacao
+        file: frontend/app/intencao/subcontratacao/page.tsx
+        revalidate: null
+        dynamic: auto
+        generateStaticParams: false
+        fetch_functions: []
+        backend_endpoint: null
+        error_boundary: null
+        loading_boundary: null
+        error_handling: "default Next.js error boundary"
+        volume: 1
+        notes: "Intenção de uso — subcontratação"
+
+# =========================================================================
+# Shared Libraries
+# =========================================================================
+libraries:
+  - name: lib/programmatic.ts
+    path: frontend/lib/programmatic.ts
+    loc: 1004
+    exports_count: 38
+    description: "Fetch functions, static params generators, editorial content, UF/Sector data"
+    category: data-fetching
+    key_exports:
+      - fetchSectorBlogStats
+      - fetchSectorUfBlogStats
+      - fetchPanoramaStats
+      - fetchAlertasPublicos
+      - fetchContratosSetorStats
+      - generateSectorParams
+      - generateSectorUfParams
+      - generateLicitacoesParams
+      - getSectorFromSlug
+      - getEditorialContent
+      - generateSectorFAQs
+      - generatePanoramaFAQs
+      - generateLicitacoesFAQs
+      - generateContratosSetorFAQs
+      - getRegionalEditorial
+      - getCidadeSectorEditorial
+      - getUfPrep
+      - formatBRL
+      - formatBRLCompact
+      - ALL_UFS
+      - UF_NAMES
+      - UF_PREPOSITIONS
+      - IS_BUILD_PHASE
+
+  - name: lib/seo.ts
+    path: frontend/lib/seo.ts
+    loc: 280
+    exports_count: 9
+    description: "SEO metadata utilities — canonical URLs, freshness labels, operational titles"
+    category: seo-metadata
+    key_exports:
+      - buildCanonical
+      - buildOperationalTitle
+      - buildOperationalDescription
+      - getFreshnessLabel
+      - SITE_URL
+
+  - name: lib/seo-metadata.ts
+    path: frontend/lib/seo-metadata.ts
+    loc: 45
+    exports_count: 3
+    description: "Additional SEO metadata helpers"
+    category: seo-metadata
+
+  - name: lib/blog.ts
+    path: frontend/lib/blog.ts
+    loc: 2494
+    exports_count: 9
+    description: "Blog editorial CMS — articles, authors, weekly digests (Supabase-backed)"
+    category: cms
+    key_exports:
+      - getAllSlugs
+      - getArticleBySlug
+      - getAllAuthorSlugs
+      - getAuthorBySlug
+      - getArticlesByAuthor
+      - fetchWeeklyData
+      - fetchLatestDigest
+      - fetchDailyData
+
+  - name: lib/safe-fetch.ts
+    path: frontend/lib/safe-fetch.ts
+    loc: 209
+    exports_count: 3
+    description: "fetchWithBudget — unified fetch with timeout, retries, and ISR throwOn5xx"
+    category: infrastructure
+    key_exports:
+      - fetchWithBudget
+      - FetchBudget
+
+  - name: lib/concurrency.ts
+    path: frontend/lib/concurrency.ts
+    loc: 109
+    exports_count: 2
+    description: "ssgLimitedFetch — pool-protected fetch with asyncio.Semaphore for SSG/ISR"
+    category: infrastructure
+    key_exports:
+      - ssgLimitedFetch
+      - Semaphore pool config
+
+# =========================================================================
+# Error Boundary Coverage Matrix
+# =========================================================================
+error_boundaries:
+  present:
+    - blog/error.tsx
+    - cnpj/error.tsx
+    - contratos/error.tsx
+    - fornecedores/error.tsx
+    - itens/error.tsx
+    - licitacoes/error.tsx
+    - municipios/error.tsx
+    - observatorio/error.tsx
+    - orgaos/error.tsx
+    - alertas-publicos/error.tsx
+    - compliance/error.tsx
+  missing:
+    - glossario        # PSEO route, no error.tsx
+    - guia             # PSEO route, no error.tsx
+    - calculadora      # Marketing route, no error.tsx
+    - estatisticas     # Marketing route, no error.tsx
+    - perguntas        # FAQ route, no error.tsx
+    - casos            # Case studies, no error.tsx
+    - masterclass      # Masterclass, no error.tsx
+    - para-*           # 7 vertical landing pages, no error.tsx
+    - como-*           # 4 how-to pages, no error.tsx
+    - intencao/*       # 4 intent pages, no error.tsx
+    - ferramentas      # Tool landing, no error.tsx
+    - orgaos-publicos  # Static landing, no error.tsx
+    - licitacoes-publicas-2026  # Trend report, no error.tsx
+    - indice-municipal # Municipal index, no error.tsx
+
+loading_boundaries:
+  present:
+    - "(protected)/loading.tsx"  # Only for auth-gated routes
+    - admin/loading.tsx
+    - buscar/loading.tsx
+    - conta/loading.tsx
+    - dashboard/loading.tsx
+    - historico/loading.tsx
+    - pipeline/loading.tsx
+    - planos/loading.tsx
+  missing_all_pseo: true
+  note: "NENHUMA rota pSEO possui loading.tsx. Skeletons ausentes em 100% das páginas programáticas."
+
+# =========================================================================
+# ADR-SEO-001 Protected Prefixes
+# =========================================================================
+adr_seo_001:
+  description: "Routes under these prefixes MUST NOT call notFound() on data gaps"
+  protected_prefixes:
+    - /observatorio
+    - /cnpj
+    - /fornecedores
+    - /orgaos
+    - /municipios
+    - /licitacoes
+    - /contratos
+    - /alertas-publicos
+    - /itens
+    - /blog
+    - /casos
+    - /glossario
+    - /guia
+    - /masterclass
+    - /perguntas
+    - /compliance
+  ci_gate: ".github/workflows/audit-seo-notfound.yml"
+  adr_doc: "docs/adr/ADR-SEO-001-programmatic-routes-no-notfound-on-data-gap.md"
+
+# =========================================================================
+# Backend Router Mapping (18 SEO programmatic routers)
+# =========================================================================
+backend_routers:
+  - router: blog_stats.py
+    endpoints: [/v1/blog/stats/*]
+    description: "Stats para blog programmatic — setor, UF, cidade, panorama, contratos, diário"
+  - router: observatorio.py
+    endpoints: [/v1/observatorio/*]
+    description: "Artigos do observatório — analytics + editorial"
+  - router: empresa_publica.py
+    endpoints: [/v1/empresa/*]
+    description: "Perfil B2G de empresa — score, contratos, editais, amostra"
+  - router: orgao_publico.py
+    endpoints: [/v1/orgaos/*]
+    description: "Perfil de órgão público"
+  - router: contratos_publicos.py
+    endpoints: [/v1/contratos/*]
+    description: "Contratos públicos — setor×UF, órgão"
+  - router: dados_publicos.py
+    endpoints: [/v1/stats/public, /v1/dados/*]
+    description: "Dados públicos agregados — estatísticas, tendências"
+  - router: municipios_publicos.py
+    endpoints: [/v1/municipios/*]
+    description: "Perfil de município"
+  - router: itens_publicos.py
+    endpoints: [/v1/itens/*]
+    description: "Item CATMAT"
+  - router: compliance_publicos.py
+    endpoints: [/v1/compliance/*]
+    description: "Verificação de compliance"
+  - router: indice_municipal.py
+    endpoints: [/v1/indice-municipal/*]
+    description: "Índice municipal — score, indicadores"
+  - router: alertas_publicos.py
+    endpoints: [/v1/alertas-publicos/*]
+    description: "Pré-visualização de alertas públicos"
+  - router: sectors_public.py
+    endpoints: [/v1/setores/*]
+    description: "Lista de setores pública"
+  - router: stats_public.py
+    endpoints: [/v1/stats/*]
+    description: "Estatísticas públicas"
+  - router: calculadora.py
+    endpoints: [/v1/calculadora/*]
+    description: "Calculadora de ROI"
+  - router: comparador.py
+    endpoints: [/v1/comparador/*]
+    description: "Comparador de editais"
+  - router: daily_digest.py
+    endpoints: [/v1/daily-digest/*]
+    description: "Digest diário"
+  - router: weekly_digest.py
+    endpoints: [/v1/weekly-digest/*]
+    description: "Digest semanal"
+  - router: sitemap_*.py (5 routers)
+    endpoints: [/v1/sitemap/*]
+    description: "Sitemaps XML dinâmicos"
+
+# =========================================================================
+# Fetch Pattern Summary
+# =========================================================================
+fetch_patterns:
+  ssgLimitedFetch:
+    description: "Pool-protected fetch via asyncio.Semaphore. Usado em páginas com generateStaticParams para evitar saturação do backend durante SSG/ISR."
+    used_by: [/contratos/[setor]/[uf], /licitacoes/[setor], /licitacoes, /itens/[catmat]]
+    pool_size: "POOL-001 SEOSemaphore(3)"
+
+  fetchWithBudget:
+    description: "Unified fetch com timeout, retries, throwOn5xx. Padrão recomendado para novas páginas."
+    used_by: [/cnpj/[cnpj], /fornecedores/[cnpj], /fornecedores/[cnpj]/[uf], /contratos/orgao/[cnpj], /compliance/[cnpj], /alertas-publicos/[setor]/[uf], /indice-municipal/[municipio-uf]]
+    config: "timeout 15s, retries=1, throwOn5xx=true (ISR stale-preservation)"
+
+  direct_fetch:
+    description: "Fetch direto com AbortSignal.timeout. Padrão legado — não possui retry nem semaphore."
+    used_by: [/estatisticas, /licitacoes-publicas-2026, /observatorio/embed/[slug]]
+    risk: "Sem pool protection ou retry — suscetível a cascata de falhas durante regen ISR"
+
+# =========================================================================
+# Revalidate Summary
+# =========================================================================
+revalidate_summary:
+  "null (SSG)": "Páginas estáticas — index, landing pages, how-to articles"
+  "3600 (1h)": "Maioria das páginas pSEO — blog programmatic, entity pages, content pages"
+  "14400 (4h)": "/contratos/[setor]/[uf], /contratos/orgao/[cnpj]"
+  "21600 (6h)": "/licitacoes/[setor], /estatisticas"
+  "86400 (24h)": "/observatorio/[slug], /itens/[catmat]"
