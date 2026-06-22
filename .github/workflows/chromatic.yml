@@ -46,7 +46,7 @@ jobs:
 
       - name: Checkout code
         if: steps.token_check.outputs.has_token == 'true'
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           fetch-depth: 0  # Required for Chromatic to detect baselines correctly
 

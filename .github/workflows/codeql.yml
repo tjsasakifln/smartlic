@@ -40,7 +40,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
 
       - name: Check if language files exist
         id: check-files
@@ -82,7 +82,7 @@ jobs:
     if: github.event_name != 'push' || github.ref != 'refs/heads/main'
     steps:
       - name: Checkout code
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           fetch-depth: 0
 
@@ -100,7 +100,7 @@ jobs:
     if: github.event_name == 'pull_request'
     steps:
       - name: Checkout code
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
 
       # DEBT-123 AC8: Dependency review — BLOCKING (security-critical)
       - name: Dependency Review
