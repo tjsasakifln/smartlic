@@ -1,7 +1,8 @@
 /**
  * FOUND-SCALE-002: Tests for safeFetch + fetchWithBudget wrappers.
+ * PSEO-P1-2048: Added tests for two-tier throwOn5xx + Retry-After + isBuildPhase.
  */
-import { safeFetch, fetchWithBudget } from '../../lib/safe-fetch';
+import { safeFetch, fetchWithBudget, isBuildPhase } from '../../lib/safe-fetch';
 import * as Sentry from '@sentry/nextjs';
 
 jest.mock('@sentry/nextjs', () => ({
@@ -18,13 +19,43 @@ const SentryMock = Sentry as unknown as {
 
 // jsdom does not provide a global `Response` constructor. Build minimal
 // mock matching Response shape we use (`ok`, `status`, `json()`).
-function mockResponse(body: unknown, status = 200): Response {
+function mockResponse(body: unknown, status = 200, headers?: Record<string, string>): Response {
   return {
     ok: status >= 200 && status < 300,
     status,
     json: async () => body,
+    headers: new Map(Object.entries(headers || {})),
+    ...(headers ? { headers: new Map(Object.entries(headers)) } : {}),
   } as unknown as Response;
 }
+
+describe('isBuildPhase() (PSEO-P1-2048)', () => {
+  const originalEnv = process.env;
+
+  afterEach(() => {
+    process.env = { ...originalEnv };
+  });
+
+  it('returns true when NEXT_PHASE is phase-production-build', () => {
+    process.env.NEXT_PHASE = 'phase-production-build';
+    expect(isBuildPhase()).toBe(true);
+  });
+
+  it('returns true when NEXT_PHASE is phase-development-build', () => {
+    process.env.NEXT_PHASE = 'phase-development-build';
+    expect(isBuildPhase()).toBe(true);
+  });
+
+  it('returns false when NEXT_PHASE is absent', () => {
+    delete process.env.NEXT_PHASE;
+    expect(isBuildPhase()).toBe(false);
+  });
+
+  it('returns false when NEXT_PHASE is phase-production-server', () => {
+    process.env.NEXT_PHASE = 'phase-production-server';
+    expect(isBuildPhase()).toBe(false);
+  });
+});
 
 describe('safeFetch (FOUND-SCALE-002 AC4)', () => {
   const originalFetch = global.fetch;
@@ -94,6 +125,35 @@ describe('safeFetch (FOUND-SCALE-002 AC4)', () => {
       }),
     );
   });
+
+  // PSEO-P1-2048: Two-tier throwOn5xx
+  it('returns null on 5xx with throwOn5xx=true during build phase', async () => {
+    const origPhase = process.env.NEXT_PHASE;
+    process.env.NEXT_PHASE = 'phase-production-build';
+    global.fetch = jest.fn().mockResolvedValue(
+      mockResponse({}, 503),
+    ) as jest.Mock;
+    const resp = await safeFetch('https://api.test/x', {
+      label: 'test-build-5xx',
+      throwOn5xx: true,
+    });
+    expect(resp).toBeNull();
+    process.env.NEXT_PHASE = origPhase;
+  });
+
+  it('returns null on 5xx with throwOn5xx=false (default behavior unchanged)', async () => {
+    global.fetch = jest.fn().mockResolvedValue(
+      mockResponse({}, 502),
+    ) as jest.Mock;
+    const resp = await safeFetch('https://api.test/x', { label: 'test-502' });
+    expect(resp).toBeNull();
+    expect(SentryMock.captureMessage).toHaveBeenCalledWith(
+      expect.stringContaining('HTTP 502'),
+      expect.objectContaining({
+        tags: expect.objectContaining({ fetch_outcome: 'http_error' }),
+      }),
+    );
+  });
 });
 
 describe('fetchWithBudget (FOUND-SCALE-002 AC7)', () => {
@@ -134,7 +194,7 @@ describe('fetchWithBudget (FOUND-SCALE-002 AC7)', () => {
     expect(global.fetch).toHaveBeenCalledTimes(2);
   });
 
-  it('returns fallback after all attempts fail', async () => {
+  it('returns fallback after all attempts fail (default throwOn5xx=false)', async () => {
     global.fetch = jest
       .fn()
       .mockResolvedValue(mockResponse({}, 503)) as jest.Mock;
@@ -177,4 +237,23 @@ describe('fetchWithBudget (FOUND-SCALE-002 AC7)', () => {
       }),
     );
   });
+
+  // PSEO-P1-2048: Two-tier throwOn5xx — build phase returns fallback
+  it('returns fallback on 5xx with throwOn5xx=true during build', async () => {
+    const origPhase = process.env.NEXT_PHASE;
+    process.env.NEXT_PHASE = 'phase-production-build';
+    global.fetch = jest
+      .fn()
+      .mockResolvedValue(mockResponse({}, 500)) as jest.Mock;
+    const result = await fetchWithBudget('https://api.test/x', {
+      label: 'test-build',
+      retries: 1,
+      fallback: null,
+      throwOn5xx: true,
+    });
+    expect(result).toBeNull();
+    expect(global.fetch).toHaveBeenCalledTimes(2);
+    process.env.NEXT_PHASE = origPhase;
+  });
+
 });

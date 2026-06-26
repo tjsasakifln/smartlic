@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { buildCanonical, getFreshnessLabel } from '@/lib/seo';
 import { ssgLimitedFetch } from '@/lib/concurrency';
+import { fetchWithBudget } from '@/lib/safe-fetch';
 import EmptyStateSEO from '@/components/seo/EmptyStateSEO';
 import { getUfPrep } from '@/lib/programmatic';
 import LandingNavbar from '@/app/components/landing/LandingNavbar';
@@ -62,21 +63,22 @@ interface MunicipioProfile {
   atividade_recente: AtividadeRecente;
 }
 
+/**
+ * PSEO-P1-2048: Migrado para fetchWithBudget com throwOn5xx: true.
+ * Estrategia two-tier: build retorna null, ISR throw preserva stale cache.
+ */
 async function fetchProfile(slug: string): Promise<MunicipioProfile | null> {
   const backendUrl = process.env.BACKEND_URL || 'http://localhost:8000';
-  // SEO-FE-ISR-001 (#1038): no try/catch — let network/timeout errors propagate so
-  // ISR keeps the last-good cached page rather than caching a null-driven EmptyState.
-  const res = await ssgLimitedFetch(`${backendUrl}/v1/municipios/${slug}/profile`, {
-    next: { revalidate: 3600 }, // 1h ISR
-    signal: AbortSignal.timeout(15_000),
-  });
-  if (res.status >= 500) {
-    // Transient backend error — throw so ISR preserves last-good cache.
-    throw new Error(`municipios_profile_backend_5xx:${res.status}`);
-  }
-  // 4xx (incl. 404) → genuine "no data" — render EmptyStateSEO.
-  if (!res.ok) return null;
-  return await res.json();
+  return fetchWithBudget<MunicipioProfile>(
+    `${backendUrl}/v1/municipios/${slug}/profile`,
+    {
+      timeout: 15000,
+      retries: 1,
+      revalidate: 3600, // 1h ISR
+      throwOn5xx: true,
+      label: `municipios-profile-${slug}`,
+    },
+  );
 }
 
 export async function generateStaticParams() {

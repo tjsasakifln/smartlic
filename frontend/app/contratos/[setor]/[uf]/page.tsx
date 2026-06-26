@@ -10,13 +10,13 @@ import {
   fetchSectorUfBlogStats,
 } from '@/lib/programmatic';
 import { formatBRL } from '@/lib/sectors';
+import { fetchWithBudget } from '@/lib/safe-fetch';
 import {
   buildCanonical,
   buildOperationalTitle,
   buildOperationalDescription,
   getFreshnessLabel,
 } from '@/lib/seo';
-import { ssgLimitedFetch } from '@/lib/concurrency';
 import LandingNavbar from '@/app/components/landing/LandingNavbar';
 import Footer from '@/app/components/Footer';
 import SeoBannerCta from '@/app/components/landing/SeoBannerCta';
@@ -64,24 +64,22 @@ interface ContratosStats {
   atividade_recente: AtividadeRecente;
 }
 
+/**
+ * PSEO-P1-2048: Migrado para fetchWithBudget com throwOn5xx: true.
+ * Estrategia two-tier gerencia build vs ISR automaticamente.
+ */
 async function fetchContratosStats(setor: string, uf: string): Promise<ContratosStats | null> {
   const backendUrl = process.env.BACKEND_URL || 'http://localhost:8000';
-  try {
-    const res = await ssgLimitedFetch(`${backendUrl}/v1/contratos/${setor}/${uf}/stats`, {
-      next: { revalidate: 14400 },
-      signal: AbortSignal.timeout(10000),
-    });
-    if (res.status >= 500) {
-      // Transient backend error — throw so ISR preserves last-good cache.
-      throw new Error(`contratos_stats_backend_5xx:${res.status}`);
-    }
-    // 4xx (incl. 404) → genuine "no data" — render EmptyStateSEO.
-    if (!res.ok) return null;
-    return await res.json();
-  } catch (err) {
-    if (err instanceof Error && err.message.startsWith('contratos_stats_backend_5xx')) throw err;
-    return null;
-  }
+  return fetchWithBudget<ContratosStats>(
+    `${backendUrl}/v1/contratos/${setor}/${uf}/stats`,
+    {
+      timeout: 10000,
+      retries: 1,
+      revalidate: 14400,
+      throwOn5xx: true,
+      label: `contratos-stats-${setor}-${uf}`,
+    },
+  );
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {

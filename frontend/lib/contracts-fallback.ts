@@ -11,7 +11,7 @@
  */
 
 import { formatBRL, getUfPrep, SECTOR_SLUG_TO_BACKEND_ID } from './programmatic';
-import { ssgLimitedFetch } from '@/lib/concurrency';
+import { fetchWithBudget } from '@/lib/safe-fetch';
 
 // ---------------------------------------------------------------------------
 // Shared entry types (mirror the backend ContratosSetor* models)
@@ -83,17 +83,17 @@ export async function fetchContratosSetorUfStats(
   const backendUrl = process.env.BACKEND_URL;
   if (!backendUrl) return null;
 
-  try {
-    const sectorId = SECTOR_SLUG_TO_BACKEND_ID[sectorSlug] ?? sectorSlug.replace(/-/g, '_');
-    const res = await ssgLimitedFetch(
-      `${backendUrl}/v1/blog/stats/contratos/${sectorId}/uf/${uf.toUpperCase()}`,
-      { signal: AbortSignal.timeout(25000) },
-    );
-    if (!res.ok) return null;
-    return await res.json();
-  } catch {
-    return null;
-  }
+  const sectorId = SECTOR_SLUG_TO_BACKEND_ID[sectorSlug] ?? sectorSlug.replace(/-/g, '_');
+  return fetchWithBudget<ContratosSetorUfStats>(
+    `${backendUrl}/v1/blog/stats/contratos/${sectorId}/uf/${uf.toUpperCase()}`,
+    {
+      timeout: 25000,
+      retries: 1,
+      revalidate: 3600,
+      throwOn5xx: true,
+      label: `contratos-uf-${sectorId}-${uf}`,
+    },
+  );
 }
 
 export async function fetchContratosCidadeStats(
@@ -102,16 +102,16 @@ export async function fetchContratosCidadeStats(
   const backendUrl = process.env.BACKEND_URL;
   if (!backendUrl) return null;
 
-  try {
-    const res = await ssgLimitedFetch(
-      `${backendUrl}/v1/blog/stats/contratos/cidade/${encodeURIComponent(cidadeSlug)}`,
-      { signal: AbortSignal.timeout(25000) },
-    );
-    if (!res.ok) return null;
-    return await res.json();
-  } catch {
-    return null;
-  }
+  return fetchWithBudget<ContratosCidadeStats>(
+    `${backendUrl}/v1/blog/stats/contratos/cidade/${encodeURIComponent(cidadeSlug)}`,
+    {
+      timeout: 25000,
+      retries: 1,
+      revalidate: 3600,
+      throwOn5xx: true,
+      label: `contratos-cidade-${cidadeSlug}`,
+    },
+  );
 }
 
 export async function fetchContratosCidadeSetorStats(
@@ -121,17 +121,17 @@ export async function fetchContratosCidadeSetorStats(
   const backendUrl = process.env.BACKEND_URL;
   if (!backendUrl) return null;
 
-  try {
-    const sectorId = SECTOR_SLUG_TO_BACKEND_ID[sectorSlug] ?? sectorSlug.replace(/-/g, '_');
-    const res = await ssgLimitedFetch(
-      `${backendUrl}/v1/blog/stats/contratos/cidade/${encodeURIComponent(cidadeSlug)}/setor/${sectorId}`,
-      { signal: AbortSignal.timeout(25000) },
-    );
-    if (!res.ok) return null;
-    return await res.json();
-  } catch {
-    return null;
-  }
+  const sectorId = SECTOR_SLUG_TO_BACKEND_ID[sectorSlug] ?? sectorSlug.replace(/-/g, '_');
+  return fetchWithBudget<ContratosCidadeSetorStats>(
+    `${backendUrl}/v1/blog/stats/contratos/cidade/${encodeURIComponent(cidadeSlug)}/setor/${sectorId}`,
+    {
+      timeout: 25000,
+      retries: 1,
+      revalidate: 3600,
+      throwOn5xx: true,
+      label: `contratos-cidade-setor-${cidadeSlug}-${sectorId}`,
+    },
+  );
 }
 
 // ---------------------------------------------------------------------------
