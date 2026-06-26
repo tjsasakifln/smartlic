@@ -19,8 +19,13 @@ from pydantic import BaseModel
 
 from sectors import SECTORS, SectorConfig
 from public_rate_limit import rate_limit_public
+from utils.seo_semaphore import seo_semaphore, SEO_SEMAPHORE_DISABLED
 
 logger = logging.getLogger(__name__)
+
+# POOL-001 (#2047): SEOSemaphore (Priority 2, max 2 concurrent).
+_SEM = seo_semaphore("sectors_public", max_concurrent=2)
+
 router = APIRouter(
     tags=["sectors-public"],
     # STORY-2.10 (EPIC-TD-2026Q2 P0): Rate limit público (60/min por IP).
@@ -245,7 +250,12 @@ async def _generate_sector_stats(sector_id: str, sector: SectorConfig) -> dict:
     # Top 10 UFs by procurement volume
     target_ufs = ["SP", "RJ", "MG", "DF", "PR", "BA", "RS", "GO", "PE", "SC"]
 
+    # POOL-001: Acquire SEOSemaphore before DB query
+    acquired = False
     try:
+        if not SEO_SEMAPHORE_DISABLED:
+            await _SEM.acquire(f"sector:{sector_id}")
+            acquired = True
         matched = await query_datalake(
             ufs=target_ufs,
             data_inicial=data_inicial,
@@ -255,6 +265,12 @@ async def _generate_sector_stats(sector_id: str, sector: SectorConfig) -> dict:
         )
     except Exception as e:
         logger.warning("Datalake query failed for sector stats %s: %s", sector_id, e)
+        if acquired:
+            await _SEM.set_negative_cache(f"sector:{sector_id}")
+        matched = []
+    finally:
+        if acquired:
+            _SEM.release()
         matched = []
 
     return _compute_stats(sector_id, sector, matched, now)

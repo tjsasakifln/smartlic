@@ -25,9 +25,13 @@ from pydantic import BaseModel
 from pipeline.budget import _run_with_budget
 from routes._recency_helpers import AtividadeRecenteData, build_recency_from_records
 from sectors import SECTORS
+from utils.seo_semaphore import seo_semaphore, SEO_SEMAPHORE_DISABLED
 
 logger = logging.getLogger(__name__)
 router = APIRouter(tags=["contratos-publicos"])
+
+# POOL-001 (#2047): SEOSemaphore (Priority 1, max 3 concurrent).
+_SEM = seo_semaphore("contratos_publicos", max_concurrent=3)
 
 _CACHE_TTL_SECONDS = 24 * 60 * 60  # 24h
 # Negative-cache TTL when DB query fails / event loop saturates: 5min.
@@ -329,25 +333,39 @@ async def orgao_contratos_stats(cnpj: str):
             offset += batch_size
         return all_rows
 
+    # POOL-001: Acquire SEOSemaphore before DB query
+    acquired = False
     try:
-        rows = await _run_with_budget(
-            _paginate_orgao(),
-            budget=_SECTOR_QUERY_BUDGET_S,
-            phase="route",
-            source="contratos_publicos.orgao_contratos_stats",
-        )
-    except asyncio.TimeoutError:
-        logger.warning(
-            "orgao_contratos query exceeded %.1fs budget for %s", _SECTOR_QUERY_BUDGET_S, cnpj_clean,
-        )
-        partial = _build_orgao_unavailable(cnpj_clean)
-        _set_cached(_orgao_contratos_cache, cache_key, partial, ttl=_NEGATIVE_CACHE_TTL_SECONDS)
-        return OrgaoContratosStatsResponse(**partial)
-    except Exception as e:
-        logger.error("orgao_contratos DB query failed for %s: %s", cnpj_clean, e)
-        partial = _build_orgao_unavailable(cnpj_clean)
-        _set_cached(_orgao_contratos_cache, cache_key, partial, ttl=_NEGATIVE_CACHE_TTL_SECONDS)
-        return OrgaoContratosStatsResponse(**partial)
+        if not SEO_SEMAPHORE_DISABLED:
+            await _SEM.acquire(cache_key)
+            acquired = True
+
+        try:
+            rows = await _run_with_budget(
+                _paginate_orgao(),
+                budget=_SECTOR_QUERY_BUDGET_S,
+                phase="route",
+                source="contratos_publicos.orgao_contratos_stats",
+            )
+        except asyncio.TimeoutError:
+            logger.warning(
+                "orgao_contratos query exceeded %.1fs budget for %s", _SECTOR_QUERY_BUDGET_S, cnpj_clean,
+            )
+            if acquired:
+                await _SEM.set_negative_cache(cache_key)
+            partial = _build_orgao_unavailable(cnpj_clean)
+            _set_cached(_orgao_contratos_cache, cache_key, partial, ttl=_NEGATIVE_CACHE_TTL_SECONDS)
+            return OrgaoContratosStatsResponse(**partial)
+        except Exception as e:
+            logger.error("orgao_contratos DB query failed for %s: %s", cnpj_clean, e)
+            if acquired:
+                await _SEM.set_negative_cache(cache_key)
+            partial = _build_orgao_unavailable(cnpj_clean)
+            _set_cached(_orgao_contratos_cache, cache_key, partial, ttl=_NEGATIVE_CACHE_TTL_SECONDS)
+            return OrgaoContratosStatsResponse(**partial)
+    finally:
+        if acquired:
+            _SEM.release()
 
     if not rows:
         raise HTTPException(status_code=404, detail="Nenhum contrato encontrado para este orgao")
@@ -464,7 +482,17 @@ async def contratos_stats(setor: str, uf: str):
         return ContratosStatsResponse(**cached)
 
     sector = SECTORS[sector_id_clean]
-    matched, _timed_out = await _fetch_sector_contracts(sector_id_clean, uf_upper)
+
+    # POOL-001: Acquire SEOSemaphore before DB query
+    acquired = False
+    try:
+        if not SEO_SEMAPHORE_DISABLED:
+            await _SEM.acquire(cache_key)
+            acquired = True
+        matched, _timed_out = await _fetch_sector_contracts(sector_id_clean, uf_upper)
+    finally:
+        if acquired:
+            _SEM.release()
 
     # Aggregations
     total_value = 0.0
@@ -602,7 +630,17 @@ async def fornecedores_stats(setor: str, uf: str):
         return FornecedoresStatsResponse(**cached)
 
     sector = SECTORS[sector_id_clean]
-    matched, _timed_out = await _fetch_sector_contracts(sector_id_clean, uf_upper)
+
+    # POOL-001: Acquire SEOSemaphore before DB query
+    acquired = False
+    try:
+        if not SEO_SEMAPHORE_DISABLED:
+            await _SEM.acquire(cache_key)
+            acquired = True
+        matched, _timed_out = await _fetch_sector_contracts(sector_id_clean, uf_upper)
+    finally:
+        if acquired:
+            _SEM.release()
 
     # Aggregate by supplier
     forn_agg: dict[str, dict] = defaultdict(lambda: {"nome": "", "cnpj": "", "contratos": 0, "valor": 0.0})
@@ -745,6 +783,10 @@ async def fornecedor_profile(cnpj: str):
     if cached:
         return FornecedorProfileResponse(**cached)
 
+    # POOL-001: Acquire SEOSemaphore before DB query
+    if not SEO_SEMAPHORE_DISABLED:
+        await _SEM.acquire(cache_key)
+
     try:
         response_data = await asyncio.wait_for(
             _build_fornecedor_profile(cnpj_clean),
@@ -759,14 +801,21 @@ async def fornecedor_profile(cnpj: str):
             "fornecedor_profile budget %.0fs exceeded for %s — returning unavailable partial",
             _FORNECEDOR_PROFILE_BUDGET_S, cnpj_clean,
         )
+        if not SEO_SEMAPHORE_DISABLED:
+            await _SEM.set_negative_cache(cache_key)
         partial = _build_fornecedor_unavailable(cnpj_clean)
         _set_cached(_fornecedor_profile_cache, cache_key, partial, ttl=_NEGATIVE_CACHE_TTL_SECONDS)
         return FornecedorProfileResponse(**partial)
     except Exception as exc:
         logger.warning("fornecedor_profile unexpected error for %s: %s", cnpj_clean, exc)
+        if not SEO_SEMAPHORE_DISABLED:
+            await _SEM.set_negative_cache(cache_key)
         partial = _build_fornecedor_unavailable(cnpj_clean)
         _set_cached(_fornecedor_profile_cache, cache_key, partial, ttl=_NEGATIVE_CACHE_TTL_SECONDS)
         return FornecedorProfileResponse(**partial)
+    finally:
+        if not SEO_SEMAPHORE_DISABLED:
+            _SEM.release()
 
 
 def _build_fornecedor_unavailable(cnpj: str) -> dict:

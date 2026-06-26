@@ -18,9 +18,13 @@ from pydantic import BaseModel
 
 from pipeline.budget import _run_with_budget
 from routes._recency_helpers import AtividadeRecenteData, build_recency_from_records
+from utils.seo_semaphore import seo_semaphore, SEO_SEMAPHORE_DISABLED
 
 logger = logging.getLogger(__name__)
 router = APIRouter(tags=["orgao-publico"])
+
+# POOL-001 (#2047): SEOSemaphore (Priority 1, max 3 concurrent).
+_SEM = seo_semaphore("orgao_publico", max_concurrent=3)
 
 _CACHE_TTL_SECONDS = 24 * 60 * 60  # 24h
 _orgao_cache: dict[str, tuple[dict, float]] = {}
@@ -168,7 +172,17 @@ async def orgao_stats(cnpj: str):
         _set_cached(cnpj_clean, redis_cached)
         return OrgaoStatsResponse(**redis_cached)
 
-    data, partial = await _build_orgao_stats(cnpj_clean)
+    # POOL-001: Acquire SEOSemaphore before DB query
+    acquired = False
+    try:
+        if not SEO_SEMAPHORE_DISABLED:
+            await _SEM.acquire(cnpj_clean)
+            acquired = True
+        data, partial = await _build_orgao_stats(cnpj_clean)
+    finally:
+        if acquired:
+            _SEM.release()
+
     if partial:
         # RES-BE-015: cache the unavailable shape under a short TTL so a
         # Googlebot retry storm does not re-saturate the pool, but the

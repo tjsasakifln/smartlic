@@ -20,9 +20,13 @@ from pydantic import BaseModel
 
 from sectors import SECTORS
 from unified_schemas.unified import VALID_UFS
+from utils.seo_semaphore import seo_semaphore, SEO_SEMAPHORE_DISABLED
 
 logger = logging.getLogger(__name__)
 router = APIRouter(tags=["daily_digest"])
+
+# POOL-001 (#2047): SEOSemaphore (Priority 3, max 2 concurrent).
+_SEM = seo_semaphore("daily_digest", max_concurrent=2)
 
 _CACHE_TTL_SECONDS = 3600  # 1h
 _daily_cache: dict[str, tuple[dict, float]] = {}

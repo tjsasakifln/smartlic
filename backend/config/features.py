@@ -183,6 +183,12 @@ FOUNDERS_OFFER_ENABLED: bool = str_to_bool(os.getenv("FOUNDERS_OFFER_ENABLED", "
 # When false (default in dev/staging): sends Content-Security-Policy-Report-Only
 CSP_ENFORCE_MODE: bool = str_to_bool(os.getenv("CSP_ENFORCE_MODE", "false"))
 
+# POOL-001 (#2047): SEO Semaphore global kill-switch.
+# Set SEO_SEMAPHORE_DISABLED=true to disable ALL semaphore protection across all
+# 18+ pSEO routers (emergency rollback without code change or deploy).
+# The seo_semaphore module reads this directly; this export is for convenience.
+SEO_SEMAPHORE_DISABLED: bool = str_to_bool(os.getenv("SEO_SEMAPHORE_DISABLED", "false"))
+
 # NETINT-007 (EPIC-NETINT #1263): network_events cleanup job retention config
 NETWORK_EVENTS_RETENTION_DAYS: int = int(os.getenv("NETWORK_EVENTS_RETENTION_DAYS", "365"))
 NETWORK_EVENTS_AGG_WINDOW_DAYS: int = int(os.getenv("NETWORK_EVENTS_AGG_WINDOW_DAYS", "7"))

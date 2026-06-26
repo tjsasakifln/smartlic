@@ -25,9 +25,13 @@ from pydantic import BaseModel
 
 from metrics import record_sitemap_count
 from pipeline.budget import _run_with_budget
+from utils.seo_semaphore import seo_semaphore, SEO_SEMAPHORE_DISABLED
 
 logger = logging.getLogger(__name__)
 router = APIRouter(tags=["municipios-publicos"])
+
+# POOL-001 (#2047): SEOSemaphore (Priority 2, max 2 concurrent).
+_SEM = seo_semaphore("municipios_publicos", max_concurrent=2)
 
 _CACHE_TTL_SECONDS = 24 * 60 * 60  # 24h
 # RES-BE-015: short TTL for failure paths so Googlebot retry storms cannot
@@ -402,27 +406,36 @@ async def municipio_profile(slug: str):
         )
         return resp.data or []
 
+    # POOL-001: Acquire SEOSemaphore before enriched_entities query
+    acquired = False
     try:
-        enriched_rows = await _run_with_budget(
-            _enriched_query_async(),
-            budget=_ENRICHED_QUERY_BUDGET_S,
-            phase="route",
-            source="municipios_publicos.enriched_entities",
-        )
-        if enriched_rows:
-            enrich_data = enriched_rows[0].get("data") or {}
-            pib_per_capita = enrich_data.get("pib_per_capita")
-            populacao = enrich_data.get("populacao") or populacao
-    except asyncio.TimeoutError:
-        logger.warning(
-            "[Municipios] enriched_entities exceeded %.1fs budget for %s",
-            _ENRICHED_QUERY_BUDGET_S, ibge_code,
-        )
-    except Exception as e:
-        logger.warning(
-            "[Municipios] enriched_entities falhou para %s (continuando sem enrichment): %s",
-            ibge_code, e,
-        )
+        if not SEO_SEMAPHORE_DISABLED:
+            await _SEM.acquire(f"enriched:{ibge_code}")
+            acquired = True
+        try:
+            enriched_rows = await _run_with_budget(
+                _enriched_query_async(),
+                budget=_ENRICHED_QUERY_BUDGET_S,
+                phase="route",
+                source="municipios_publicos.enriched_entities",
+            )
+            if enriched_rows:
+                enrich_data = enriched_rows[0].get("data") or {}
+                pib_per_capita = enrich_data.get("pib_per_capita")
+                populacao = enrich_data.get("populacao") or populacao
+        except asyncio.TimeoutError:
+            logger.warning(
+                "[Municipios] enriched_entities exceeded %.1fs budget for %s",
+                _ENRICHED_QUERY_BUDGET_S, ibge_code,
+            )
+        except Exception as e:
+            logger.warning(
+                "[Municipios] enriched_entities falhou para %s (continuando sem enrichment): %s",
+                ibge_code, e,
+            )
+    finally:
+        if acquired:
+            _SEM.release()
 
     # Licitacoes abertas no datalake (pncp_raw_bids)
     # STORY-425: use correct column name `data_publicacao` (not `data_publicacao_pncp` — never existed)
