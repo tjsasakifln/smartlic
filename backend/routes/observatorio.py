@@ -29,9 +29,13 @@ from metrics import OBSERVATORIO_BUDGET_EXCEEDED
 from pipeline.budget import _run_with_budget
 from utils.postgrest_paginate import paginate_full
 from utils.seo_response import apply_seo_empty_response
+from utils.seo_semaphore import seo_semaphore, SEO_SEMAPHORE_DISABLED
 
 logger = logging.getLogger(__name__)
 router = APIRouter(tags=["observatorio"])
+
+# POOL-001 (#2047): SEOSemaphore for observatorio (Priority 1, max 3 concurrent).
+_SEM = seo_semaphore("observatorio", max_concurrent=3)
 
 # STORY-431 AC10 + RES-BE-015: hard budget per Supabase round-trip
 # (current+prev month). Tightened from 15.0s to 8.0s — the previous value
@@ -231,7 +235,16 @@ async def get_relatorio_mensal(
             return empty_resp
         return RelatorioMensal(**cached)
 
-    data = await _generate_relatorio(mes, ano)
+    # POOL-001: Acquire SEOSemaphore before generating relatorio
+    acquired = False
+    try:
+        if not SEO_SEMAPHORE_DISABLED:
+            await _SEM.acquire(cache_key)
+            acquired = True
+        data = await _generate_relatorio(mes, ano)
+    finally:
+        if acquired:
+            _SEM.release()
 
     # STORY-431 AC10: shorter TTL when payload is empty (negative cache 5min)
     # so the next request retries quickly once data ingestion catches up.
@@ -263,7 +276,16 @@ async def get_relatorio_csv(
     cache_key = f"{mes}:{ano}"
     cached = _get_cached(cache_key)
     if not cached:
-        cached = await _generate_relatorio(mes, ano)
+        # POOL-001: Acquire SEOSemaphore before generating relatorio
+        acquired = False
+        try:
+            if not SEO_SEMAPHORE_DISABLED:
+                await _SEM.acquire(cache_key)
+                acquired = True
+            cached = await _generate_relatorio(mes, ano)
+        finally:
+            if acquired:
+                _SEM.release()
         _set_cached(cache_key, cached)
 
     relatorio = RelatorioMensal(**cached)

@@ -21,9 +21,13 @@ from fastapi import APIRouter, HTTPException, Query
 from pydantic import BaseModel
 
 from supabase_client import get_supabase, sb_execute
+from utils.seo_semaphore import seo_semaphore, SEO_SEMAPHORE_DISABLED
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/comparador", tags=["comparador"])
+
+# POOL-001 (#2047): SEOSemaphore (Priority 3, max 2 concurrent).
+_SEM = seo_semaphore("comparador", max_concurrent=2)
 
 # 1h InMemory cache (matches ISR revalidation period)
 _CACHE_TTL_SECONDS = 60 * 60

@@ -18,9 +18,13 @@ from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
 from sectors import SECTORS
+from utils.seo_semaphore import seo_semaphore, SEO_SEMAPHORE_DISABLED
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/alertas", tags=["alertas-publicos"])
+
+# POOL-001 (#2047): SEOSemaphore (Priority 2, max 2 concurrent).
+_SEM = seo_semaphore("alertas_publicos", max_concurrent=2)
 
 # 1h InMemory cache (matches ISR revalidation period)
 _CACHE_TTL_SECONDS = 60 * 60
@@ -96,7 +100,12 @@ async def get_alertas(setor_id: str, uf: str):
     data_final = now.strftime("%Y-%m-%d")
     data_inicial = (now - timedelta(days=10)).strftime("%Y-%m-%d")
 
+    # POOL-001: Acquire SEOSemaphore before DB query
+    acquired = False
     try:
+        if not SEO_SEMAPHORE_DISABLED:
+            await _SEM.acquire(cache_key)
+            acquired = True
         results = await query_datalake(
             ufs=[uf_upper],
             data_inicial=data_inicial,
@@ -106,7 +115,12 @@ async def get_alertas(setor_id: str, uf: str):
         )
     except Exception as e:
         logger.warning("Failed to query datalake for alertas %s/%s: %s", sector_id_clean, uf_upper, e)
+        if acquired:
+            await _SEM.set_negative_cache(cache_key)
         results = []
+    finally:
+        if acquired:
+            _SEM.release()
 
     # Filter by sector keywords (substring match, same as blog_stats.py)
     keywords_lower = {kw.lower() for kw in sector.keywords}

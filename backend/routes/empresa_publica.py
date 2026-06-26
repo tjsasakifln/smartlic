@@ -20,9 +20,13 @@ from pydantic import BaseModel
 from routes._recency_helpers import AtividadeRecenteData, build_recency_from_records
 from sectors import SECTORS
 from utils.cnae_mapping import map_cnae_to_setor, get_setor_name
+from utils.seo_semaphore import seo_semaphore, SEO_SEMAPHORE_DISABLED
 
 logger = logging.getLogger(__name__)
 router = APIRouter(tags=["empresa-publica"])
+
+# POOL-001 (#2047): SEOSemaphore (Priority 1, max 3 concurrent).
+_SEM = seo_semaphore("empresa_publica", max_concurrent=3)
 
 _CACHE_TTL_SECONDS = 24 * 60 * 60  # 24h
 # Negative-cache TTL: when _build_perfil times out (Supabase saturated under
@@ -168,24 +172,38 @@ async def perfil_b2g(cnpj: str):
     if cached:
         return PerfilB2GResponse(**cached)
 
+    # POOL-001: Acquire SEOSemaphore before DB query
+    acquired = False
     try:
-        data = await asyncio.wait_for(_build_perfil(cnpj_clean), timeout=_PERFIL_TOTAL_BUDGET_S)
-        _set_cached(cnpj_clean, data, ttl=_CACHE_TTL_SECONDS)
-    except asyncio.TimeoutError:
-        logger.warning(
-            "perfil_b2g: total budget %.0fs exceeded for %s — returning unavailable partial",
-            _PERFIL_TOTAL_BUDGET_S, cnpj_clean,
-        )
-        data = _build_unavailable_response(cnpj_clean)
-        _set_cached(cnpj_clean, data, ttl=_NEGATIVE_CACHE_TTL_SECONDS)
-    except HTTPException:
-        raise
-    except Exception as exc:
-        logger.warning("perfil_b2g: unexpected error for %s: %s", cnpj_clean, exc)
-        data = _build_unavailable_response(cnpj_clean)
-        _set_cached(cnpj_clean, data, ttl=_NEGATIVE_CACHE_TTL_SECONDS)
+        if not SEO_SEMAPHORE_DISABLED:
+            await _SEM.acquire(cnpj_clean)
+            acquired = True
 
-    return PerfilB2GResponse(**data)
+        try:
+            data = await asyncio.wait_for(_build_perfil(cnpj_clean), timeout=_PERFIL_TOTAL_BUDGET_S)
+            _set_cached(cnpj_clean, data, ttl=_CACHE_TTL_SECONDS)
+        except asyncio.TimeoutError:
+            logger.warning(
+                "perfil_b2g: total budget %.0fs exceeded for %s — returning unavailable partial",
+                _PERFIL_TOTAL_BUDGET_S, cnpj_clean,
+            )
+            if acquired:
+                await _SEM.set_negative_cache(cnpj_clean)
+            data = _build_unavailable_response(cnpj_clean)
+            _set_cached(cnpj_clean, data, ttl=_NEGATIVE_CACHE_TTL_SECONDS)
+        except HTTPException:
+            raise
+        except Exception as exc:
+            logger.warning("perfil_b2g: unexpected error for %s: %s", cnpj_clean, exc)
+            if acquired:
+                await _SEM.set_negative_cache(cnpj_clean)
+            data = _build_unavailable_response(cnpj_clean)
+            _set_cached(cnpj_clean, data, ttl=_NEGATIVE_CACHE_TTL_SECONDS)
+
+        return PerfilB2GResponse(**data)
+    finally:
+        if acquired:
+            _SEM.release()
 
 
 def _build_unavailable_response(cnpj: str) -> dict:

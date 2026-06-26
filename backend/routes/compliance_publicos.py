@@ -25,9 +25,13 @@ from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
 from pipeline.budget import _run_with_budget
+from utils.seo_semaphore import seo_semaphore, SEO_SEMAPHORE_DISABLED
 
 logger = logging.getLogger(__name__)
 router = APIRouter(tags=["compliance-publicos"])
+
+# POOL-001 (#2047): SEOSemaphore (Priority 3, max 2 concurrent).
+_SEM = seo_semaphore("compliance_publicos", max_concurrent=2)
 
 _CACHE_TTL_SECONDS = 24 * 60 * 60  # 24h
 _compliance_cache: dict[str, tuple[dict, float]] = {}

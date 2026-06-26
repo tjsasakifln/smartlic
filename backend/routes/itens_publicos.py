@@ -26,9 +26,13 @@ from pipeline.budget import _run_with_budget
 from routes._sitemap_cache_headers import SITEMAP_CACHE_HEADERS
 from pydantic import BaseModel
 from metrics import record_sitemap_count
+from utils.seo_semaphore import seo_semaphore, SEO_SEMAPHORE_DISABLED
 
 logger = logging.getLogger(__name__)
 router = APIRouter(tags=["itens-publicos"])
+
+# POOL-001 (#2047): SEOSemaphore (Priority 2, max 2 concurrent).
+_SEM = seo_semaphore("itens_publicos", max_concurrent=2)
 
 _CACHE_TTL_SECONDS = 24 * 60 * 60     # 24h para precos
 _CATMAT_CACHE_TTL = 7 * 24 * 60 * 60  # 7 dias para descricao do item
@@ -475,7 +479,12 @@ async def _fetch_price_data(nome_item: str) -> tuple[list[float], list[dict]]:
             offset += batch_size
         return rows[:max_total]
 
+    # POOL-001: Acquire SEOSemaphore before DB query
+    acquired = False
     try:
+        if not SEO_SEMAPHORE_DISABLED:
+            await _SEM.acquire(f"item:{nome_item[:30]}")
+            acquired = True
         rows = await _run_with_budget(
             _async_fetch(),
             budget=_PRICE_QUERY_BUDGET_S,
@@ -487,10 +496,17 @@ async def _fetch_price_data(nome_item: str) -> tuple[list[float], list[dict]]:
             "[Itens] price_data query exceeded %.1fs budget for '%s'",
             _PRICE_QUERY_BUDGET_S, nome_item,
         )
+        if acquired:
+            await _SEM.set_negative_cache(f"item:{nome_item[:30]}")
         return [], []
     except Exception as e:
         logger.error("[Itens] price_data query falhou para '%s': %s", nome_item, e)
+        if acquired:
+            await _SEM.set_negative_cache(f"item:{nome_item[:30]}")
         return [], []
+    finally:
+        if acquired:
+            _SEM.release()
 
     # ISSUE-1650: Second keyword filter moved server-side (chained ilike in
     # the SQL builder above). Python-side post-filter removed to prevent

@@ -26,8 +26,12 @@ from admin import require_admin_ops
 from metrics import record_sitemap_count
 from routes._sitemap_cache_headers import SITEMAP_CACHE_HEADERS
 from schemas.parity import SitemapCacheRefreshResponse
+from utils.seo_semaphore import seo_semaphore, SEO_SEMAPHORE_DISABLED
 
 logger = logging.getLogger(__name__)
+
+# POOL-001 (#2047): SEOSemaphore (Priority 3, max 2 concurrent).
+_SEM = seo_semaphore("sitemap_licitacoes", max_concurrent=2)
 router = APIRouter(tags=["sitemap"])
 
 _CACHE_TTL_SECONDS = 24 * 60 * 60  # 24h success

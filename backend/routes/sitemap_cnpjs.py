@@ -26,9 +26,13 @@ from pydantic import BaseModel
 from metrics import record_sitemap_count
 from routes._sitemap_cache_headers import SITEMAP_CACHE_HEADERS
 from utils.cnpj_validator import is_valid_cnpj_format
+from utils.seo_semaphore import seo_semaphore, SEO_SEMAPHORE_DISABLED
 
 logger = logging.getLogger(__name__)
 router = APIRouter(tags=["sitemap"])
+
+# POOL-001 (#2047): SEOSemaphore (Priority 3, max 2 concurrent).
+_SEM = seo_semaphore("sitemap_cnpjs", max_concurrent=2)
 
 _CACHE_TTL_SECONDS = 24 * 60 * 60  # 24h success
 # Negative cache: quando a MV falha (ex: pg_cron atrasado), retorna vazio

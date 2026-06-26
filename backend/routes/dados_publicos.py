@@ -14,9 +14,13 @@ from typing import Optional
 
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
+from utils.seo_semaphore import seo_semaphore, SEO_SEMAPHORE_DISABLED
 
 logger = logging.getLogger(__name__)
 router = APIRouter(tags=["dados_publicos"])
+
+# POOL-001 (#2047): SEOSemaphore (Priority 3, max 2 concurrent).
+_SEM = seo_semaphore("dados_publicos", max_concurrent=2)
 
 _CACHE_TTL_SECONDS = 6 * 60 * 60  # 6h
 _dados_cache: dict[str, tuple[dict, float]] = {}
