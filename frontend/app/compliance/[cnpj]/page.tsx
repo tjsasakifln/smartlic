@@ -2,7 +2,7 @@ import { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { buildCanonical, getFreshnessLabel } from '@/lib/seo';
-import { ssgLimitedFetch } from '@/lib/concurrency';
+import { fetchWithBudget } from '@/lib/safe-fetch';
 import EmptyStateSEO from '@/components/seo/EmptyStateSEO';
 import LandingNavbar from '@/app/components/landing/LandingNavbar';
 import Footer from '@/app/components/Footer';
@@ -34,22 +34,23 @@ interface ComplianceProfile {
   aviso_legal: string;
 }
 
+/**
+ * PSEO-P1-2048: Migrado para fetchWithBudget com throwOn5xx: true.
+ * Estrategia two-tier: build retorna null, ISR throw preserva stale cache.
+ * 4xx (incl. 400/404) → null via fetchWithBudget (fallback default).
+ */
 async function fetchProfile(cnpj: string): Promise<ComplianceProfile | null> {
   const backendUrl = process.env.BACKEND_URL || 'http://localhost:8000';
-  // SEO-FE-ISR-001 (#1038): no try/catch — let network/timeout errors propagate so
-  // ISR keeps the last-good cached page rather than caching a null-driven EmptyState.
-  const res = await ssgLimitedFetch(`${backendUrl}/v1/compliance/${cnpj}/profile`, {
-    next: { revalidate: 3600 }, // 1h ISR
-    signal: AbortSignal.timeout(15_000),
-  });
-  if (res.status >= 500) {
-    // Transient backend error — throw so ISR preserves last-good cache.
-    throw new Error(`compliance_profile_backend_5xx:${res.status}`);
-  }
-  // 400/404 → genuine "no data" — render EmptyStateSEO.
-  if (res.status === 404 || res.status === 400) return null;
-  if (!res.ok) return null;
-  return await res.json();
+  return fetchWithBudget<ComplianceProfile>(
+    `${backendUrl}/v1/compliance/${cnpj}/profile`,
+    {
+      timeout: 15000,
+      retries: 1,
+      revalidate: 3600, // 1h ISR
+      throwOn5xx: true,
+      label: `compliance-profile-${cnpj}`,
+    },
+  );
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {

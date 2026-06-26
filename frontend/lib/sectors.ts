@@ -2,10 +2,11 @@
  * STORY-324: Sector metadata and API helpers for SEO landing pages.
  *
  * Static sector data (from sectors_data.yaml) + API fetch for stats.
+ *
+ * PSEO-P1-2048: fetchSectorStats e fetchTrendingSectors migrados para
+ * fetchWithBudget com throwOn5xx: true.
  */
-
-import { IS_BUILD_PHASE } from '@/lib/programmatic';
-import * as Sentry from '@sentry/nextjs';
+import { fetchWithBudget } from '@/lib/safe-fetch';
 
 export interface SectorMeta {
   id: string;
@@ -85,47 +86,25 @@ export function getRelatedSectors(currentSlug: string): SectorMeta[] {
 }
 
 /**
- * Fetch sector stats from backend API (server-side only).
+ * PSEO-P1-2048: Migrado para fetchWithBudget com throwOn5xx: true.
  *
- * P0-4 throwOn5xx: During ISR runtime, backend 5xx throws to preserve
- * last-good cached page. During build phase, returns null so SSG renders
- * with fallback instead of killing the build. 4xx returns null as 'no data'.
+ * Fetch sector stats from backend API (server-side only).
+ * Returns null on error (page renders with fallback).
  */
 export async function fetchSectorStats(slug: string): Promise<SectorStats | null> {
   const backendUrl = process.env.BACKEND_URL;
-  if (!backendUrl) {
-    Sentry.addBreadcrumb({ category: 'fetch', message: 'fetchSectorStats: no BACKEND_URL', level: 'info' });
-    return null;
-  }
+  if (!backendUrl) return null;
 
-  try {
-    const res = await fetch(`${backendUrl}/v1/sectors/${slug}/stats`, {
-      next: { revalidate: 21600 }, // 6h ISR
-      signal: AbortSignal.timeout(10000),
-    });
-    if (res.status >= 500) {
-      // Transient backend error — during ISR, throw so Next.js preserves
-      // last-good cache. During initial build, return null so the page
-      // renders with fallback content instead of killing the build.
-      if (IS_BUILD_PHASE) {
-        Sentry.addBreadcrumb({ category: 'fetch', message: `fetchSectorStats: 5xx (${res.status}) during build`, level: 'warning', data: { slug, status: res.status } });
-        return null;
-      }
-      Sentry.addBreadcrumb({ category: 'fetch', message: `fetchSectorStats: 5xx (${res.status}) ISR throw`, level: 'error', data: { slug, status: res.status } });
-      throw new Error(`sector_stats_backend_5xx:${res.status}`);
-    }
-    // 4xx (incl. 404) → genuine 'no data' — render fallback
-    if (!res.ok) {
-      Sentry.addBreadcrumb({ category: 'fetch', message: `fetchSectorStats: ${res.status} no data`, level: 'warning', data: { slug, status: res.status } });
-      return null;
-    }
-    Sentry.addBreadcrumb({ category: 'fetch', message: 'fetchSectorStats: success', level: 'info', data: { slug } });
-    return await res.json();
-  } catch (err) {
-    if (err instanceof Error && err.message.startsWith('sector_stats_backend_5xx')) throw err;
-    Sentry.addBreadcrumb({ category: 'fetch', message: 'fetchSectorStats: network error', level: 'error', data: { slug, error: err instanceof Error ? err.message : String(err) } });
-    return null;
-  }
+  return fetchWithBudget<SectorStats>(
+    `${backendUrl}/v1/sectors/${slug}/stats`,
+    {
+      timeout: 10000,
+      retries: 1,
+      revalidate: 21600, // 6h ISR
+      throwOn5xx: true,
+      label: `sector-stats-${slug}`,
+    },
+  );
 }
 
 /**
@@ -148,18 +127,21 @@ export interface TrendingSector {
   count_this_week: number;
 }
 
+/**
+ * PSEO-P1-2048: Migrado para fetchWithBudget com throwOn5xx: true.
+ */
 export async function fetchTrendingSectors(): Promise<TrendingSector[] | null> {
   const backendUrl = process.env.BACKEND_URL;
   if (!backendUrl) return null;
 
-  try {
-    const res = await fetch(`${backendUrl}/v1/sectors/trending`, {
-      next: { revalidate: 21600 }, // 6h ISR
-      signal: AbortSignal.timeout(10000),
-    });
-    if (!res.ok) return null;
-    return await res.json();
-  } catch {
-    return null;
-  }
+  return fetchWithBudget<TrendingSector[]>(
+    `${backendUrl}/v1/sectors/trending`,
+    {
+      timeout: 10000,
+      retries: 1,
+      revalidate: 21600, // 6h ISR
+      throwOn5xx: true,
+      label: 'sectors-trending',
+    },
+  );
 }

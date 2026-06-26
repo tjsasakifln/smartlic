@@ -18,7 +18,7 @@ import { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import * as Sentry from '@sentry/nextjs';
-import { ssgLimitedFetch } from '@/lib/concurrency';
+import { fetchWithBudget } from '@/lib/safe-fetch';
 import { buildCanonical } from '@/lib/seo';
 import ObservatorioRelatorioClient from './ObservatorioRelatorioClient';
 import { FoundersRibbon } from '@/components/banners/FoundersRibbon';
@@ -50,29 +50,24 @@ function parseSlug(slug: string): { mes: number; ano: number } | null {
 }
 
 /**
- * Issue #1034: Distinguish transient vs terminal failures.
- *
- * - 2xx OK (incl. `is_empty_period:true`) → return parsed payload.
- * - 4xx (e.g. 404 truly not found) → return `null` so page renders EmptyState.
- * - Network error / 5xx / abort → THROW so ISR keeps the last-good cache and
- *   doesn't poison the URL with a 24h terminal `notFound()`.
- *
- * Timeout 15s (was 10s) aligns with Supabase statement_timeout floor for
- * service_role queries.
+ * PSEO-P1-2048: Migrado para fetchWithBudget com throwOn5xx: true.
+ * Dois comportamentos:
+ *   - 2xx + empty payload: retorna parsed (page decide via total_editais).
+ *   - 4xx (incl. 404): retorna null via fetchWithBudget (fallback default).
+ *   - 5xx ISR: throw (preserva stale cache).
+ *   - 5xx build: retorna null (nao quebra build).
  */
-async function fetchRelatorio(mes: number, ano: number) {
-  const resp = await ssgLimitedFetch(`${BACKEND_URL}/v1/observatorio/relatorio/${mes}/${ano}`, {
-    next: { revalidate: 3600 }, // 1h ISR — SEO-FE-ISR-001 (#1038)
-    signal: AbortSignal.timeout(15000),
-  });
-  if (resp.status >= 500) {
-    throw new Error(`observatorio_backend_5xx:${resp.status}`);
-  }
-  if (!resp.ok) {
-    // 4xx → treat as "no data for this period" (not transient).
-    return null;
-  }
-  return await resp.json();
+async function fetchRelatorio(mes: number, ano: number): Promise<any> {
+  return fetchWithBudget(
+    `${BACKEND_URL}/v1/observatorio/relatorio/${mes}/${ano}`,
+    {
+      timeout: 15000,
+      retries: 1,
+      revalidate: 3600, // 1h ISR — SEO-FE-ISR-001 (#1038)
+      throwOn5xx: true,
+      label: 'observatorio-relatorio',
+    },
+  );
 }
 
 export async function generateMetadata({
